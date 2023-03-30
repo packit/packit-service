@@ -460,31 +460,31 @@ def test_report_pending_build_and_test_on_build_submission(
     if generic_statuses:
         flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
             description="Job is in progress...",
-            state=BaseCommitStatus.pending,
+            state=BaseCommitStatus.running,
             url=web_url,
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
             "report_status_to_all_test_jobs"
         ).with_args(
             description="Job is in progress...",
-            state=BaseCommitStatus.pending,
+            state=BaseCommitStatus.running,
             url=DASHBOARD_JOBS_TESTING_FARM_PATH,
         ).once()
     else:
         flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
             description="SRPM build in Copr was submitted...",
-            state=BaseCommitStatus.pending,
+            state=BaseCommitStatus.running,
             url="/results/srpm-builds/1",
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
             "report_status_to_all_test_jobs"
         ).with_args(
             description="SRPM build in Copr was submitted...",
-            state=BaseCommitStatus.pending,
+            state=BaseCommitStatus.running,
             url="/results/srpm-builds/1",
         ).once()
 
-    helper.report_pending_build_and_test_on_build_submission("copr-url")
+    helper.report_running_build_and_test_on_build_submission("copr-url")
 
 
 def test_get_latest_fedora_stable_chroot(github_pr_event):
