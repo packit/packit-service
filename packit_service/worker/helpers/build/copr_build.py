@@ -419,7 +419,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         return self.package_config.jobs.index(self.job_config)
 
-    def report_pending_build_and_test_on_build_submission(self, web_url: str):
+    def report_running_build_and_test_on_build_submission(self, web_url: str):
         """
         Report the first pending status for build/test job considering the
         issue in GitLab where we cannot overwrite the pending status
@@ -440,12 +440,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         self.report_status_to_build(
             description=description,
-            state=BaseCommitStatus.pending,
+            state=BaseCommitStatus.running,
             url=url_for_build,
         )
         self.report_status_to_all_test_jobs(
             description=description,
-            state=BaseCommitStatus.pending,
+            state=BaseCommitStatus.running,
             url=url_for_tests,
         )
 
@@ -479,7 +479,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self._srpm_model.set_copr_build_id(str(build_id))
             self._srpm_model.set_copr_web_url(web_url)
 
-        self.report_pending_build_and_test_on_build_submission(web_url)
+        self.report_running_build_and_test_on_build_submission(web_url)
         self.handle_rpm_build_start(group, build_id, web_url)
 
         return TaskResults(success=True, details={})
