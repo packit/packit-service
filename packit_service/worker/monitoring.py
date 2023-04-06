@@ -56,9 +56,9 @@ class Pushgateway:
             registry=self.registry,
         )
 
-        self.no_status_after_15_s = Counter(
-            "no_status_after_15_s",
-            "Number of PRs/commits with no commit status for more than 15s",
+        self.no_status_after_25_s = Counter(
+            "no_status_after_25_s",
+            "Number of PRs/commits with no commit status for more than 25s",
             registry=self.registry,
         )
 
