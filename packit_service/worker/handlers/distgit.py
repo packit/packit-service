@@ -325,6 +325,8 @@ class AbstractSyncReleaseHandler(
             raise
         except Exception as ex:
             logger.debug(f"{self.sync_release_job_type} failed: {ex}")
+            # make sure exception message is propagated to the logs
+            logging.getLogger("packit").error(str(ex))
             # eat the exception and continue with the execution
             self.sync_release_helper.report_status_for_branch(
                 branch=branch,
