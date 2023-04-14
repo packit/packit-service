@@ -141,6 +141,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.metadata.commit_sha
 
     @property
+    def fmf_path(self) -> str:
+        if self.job_config.fmf_path:
+            return self.job_config.fmf_path
+        return "."
+
+    @property
     def tmt_plan(self) -> Optional[str]:
         if self.job_config.tmt_plan:
             return self.job_config.tmt_plan
@@ -295,7 +301,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return payload_
 
     def _construct_fmf_payload(self) -> dict:
-        fmf = {"url": self.fmf_url}
+        fmf = {
+            "url": self.fmf_url,
+            "path": self.fmf_path,
+        }
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
@@ -524,7 +533,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         try:
             self.project.get_file_content(
-                path=".fmf/version", ref=self.metadata.commit_sha
+                path=f"{self.fmf_path}/.fmf/version", ref=self.metadata.commit_sha
             )
             return True
         except FileNotFoundError:
