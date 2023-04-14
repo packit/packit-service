@@ -611,6 +611,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                 "url": "https://github.com/source/bar",
                 "ref": "0011223344",
                 "merge_sha": "deadbeef",
+                "path": ".",
             }
         },
         "environments": [

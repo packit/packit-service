@@ -702,6 +702,7 @@ def test_payload(
         "url": project_url,
         "ref": commit_sha,
         "merge_sha": "abcdefgh",
+        "path": ".",
     }
     if tmt_plan:
         expected_test["name"] = tmt_plan
@@ -780,46 +781,75 @@ def test_merge_payload_with_extra_params(payload, params, result):
 
 
 @pytest.mark.parametrize(
-    ("fmf_url," "fmf_ref," "result_url," "result_ref," "merge_pr_in_ci"),
+    (
+        "fmf_url",
+        "fmf_ref",
+        "fmf_path",
+        "result_url",
+        "result_ref",
+        "result_path",
+        "merge_pr_in_ci",
+    ),
     [
         (  # custom tests and specified ref
             "https://github.com/mmuzila/test",
             "main",
+            None,
             "https://github.com/mmuzila/test",
             "main",
+            ".",
             True,
         ),
         (  # defaulting to the tests in repo, also merging
             None,
             None,
+            None,
             "https://github.com/packit/packit",
             "feb41e5",
+            ".",
             True,
         ),
         (  # specifying only ref and merging
             None,
             "main",
+            None,
             "https://github.com/packit/packit",
             "feb41e5",
+            ".",
             True,
         ),
         (  # specifying custom repo with tests, no ref
             "https://github.com/mmuzila/test",
             None,
+            None,
             "https://github.com/mmuzila/test",
             None,
+            ".",
+            True,
+        ),
+        (  # specifying custom fmf path
+            None,
+            None,
+            "custom/path",
+            "https://github.com/packit/packit",
+            "feb41e5",
+            "custom/path",
             True,
         ),
         (  # defaulting to the tests in repo, no merging
             None,
             None,
+            None,
             "https://github.com/packit/packit",
             "feb41e5",
+            ".",
             False,
         ),
     ],
 )
-def test_test_repo(fmf_url, fmf_ref, result_url, result_ref, merge_pr_in_ci):
+def test_test_repo(
+    fmf_url, fmf_ref, fmf_path, result_url, result_ref, result_path, merge_pr_in_ci
+):
     tf_api = "https://api.dev.testing-farm.io/v0.1/"
     tf_token = "very-secret"
     ps_deployment = "test"
@@ -877,7 +907,10 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref, merge_pr_in_ci):
             trigger=JobConfigTriggerType.pull_request,
             packages={
                 "package": CommonPackageConfig(
-                    fmf_url=fmf_url, fmf_ref=fmf_ref, merge_pr_in_ci=merge_pr_in_ci
+                    fmf_url=fmf_url,
+                    fmf_ref=fmf_ref,
+                    fmf_path=fmf_path,
+                    merge_pr_in_ci=merge_pr_in_ci,
                 )
             },
         ),
@@ -916,6 +949,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref, merge_pr_in_ci):
     assert payload["test"].get("fmf")
     assert payload["test"]["fmf"].get("url") == result_url
     assert payload["test"]["fmf"].get("ref") == result_ref
+    assert payload["test"]["fmf"].get("path") == result_path
 
     # if custom fmf tests are not defined or we're not merging, we don't pass the
     # merge SHA
