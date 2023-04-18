@@ -109,14 +109,15 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
             )
             .mock()
         )
-    flexmock(VMImageBuildResultEvent).should_receive("get_package_config").and_return(
+    flexmock(VMImageBuildResultEvent).should_receive("get_packages_config").and_return(
         flexmock(
-            jobs=[
+            get_package_config_for=lambda job_config: flexmock(),
+            get_job_views=lambda: [
                 flexmock(
                     trigger=JobConfigTriggerType.pull_request,
                     type=JobType.vm_image_build,
                 )
-            ]
+            ],
         )
     )
     flexmock(VMImageBuildResultEvent).should_receive(

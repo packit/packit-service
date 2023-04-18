@@ -302,7 +302,9 @@ class Allowlist:
 
                 job_helper = job_helper_kls(
                     service_config=self.service_config,
-                    package_config=event.get_package_config(),
+                    package_config=event.get_packages_config().get_package_config_for(
+                        job_config
+                    ),
                     project=project,
                     metadata=EventData.from_event_dict(event.get_dict()),
                     db_trigger=event.db_trigger,

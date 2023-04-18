@@ -218,7 +218,11 @@ class SteveJobs:
         """
         params = {
             "service_config": self.service_config,
-            "package_config": self.event.package_config,
+            "package_config": self.event.packages_config.get_package_config_for(
+                job_config
+            )
+            if self.event.packages_config
+            else None,
             "project": self.event.project,
             "metadata": EventData.from_event_dict(self.event.get_dict()),
             "db_trigger": self.event.db_trigger,
@@ -344,7 +348,7 @@ class SteveJobs:
             if not dist_git_package_config:
                 self.event.fail_when_config_file_missing = True
 
-        if not self.event.package_config:
+        if not self.event.packages_config:
             # this happens when service receives events for repos which don't have packit config
             # success=True - it's not an error that people don't have packit.yaml in their repo
             return False
@@ -465,7 +469,9 @@ class SteveJobs:
             return False
 
         if not handler_kls.pre_check(
-            package_config=self.event.package_config,
+            package_config=self.event.packages_config.get_package_config_for(job_config)
+            if self.event.packages_config
+            else None,
             job_config=job_config,
             event=self.event.get_dict(),
         ):
@@ -530,7 +536,7 @@ class SteveJobs:
         """
         matching_jobs = []
         if isinstance(self.event, PullRequestCommentPagureEvent):
-            for job in self.event.package_config.jobs:
+            for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in [JobType.koji_build, JobType.bodhi_update]
                     and job.trigger == JobConfigTriggerType.commit
@@ -541,7 +547,7 @@ class SteveJobs:
                     # can be re-triggered by a Pagure comment in a PR
                     matching_jobs.append(job)
         elif isinstance(self.event, AbstractIssueCommentEvent):
-            for job in self.event.package_config.jobs:
+            for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in (JobType.koji_build, JobType.bodhi_update)
                     and job.trigger == JobConfigTriggerType.commit
@@ -561,7 +567,7 @@ class SteveJobs:
         Get list of non-duplicated all jobs that matches with event's trigger.
         """
         jobs_matching_trigger = []
-        for job in self.event.package_config.jobs:
+        for job in self.event.packages_config.get_job_views():
             if (
                 job.trigger == self.event.job_config_trigger_type
                 and (

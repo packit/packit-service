@@ -32,10 +32,15 @@ class TaskResults(dict):
     def create_from(
         cls, success: bool, msg: str, event: Event, job_config: JobConfig = None
     ):
+        package_config = (
+            event.packages_config.get_package_config_for(job_config)
+            if event.packages_config
+            else None
+        )
         details = {
             "msg": msg,
             "event": event.get_dict(),
-            "package_config": dump_package_config(event.package_config),
+            "package_config": dump_package_config(package_config),
         }
 
         details.update(

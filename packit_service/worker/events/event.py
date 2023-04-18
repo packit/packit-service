@@ -331,7 +331,7 @@ class Event:
         raise NotImplementedError("Please implement me!")
 
     @property
-    def package_config(self):
+    def packages_config(self):
         raise NotImplementedError("Please implement me!")
 
     @property
@@ -358,7 +358,7 @@ class Event:
         """
         return None
 
-    def get_package_config(self):
+    def get_packages_config(self):
         raise NotImplementedError("Please implement me!")
 
     def get_project(self) -> GitProject:
@@ -410,9 +410,9 @@ class AbstractForgeIndependentEvent(Event):
         return self._base_project
 
     @property
-    def package_config(self):
+    def packages_config(self):
         if not self._package_config_searched and not self._package_config:
-            self._package_config = self.get_package_config()
+            self._package_config = self.get_packages_config()
             self._package_config_searched = True
         return self._package_config
 
@@ -435,16 +435,16 @@ class AbstractForgeIndependentEvent(Event):
         """Reimplement in the PR events."""
         return None
 
-    def get_package_config(self) -> Optional[PackageConfig]:
+    def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(
-            f"Getting package_config:\n"
+            f"Getting packages_config:\n"
             f"\tproject: {self.project}\n"
             f"\tbase_project: {self.base_project}\n"
             f"\treference: {self.commit_sha}\n"
             f"\tpr_id: {self.pr_id}"
         )
 
-        package_config = PackageConfigGetter.get_package_config_from_repo(
+        packages_config = PackageConfigGetter.get_package_config_from_repo(
             base_project=self.base_project,
             project=self.project,
             reference=self.commit_sha,
@@ -455,10 +455,13 @@ class AbstractForgeIndependentEvent(Event):
         # TODO do we need to do this?
         # job config change note:
         #   this is used in sync-from-downstream which is buggy - we don't need to change this
-        if package_config:
-            package_config.upstream_project_url = self.project_url
+        if packages_config:
+            for (
+                package_config_view
+            ) in packages_config.get_package_config_views().values():
+                package_config_view.upstream_project_url = self.project_url
 
-        return package_config
+        return packages_config
 
     def get_all_tf_targets_by_status(
         self, statuses_to_filter_with: List[str]

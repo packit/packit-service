@@ -93,7 +93,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             }
         )
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
         PackageConfig(
             packages={"packit": CommonPackageConfig()},
             jobs=[

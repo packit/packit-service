@@ -359,9 +359,9 @@ class TestEvents:
             reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_mr_action(self, merge_request_update):
         event_object = Parser.parse_event(merge_request_update)
@@ -384,9 +384,9 @@ class TestEvents:
             reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_mr_closed(self, merge_request_closed):
         event_object = Parser.parse_event(merge_request_closed)
@@ -422,9 +422,9 @@ class TestEvents:
             reference="528b803be6f93e19ca4130bf4976f2800a3004c4",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_pr_comment_created(self, github_pr_comment_created):
         event_object = Parser.parse_event(github_pr_comment_created)
@@ -461,9 +461,9 @@ class TestEvents:
             reference="12345",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_mr_comment(self, gitlab_mr_comment):
         event_object = Parser.parse_event(gitlab_mr_comment)
@@ -497,9 +497,9 @@ class TestEvents:
             reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_pr_comment_empty(self, github_pr_comment_empty):
         event_object = Parser.parse_event(github_pr_comment_empty)
@@ -536,10 +536,10 @@ class TestEvents:
             reference="12345",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_issue_comment(self, github_issue_comment_propose_downstream):
         event_object = Parser.parse_event(github_issue_comment_propose_downstream)
@@ -575,9 +575,9 @@ class TestEvents:
             reference="123456",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_issue_comment_no_handler(self, github_issue_comment_no_handler):
         event_object = Parser.parse_event(github_issue_comment_no_handler)
@@ -600,9 +600,9 @@ class TestEvents:
             reference=None,
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
         assert event_object.commit_sha is None
         assert event_object.tag_name == ""
 
@@ -637,9 +637,9 @@ class TestEvents:
             reference="123456",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_github_push(self, github_push_branch):
         event_object = Parser.parse_event(github_push_branch)
@@ -666,9 +666,9 @@ class TestEvents:
             reference="04885ff850b0fa0e206cd09db73565703d48f99b",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_gitlab_push(self, gitlab_push):
         event_object = Parser.parse_event(gitlab_push)
@@ -695,9 +695,9 @@ class TestEvents:
             reference="cb2859505e101785097e082529dced35bbee0c8f",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_gitlab_push_many_commits(self, gitlab_push_many_commits):
         event_object = Parser.parse_event(gitlab_push_many_commits)
@@ -727,9 +727,9 @@ class TestEvents:
             reference="15af92227f9e965b392e85ba2f08a41a5aeb278a",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_github_push_branch(self, github_push_branch):
         event_object = Parser.parse_event(github_push_branch)
@@ -756,10 +756,10 @@ class TestEvents:
             reference="04885ff850b0fa0e206cd09db73565703d48f99b",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_gitlab_pipeline(self, gitlab_mr_pipeline):
         event_object = Parser.parse_event(gitlab_mr_pipeline)
@@ -800,9 +800,9 @@ class TestEvents:
             reference="ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_pagure_flag(self, pagure_pr_flag_updated):
         event_object = Parser.parse_event(pagure_pr_flag_updated)
@@ -862,12 +862,12 @@ class TestEvents:
             reference="beaf90bcecc51968a46663f8d6f092bfdc92e682",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
         flexmock(PagureProject).should_receive("get_web_url").and_return(
             "https://src.fedoraproject.org/rpms/python-teamcity-messages"
         )
-        assert event_object.package_config
+        assert event_object.packages_config
 
     @pytest.mark.parametrize("identifier", [None, "foo"])
     def test_parse_testing_farm_notification(
@@ -985,10 +985,10 @@ class TestEvents:
             reference="0011223344",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_copr_build_event_end(self, copr_build_results_end, copr_build_pr):
         flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
@@ -1028,10 +1028,10 @@ class TestEvents:
             reference="0011223344",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_scratch_event_start(
         self, koji_build_scratch_start, koji_build_pr
@@ -1106,7 +1106,7 @@ class TestEvents:
             path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_start_rawhide(
         self, koji_build_start_rawhide, mock_config
@@ -1146,7 +1146,7 @@ class TestEvents:
             path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_start_f36(self, koji_build_start_f36, mock_config):
         event_object = Parser.parse_event(koji_build_start_f36)
@@ -1184,7 +1184,7 @@ class TestEvents:
             path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_start_epel8(
         self, koji_build_start_epel8, mock_config
@@ -1223,7 +1223,7 @@ class TestEvents:
             path=".packit.yaml", ref="23806a208e32cc937f3a6eb151c62cbbc10d8f96"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_completed_old_format(
         self, koji_build_completed_old_format, mock_config
@@ -1261,7 +1261,7 @@ class TestEvents:
             path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_completed_rawhide(
         self, koji_build_completed_rawhide, mock_config
@@ -1301,7 +1301,7 @@ class TestEvents:
             path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_completed_f36(
         self, koji_build_completed_f36, mock_config
@@ -1341,7 +1341,7 @@ class TestEvents:
             path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_parse_koji_build_event_completed_epel8(
         self, koji_build_completed_epel8, mock_config
@@ -1381,7 +1381,7 @@ class TestEvents:
             path=".packit.yaml", ref="23806a208e32cc937f3a6eb151c62cbbc10d8f96"
         ).and_return(packit_yaml)
 
-        assert event_object.package_config
+        assert event_object.packages_config
 
     def test_get_project_pr(self, github_pr_webhook, mock_config):
         event_object = Parser.parse_event(github_pr_webhook)
@@ -1486,9 +1486,9 @@ class TestEvents:
             reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
         assert event_object.build_targets_override is None
         assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
         assert event_object.actor == "lbarcziova"
@@ -1527,9 +1527,9 @@ class TestEvents:
             reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
             fail_when_missing=False,
         ).and_return(
-            flexmock()
+            flexmock(get_package_config_views=lambda: {})
         ).once()
-        assert event_object.package_config
+        assert event_object.packages_config
         assert event_object.build_targets_override is None
         assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
@@ -1627,6 +1627,7 @@ class TestEvents:
             flexmock(
                 upstream_project_url=upstream_project_url,
                 upstream_tag_template=upstream_tag_template,
+                get_packages_config=lambda: flexmock(),
             )
         ).once()
 
@@ -1648,7 +1649,7 @@ class TestEvents:
             == "https://src.fedoraproject.org/rpms/redis"
         )
         assert event_object.tag_name == tag_name
-        assert event_object.package_config
+        assert event_object.packages_config
 
         if create_db_trigger:
             assert event_object.db_trigger

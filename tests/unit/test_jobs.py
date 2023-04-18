@@ -3,11 +3,19 @@
 
 from typing import Type
 
+import copy
 import celery
 import pytest
 from flexmock import flexmock
 
-from packit.config import CommonPackageConfig, JobConfig, JobConfigTriggerType, JobType
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import COMMENT_REACTION
 from packit_service.worker.events import (
@@ -940,8 +948,8 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     event = Event()
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
@@ -1172,8 +1180,8 @@ def test_get_handlers_for_comment_event(
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         ServiceConfig(comment_command_prefix=packit_comment_command_prefix)
@@ -1373,8 +1381,8 @@ def test_get_handlers_for_check_rerun_event(
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         ServiceConfig(packit_comment_command_prefix="/packit")
@@ -2603,8 +2611,8 @@ def test_get_config_for_handler_kls(
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     event = Event()
 
@@ -3037,8 +3045,8 @@ def test_get_jobs_matching_trigger(
             return job_config_trigger_type
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     event = Event(**kwargs)
     assert result == SteveJobs(event).get_jobs_matching_event()
@@ -3101,8 +3109,10 @@ def test_create_tasks_tf_identifier(
             self._db_trigger = None
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(
+                jobs=jobs, get_package_config_for=lambda job_config: flexmock()
+            )
 
         def get_dict(self, *args, **kwargs):
             return {"identifier": identifier}
@@ -3124,3 +3134,106 @@ def test_create_tasks_tf_identifier(
         tasks_created * [None]
     ).and_return(flexmock().should_receive("apply_async").mock())
     assert tasks_created == len(SteveJobs(event).create_tasks(jobs, handler_kls))
+
+
+def test_monorepo_jobs_matching_event():
+    python_teamcity_messages = CommonPackageConfig(
+        patch_generation_ignore_paths=[],
+        specfile_path="python-teamcity-messages.spec",
+        upstream_ref=None,
+        files_to_sync=[
+            {
+                "dest": "python-teamcity-messages.spec",
+                "mkpath": False,
+                "filters": [],
+                "delete": False,
+                "src": ["python-teamcity-messages.spec"],
+            },
+            {
+                "dest": ".packit.yaml",
+                "mkpath": False,
+                "filters": [],
+                "delete": False,
+                "src": [".packit.yaml"],
+            },
+        ],
+        paths=["."],
+        dist_git_base_url="https://src.fedoraproject.org/",
+        upstream_package_name="teamcity-messages",
+        archive_root_dir_template="{upstream_pkg_name}-{version}",
+        upstream_project_url="https://github.com/majamassarini/teamcity-messages",
+        config_file_path=".packit.yaml",
+        patch_generation_patch_id_digits=4,
+        dist_git_namespace="rpms",
+        downstream_package_name="python-teamcity-messages",
+        upstream_tag_template="v{version}",
+    )
+    python_teamcity_messages_double = copy.deepcopy(python_teamcity_messages)
+    python_teamcity_messages_double.downstream_package_name = "a double"
+
+    packages = {
+        "python-teamcity-messages": copy.deepcopy(python_teamcity_messages),
+        "python-teamcity-messages-double": python_teamcity_messages_double,
+    }
+    jobs = [
+        JobConfig(
+            type=JobType.propose_downstream,
+            trigger=JobConfigTriggerType.release,
+            skip_build=False,
+            packages={
+                "python-teamcity-messages": python_teamcity_messages,
+                "python-teamcity-messages-double": python_teamcity_messages_double,
+            },
+        ),
+        JobConfig(
+            type=JobType.propose_downstream,
+            trigger=JobConfigTriggerType.release,
+            skip_build=False,
+            packages={
+                "python-teamcity-messages": python_teamcity_messages,
+            },
+        ),
+        JobConfig(
+            type=JobType.propose_downstream,
+            trigger=JobConfigTriggerType.release,
+            skip_build=False,
+            packages={
+                "python-teamcity-messages-double": python_teamcity_messages_double
+            },
+        ),
+    ]
+    packages_config = PackageConfig(packages=packages, jobs=jobs)
+
+    class Event(ReleaseEvent):
+        def __init__(self):
+            self._package_config_searched = None
+            self._package_config = packages_config
+            self._project = flexmock()
+            self._base_project = flexmock()
+            self._pr_id = flexmock()
+            self._commit_sha = flexmock()
+            self.fail_when_config_file_missing = True
+
+        @property
+        def job_config_trigger_type(self):
+            return JobConfigTriggerType.release
+
+    event = Event()
+    steve = SteveJobs(event)
+    handlers = steve.get_handlers_for_event()
+    assert handlers
+
+    for handler in handlers:
+        job_configs = steve.get_config_for_handler_kls(handler)
+        assert job_configs
+
+        original_ref = 0
+        double_ref = 0
+        for job_config in job_configs:
+            if job_config.downstream_package_name == "a double":
+                double_ref += 1
+            else:
+                original_ref += 1
+
+        assert original_ref == 2
+        assert double_ref == 2

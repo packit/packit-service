@@ -116,8 +116,8 @@ def check_pending_testing_farm_runs() -> None:
             identifier=identifier,
         )
 
-        package_config = event.get_package_config()
-        if not package_config:
+        packages_config = event.get_packages_config()
+        if not packages_config:
             logger.info(f"No config found for {run.pipeline_id}. Skipping.")
             continue
 
@@ -127,8 +127,13 @@ def check_pending_testing_farm_runs() -> None:
 
         event_dict = event.get_dict()
         for job_config in job_configs:
+            package_config = (
+                event.packages_config.get_package_config_for(job_config)
+                if event.packages_config
+                else None
+            )
             handler = TestingFarmResultsHandler(
-                package_config=event.package_config,
+                package_config=package_config,
                 job_config=job_config,
                 event=event_dict,
             )
@@ -277,8 +282,8 @@ def update_copr_build_state(
         timestamp=timestamp,
     )
 
-    package_config = event.get_package_config()
-    if not package_config:
+    packages_config = event.get_packages_config()
+    if not packages_config:
         logger.info(f"No config found for {build.build_id}. Skipping.")
         return
 
@@ -288,8 +293,13 @@ def update_copr_build_state(
 
     for job_config in job_configs:
         event_dict = event.get_dict()
+        package_config = (
+            event.packages_config.get_package_config_for(job_config)
+            if event.packages_config
+            else None
+        )
         handler = handler_kls(
-            package_config=event.package_config,
+            package_config=package_config,
             job_config=job_config,
             event=event_dict,
         )
@@ -391,8 +401,8 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         str(datetime.utcnow()),
     )
 
-    package_config = event.get_package_config()
-    if not package_config:
+    packages_config = event.get_packages_config()
+    if not packages_config:
         build.set_status(status)
         logger.error(
             f"No package config found for {build.build_id}. "
@@ -405,15 +415,23 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     )
 
     event_dict = event.get_dict()
+    results = []
     for job_config in job_configs:
+        package_config = (
+            event.packages_config.get_package_config_for(job_config)
+            if event.packages_config
+            else None
+        )
         handler = VMImageBuildResultHandler(
-            package_config=event.package_config,
+            package_config=package_config,
             job_config=job_config,
             event=event_dict,
         )
 
-    if handler.pre_check(package_config, job_config, event_dict):
-        handler.run_job()
+        if handler.pre_check(package_config, job_config, event_dict):
+            results.extend(handler.run_job())
+
+    if results:
         return True
 
     build.set_status(status)
