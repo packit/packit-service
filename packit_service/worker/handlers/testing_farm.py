@@ -33,6 +33,7 @@ from packit_service.worker.checker.testing_farm import (
     IsEventForJob,
     IsEventOk,
     IsJobConfigTriggerMatching,
+    IsCoprBuildDefined,
 )
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
@@ -119,6 +120,7 @@ class TestingFarmHandler(
         return (
             IsJobConfigTriggerMatching,
             IsEventOk,
+            IsCoprBuildDefined,
             CanActorRunJob,
         )
 
@@ -301,11 +303,8 @@ class TestingFarmHandler(
             if self.testing_farm_job_helper.job_build:
                 msg = "Build required, already handled by build job."
             else:
-                msg = "Build required, CoprBuildHandler task sent."
-                self.run_copr_build_handler(
-                    self.data.get_dict(),
-                    len(self.testing_farm_job_helper.build_targets),
-                )
+                # this should not happen as there is the IsCoprBuildDefined pre-check
+                msg = "Build required, no build job defined in config."
             logger.info(msg)
             return TaskResults(
                 success=True,

@@ -230,7 +230,12 @@ def mock_release_functionality(request):
                     "trigger": "pull_request",
                     "job": "tests",
                     "metadata": {"targets": "fedora-all"},
-                }
+                },
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-all"},
+                },
             ]
         ]
     ),
@@ -436,7 +441,15 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
                     "targets": [
                         "fedora-all",
                     ],
-                }
+                },
+                {
+                    "trigger": "commit",
+                    "job": "copr_build",
+                    "branch": "main",
+                    "targets": [
+                        "fedora-all",
+                    ],
+                },
             ]
         ]
     ),
