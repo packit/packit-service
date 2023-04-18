@@ -143,7 +143,15 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     @property
     def fmf_path(self) -> str:
         if self.job_config.fmf_path:
-            return self.job_config.fmf_path
+            path: str = self.job_config.fmf_path
+            # if it is an alias of top level root use current working path
+            if path in ("/", "./", "."):
+                return "."
+            # Otherwise sanitize the path
+            path = path.removeprefix("./")
+            path = path.removeprefix("/")
+            path = path.removesuffix("/")
+            return path
         return "."
 
     @property
@@ -268,7 +276,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             Set of all available composes or `None` if error occurs.
         """
         endpoint = (
-            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public' }"
+            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
         )
 
         response = self.send_testing_farm_request(endpoint=endpoint)

@@ -836,6 +836,15 @@ def test_merge_payload_with_extra_params(payload, params, result):
             "custom/path",
             True,
         ),
+        (  # paths are sanitized
+            None,
+            None,
+            "./custom/path/",
+            "https://github.com/packit/packit",
+            "feb41e5",
+            "custom/path",
+            True,
+        ),
         (  # defaulting to the tests in repo, no merging
             None,
             None,
