@@ -30,8 +30,7 @@
           # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
         state: present
-        # needed when installing from koji - there are no GPG-signed packages
-    #         disable_gpg_check: true
+        install_weak_deps: False
     - name: Install pip deps
       pip:
         name:
