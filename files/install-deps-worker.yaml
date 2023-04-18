@@ -21,7 +21,6 @@
         name:
           - python3-ipdb # for easy debugging
           - nss_wrapper # openshift anyuid passwd madness
-          - redis # redis-cli for debugging
           - python3-requests
           - python3-prometheus_client
           - python3-sqlalchemy+postgresql
