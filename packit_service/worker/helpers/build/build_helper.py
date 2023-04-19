@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 import datetime
 import logging
+import re
 from io import StringIO
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Dict, Callable
@@ -101,11 +102,26 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         return targets or {DEFAULT_VERSION}
 
-    def is_job_config_trigger_matching(self, job_config: JobConfig):
-        return (
-            self.db_trigger
-            and self.db_trigger.job_config_trigger_type == job_config.trigger
+    def is_job_config_trigger_matching(self, job_config: JobConfig) -> bool:
+        """
+        Check whether the job config matches the DB trigger type.
+        In case the job config trigger is commit, also check that the branch
+        matches.
+        """
+        if (
+            not self.db_trigger
+            or self.db_trigger.job_config_trigger_type != job_config.trigger
+        ):
+            return False
+
+        if job_config.trigger != JobConfigTriggerType.commit:
+            return True
+
+        configured_branch = job_config.branch or self.project.default_branch
+        logger.info(
+            f"Configured branch: {configured_branch}, branch from trigger: {self.db_trigger.name}"
         )
+        return bool(re.match(configured_branch, self.db_trigger.name))
 
     @property
     def job_build(self) -> Optional[JobConfig]:
@@ -127,16 +143,6 @@ class BaseBuildJobHelper(BaseJobHelper):
     @property
     def job_build_or_job_config(self):
         return self.job_build or self.job_config
-
-    @property
-    def job_build_branch(self) -> Optional[str]:
-        """
-        Branch used for the build job or project's default branch.
-        """
-        if self.job_build and self.job_build.branch:
-            return self.job_build.branch
-
-        return self.project.default_branch
 
     @property
     def job_tests_all(self) -> List[JobConfig]:

@@ -2,14 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+
 from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
 )
-
-from packit_service.worker.checker.abstract import ActorChecker, Checker
-from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
+from packit_service.worker.checker.abstract import (
+    ActorChecker,
+    Checker,
+)
 from packit_service.worker.events.enums import GitlabEventAction
+from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
 from packit_service.worker.handlers.mixin import (
     GetTestingFarmJobHelperMixin,
     GetCoprBuildMixin,
@@ -18,6 +21,13 @@ from packit_service.worker.handlers.mixin import (
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
+
+
+class IsJobConfigTriggerMatching(Checker, GetTestingFarmJobHelperMixin):
+    def pre_check(self) -> bool:
+        return self.testing_farm_job_helper.is_job_config_trigger_matching(
+            self.job_config
+        )
 
 
 class IsEventOk(

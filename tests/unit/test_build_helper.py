@@ -42,6 +42,13 @@ def _mock_targets(jobs, job, job_type):
     job_config_trigger_type, job_trigger_model_type = job_type
 
     project_service = flexmock(instance_url="https://github.com")
+    db_trigger = flexmock(
+        job_config_trigger_type=job_config_trigger_type,
+        job_trigger_model_type=job_trigger_model_type,
+    )
+    if job_config_trigger_type == JobConfigTriggerType.commit:
+        db_trigger.name = "main"
+
     return CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(
@@ -49,13 +56,13 @@ def _mock_targets(jobs, job, job_type):
         ),
         job_config=job,  # BuildHelper looks at all jobs in the end
         project=flexmock(
-            service=project_service, namespace="packit", repo="testing_package"
+            service=project_service,
+            namespace="packit",
+            repo="testing_package",
+            default_branch="main",
         ),
         metadata=flexmock(pr_id=None, identifier=None),
-        db_trigger=flexmock(
-            job_config_trigger_type=job_config_trigger_type,
-            job_trigger_model_type=job_trigger_model_type,
-        ),
+        db_trigger=db_trigger,
     )
 
 
@@ -134,7 +141,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={
                         "package": CommonPackageConfig(
                             _targets=STABLE_VERSIONS,
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -193,7 +200,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={
                         "package": CommonPackageConfig(
                             _targets=STABLE_VERSIONS,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -769,6 +776,12 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
 )
 def test_configured_tests_targets(jobs, job_type, test_chroots):
     job_config_trigger_type, job_trigger_model_type = job_type
+    db_trigger = flexmock(
+        job_config_trigger_type=job_config_trigger_type,
+        job_trigger_model_type=job_trigger_model_type,
+    )
+    if job_config_trigger_type == JobConfigTriggerType.commit:
+        db_trigger.name = "main"
 
     project_service = flexmock(instance_url="https://github.com")
     helper = TestingFarmJobHelper(
@@ -778,13 +791,13 @@ def test_configured_tests_targets(jobs, job_type, test_chroots):
         ),
         job_config=jobs[-1],  # test job is always the last in the list
         project=flexmock(
-            service=project_service, namespace="packit", repo="testing_package"
+            service=project_service,
+            namespace="packit",
+            repo="testing_package",
+            default_branch="main",
         ),
         metadata=flexmock(pr_id=None, identifier=None),
-        db_trigger=flexmock(
-            job_config_trigger_type=job_config_trigger_type,
-            job_trigger_model_type=job_trigger_model_type,
-        ),
+        db_trigger=db_trigger,
     )
 
     assert helper.package_config.jobs
@@ -839,12 +852,16 @@ def test_deduced_copr_targets():
         ),
         job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(
-            service=flexmock(), namespace="packit", repo="testing_package"
+            service=flexmock(),
+            namespace="packit",
+            repo="testing_package",
+            default_branch="main",
         ),
         metadata=flexmock(pr_id=None, identifier=None),
         db_trigger=flexmock(
             job_config_trigger_type=job_type[0],
             job_trigger_model_type=job_type[1],
+            name="main",
         ),
     ).configured_tests_targets == {"opensuse-tumbleweed-x86_64"}
 
@@ -2125,15 +2142,21 @@ def test_build_handler_job_and_test_properties(
     result_job_build,
     result_job_tests,
 ):
+    db_trigger = flexmock(
+        job_config_trigger_type=job_config_trigger_type,
+    )
+    if job_config_trigger_type == JobConfigTriggerType.commit:
+        db_trigger.name = "main"
+
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(
             jobs=jobs, packages={"package": CommonPackageConfig()}
         ),
         job_config=init_job,
-        project=flexmock(),
+        project=flexmock(default_branch="main"),
         metadata=flexmock(pr_id=None),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_trigger=db_trigger,
     )
 
     assert copr_build_helper.package_config.jobs
@@ -2473,6 +2496,7 @@ def test_copr_project_and_namespace(
             namespace="the/example/namespace",
             repo="the-example-repo",
             service=flexmock(instance_url="https://git.instance.io"),
+            default_branch="main",
         ),
         metadata=flexmock(
             pr_id=None, identifier="the-event-identifier", tag_name=tag_name
@@ -2480,6 +2504,7 @@ def test_copr_project_and_namespace(
         db_trigger=flexmock(
             job_config_trigger_type=job_config_trigger_type,
             job_trigger_model_type=job_trigger_model_type,
+            name="main",
         ),
     )
     copr_build_helper._api = flexmock(
@@ -2670,7 +2695,9 @@ def test_targets_for_koji_build(
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=pr_id),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_trigger=flexmock(
+            job_config_trigger_type=job_config_trigger_type, name="build-branch"
+        ),
     )
 
     assert koji_build_helper.package_config.jobs
