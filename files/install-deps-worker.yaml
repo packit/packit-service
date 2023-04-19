@@ -21,9 +21,7 @@
         name:
           - python3-ipdb # for easy debugging
           - nss_wrapper # openshift anyuid passwd madness
-          - redis # redis-cli for debugging
           - python3-requests
-          - python3-alembic
           - python3-prometheus_client
           - python3-sqlalchemy+postgresql
           # celery-5.3.0b1.fc37 doesn't play well with flower
@@ -47,6 +45,7 @@
           # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
         state: present
+        install_weak_deps: False
     - name: Install pip deps
       pip:
         name:
