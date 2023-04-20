@@ -40,7 +40,10 @@ class only_once:
 
 # wrappers for dumping/loading of configs
 def load_package_config(package_config: dict):
-    return PackageConfigSchema().load(package_config) if package_config else None
+    package_config_obj = (
+        PackageConfigSchema().load(package_config) if package_config else None
+    )
+    return PackageConfig.post_load(package_config_obj)
 
 
 def dump_package_config(package_config: PackageConfig):
