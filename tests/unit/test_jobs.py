@@ -3177,7 +3177,7 @@ def test_monorepo_jobs_matching_event():
     }
     jobs = [
         JobConfig(
-            type=JobType.propose_downstream,
+            type=JobType.copr_build,
             trigger=JobConfigTriggerType.release,
             skip_build=False,
             packages={
@@ -3186,7 +3186,7 @@ def test_monorepo_jobs_matching_event():
             },
         ),
         JobConfig(
-            type=JobType.propose_downstream,
+            type=JobType.propose_downstream,  # makes job different from the previous one
             trigger=JobConfigTriggerType.release,
             skip_build=False,
             packages={
@@ -3194,7 +3194,7 @@ def test_monorepo_jobs_matching_event():
             },
         ),
         JobConfig(
-            type=JobType.propose_downstream,
+            type=JobType.propose_downstream,  # makes job different from the previous one
             trigger=JobConfigTriggerType.release,
             skip_build=False,
             packages={
@@ -3223,17 +3223,17 @@ def test_monorepo_jobs_matching_event():
     handlers = steve.get_handlers_for_event()
     assert handlers
 
+    original_ref = 0
+    double_ref = 0
     for handler in handlers:
         job_configs = steve.get_config_for_handler_kls(handler)
         assert job_configs
 
-        original_ref = 0
-        double_ref = 0
         for job_config in job_configs:
             if job_config.downstream_package_name == "a double":
                 double_ref += 1
             else:
                 original_ref += 1
 
-        assert original_ref == 2
-        assert double_ref == 2
+    assert original_ref == 2
+    assert double_ref == 2
