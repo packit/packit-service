@@ -24,3 +24,21 @@ Removing a user or from the allowlist:
 ```
 $ oc exec packit-worker-0 allowlist.py remove <path_to_namespace>
 ```
+
+# Cleaning up the database
+
+This also requires logging in to the OpenShift cluster and selecting the right
+project in order to be able to run the script.
+
+Then run
+
+```
+$ oc exec packit-worker-long-running-0 db-cleanup.py
+```
+
+which removes all data older than a year from the database. It's possible to
+remove even more, by specifying the maximum age of the data:
+
+```
+$ oc exec packit-worker-long-running-0 db-cleanup.py '6 months'
+```

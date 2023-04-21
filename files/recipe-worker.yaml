@@ -34,4 +34,7 @@
     - name: Make sure allowlist.py is present
       file:
         state: file
-        path: /usr/bin/allowlist.py
+        path: "{{ item }}"
+      loop:
+        - /usr/bin/allowlist.py
+        - /usr/bin/db-cleanup.py
