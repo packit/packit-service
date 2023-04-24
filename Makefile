@@ -177,4 +177,10 @@ check-db: build-test-image compose-for-db-up
 		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database tests_openshift/service"
 		$(COMPOSE) down
 
+# To install mermerd run:
+#     go install github.com/KarnerTh/mermerd@latest
+regenerate-db-diagram: compose-for-db-up
+	sleep 10
+	mermerd -c postgresql://packit:secret-password@localhost:5432 -s public --useAllTables -o alembic/diagram.mmd
+
 .PHONY: build-revdep-test-image

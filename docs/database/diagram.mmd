@@ -1,0 +1,226 @@
+erDiagram
+    alembic_version {
+        character_varying version_num PK
+    }
+
+    pull_requests {
+        integer id PK
+        integer pr_id
+        integer project_id FK
+    }
+
+    git_branches {
+        integer id PK
+        character_varying name
+        integer project_id FK
+    }
+
+    job_triggers {
+        integer id PK
+        jobtriggertype type
+        integer trigger_id
+    }
+
+    project_issues {
+        integer id PK
+        integer issue_id
+        integer project_id FK
+    }
+
+    project_releases {
+        integer id PK
+        character_varying tag_name
+        character_varying commit_hash
+        integer project_id FK
+    }
+
+    github_installations {
+        integer id PK
+        character_varying account_login
+        integer account_id
+        character_varying account_url
+        character_varying account_type
+        integer sender_id
+        character_varying sender_login
+        timestamp_without_time_zone created_at
+        ARRAY repositories
+    }
+
+    project_authentication_issue {
+        integer id PK
+        boolean issue_created
+        integer project_id FK
+    }
+
+    git_projects {
+        integer id PK
+        character_varying namespace
+        character_varying repo_name
+        character_varying project_url
+        character_varying instance_url
+    }
+
+    srpm_builds {
+        integer id PK
+        text logs
+        timestamp_without_time_zone build_submitted_time
+        text url
+        timestamp_without_time_zone build_finished_time
+        timestamp_without_time_zone build_start_time
+        character_varying commit_sha
+        character_varying copr_build_id
+        text copr_web_url
+        text logs_url
+        buildstatus status
+    }
+
+    allowlist {
+        integer id PK
+        character_varying namespace
+        allowliststatus status
+        character_varying fas_account
+    }
+
+    source_git_pr_dist_git_pr {
+        integer id PK
+        integer source_git_pull_request_id FK
+        integer dist_git_pull_request_id FK
+    }
+
+    vm_image_build_targets {
+        integer id PK
+        character_varying build_id
+        character_varying project_url
+        character_varying project_name
+        character_varying owner
+        character_varying commit_sha
+        vmimagebuildstatus status
+        character_varying target
+        character_varying pr_id
+        timestamp_without_time_zone task_accepted_time
+        timestamp_without_time_zone build_submitted_time
+        timestamp_without_time_zone build_start_time
+        timestamp_without_time_zone build_finished_time
+        json data
+    }
+
+    sync_release_runs {
+        integer id PK
+        syncreleasestatus status
+        timestamp_without_time_zone submitted_time
+        syncreleasejobtype job_type
+    }
+
+    sync_release_run_targets {
+        integer id PK
+        character_varying branch
+        character_varying downstream_pr_url
+        syncreleasetargetstatus status
+        timestamp_without_time_zone submitted_time
+        timestamp_without_time_zone start_time
+        timestamp_without_time_zone finished_time
+        text logs
+        integer sync_release_id FK
+    }
+
+    tf_copr_build_association_table {
+        integer copr_id PK
+        integer tft_id PK
+    }
+
+    tft_test_run_targets {
+        integer id PK
+        character_varying pipeline_id
+        character_varying commit_sha
+        testingfarmresult status
+        character_varying target
+        character_varying web_url
+        json data
+        timestamp_without_time_zone submitted_time
+        character_varying identifier
+        integer tft_test_run_group_id FK
+    }
+
+    tft_test_run_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    copr_build_targets {
+        integer id PK
+        character_varying build_id
+        character_varying commit_sha
+        buildstatus status
+        character_varying target
+        character_varying web_url
+        character_varying build_logs_url
+        json data
+        timestamp_without_time_zone build_finished_time
+        timestamp_without_time_zone build_start_time
+        timestamp_without_time_zone build_submitted_time
+        character_varying project_name
+        character_varying owner
+        timestamp_without_time_zone task_accepted_time
+        json built_packages
+        integer copr_build_group_id FK
+    }
+
+    copr_build_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    koji_build_targets {
+        integer id PK
+        character_varying build_id
+        character_varying commit_sha
+        character_varying status
+        character_varying target
+        character_varying web_url
+        character_varying build_logs_url
+        timestamp_without_time_zone build_submitted_time
+        timestamp_without_time_zone build_start_time
+        timestamp_without_time_zone build_finished_time
+        json data
+        boolean scratch
+        integer koji_build_group_id FK
+    }
+
+    koji_build_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    pipelines {
+        integer id PK
+        timestamp_without_time_zone datetime
+        integer job_trigger_id FK
+        integer srpm_build_id FK
+        integer sync_release_run_id FK
+        integer vm_image_build_id FK
+        integer test_run_group_id FK
+        integer copr_build_group_id FK
+        integer koji_build_group_id FK
+    }
+
+    pull_requests }o--|| git_projects : "project_id"
+    pull_requests }o--|| git_projects : "project_id"
+    source_git_pr_dist_git_pr }o--|| pull_requests : "dist_git_pull_request_id"
+    source_git_pr_dist_git_pr }o--|| pull_requests : "source_git_pull_request_id"
+    git_branches }o--|| git_projects : "project_id"
+    pipelines }o--|| job_triggers : "job_trigger_id"
+    project_issues }o--|| git_projects : "project_id"
+    project_releases }o--|| git_projects : "project_id"
+    project_authentication_issue }o--|| git_projects : "project_id"
+    pipelines }o--|| srpm_builds : "srpm_build_id"
+    pipelines }o--|| vm_image_build_targets : "vm_image_build_id"
+    sync_release_run_targets }o--|| sync_release_runs : "sync_release_id"
+    pipelines }o--|| sync_release_runs : "sync_release_run_id"
+    tf_copr_build_association_table }o--|| copr_build_targets : "copr_id"
+    tf_copr_build_association_table }o--|| tft_test_run_targets : "tft_id"
+    tft_test_run_targets }o--|| tft_test_run_groups : "tft_test_run_group_id"
+    pipelines }o--|| tft_test_run_groups : "test_run_group_id"
+    copr_build_targets }o--|| copr_build_groups : "copr_build_group_id"
+    pipelines }o--|| copr_build_groups : "copr_build_group_id"
+    koji_build_targets }o--|| koji_build_groups : "koji_build_group_id"
+    pipelines }o--|| koji_build_groups : "koji_build_group_id"
