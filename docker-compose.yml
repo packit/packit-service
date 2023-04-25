@@ -91,8 +91,8 @@ services:
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
       - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
-      - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
-      - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
+      - ./secrets/packit/dev/id_ed25519.pub:/packit-ssh/id_ed25519.pub:ro,z
+      - ./secrets/packit/dev/id_ed25519:/packit-ssh/id_ed25519:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
     user: "1024"
 
@@ -198,7 +198,7 @@ services:
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
       - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
-      - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
-      - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
+      - ./secrets/packit/dev/id_ed25519.pub:/packit-ssh/id_ed25519.pub:ro,z
+      - ./secrets/packit/dev/id_ed25519:/packit-ssh/id_ed25519:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
     user: "1024"
