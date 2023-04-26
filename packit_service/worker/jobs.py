@@ -330,14 +330,21 @@ class SteveJobs:
         Returns:
             Whether the Packit configuration is present in the repo.
         """
-        if isinstance(self.event, AbstractCommentEvent) and get_handlers_for_comment(
-            self.event.comment,
-            packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        if isinstance(self.event, AbstractCommentEvent) and (
+            handlers := get_handlers_for_comment(
+                self.event.comment,
+                packit_comment_command_prefix=self.service_config.comment_command_prefix,
+            )
         ):
             # we require packit config file when event is triggered by /packit command
             # but not when it is triggered through an issue in the issues repository
             dist_git_package_config = None
-            if isinstance(self.event, AbstractIssueCommentEvent):
+            if (
+                isinstance(self.event, AbstractIssueCommentEvent)
+                # for propose-downstream we want to load the package config
+                # from upstream repo
+                and ProposeDownstreamHandler not in handlers
+            ):
                 if dist_git_package_config := self.search_distgit_config_in_issue():
                     (
                         self.event.dist_git_project_url,

@@ -13,14 +13,15 @@ from ogr.abstract import PRStatus
 from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
+from ogr.services.pagure import PagureProject
 
 from packit.api import PackitAPI
-from packit.config import JobConfigTriggerType
+from packit.config import JobConfigTriggerType, PackageConfig
 from packit.distgit import DistGit
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.koji_helper import KojiHelper
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
     IssueModel,
@@ -99,7 +100,19 @@ jobs:
         .with_args(author)
         .and_return(True)
     )
-    issue = flexmock(description="")
+    issue = flexmock(
+        description="Packit failed on creating pull-requests in dist-git "
+        "(https://src.fedoraproject.org/rpms/packit.git):"
+    )
+    flexmock(SteveJobs).should_receive("search_distgit_config_in_issue").never()
+    flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").with_args(
+        base_project=None,
+        project=project_class,
+        reference="123456",
+        pr_id=None,
+        fail_when_missing=True,
+    ).and_return(PackageConfig)
+
     flexmock(project_class).should_receive("get_issue").and_return(issue)
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
@@ -284,6 +297,10 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
     project = (
         flexmock(GithubProject).should_receive("get_issue").and_return(issue).mock()
     )
+    flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").with_args(
+        project=PagureProject, fail_when_missing=False
+    ).and_return(PackageConfig)
+
     project.should_receive("get_latest_release").and_return(flexmock(tag_name="123"))
     project.should_receive("get_sha_from_tag").and_return("abcdef")
     project.should_receive("has_write_access").and_return(True)
