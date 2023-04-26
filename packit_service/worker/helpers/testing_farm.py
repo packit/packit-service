@@ -141,6 +141,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.metadata.commit_sha
 
     @property
+    def fmf_path(self) -> str:
+        if self.job_config.fmf_path:
+            path: str = self.job_config.fmf_path
+            # if it is an alias of top level root use current working path
+            if path in ("/", "./", "."):
+                return "."
+            # Otherwise sanitize the path
+            path = path.removeprefix("./")
+            path = path.removeprefix("/")
+            path = path.removesuffix("/")
+            return path
+        return "."
+
+    @property
     def tmt_plan(self) -> Optional[str]:
         if self.job_config.tmt_plan:
             return self.job_config.tmt_plan
@@ -262,7 +276,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             Set of all available composes or `None` if error occurs.
         """
         endpoint = (
-            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public' }"
+            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
         )
 
         response = self.send_testing_farm_request(endpoint=endpoint)
@@ -295,7 +309,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return payload_
 
     def _construct_fmf_payload(self) -> dict:
-        fmf = {"url": self.fmf_url}
+        fmf = {
+            "url": self.fmf_url,
+            "path": self.fmf_path,
+        }
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
@@ -524,7 +541,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         try:
             self.project.get_file_content(
-                path=".fmf/version", ref=self.metadata.commit_sha
+                path=f"{self.fmf_path}/.fmf/version", ref=self.metadata.commit_sha
             )
             return True
         except FileNotFoundError:
