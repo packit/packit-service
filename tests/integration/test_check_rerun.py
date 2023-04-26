@@ -170,7 +170,11 @@ def mock_push_functionality(request):
         namespace="packit",
         repo_name="hello-world",
         project_url="https://github.com/packit/hello-world",
-    ).and_return(flexmock(id=12, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=12, job_config_trigger_type=JobConfigTriggerType.commit, name="main"
+        )
+    )
     flexmock(JobTriggerModel).should_receive("get_or_create").and_return(
         flexmock(id=123456)
     )
@@ -428,6 +432,7 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
                 {
                     "trigger": "commit",
                     "job": "tests",
+                    "branch": "main",
                     "targets": [
                         "fedora-all",
                     ],
@@ -501,7 +506,9 @@ def test_check_rerun_push_testing_farm_handler(
                 {
                     "trigger": "commit",
                     "job": "upstream_koji_build",
-                    "metadata": {"targets": "fedora-all", "scratch": "true"},
+                    "targets": "fedora-all",
+                    "scratch": "true",
+                    "branch": "main",
                 }
             ]
         ]

@@ -2,27 +2,31 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import re
 
-from packit_service.worker.checker.abstract import ActorChecker, Checker
-from packit_service.worker.events.enums import GitlabEventAction
+from packit_service.constants import (
+    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
+)
+from packit_service.worker.checker.abstract import (
+    ActorChecker,
+    Checker,
+)
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-    PushPagureEvent,
 )
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
     GetCoprSRPMBuildMixin,
 )
-from packit_service.constants import (
-    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
-)
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
+
+
+class IsJobConfigTriggerMatching(Checker, GetCoprBuildJobHelperMixin):
+    def pre_check(self) -> bool:
+        return self.copr_build_helper.is_job_config_trigger_matching(self.job_config)
 
 
 class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
@@ -35,19 +39,6 @@ class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
         ):
             # Not interested in closed merge requests
             return False
-
-        if self.data.event_type in (
-            PushGitHubEvent.__name__,
-            PushGitlabEvent.__name__,
-            PushPagureEvent.__name__,
-        ):
-            configured_branch = self.copr_build_helper.job_build_branch
-            if not re.match(configured_branch, self.data.git_ref):
-                logger.info(
-                    f"Skipping build on '{self.data.git_ref}'. "
-                    f"Push configured only for '{configured_branch}'."
-                )
-                return False
 
         if not (
             self.copr_build_helper.job_build or self.copr_build_helper.job_tests_all

@@ -7,7 +7,18 @@ from flexmock import flexmock
 from packit.config.job_config import JobType, JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
-from packit_service.worker.checker.koji import PermissionOnKoji
+from packit_service.worker.checker.koji import (
+    PermissionOnKoji,
+)
+from packit_service.worker.checker.koji import (
+    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
+)
+from packit_service.worker.checker.copr import (
+    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
+)
+from packit_service.worker.checker.testing_farm import (
+    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
+)
 from packit_service.worker.checker.vm_image import (
     IsCoprBuildForChrootOk,
     HasAuthorWriteAccess,
@@ -46,38 +57,6 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
             True,
             JobConfigTriggerType.pull_request,
             id="closed MRs are ignored",
-        ),
-        pytest.param(
-            False,
-            construct_dict(event=PushGitHubEvent.__name__),
-            True,
-            None,
-            JobConfigTriggerType.commit,
-            id="GitHub push to non-configured branch is ignored",
-        ),
-        pytest.param(
-            False,
-            construct_dict(event=PushGitlabEvent.__name__),
-            True,
-            None,
-            JobConfigTriggerType.commit,
-            id="GitLab push to non-configured branch is ignored",
-        ),
-        pytest.param(
-            False,
-            construct_dict(event=PushPagureEvent.__name__),
-            True,
-            None,
-            JobConfigTriggerType.commit,
-            id="Pagure push to non-configured branch is ignored",
-        ),
-        pytest.param(
-            True,
-            construct_dict(event=PushPagureEvent.__name__, git_ref="release"),
-            True,
-            None,
-            JobConfigTriggerType.commit,
-            id="Pagure push to configured branch is not ignored",
         ),
         pytest.param(
             False,
@@ -139,13 +118,74 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
     git_project.should_receive("can_merge_pr").and_return(can_merge_pr)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_trigger = flexmock(job_config_trigger_type=trigger)
+    db_trigger = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
     flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
 
     if not success:
         flexmock(KojiBuildJobHelper).should_receive("report_status_to_all")
 
     checker = PermissionOnKoji(package_config, job_config, event)
+
+    assert checker.pre_check() == success
+
+
+@pytest.mark.parametrize(
+    "checker_kls",
+    (
+        IsJobConfigTriggerMatchingKoji,
+        IsJobConfigTriggerMatchingCopr,
+        IsJobConfigTriggerMatchingTF,
+    ),
+)
+@pytest.mark.parametrize(
+    "success, event, trigger",
+    (
+        pytest.param(
+            False,
+            construct_dict(event=PushGitHubEvent.__name__),
+            JobConfigTriggerType.commit,
+            id="GitHub push to non-configured branch is ignored",
+        ),
+        pytest.param(
+            False,
+            construct_dict(event=PushGitlabEvent.__name__),
+            JobConfigTriggerType.commit,
+            id="GitLab push to non-configured branch is ignored",
+        ),
+        pytest.param(
+            False,
+            construct_dict(event=PushPagureEvent.__name__),
+            JobConfigTriggerType.commit,
+            id="Pagure push to non-configured branch is ignored",
+        ),
+        pytest.param(
+            True,
+            construct_dict(event=PushPagureEvent.__name__, git_ref="release"),
+            JobConfigTriggerType.commit,
+            id="Pagure push to configured branch is not ignored",
+        ),
+    ),
+)
+def test_branch_push_event_checker(success, event, trigger, checker_kls):
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.upstream_koji_build,
+        trigger=trigger,
+        targets={"fedora-37"},
+        branch="release",
+    )
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+        default_branch="main",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_trigger = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
+    flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
+
+    checker = checker_kls(package_config, job_config, event)
 
     assert checker.pre_check() == success
 
@@ -279,7 +319,7 @@ def test_vm_image_has_author_write_access(
     assert checker.pre_check() == result
 
 
-def test_koji_permissions_merge_queue():
+def test_koji_branch_merge_queue():
     """
     Check that specifying regex for GitHub merge queue temporary branch where the
     CI must be green passes the check.
@@ -301,14 +341,16 @@ def test_koji_permissions_merge_queue():
     git_project = flexmock(
         namespace="packit",
         repo="ogr",
-        default_branch="main",
     )
     git_project.should_receive("can_merge_pr").and_return(True)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.commit)
+    db_trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        name="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
+    )
     flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
 
-    checker = PermissionOnKoji(package_config, job_config, event)
+    checker = IsJobConfigTriggerMatchingKoji(package_config, job_config, event)
 
     assert checker.pre_check()

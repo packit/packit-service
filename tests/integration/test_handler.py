@@ -165,6 +165,7 @@ def test_precheck_push(github_push_event):
             id=1,
             job_config_trigger_type=JobConfigTriggerType.commit,
             job_trigger_model_type=JobTriggerModelType.branch_push,
+            name="build-branch",
         )
     )
     jc = JobConfig(
@@ -203,7 +204,9 @@ def test_precheck_push(github_push_event):
 
 def test_precheck_push_to_a_different_branch(github_push_event):
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
+        flexmock(
+            id=1, job_config_trigger_type=JobConfigTriggerType.commit, name="branch"
+        )
     )
 
     package_config = PackageConfig(
@@ -254,7 +257,7 @@ def test_precheck_push_actor_check(github_push_event):
         packages={"package": CommonPackageConfig(branch="branch")},
     )
     event = github_push_event.get_dict()
-    actor_checker = CoprBuildHandler.get_checkers()[1]
+    actor_checker = CoprBuildHandler.get_checkers()[2]
     assert actor_checker(package_config, job_config, event).pre_check()
 
 

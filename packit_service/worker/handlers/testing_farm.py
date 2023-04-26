@@ -32,6 +32,7 @@ from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
     IsEventForJob,
     IsEventOk,
+    IsJobConfigTriggerMatching,
 )
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
@@ -116,6 +117,7 @@ class TestingFarmHandler(
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (
+            IsJobConfigTriggerMatching,
             IsEventOk,
             CanActorRunJob,
         )

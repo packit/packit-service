@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 from typing import Tuple, Type, Optional
 
 from celery import signature, Task
+
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
-
 from packit.config import (
     JobConfig,
     JobType,
@@ -35,6 +35,7 @@ from packit_service.worker.checker.copr import (
     AreOwnerAndProjectMatchingJob,
     IsGitForgeProjectAndEventOk,
     BuildNotAlreadyStarted,
+    IsJobConfigTriggerMatching,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -59,12 +60,12 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     RetriableJobHandler,
 )
-from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildEventMixin,
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
 )
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
 
@@ -109,7 +110,11 @@ class CoprBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return IsGitForgeProjectAndEventOk, CanActorRunTestsJob
+        return (
+            IsJobConfigTriggerMatching,
+            IsGitForgeProjectAndEventOk,
+            CanActorRunTestsJob,
+        )
 
     def run(self) -> TaskResults:
         return self.copr_build_helper.run_copr_build_from_source_script()

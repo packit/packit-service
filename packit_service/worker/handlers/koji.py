@@ -19,13 +19,15 @@ from packit_service.constants import (
     KojiBuildState,
 )
 from packit_service.constants import KojiTaskState
-from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.models import AbstractTriggerDbType, KojiBuildTargetModel
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.checker.koji import (
+    PermissionOnKoji,
+    IsJobConfigTriggerMatching,
+)
 from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
@@ -47,11 +49,12 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     run_for_comment,
 )
+from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
+from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.mixin import ConfigFromEventMixin
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
-from packit_service.worker.checker.koji import PermissionOnKoji
-from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
-from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +97,10 @@ class KojiBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (PermissionOnKoji,)
+        return (
+            IsJobConfigTriggerMatching,
+            PermissionOnKoji,
+        )
 
     def run(self) -> TaskResults:
         return self.koji_build_helper.run_koji_build()
