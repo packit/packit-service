@@ -49,6 +49,7 @@ from packit_service.worker.events import (
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
     AbstractPRCommentEvent,
+    ReleaseGitlabEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -79,6 +80,7 @@ logger = logging.getLogger(__name__)
 @run_for_comment(command="rebuild-failed")
 @run_for_check_rerun(prefix="rpm-build")
 @reacts_to(ReleaseEvent)
+@reacts_to(ReleaseGitlabEvent)
 @reacts_to(PullRequestGithubEvent)
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
