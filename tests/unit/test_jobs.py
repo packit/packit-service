@@ -36,6 +36,7 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    ReleaseGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers import (
@@ -932,6 +933,32 @@ from packit_service.worker.result import TaskResults
             ],
             {CreateBodhiUpdateHandler, KojiBuildReportHandler},
             id="config=bodhi_update_for_commit&commit&CreateBodhiUpdateHandler",
+        ),
+        pytest.param(
+            ReleaseGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {CoprBuildHandler},
+            id="Copr build on release on GitLab",
+        ),
+        pytest.param(
+            ReleaseGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {KojiBuildHandler},
+            id="Upstream Koji build on release on GitLab",
         ),
     ],
 )
