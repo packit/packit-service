@@ -39,6 +39,7 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     ReleaseEvent,
     AbstractPRCommentEvent,
+    ReleaseGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
@@ -66,6 +67,7 @@ logger = logging.getLogger(__name__)
 @run_for_check_rerun(prefix="production-build")
 @run_for_check_rerun(prefix="koji-build")
 @reacts_to(ReleaseEvent)
+@reacts_to(ReleaseGitlabEvent)
 @reacts_to(PullRequestGithubEvent)
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
