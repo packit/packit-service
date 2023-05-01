@@ -15,8 +15,7 @@ source /usr/bin/setup_env_in_openshift.sh
 mkdir -p "${PACKIT_HOME}/.ssh"
 chmod 0700 "${PACKIT_HOME}/.ssh"
 pushd "${PACKIT_HOME}/.ssh"
-install -m 0400 /packit-ssh/id_rsa .
-install -m 0400 /packit-ssh/id_rsa.pub .
+install -m 0400 /packit-ssh/id_ed25519* .
 if [[ -f /packit-ssh/config ]]; then install -m 0400 /packit-ssh/config .; fi
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
