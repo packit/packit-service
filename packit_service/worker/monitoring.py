@@ -66,7 +66,7 @@ class Pushgateway:
             "first_initial_status_time",
             "Time it takes to set the initial status for the first check in the first job",
             registry=self.registry,
-            buckets=(5, 15, 30, float("inf")),
+            buckets=(5, 15, 20, 25, 30, float("inf")),
         )
 
         self.last_initial_status_time = Histogram(
