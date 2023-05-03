@@ -37,6 +37,9 @@ NEWS_FOOTER = [
     "Take a look [here](https://packit.dev/posts/downstream-automation/) to know more.",
     "Want to use a build from a different project when testing? "
     "Take a look [here](https://packit.dev/posts/testing-farm-triggering/) to know more.",
+    "Did you know Packit is on Mastodon? Or, more specifically, on Fosstodon? "
+    "Follow [@packit@fosstodon.org](https://fosstodon.org/@packit) "
+    "and be one of the first to know about all the news!",
 ]
 
 
