@@ -780,6 +780,48 @@ def test_merge_payload_with_extra_params(payload, params, result):
     assert payload == result
 
 
+def test_merge_extra_params_with_install():
+    tf_settings = {"provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}}
+
+    service_config = flexmock(testing_farm_secret="secret token", deployment="prod")
+    package_config = flexmock()
+    project = flexmock(full_repo_name="test/merge")
+    metadata = flexmock(commit_sha="0000000", pr_id=None)
+    db_trigger = flexmock()
+    job_config = flexmock(
+        fmf_url="https://github.com/fmf/",
+        fmf_ref="main",
+        fmf_path="/",
+        tmt_plan=None,
+        upstream_package_name="test",
+        upstream_project_url="https://github.com/test",
+        downstream_package_name="test",
+        downstream_project_url="https://src.fedoraproject.org/test",
+        use_internal_tf=False,
+        tf_post_install_script=(
+            "#!/bin/sh\nsudo sed -i s/.*ssh-rsa/ssh-rsa/ /root/.ssh/authorized_keys"
+        ),
+        tf_extra_params={
+            "environments": [
+                {"tmt": {"context": {"distro": "rhel-7.9"}}, "settings": tf_settings}
+            ]
+        },
+    )
+    helper = TFJobHelper(
+        service_config, package_config, project, metadata, db_trigger, job_config
+    )
+
+    payload = helper._payload("rhel-7.9", "rhel-7.9")
+    assert (
+        payload["environments"][0]["settings"]["provisioning"]["tags"]["BusinessUnit"]
+        == "sst_upgrades"
+        and payload["environments"][0]["settings"]["provisioning"][
+            "post_install_script"
+        ]
+        == "#!/bin/sh\nsudo sed -i s/.*ssh-rsa/ssh-rsa/ /root/.ssh/authorized_keys"
+    )
+
+
 @pytest.mark.parametrize(
     (
         "fmf_url",
