@@ -4,7 +4,7 @@
 import logging
 from contextlib import contextmanager
 from os import getenv
-from typing import List
+from typing import List, Dict
 
 from sentry_sdk.integrations import Integration
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -12,6 +12,23 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from packit_service.utils import only_once
 
 logger = logging.getLogger(__name__)
+
+
+def traces_sampler(sampling_context: Dict) -> float:
+    """
+    Compute sample rate or sampling decision for a transaction.
+    https://docs.sentry.io/platforms/python/performance/
+    https://docs.sentry.io/platforms/python/configuration/sampling
+
+    Args:
+        sampling_context: context data
+
+    Returns: traces sample rate (between 0 and 1)
+    """
+    if rate := getenv("SENTRY_TRACES_SAMPLE_RATE"):
+        return float(rate)
+    # TODO: Take sampling_context into account
+    return 0.25 if getenv("DEPLOYMENT") == "prod" else 1.0
 
 
 @only_once
@@ -66,6 +83,7 @@ def configure_sentry(
         secret_key,
         integrations=integrations,
         environment=getenv("DEPLOYMENT"),
+        traces_sampler=traces_sampler,
     )
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("runner-type", runner_type)
