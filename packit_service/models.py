@@ -2061,6 +2061,7 @@ class TestingFarmResult(str, enum.Enum):
     unknown = "unknown"
     needs_inspection = "needs_inspection"
     retry = "retry"
+    complete = "complete"
 
 
 class TFTTestRunGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
