@@ -25,6 +25,7 @@ def test_GetVMImageBuilderMixin():
     class Test(ConfigFromEventMixin, GetVMImageBuilderMixin):
         ...
 
+    flexmock(ImageBuilder).should_receive("_get_access_token").and_return("token")
     mixin = Test()
     assert isinstance(mixin.vm_image_builder, ImageBuilder)
 
