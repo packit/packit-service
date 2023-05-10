@@ -3,11 +3,12 @@
 
 import logging
 from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict, Type
+from urllib.parse import urlparse
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
-from ogr.abstract import GitProject
 
+from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config.job_config import JobConfig, JobType
 from packit.exceptions import PackitException, PackitCommandFailedError
@@ -18,6 +19,7 @@ from packit_service.constants import (
     NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS,
     NOTIFICATION_REPO,
     DOCS_APPROVAL_URL,
+    DENIED_MSG,
 )
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
@@ -162,9 +164,22 @@ class Allowlist:
         logger.info(f"Account {namespace!r} approved successfully.")
 
     @staticmethod
-    def is_approved(namespace: str) -> bool:
+    def deny_namespace(namespace: str):
         """
-        Checks if namespace is approved in the allowlist.
+        Deny namespace.
+
+        Args:
+            namespace (str): Namespace in the format of `github.com/namespace` or
+                `github.com/namespace/repository.git`.
+        """
+        AllowlistModel.add_namespace(namespace=namespace, status=AllowlistStatus.denied)
+
+        logger.info(f"Account {namespace!r} denied successfully.")
+
+    @staticmethod
+    def is_namespace_or_parent_approved(namespace: str) -> bool:
+        """
+        Checks if namespace or any parent namespace is approved in the allowlist.
 
         Args:
             namespace (str): Namespace in format `example.com/namespace/repository.git`,
@@ -188,8 +203,41 @@ class Allowlist:
 
             separated_path = separated_path[0].rsplit("/", 1)
 
-        logger.info(f"Could not find entry for: {namespace}")
+        logger.info(f"Could not find approved entry for: {namespace}")
         return False
+
+    @staticmethod
+    def is_namespace_or_parent_denied(namespace: str) -> bool:
+        """
+        Checks if namespace or any parent namespace is denied in the allowlist.
+
+        Args:
+            namespace (str): Namespace in format `example.com/namespace/repository.git`,
+                where `/repository.git` is optional.
+
+        Returns:
+            `True` if namespace is approved, `False` otherwise.
+        """
+        if not namespace:
+            return False
+
+        separated_path = [namespace, None]
+        while len(separated_path) > 1:
+            if matching_namespace := AllowlistModel.get_namespace(separated_path[0]):
+                status = AllowlistStatus(matching_namespace.status)
+                if status == AllowlistStatus.denied:
+                    logger.info(f"Namespace {namespace} is denied.")
+                    return True
+
+            separated_path = separated_path[0].rsplit("/", 1)
+
+        logger.info(f"Could not find denied entry for: {namespace}")
+        return False
+
+    @staticmethod
+    def is_denied(namespace: str) -> bool:
+        model = AllowlistModel.get_namespace(namespace)
+        return bool(model) and model.status == AllowlistStatus.denied
 
     @staticmethod
     def remove_namespace(namespace: str) -> bool:
@@ -213,6 +261,12 @@ class Allowlist:
         return True
 
     @staticmethod
+    def get_namespaces_by_status(status: AllowlistStatus) -> List[str]:
+        return [
+            account.namespace for account in AllowlistModel.get_by_status(status.value)
+        ]
+
+    @staticmethod
     def waiting_namespaces() -> List[str]:
         """
         Get namespaces waiting for approval.
@@ -220,12 +274,17 @@ class Allowlist:
         Returns:
             List of namespaces that are waiting for approval.
         """
-        return [
-            account.namespace
-            for account in AllowlistModel.get_namespaces_by_status(
-                AllowlistStatus.waiting.value
-            )
-        ]
+        return Allowlist.get_namespaces_by_status(AllowlistStatus.waiting)
+
+    @staticmethod
+    def denied_namespaces() -> List[str]:
+        """
+        Get denied namespace.
+
+        Returns:
+            List of namespaces that are denied.
+        """
+        return Allowlist.get_namespaces_by_status(AllowlistStatus.denied)
 
     def _check_unchecked_event(
         self,
@@ -247,8 +306,11 @@ class Allowlist:
         project_url = self._strip_protocol_and_add_git(event.project_url)
         if not project_url:
             raise KeyError(f"Failed to get namespace from {type(event)!r}")
+        if self.is_namespace_or_parent_denied(project_url):
+            logger.info("Refusing release event on denied repo namespace.")
+            return False
 
-        if self.is_approved(project_url):
+        if self.is_namespace_or_parent_approved(project_url):
             return True
 
         logger.info("Refusing release event on not allowlisted repo namespace.")
@@ -270,68 +332,93 @@ class Allowlist:
             raise KeyError(f"Failed to get login of the actor from {type(event)}")
 
         project_url = self._strip_protocol_and_add_git(event.project_url)
+        user_namespace = f"{urlparse(event.project_url).netloc}/{actor_name}"
 
-        namespace_approved = self.is_approved(project_url)
-        user_approved = (
-            project.can_merge_pr(actor_name)
-            or project.get_pr(event.pr_id).author == actor_name
-        )
-
-        if namespace_approved and user_approved:
+        if user_or_project_denied := Allowlist.is_denied(user_namespace):
+            msg = f"User namespace {actor_name} denied!"
+            short_msg = "User namespace denied!"
+        elif user_or_project_denied := self.is_namespace_or_parent_denied(project_url):
+            msg = f"{project_url} or parent namespaces denied!"
+            short_msg = "Project or its namespace denied!"
+        else:
+            namespace_approved = self.is_namespace_or_parent_approved(project_url)
+            user_approved = (
+                project.can_merge_pr(actor_name)
+                or project.get_pr(event.pr_id).author == actor_name
+            )
             # TODO: clear failing check when present
-            return True
+            if namespace_approved and user_approved:
+                return True
+            msg = (
+                (
+                    f"Project {project_url} is not on our allowlist! "
+                    "See https://packit.dev/docs/guide/#2-approval"
+                )
+                if not namespace_approved
+                else f"Account {actor_name} has no write access nor is author of PR!"
+            )
+            short_msg = (
+                f"{project_url} not allowed!"
+                if not namespace_approved
+                else "User cannot trigger!"
+            )
 
-        msg = (
-            f"Project {project_url} is not on our allowlist! "
-            "See https://packit.dev/docs/guide/#2-approval"
-            if not namespace_approved
-            else f"Account {actor_name} has no write access nor is author of PR!"
-        )
         logger.debug(msg)
         if isinstance(
             event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
         ):
             project.get_pr(event.pr_id).comment(msg)
         else:
-            for job_config in job_configs:
-                job_helper_kls: Type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
-                if job_config.type == JobType.tests:
-                    job_helper_kls = TestingFarmJobHelper
-                else:
-                    job_helper_kls = CoprBuildJobHelper
-
-                job_helper = job_helper_kls(
-                    service_config=self.service_config,
-                    package_config=event.get_packages_config().get_package_config_for(
-                        job_config
-                    ),
-                    project=project,
-                    metadata=EventData.from_event_dict(event.get_dict()),
-                    db_trigger=event.db_trigger,
-                    job_config=job_config,
-                    build_targets_override=event.build_targets_override,
-                    tests_targets_override=event.tests_targets_override,
-                )
-                msg = (
-                    f"{project.service.hostname}/{project.namespace} not allowed!"
-                    if not namespace_approved
-                    else "User cannot trigger!"
-                )
-                issue_url = self.get_approval_issue(namespace=project.namespace)
-                job_helper.report_status_to_configured_job(
-                    description=msg,
-                    state=BaseCommitStatus.neutral,
-                    url=issue_url or DOCS_APPROVAL_URL,
-                    markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION.format(
-                        instructions=NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
-                            issue_url=issue_url
-                        )
-                        if issue_url
-                        else ""
-                    ),
-                )
-
+            self._check_pr_report_status(
+                job_configs=job_configs,
+                event=event,
+                project=project,
+                user_or_project_denied=user_or_project_denied,
+                short_msg=short_msg,
+            )
         return False
+
+    def _check_pr_report_status(
+        self, job_configs, event, project, user_or_project_denied, short_msg
+    ):
+        for job_config in job_configs:
+            job_helper_kls: Type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
+            if job_config.type == JobType.tests:
+                job_helper_kls = TestingFarmJobHelper
+            else:
+                job_helper_kls = CoprBuildJobHelper
+
+            job_helper = job_helper_kls(
+                service_config=self.service_config,
+                package_config=event.get_packages_config().get_package_config_for(
+                    job_config
+                ),
+                project=project,
+                metadata=EventData.from_event_dict(event.get_dict()),
+                db_trigger=event.db_trigger,
+                job_config=job_config,
+                build_targets_override=event.build_targets_override,
+                tests_targets_override=event.tests_targets_override,
+            )
+            if user_or_project_denied:
+                url = None
+                markdown_content = DENIED_MSG
+            else:
+                issue_url = self.get_approval_issue(namespace=project.namespace)
+                url = issue_url or DOCS_APPROVAL_URL
+                markdown_content = NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION.format(
+                    instructions=NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
+                        issue_url=issue_url
+                    )
+                    if issue_url
+                    else ""
+                )
+            job_helper.report_status_to_configured_job(
+                description=short_msg,
+                state=BaseCommitStatus.neutral,
+                url=url,
+                markdown_content=markdown_content,
+            )
 
     def _check_issue_comment_event(
         self,
@@ -343,19 +430,27 @@ class Allowlist:
         if not actor_name:
             raise KeyError(f"Failed to get login of the actor from {type(event)}")
         project_url = self._strip_protocol_and_add_git(event.project_url)
+        user_namespace = f"{urlparse(event.project_url).netloc}/{actor_name}"
 
-        namespace_approved = self.is_approved(project_url)
-        user_approved = project.can_merge_pr(actor_name)
+        if Allowlist.is_denied(user_namespace):
+            msg = f"User namespace {actor_name} denied!"
+        elif self.is_namespace_or_parent_denied(project_url):
+            msg = f"{project_url} or parent namespaces denied!"
+        else:
+            namespace_approved = self.is_namespace_or_parent_approved(project_url)
+            user_approved = project.can_merge_pr(actor_name)
+            # TODO: clear failing check when present
+            if namespace_approved and user_approved:
+                return True
+            msg = (
+                (
+                    f"Project {project_url} is not on our allowlist! "
+                    "See https://packit.dev/docs/guide/#2-approval"
+                )
+                if not namespace_approved
+                else f"Account {actor_name} has no write access!"
+            )
 
-        if namespace_approved and user_approved:
-            return True
-
-        msg = (
-            f"Project {project_url} is not on our allowlist! "
-            "See https://packit.dev/docs/guide/#2-approval"
-            if not namespace_approved
-            else f"Account {actor_name} has no write access!"
-        )
         logger.debug(msg)
         project.get_issue(event.issue_id).comment(msg)
         return False

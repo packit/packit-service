@@ -52,9 +52,9 @@ def test_get_namespace(clean_before_and_after, multiple_allowlist_entries):
 
 
 def test_get_namespaces_by_status(clean_before_and_after, multiple_allowlist_entries):
-    a = AllowlistModel.get_namespaces_by_status("waiting")
+    a = AllowlistModel.get_by_status("waiting")
     assert len(list(a)) == 2
-    b = AllowlistModel.get_namespaces_by_status("approved_manually")
+    b = AllowlistModel.get_by_status("approved_manually")
     assert len(list(b)) == 2
 
 
