@@ -6,6 +6,7 @@ We love you, Steve Jobs.
 """
 import logging
 from datetime import datetime
+from functools import cached_property
 from typing import Optional, Union, Callable
 from typing import List, Set, Type, Tuple
 from re import match
@@ -117,13 +118,14 @@ class SteveJobs:
 
     def __init__(self, event: Optional[Event] = None):
         self.event = event
-        self._service_config = None
 
-    @property
+    @cached_property
     def service_config(self):
-        if self._service_config is None:
-            self._service_config = ServiceConfig.get_service_config()
-        return self._service_config
+        return ServiceConfig.get_service_config()
+
+    @cached_property
+    def pushgateway(self):
+        return Pushgateway()
 
     @classmethod
     def process_message(cls, event: dict) -> List[TaskResults]:
