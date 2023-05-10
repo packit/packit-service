@@ -116,15 +116,15 @@ class SteveJobs:
     Steve makes sure all the jobs are done with precision.
     """
 
-    def __init__(self, event: Optional[Event] = None):
+    def __init__(self, event: Optional[Event] = None) -> None:
         self.event = event
 
     @cached_property
-    def service_config(self):
+    def service_config(self) -> ServiceConfig:
         return ServiceConfig.get_service_config()
 
     @cached_property
-    def pushgateway(self):
+    def pushgateway(self) -> Pushgateway:
         return Pushgateway()
 
     @classmethod
@@ -260,7 +260,7 @@ class SteveJobs:
         handler_kls: Type[JobHandler],
         job_config: JobConfig,
         update_feedback_time: Callable,
-    ):
+    ) -> None:
         """
         For the upstream events report the initial status "Task was accepted" to
         inform user we are working on the request. Measure the time how much did it
@@ -739,7 +739,7 @@ class SteveJobs:
     def push_statuses_metrics(
         self,
         statuses_check_feedback: List[datetime],
-    ):
+    ) -> None:
         """
         Push the metrics about the time of setting initial statuses for the first and last check.
 
@@ -784,7 +784,7 @@ class SteveJobs:
         self,
         handler_kls: Type[JobHandler],
         built_targets: int = 0,
-    ):
+    ) -> None:
         """
         Push metrics about queued Copr builds.
 
