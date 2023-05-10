@@ -750,16 +750,15 @@ class SteveJobs:
             # no feedback, nothing to do
             return
 
-        pushgateway = Pushgateway()
         response_time = elapsed_seconds(
             begin=self.event.created_at, end=statuses_check_feedback[0]
         )
         logger.debug(
             f"Reporting first initial status check time: {response_time} seconds."
         )
-        pushgateway.first_initial_status_time.observe(response_time)
+        self.pushgateway.first_initial_status_time.observe(response_time)
         if response_time > 25:
-            pushgateway.no_status_after_25_s.inc()
+            self.pushgateway.no_status_after_25_s.inc()
         if response_time > 15:
             # https://github.com/packit/packit-service/issues/1728
             # we need more info why this has happened
@@ -777,9 +776,9 @@ class SteveJobs:
         logger.debug(
             f"Reporting last initial status check time: {response_time} seconds."
         )
-        pushgateway.last_initial_status_time.observe(response_time)
+        self.pushgateway.last_initial_status_time.observe(response_time)
 
-        pushgateway.push()
+        self.pushgateway.push()
 
     def push_copr_metrics(
         self,
@@ -793,13 +792,12 @@ class SteveJobs:
             handler_kls: The class for the Handler that will handle the job.
             built_targets: Number of build targets in case of CoprBuildHandler.
         """
-        pushgateway = Pushgateway()
         # TODO(Friday): Do an early-return, but fix »all« **36** f-ing tests
         if handler_kls == CoprBuildHandler and built_targets:
             # handler wasn't matched or 0 targets were built
-            pushgateway.copr_builds_queued.inc(built_targets)
+            self.pushgateway.copr_builds_queued.inc(built_targets)
 
-        pushgateway.push()
+        self.pushgateway.push()
 
     def is_fas_verification_comment(self, comment: str) -> bool:
         """
