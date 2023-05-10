@@ -311,16 +311,20 @@ class SteveJobs:
         Returns:
             A tuple (dist_git_repo_url, dist_git_package_config) or None
         """
-        if isinstance(self.event, AbstractIssueCommentEvent):
-            issue = self.event.project.get_issue(self.event.issue_id)
-            if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
-                url = m[1]
-                project = self.service_config.get_project(url=url)
-                package_config = PackageConfigGetter.get_package_config_from_repo(
-                    project=project,
-                    fail_when_missing=False,
-                )
-                return url, package_config
+        if not isinstance(self.event, AbstractIssueCommentEvent):
+            # not a comment, doesn't matter
+            return None
+
+        issue = self.event.project.get_issue(self.event.issue_id)
+        if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
+            url = m[1]
+            project = self.service_config.get_project(url=url)
+            package_config = PackageConfigGetter.get_package_config_from_repo(
+                project=project,
+                fail_when_missing=False,
+            )
+            return url, package_config
+
         return None
 
     def is_packit_config_present(self) -> bool:
@@ -742,55 +746,58 @@ class SteveJobs:
         Args:
             statuses_check_feedback: A list of times it takes to set every initial status check.
         """
-        if statuses_check_feedback:
-            pushgateway = Pushgateway()
-            response_time = elapsed_seconds(
-                begin=self.event.created_at, end=statuses_check_feedback[0]
-            )
-            logger.debug(
-                f"Reporting first initial status check time: {response_time} seconds."
-            )
-            pushgateway.first_initial_status_time.observe(response_time)
-            if response_time > 25:
-                pushgateway.no_status_after_25_s.inc()
-            if response_time > 15:
-                # https://github.com/packit/packit-service/issues/1728
-                # we need more info why this has happened
-                logger.debug(f"Event dict: {self.event}.")
-                logger.error(
-                    f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
-                )
-            # set the time when the accepted status was set so that we
-            # can use it later for measurements
-            self.event.task_accepted_time = statuses_check_feedback[0]
+        if not statuses_check_feedback:
+            # no feedback, nothing to do
+            return
 
-            response_time = elapsed_seconds(
-                begin=self.event.created_at, end=statuses_check_feedback[-1]
+        pushgateway = Pushgateway()
+        response_time = elapsed_seconds(
+            begin=self.event.created_at, end=statuses_check_feedback[0]
+        )
+        logger.debug(
+            f"Reporting first initial status check time: {response_time} seconds."
+        )
+        pushgateway.first_initial_status_time.observe(response_time)
+        if response_time > 25:
+            pushgateway.no_status_after_25_s.inc()
+        if response_time > 15:
+            # https://github.com/packit/packit-service/issues/1728
+            # we need more info why this has happened
+            logger.debug(f"Event dict: {self.event}.")
+            logger.error(
+                f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
             )
-            logger.debug(
-                f"Reporting last initial status check time: {response_time} seconds."
-            )
-            pushgateway.last_initial_status_time.observe(response_time)
+        # set the time when the accepted status was set so that we
+        # can use it later for measurements
+        self.event.task_accepted_time = statuses_check_feedback[0]
 
-            pushgateway.push()
+        response_time = elapsed_seconds(
+            begin=self.event.created_at, end=statuses_check_feedback[-1]
+        )
+        logger.debug(
+            f"Reporting last initial status check time: {response_time} seconds."
+        )
+        pushgateway.last_initial_status_time.observe(response_time)
+
+        pushgateway.push()
 
     def push_copr_metrics(
         self,
         handler_kls: Type[JobHandler],
-        number_of_build_targets: Optional[int] = None,
+        built_targets: int = 0,
     ):
         """
         Push metrics about queued Copr builds.
 
         Args:
             handler_kls: The class for the Handler that will handle the job.
-            number_of_build_targets: Number of build targets in case of CoprBuildHandler.
+            built_targets: Number of build targets in case of CoprBuildHandler.
         """
         pushgateway = Pushgateway()
-
-        if handler_kls == CoprBuildHandler and number_of_build_targets:
-            for _ in range(number_of_build_targets):
-                pushgateway.copr_builds_queued.inc()
+        # TODO(Friday): Do an early-return, but fix »all« **36** f-ing tests
+        if handler_kls == CoprBuildHandler and built_targets:
+            # handler wasn't matched or 0 targets were built
+            pushgateway.copr_builds_queued.inc(built_targets)
 
         pushgateway.push()
 
