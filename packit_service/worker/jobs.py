@@ -133,7 +133,7 @@ class SteveJobs:
         Entrypoint for message processing.
 
         Args:
-            event:  dict with webhook/fed-mes payload
+            event: Dict with webhook/fed-msg payload.
 
         Returns:
             List of results of the processing tasks.
@@ -152,7 +152,7 @@ class SteveJobs:
         example usage: SteveJobs(event_object).process()
 
         Returns:
-            list of processing task results
+            List of processing task results.
         """
         try:
             if not self.is_project_public_or_enabled_private():
@@ -216,7 +216,7 @@ class SteveJobs:
             job_config: Corresponding job config.
 
         Returns:
-            the correct job helper
+            The correct job helper.
         """
         params = {
             "service_config": self.service_config,
@@ -269,7 +269,7 @@ class SteveJobs:
         Args:
             handler_kls: The class for the Handler that will be used.
             job_config: Job config that is being used.
-            update_feedback_time: a callable which tells the caller when a check
+            update_feedback_time: A callable which tells the caller when a check
                 status has been updated.
         """
         number_of_build_targets = None
@@ -301,15 +301,16 @@ class SteveJobs:
         Look up for a dist-git repo url inside
         the issue description for the issue comment event.
         The issue description should have a format like the following:
-
+        ```
         Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
         | dist-git branch | error |
         | --------------- | ----- |
-        | `f37` | `` |
+        | `f37`           | ``    |
         You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+        ```
 
         Returns:
-            A tuple (dist_git_repo_url, dist_git_package_config) or None
+            A tuple (`dist_git_repo_url`, `dist_git_package_config`) or `None`
         """
         if not isinstance(self.event, AbstractIssueCommentEvent):
             # not a comment, doesn't matter
@@ -370,7 +371,11 @@ class SteveJobs:
 
     def process_jobs(self) -> List[TaskResults]:
         """
-        Create Celery tasks for a job handler (if trigger matches) for every job defined in config.
+        Create Celery tasks for a job handler (if trigger matches) for every
+        job defined in config.
+
+        Returns:
+            List of the results of each task.
         """
         if not self.is_packit_config_present():
             return [
@@ -467,8 +472,8 @@ class SteveJobs:
         Check whether a new task should be created for job config and handler.
 
         Args:
-            job_config: job config to check
-            handler_kls: type of handler class to check
+            job_config: Job config to check.
+            handler_kls: Type of handler class to check.
 
         Returns:
             Whether the task should be created.
@@ -510,8 +515,8 @@ class SteveJobs:
         in our service configuration.
 
         Returns:
-            True if the project is public or enabled in our service config,
-            False otherwise.
+            `True`, if the project is public or enabled in our service config,
+            `False` otherwise.
         """
         # CoprBuildEvent.get_project returns None when the build id is not known
         if not self.event.project:
@@ -545,7 +550,7 @@ class SteveJobs:
         """Force explicit event/jobs matching for triggers
 
         Returns:
-            list of jobs
+            List of job configs.
         """
         matching_jobs = []
         if isinstance(self.event, PullRequestCommentPagureEvent):
@@ -578,6 +583,9 @@ class SteveJobs:
     def get_jobs_matching_event(self) -> List[JobConfig]:
         """
         Get list of non-duplicated all jobs that matches with event's trigger.
+
+        Returns:
+            List of all jobs that match the event's trigger.
         """
         jobs_matching_trigger = []
         for job in self.event.packages_config.get_job_views():
@@ -630,7 +638,7 @@ class SteveJobs:
         Get all handlers that we need to run for the given event.
 
         We need to return all handler classes that:
-        - can react to the given event AND
+        - can react to the given event **and**
         - are configured in the package_config (either directly or as a required job)
 
         Examples of the matching can be found in the tests:
@@ -678,6 +686,9 @@ class SteveJobs:
             handler: Handler which we are observing whether it is matching to job.
             allowed_handlers: Set of handlers that are triggered by a comment or check rerun
              job.
+
+        Returns:
+            `True` if handler matches the event, `False` otherwise.
         """
         handler_matches_to_comment_or_check_rerun_job = (
             allowed_handlers is None or handler in allowed_handlers
@@ -695,7 +706,7 @@ class SteveJobs:
         Get a list of JobConfigs relevant to event and the handler class.
 
         We need to find all job configurations that:
-        - can be run by the given handler class AND
+        - can be run by the given handler class, **and**
         - that matches the trigger of the event
 
         If there is no matching job-config found, we will pick the ones that are required.
@@ -708,8 +719,8 @@ class SteveJobs:
             handler_kls: class that will use the JobConfig
 
         Returns:
-             list of JobConfigs relevant to the given handler and event
-                 preserving the order in the config
+            List of JobConfigs relevant to the given handler and event
+            preserving the order in the config.
         """
         jobs_matching_trigger: List[JobConfig] = self.get_jobs_matching_event()
 
@@ -801,8 +812,14 @@ class SteveJobs:
 
     def is_fas_verification_comment(self, comment: str) -> bool:
         """
-        Checks whether the comment contains Packit verification command
-        /packit(-stg) verify-fas
+        Checks whether the comment contains Packit verification command:
+        `/packit(-stg) verify-fas`
+
+        Args:
+            comment: Comment to be checked.
+
+        Returns:
+            `True`, if is verification comment, `False` otherwise.
         """
         command = get_packit_commands_from_comment(
             comment, self.service_config.comment_command_prefix
