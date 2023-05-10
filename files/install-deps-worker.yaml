@@ -24,10 +24,9 @@
           - python3-requests
           - python3-prometheus_client
           - python3-sqlalchemy+postgresql
-          # celery-5.3.0b1.fc37 doesn't play well with flower
-          # celery-5.2.6.fc37 requires billiard<4.0 and F37 has billiard-4.1.0
-          # so we're installing 5.2.x from PyPI, see below
-          #           - python3-celery
+          # In case we hit any issues with the flower, switch to the pip
+          # or upgrade flower?
+          - python3-celery
           - python3-redis # celery[redis]
           - python3-lazy-object-proxy
           - dnf-utils
@@ -52,7 +51,6 @@
           - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
           - sentry-sdk
           - syslog-rfc5424-formatter
-          - celery==5.2.*
         executable: pip3
     - name: Check if all pip packages have all dependencies installed
       command: pip check
