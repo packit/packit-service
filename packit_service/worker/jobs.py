@@ -824,7 +824,5 @@ class SteveJobs:
         command = get_packit_commands_from_comment(
             comment, self.service_config.comment_command_prefix
         )
-        if command and command[0] == PACKIT_VERIFY_FAS_COMMAND:
-            return True
 
-        return False
+        return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
