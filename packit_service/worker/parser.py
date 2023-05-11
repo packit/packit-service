@@ -702,6 +702,10 @@ class Parser:
             logger.warning("No Gitlab username from event.")
             return None
 
+        if actor in {"packit-as-a-service", "packit-as-a-service-stg"}:
+            logger.debug("Our own comment.")
+            return None
+
         commit_sha = nested_get(event, "merge_request", "last_commit", "id")
         if not commit_sha:
             logger.warning("No commit_sha from the event.")
@@ -1441,6 +1445,10 @@ class Parser:
         action = PullRequestCommentAction.created.value
         pr_id = event["pullrequest"]["id"]
         pagure_login = event["agent"]
+        if pagure_login in {"packit", "packit-stg"}:
+            logger.debug("Our own comment.")
+            return None
+
         base_repo_namespace = event["pullrequest"]["project"]["namespace"]
         base_repo_name = event["pullrequest"]["project"]["name"]
         repo_from = event["pullrequest"]["repo_from"]
