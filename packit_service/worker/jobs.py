@@ -6,6 +6,7 @@ We love you, Steve Jobs.
 """
 import logging
 from datetime import datetime
+from functools import cached_property
 from typing import Optional, Union, Callable
 from typing import List, Set, Type, Tuple
 from re import match
@@ -115,15 +116,16 @@ class SteveJobs:
     Steve makes sure all the jobs are done with precision.
     """
 
-    def __init__(self, event: Optional[Event] = None):
+    def __init__(self, event: Optional[Event] = None) -> None:
         self.event = event
-        self._service_config = None
 
-    @property
-    def service_config(self):
-        if self._service_config is None:
-            self._service_config = ServiceConfig.get_service_config()
-        return self._service_config
+    @cached_property
+    def service_config(self) -> ServiceConfig:
+        return ServiceConfig.get_service_config()
+
+    @cached_property
+    def pushgateway(self) -> Pushgateway:
+        return Pushgateway()
 
     @classmethod
     def process_message(cls, event: dict) -> List[TaskResults]:
@@ -131,7 +133,7 @@ class SteveJobs:
         Entrypoint for message processing.
 
         Args:
-            event:  dict with webhook/fed-mes payload
+            event: Dict with webhook/fed-msg payload.
 
         Returns:
             List of results of the processing tasks.
@@ -150,7 +152,7 @@ class SteveJobs:
         example usage: SteveJobs(event_object).process()
 
         Returns:
-            list of processing task results
+            List of processing task results.
         """
         try:
             if not self.is_project_public_or_enabled_private():
@@ -214,7 +216,7 @@ class SteveJobs:
             job_config: Corresponding job config.
 
         Returns:
-            the correct job helper
+            The correct job helper.
         """
         params = {
             "service_config": self.service_config,
@@ -258,7 +260,7 @@ class SteveJobs:
         handler_kls: Type[JobHandler],
         job_config: JobConfig,
         update_feedback_time: Callable,
-    ):
+    ) -> None:
         """
         For the upstream events report the initial status "Task was accepted" to
         inform user we are working on the request. Measure the time how much did it
@@ -267,7 +269,7 @@ class SteveJobs:
         Args:
             handler_kls: The class for the Handler that will be used.
             job_config: Job config that is being used.
-            update_feedback_time: a callable which tells the caller when a check
+            update_feedback_time: A callable which tells the caller when a check
                 status has been updated.
         """
         number_of_build_targets = None
@@ -299,26 +301,31 @@ class SteveJobs:
         Look up for a dist-git repo url inside
         the issue description for the issue comment event.
         The issue description should have a format like the following:
-
+        ```
         Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
         | dist-git branch | error |
         | --------------- | ----- |
-        | `f37` | `` |
+        | `f37`           | ``    |
         You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+        ```
 
         Returns:
-            A tuple (dist_git_repo_url, dist_git_package_config) or None
+            A tuple (`dist_git_repo_url`, `dist_git_package_config`) or `None`
         """
-        if isinstance(self.event, AbstractIssueCommentEvent):
-            issue = self.event.project.get_issue(self.event.issue_id)
-            if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
-                url = m[1]
-                project = self.service_config.get_project(url=url)
-                package_config = PackageConfigGetter.get_package_config_from_repo(
-                    project=project,
-                    fail_when_missing=False,
-                )
-                return url, package_config
+        if not isinstance(self.event, AbstractIssueCommentEvent):
+            # not a comment, doesn't matter
+            return None
+
+        issue = self.event.project.get_issue(self.event.issue_id)
+        if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
+            url = m[1]
+            project = self.service_config.get_project(url=url)
+            package_config = PackageConfigGetter.get_package_config_from_repo(
+                project=project,
+                fail_when_missing=False,
+            )
+            return url, package_config
+
         return None
 
     def is_packit_config_present(self) -> bool:
@@ -364,7 +371,11 @@ class SteveJobs:
 
     def process_jobs(self) -> List[TaskResults]:
         """
-        Create Celery tasks for a job handler (if trigger matches) for every job defined in config.
+        Create Celery tasks for a job handler (if trigger matches) for every
+        job defined in config.
+
+        Returns:
+            List of the results of each task.
         """
         if not self.is_packit_config_present():
             return [
@@ -461,8 +472,8 @@ class SteveJobs:
         Check whether a new task should be created for job config and handler.
 
         Args:
-            job_config: job config to check
-            handler_kls: type of handler class to check
+            job_config: Job config to check.
+            handler_kls: Type of handler class to check.
 
         Returns:
             Whether the task should be created.
@@ -504,8 +515,8 @@ class SteveJobs:
         in our service configuration.
 
         Returns:
-            True if the project is public or enabled in our service config,
-            False otherwise.
+            `True`, if the project is public or enabled in our service config,
+            `False` otherwise.
         """
         # CoprBuildEvent.get_project returns None when the build id is not known
         if not self.event.project:
@@ -539,7 +550,7 @@ class SteveJobs:
         """Force explicit event/jobs matching for triggers
 
         Returns:
-            list of jobs
+            List of job configs.
         """
         matching_jobs = []
         if isinstance(self.event, PullRequestCommentPagureEvent):
@@ -572,6 +583,9 @@ class SteveJobs:
     def get_jobs_matching_event(self) -> List[JobConfig]:
         """
         Get list of non-duplicated all jobs that matches with event's trigger.
+
+        Returns:
+            List of all jobs that match the event's trigger.
         """
         jobs_matching_trigger = []
         for job in self.event.packages_config.get_job_views():
@@ -624,7 +638,7 @@ class SteveJobs:
         Get all handlers that we need to run for the given event.
 
         We need to return all handler classes that:
-        - can react to the given event AND
+        - can react to the given event **and**
         - are configured in the package_config (either directly or as a required job)
 
         Examples of the matching can be found in the tests:
@@ -672,6 +686,9 @@ class SteveJobs:
             handler: Handler which we are observing whether it is matching to job.
             allowed_handlers: Set of handlers that are triggered by a comment or check rerun
              job.
+
+        Returns:
+            `True` if handler matches the event, `False` otherwise.
         """
         handler_matches_to_comment_or_check_rerun_job = (
             allowed_handlers is None or handler in allowed_handlers
@@ -689,7 +706,7 @@ class SteveJobs:
         Get a list of JobConfigs relevant to event and the handler class.
 
         We need to find all job configurations that:
-        - can be run by the given handler class AND
+        - can be run by the given handler class, **and**
         - that matches the trigger of the event
 
         If there is no matching job-config found, we will pick the ones that are required.
@@ -702,8 +719,8 @@ class SteveJobs:
             handler_kls: class that will use the JobConfig
 
         Returns:
-             list of JobConfigs relevant to the given handler and event
-                 preserving the order in the config
+            List of JobConfigs relevant to the given handler and event
+            preserving the order in the config.
         """
         jobs_matching_trigger: List[JobConfig] = self.get_jobs_matching_event()
 
@@ -733,74 +750,79 @@ class SteveJobs:
     def push_statuses_metrics(
         self,
         statuses_check_feedback: List[datetime],
-    ):
+    ) -> None:
         """
         Push the metrics about the time of setting initial statuses for the first and last check.
 
         Args:
             statuses_check_feedback: A list of times it takes to set every initial status check.
         """
-        if statuses_check_feedback:
-            pushgateway = Pushgateway()
-            response_time = elapsed_seconds(
-                begin=self.event.created_at, end=statuses_check_feedback[0]
-            )
-            logger.debug(
-                f"Reporting first initial status check time: {response_time} seconds."
-            )
-            pushgateway.first_initial_status_time.observe(response_time)
-            if response_time > 25:
-                pushgateway.no_status_after_25_s.inc()
-            if response_time > 15:
-                # https://github.com/packit/packit-service/issues/1728
-                # we need more info why this has happened
-                logger.debug(f"Event dict: {self.event}.")
-                logger.error(
-                    f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
-                )
-            # set the time when the accepted status was set so that we
-            # can use it later for measurements
-            self.event.task_accepted_time = statuses_check_feedback[0]
+        if not statuses_check_feedback:
+            # no feedback, nothing to do
+            return
 
-            response_time = elapsed_seconds(
-                begin=self.event.created_at, end=statuses_check_feedback[-1]
+        response_time = elapsed_seconds(
+            begin=self.event.created_at, end=statuses_check_feedback[0]
+        )
+        logger.debug(
+            f"Reporting first initial status check time: {response_time} seconds."
+        )
+        self.pushgateway.first_initial_status_time.observe(response_time)
+        if response_time > 25:
+            self.pushgateway.no_status_after_25_s.inc()
+        if response_time > 15:
+            # https://github.com/packit/packit-service/issues/1728
+            # we need more info why this has happened
+            logger.debug(f"Event dict: {self.event}.")
+            logger.error(
+                f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
             )
-            logger.debug(
-                f"Reporting last initial status check time: {response_time} seconds."
-            )
-            pushgateway.last_initial_status_time.observe(response_time)
+        # set the time when the accepted status was set so that we
+        # can use it later for measurements
+        self.event.task_accepted_time = statuses_check_feedback[0]
 
-            pushgateway.push()
+        response_time = elapsed_seconds(
+            begin=self.event.created_at, end=statuses_check_feedback[-1]
+        )
+        logger.debug(
+            f"Reporting last initial status check time: {response_time} seconds."
+        )
+        self.pushgateway.last_initial_status_time.observe(response_time)
+
+        self.pushgateway.push()
 
     def push_copr_metrics(
         self,
         handler_kls: Type[JobHandler],
-        number_of_build_targets: Optional[int] = None,
-    ):
+        built_targets: int = 0,
+    ) -> None:
         """
         Push metrics about queued Copr builds.
 
         Args:
             handler_kls: The class for the Handler that will handle the job.
-            number_of_build_targets: Number of build targets in case of CoprBuildHandler.
+            built_targets: Number of build targets in case of CoprBuildHandler.
         """
-        pushgateway = Pushgateway()
+        # TODO(Friday): Do an early-return, but fix »all« **36** f-ing tests
+        if handler_kls == CoprBuildHandler and built_targets:
+            # handler wasn't matched or 0 targets were built
+            self.pushgateway.copr_builds_queued.inc(built_targets)
 
-        if handler_kls == CoprBuildHandler and number_of_build_targets:
-            for _ in range(number_of_build_targets):
-                pushgateway.copr_builds_queued.inc()
-
-        pushgateway.push()
+        self.pushgateway.push()
 
     def is_fas_verification_comment(self, comment: str) -> bool:
         """
-        Checks whether the comment contains Packit verification command
-        /packit(-stg) verify-fas
+        Checks whether the comment contains Packit verification command:
+        `/packit(-stg) verify-fas`
+
+        Args:
+            comment: Comment to be checked.
+
+        Returns:
+            `True`, if is verification comment, `False` otherwise.
         """
         command = get_packit_commands_from_comment(
             comment, self.service_config.comment_command_prefix
         )
-        if command and command[0] == PACKIT_VERIFY_FAS_COMMAND:
-            return True
 
-        return False
+        return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)

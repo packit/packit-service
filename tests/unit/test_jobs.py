@@ -8,6 +8,8 @@ import celery
 import pytest
 from flexmock import flexmock
 
+from ogr.exceptions import GithubAppNotInstalledError
+
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -18,7 +20,10 @@ from packit.config import (
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import COMMENT_REACTION
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
+    AbstractIssueCommentEvent,
+    AbstractPRCommentEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     IssueCommentEvent,
@@ -53,7 +58,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.koji import KojiBuildReportHandler
-from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.jobs import SteveJobs, get_handlers_for_check_rerun
 from packit_service.worker.result import TaskResults
 
 
@@ -3264,3 +3269,80 @@ def test_monorepo_jobs_matching_event():
 
     assert original_ref == 2
     assert double_ref == 2
+
+
+def test_no_handlers_for_rerun():
+    result = get_handlers_for_check_rerun("whatever")
+    assert not result, "There are no handlers for whatever"
+
+
+def test_github_app_not_installed():
+    service = flexmock(hostname="gitlab.com")
+    project = flexmock(namespace="packit", repo="ogr", service=service)
+    event = flexmock(project=project)
+    jobs = SteveJobs(event)
+
+    flexmock(jobs).should_receive("is_project_public_or_enabled_private").and_raise(
+        GithubAppNotInstalledError
+    )
+
+    assert not jobs.process()
+
+
+def test_search_for_dg_config_in_issue_on_pr_comment():
+    assert (
+        SteveJobs(
+            AbstractPRCommentEvent(None, None, None, None)
+        ).search_distgit_config_in_issue()
+        is None
+    )
+
+
+def test_search_for_dg_config_in_issue_no_url():
+    issue = flexmock(description="Packit failed…")
+    project = flexmock()
+    project.should_receive("get_issue").with_args(42).and_return(issue)
+
+    event = AbstractIssueCommentEvent(42, None, None, None, None, None)
+    flexmock(event).should_receive("project").and_return(project)
+
+    assert SteveJobs(event).search_distgit_config_in_issue() is None
+
+
+def test_invalid_packit_deployment():
+    event = flexmock()
+    jobs = SteveJobs(event)
+
+    # inject service config
+    jobs._service_config = flexmock(deployment="prod")
+
+    # require ‹stg› & ‹dev› instance in the job config
+    job_config = flexmock(packit_instances=["dev", "stg"])
+
+    # handler class doesn't matter in this case
+    assert not jobs.should_task_be_created_for_job_config_and_handler(job_config, None)
+
+
+def test_unapproved_jobs():
+    event = flexmock(project=None, packages_config=[])
+    event.should_receive("get_dict").and_return(
+        {"project": None, "packages_config": []}
+    )
+    jobs = SteveJobs(event)
+
+    # inject service config
+    jobs._service_config = flexmock()
+
+    flexmock(jobs).should_receive("is_packit_config_present").and_return(True)
+    flexmock(jobs).should_receive("get_handlers_for_event").and_return([None])
+    flexmock(jobs).should_receive("get_config_for_handler_kls").and_return(
+        [None, None, None]
+    )
+    # TODO: »do not« mock the ‹Allowlist› directly!!!
+    flexmock(Allowlist).should_receive("check_and_report").and_return(False)
+
+    results = jobs.process_jobs()
+    assert results and len(results) == 3, "we have gotten exactly 3 results"
+    assert all(
+        not result["success"] for result in results
+    ), "all of them must've failed the permission check"
