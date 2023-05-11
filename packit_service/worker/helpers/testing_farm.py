@@ -18,6 +18,8 @@ from packit_service.constants import (
     TESTING_FARM_INSTALLABILITY_TEST_REF,
     TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES,
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
+    PUBLIC_TF_ARCHITECTURE_LIST,
+    INTERNAL_TF_ARCHITECTURE_LIST,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -652,6 +654,37 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return compose
 
+    def _is_supported_architecture(self, target: str):
+        distro, arch = target.rsplit("-", 1)
+        supported_architectures = (
+            INTERNAL_TF_ARCHITECTURE_LIST
+            if self.job_config.use_internal_tf
+            else PUBLIC_TF_ARCHITECTURE_LIST
+        )
+        if arch not in supported_architectures:
+            msg = (
+                f"The architecture {arch} is not in the list of "
+                f"available architectures:\n{supported_architectures}. "
+            )
+            logger.error(msg)
+            msg += (
+                "Please, check the targets defined in your test job configuration. If you think"
+                f" your configuration is correct, get in touch with [us]({CONTACTS_URL})."
+            )
+            description = (
+                f"The architecture {arch} is not available in the "
+                f"{'internal' if self.job_config.use_internal_tf else 'public'} "
+                f"Testing Farm infrastructure."
+            )
+            self.report_status_to_tests_for_test_target(
+                state=BaseCommitStatus.error,
+                description=description,
+                target=target,
+                markdown_content=msg,
+            )
+            return False
+        return True
+
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_tests_for_chroot(
             state=BaseCommitStatus.error,
@@ -793,6 +826,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         successfully, store the new TF run in DB or retry if needed).
         """
         logger.info("Preparing testing farm request...")
+
+        if not self._is_supported_architecture(test_run.target):
+            msg = "Not supported architecture."
+            return TaskResults(success=True, details={"msg": msg})
 
         compose = self.distro2compose(test_run.target)
 
