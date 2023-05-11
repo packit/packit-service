@@ -377,6 +377,19 @@ class SteveJobs:
         Returns:
             List of the results of each task.
         """
+        if isinstance(
+            self.event, AbstractCommentEvent
+        ) and not get_handlers_for_comment(
+            self.event.comment,
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        ):
+            return [
+                TaskResults(
+                    success=True,
+                    details={"msg": "No Packit command found in the comment."},
+                )
+            ]
+
         if not self.is_packit_config_present():
             return [
                 TaskResults.create_from(

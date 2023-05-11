@@ -108,10 +108,13 @@ def pr_empty_comment_event():
 
 
 @pytest.fixture(scope="module")
-def pr_packit_only_comment_event():
+def pr_packit_comment_command_without_argument_event():
     return json.loads(
         (
-            DATA_DIR / "webhooks" / "github" / "issue_comment_packit_only.json"
+            DATA_DIR
+            / "webhooks"
+            / "github"
+            / "issue_comment_packit_command_without_argument.json"
         ).read_text()
     )
 
@@ -461,8 +464,9 @@ def test_pr_comment_empty_handler(
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
-    results = SteveJobs().process_message(pr_empty_comment_event)
-    assert results == []
+    results = SteveJobs().process_message(pr_empty_comment_event)[0]
+    assert results["success"]
+    assert results["details"]["msg"] == "No Packit command found in the comment."
 
 
 @pytest.mark.parametrize(
@@ -481,15 +485,18 @@ def test_pr_comment_empty_handler(
     indirect=True,
 )
 def test_pr_comment_packit_only_handler(
-    mock_pr_comment_functionality, pr_packit_only_comment_event
+    mock_pr_comment_functionality, pr_packit_comment_command_without_argument_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
-    results = SteveJobs().process_message(pr_packit_only_comment_event)
-    assert results == []
+    results = SteveJobs().process_message(
+        pr_packit_comment_command_without_argument_event
+    )[0]
+    assert results["success"]
+    assert results["details"]["msg"] == "No Packit command found in the comment."
 
 
 @pytest.mark.parametrize(
@@ -517,8 +524,9 @@ def test_pr_comment_wrong_packit_command_handler(
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
-    results = SteveJobs().process_message(pr_wrong_packit_comment_event)
-    assert results == []
+    results = SteveJobs().process_message(pr_wrong_packit_comment_event)[0]
+    assert results["success"]
+    assert results["details"]["msg"] == "No Packit command found in the comment."
 
 
 def test_pr_test_command_handler(pr_embedded_command_comment_event):
@@ -2214,8 +2222,13 @@ def test_invalid_packit_command_with_config(
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
-    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    assert processing_results == []
+    processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[
+        0
+    ]
+    assert processing_result["success"]
+    assert (
+        processing_result["details"]["msg"] == "No Packit command found in the comment."
+    )
 
 
 def test_invalid_packit_command_without_config(
@@ -2242,8 +2255,7 @@ def test_invalid_packit_command_without_config(
     ]
     assert processing_result["success"]
     assert (
-        processing_result["details"]["msg"]
-        == "No packit config found in the repository."
+        processing_result["details"]["msg"] == "No Packit command found in the comment."
     )
 
 
