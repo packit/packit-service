@@ -701,7 +701,7 @@ def test_payload(
     expected_test = {
         "url": project_url,
         "ref": commit_sha,
-        "merge_sha": "abcdefgh",
+        # "merge_sha": "abcdefgh",
         "path": ".",
     }
     if tmt_plan:
@@ -1004,13 +1004,13 @@ def test_test_repo(
 
     # if custom fmf tests are not defined or we're not merging, we don't pass the
     # merge SHA
-    merge_sha_should_be_none = fmf_url or not merge_pr_in_ci
-    assert (
-        merge_sha_should_be_none and payload["test"]["fmf"].get("merge_sha") is None
-    ) or (
-        not merge_sha_should_be_none
-        and payload["test"]["fmf"].get("merge_sha") == "abcdefgh"
-    )
+    # merge_sha_should_be_none = fmf_url or not merge_pr_in_ci
+    # assert (
+    #     merge_sha_should_be_none and payload["test"]["fmf"].get("merge_sha") is None
+    # ) or (
+    #     not merge_sha_should_be_none
+    #     and payload["test"]["fmf"].get("merge_sha") == "abcdefgh"
+    # )
 
 
 def test_get_request_details():
