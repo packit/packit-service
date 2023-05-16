@@ -1629,3 +1629,39 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
     event.update({"actor": "actor", "project_url": "url"})
 
     assert TestingFarmHandler.pre_check(package_config, jobs[0], event) == should_pass
+
+
+@pytest.mark.parametrize(
+    "target,use_internal_tf,supported",
+    [
+        ("distro-aarch64", True, True),
+        ("distro-x86_64", True, True),
+        ("distro-aarch64", False, True),
+        ("distro-x86_64", False, True),
+        ("distro-ppc64le", True, True),
+        ("distro-s390x", True, True),
+        ("distro-ppc64le", False, False),
+        ("distro-s390x", False, False),
+    ],
+)
+def test_is_supported_architecture(target, use_internal_tf, supported):
+    job_helper = TFJobHelper(
+        service_config=ServiceConfig.get_service_config(),
+        package_config=flexmock(jobs=[]),
+        project=flexmock(),
+        metadata=flexmock(),
+        db_trigger=flexmock(),
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            packages={
+                "package": CommonPackageConfig(
+                    use_internal_tf=use_internal_tf,
+                )
+            },
+        ),
+    )
+    if not supported:
+        flexmock(TFJobHelper).should_receive("report_status_to_tests_for_test_target")
+
+    assert job_helper._is_supported_architecture(target) == supported
