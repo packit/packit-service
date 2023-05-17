@@ -773,6 +773,58 @@ def test_payload(
             ],
             [{"tmt": {"context": {"how": "full"}}}],
         ),
+        (
+            {
+                "environments": [
+                    {
+                        "arch": "x86_64",
+                        "artifacts": [
+                            {
+                                "id": "123:fedora-37",
+                                "type": "fedora-copr-build",
+                            }
+                        ],
+                    }
+                ]
+            },
+            {
+                "environments": [
+                    {
+                        "artifacts": [
+                            {
+                                "type": "repository",
+                                "id": "123:fedora-37",
+                                "packages": "some-nvr",
+                            }
+                        ],
+                        "settings": {
+                            "provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}
+                        },
+                    }
+                ]
+            },
+            {
+                "environments": [
+                    {
+                        "arch": "x86_64",
+                        "artifacts": [
+                            {
+                                "id": "123:fedora-37",
+                                "type": "fedora-copr-build",
+                            },
+                            {
+                                "type": "repository",
+                                "id": "123:fedora-37",
+                                "packages": "some-nvr",
+                            },
+                        ],
+                        "settings": {
+                            "provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}
+                        },
+                    }
+                ]
+            },
+        ),
     ],
 )
 def test_merge_payload_with_extra_params(payload, params, result):

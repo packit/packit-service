@@ -20,6 +20,7 @@ from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     PUBLIC_TF_ARCHITECTURE_LIST,
     INTERNAL_TF_ARCHITECTURE_LIST,
+    TESTING_FARM_ARTIFACTS_KEY,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -348,11 +349,30 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if key not in payload or is_final(value):
                     payload[key] = value
                 elif not is_final(value):
+                    if key == TESTING_FARM_ARTIFACTS_KEY:
+                        cls._handle_extra_artifacts(
+                            payload, params[TESTING_FARM_ARTIFACTS_KEY]
+                        )
+                        continue
                     cls._merge_payload_with_extra_params(payload[key], params[key])
 
         elif isinstance(params, list):
             for payload_el, params_el in zip(payload, params):
                 cls._merge_payload_with_extra_params(payload_el, params_el)
+
+    @classmethod
+    def _handle_extra_artifacts(cls, payload: Any, extra_params_artifacts: Any):
+        """
+        We treat `artifacts` specially since we do not want to overwrite
+        the artifacts defined by us, but combine them with the one in `tf_extra_params`.
+        """
+        if isinstance(extra_params_artifacts, list):
+            payload[TESTING_FARM_ARTIFACTS_KEY] += extra_params_artifacts
+        else:
+            logger.info(
+                "Type of artifacts in the tf_extra_params is not a list, "
+                "not adding them to payload."
+            )
 
     def _payload(
         self,

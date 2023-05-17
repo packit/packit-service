@@ -32,6 +32,7 @@ TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES = (
     "test",
     "settings",
 )
+TESTING_FARM_ARTIFACTS_KEY = "artifacts"
 
 MSG_DOWNSTREAM_JOB_ERROR_HEADER = (
     "Packit failed on creating {object} in dist-git "
