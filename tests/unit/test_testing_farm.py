@@ -1515,6 +1515,11 @@ def test_get_artifacts(chroot, build, additional_build, result):
         pytest.param(
             [
                 JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                ),
+                JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
@@ -1522,7 +1527,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                             use_internal_tf=True,
                         )
                     },
-                )
+                ),
             ],
             {"event_type": "PullRequestGithubEvent"},
             False,
@@ -1530,6 +1535,11 @@ def test_get_artifacts(chroot, build, additional_build, result):
         ),
         pytest.param(
             [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
@@ -1556,6 +1566,11 @@ def test_get_artifacts(chroot, build, additional_build, result):
         pytest.param(
             [
                 JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                ),
+                JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
@@ -1578,31 +1593,6 @@ def test_get_artifacts(chroot, build, additional_build, result):
             {"event_type": "PullRequestGithubEvent"},
             True,
             id="multiple_test_jobs_build_required_internal_job_skip_build",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            {"event_type": "PullRequestCommentGithubEvent", "comment": "/packit test"},
-            True,
-            id="multiple_test_jobs_build_not_required",
         ),
     ],
 )

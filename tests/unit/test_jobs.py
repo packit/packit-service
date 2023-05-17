@@ -199,33 +199,6 @@ from packit_service.worker.result import TaskResults
             {CoprBuildEndHandler},
             id="config=build_for_pr&pull_request&CoprBuildEndEvent",
         ),
-        # Copr results for test:
-        pytest.param(
-            CoprBuildStartEvent,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-            ],
-            {CoprBuildStartHandler},
-            id="config=build_for_pr&pull_request&CoprBuildStartEvent",
-        ),
-        pytest.param(
-            CoprBuildEndEvent,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-            ],
-            {CoprBuildEndHandler},
-            id="config=test_for_pr&pull_request&CoprBuildEndEvent",
-        ),
         # Test results:
         pytest.param(
             TestingFarmResultsEvent,
@@ -745,54 +718,6 @@ from packit_service.worker.result import TaskResults
             {CoprBuildHandler},
             id="config=test_for_pr+build_for_commit+build_for_release"
             "&commit&PushGitHubEvent",
-        ),
-        pytest.param(
-            CoprBuildStartEvent,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.commit,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.release,
-                    packages={"package": CommonPackageConfig()},
-                ),
-            ],
-            {CoprBuildStartHandler},
-            id="config=test_for_pr+build_for_commit+build_for_release"
-            "&pull_request&CoprBuildStartEvent",
-        ),
-        pytest.param(
-            CoprBuildEndEvent,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.commit,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.release,
-                    packages={"package": CommonPackageConfig()},
-                ),
-            ],
-            {CoprBuildEndHandler},
-            id="config=test_for_pr+build_for_commit+build_for_release"
-            "&pull_request&CoprBuildEndEvent",
         ),
         pytest.param(
             TestingFarmResultsEvent,
@@ -1876,100 +1801,6 @@ def test_get_handlers_for_check_rerun_event(
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
             "&CoprBuildHandler&ReleaseEvent",
-        ),
-        pytest.param(
-            CoprBuildStartHandler,
-            CoprBuildStartEvent,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project1",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.commit,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project2",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.release,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project3",
-                        )
-                    },
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project1",
-                        )
-                    },
-                ),
-            ],
-            id="tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildStartHandler&CoprBuildStartEvent",
-        ),
-        pytest.param(
-            CoprBuildEndHandler,
-            CoprBuildEndEvent,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project1",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.commit,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project2",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.release,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project3",
-                        )
-                    },
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            project="project1",
-                        )
-                    },
-                ),
-            ],
-            id="tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildEndHandler&CoprBuildEndEvent",
         ),
         pytest.param(
             TestingFarmResultsHandler,

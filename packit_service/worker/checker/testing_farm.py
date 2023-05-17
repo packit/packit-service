@@ -97,3 +97,28 @@ class CanActorRunJob(ActorChecker, GetTestingFarmJobHelperMixin):
             )
             return False
         return True
+
+
+class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
+    """
+    If the test job doesn't have enabled skip_build option, check whether
+    there is matching build job present and report if there is no.
+    """
+
+    def pre_check(self) -> bool:
+        if (
+            not self.testing_farm_job_helper.skip_build
+            and not self.testing_farm_job_helper.job_build
+        ):
+            logger.info(
+                "Build required and no build job found in the configuration, "
+                "reporting and skipping."
+            )
+            self.testing_farm_job_helper.report_status_to_tests(
+                description="Test job requires build job definition in the configuration.",
+                state=BaseCommitStatus.neutral,
+                url="",
+            )
+            return False
+
+        return True
