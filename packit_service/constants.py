@@ -74,7 +74,6 @@ NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS = (
 )
 NOTIFICATION_REPO = "https://github.com/packit/notifications"
 
-
 PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
     "Only users with write or admin permissions to the repository "
     "can trigger Packit-as-a-Service"
@@ -250,3 +249,8 @@ INTERNAL_TF_ARCHITECTURE_LIST: List[str] = [
     "s390x",
     "x86_64",
 ]
+
+DENIED_MSG = (
+    f"You were denied from using Packit Service. If you think this was done by mistake, "
+    f"please, [let us know]({CONTACTS_URL})."
+)

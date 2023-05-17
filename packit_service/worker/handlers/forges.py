@@ -92,7 +92,7 @@ class GithubAppInstallationHandler(
         existing_allowlist_entry = AllowlistModel.get_namespace(namespace)
         if not existing_allowlist_entry or (
             previous_installation is not None
-            and not allowlist.is_approved(namespace)
+            and not allowlist.is_namespace_or_parent_approved(namespace)
             and previous_sender_login != self.sender_login
         ):
             if allowlist.is_github_username_from_fas_account_matching(
@@ -220,11 +220,14 @@ class GithubFasVerificationHandler(
         to match fas_account.
         """
         allowlist = Allowlist(service_config=self.service_config)
-        if allowlist.is_approved(namespace):
-            msg = f"Namespace `{namespace}` was already approved."
+        if (
+            approved := allowlist.is_namespace_or_parent_approved(namespace)
+        ) or allowlist.is_denied(namespace):
+            msg = f"Namespace `{namespace}` {'was already approved' if approved else 'is denied'}."
             logger.debug(msg)
             self.issue.comment(msg)
-            self.issue.close()
+            if approved:
+                self.issue.close()
             return TaskResults(success=True, details={"msg": msg})
 
         if allowlist.is_github_username_from_fas_account_matching(

@@ -118,13 +118,28 @@ def approve(full_path: Optional[str]):
     if full_path is None:
         full_path = RepoUrl().convert(construct_path())
 
-    is_approved_before = Allowlist.is_approved(full_path)
+    is_approved_before = Allowlist.is_namespace_or_parent_approved(full_path)
 
     Allowlist.approve_namespace(full_path)
-    if Allowlist.is_approved(full_path) != is_approved_before:
+    if Allowlist.is_namespace_or_parent_approved(full_path) != is_approved_before:
         click.secho(f"Namespace ‹{full_path}› has been approved.", fg="green")
     else:
         click.secho(f"Status of namespace ‹{full_path}› has not changed.", fg="yellow")
+
+
+@cli.command(short_help="Deny namespace.", help=PATH_HELP.format("denied"))
+@click.argument("full_path", type=RepoUrl(), required=False)
+def deny(full_path: Optional[str]):
+    if full_path is None:
+        full_path = RepoUrl().convert(construct_path())
+
+    is_denied_before = Allowlist.is_denied(full_path)
+    if is_denied_before:
+        click.secho(f"Namespace ‹{full_path}› already denied.", fg="yellow")
+        return
+
+    Allowlist.deny_namespace(full_path)
+    click.secho(f"Namespace ‹{full_path}› has been denied.", fg="green")
 
 
 @cli.command(
@@ -154,6 +169,15 @@ def waiting(ctx):
     ):
         click.echo()
         ctx.invoke(approve, full_path=prompt_variant(waiting_list[choice - 1]))
+
+
+@cli.command(short_help="Show namespaces that are denied.")
+def denied():
+    click.echo("Denied namespaces:")
+
+    denied_list = Allowlist.denied_namespaces()
+    for i, namespace in enumerate(denied_list, 1):
+        click.echo(f"{i}. {namespace}")
 
 
 if __name__ == "__main__":

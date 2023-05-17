@@ -19,6 +19,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     DOCS_APPROVAL_URL,
     NOTIFICATION_REPO,
+    DENIED_MSG,
 )
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
@@ -54,12 +55,8 @@ def allowlist():
 @pytest.fixture(scope="module")
 def allowlist_entries():
     return {
-        "github.com": flexmock(
-            id=1, namespace="github.com", status=AllowlistStatus.denied.value
-        ),
-        "gitlab.com": flexmock(
-            id=2, namespace="gitlab.com", status=AllowlistStatus.denied.value
-        ),
+        "github.com": None,
+        "gitlab.com": None,
         "github.com/fero": flexmock(
             id=3,
             namespace="github.com/fero",
@@ -193,12 +190,48 @@ def mocked_model(allowlist_entries, request):
     ),
     indirect=["mocked_model"],
 )
-def test_is_approved(allowlist, account_name, mocked_model, is_approved):
-    assert allowlist.is_approved(account_name) == is_approved
+def test_is_namespace_or_parent_approved(
+    allowlist, account_name, mocked_model, is_approved
+):
+    assert allowlist.is_namespace_or_parent_approved(account_name) == is_approved
 
 
 @pytest.mark.parametrize(
-    "event, mocked_model, approved",
+    "account_name, mocked_model, is_denied",
+    (
+        (
+            "github.com/fero",
+            ("github.com/fero", "github.com"),
+            False,
+        ),
+        (  # gitlab.com/packit-service denied
+            "gitlab.com/packit-service/src/glibc.git",
+            (
+                "gitlab.com/packit-service/src/glibc.git",
+                "gitlab.com/packit-service/src",
+                "gitlab.com/packit-service",
+            ),
+            True,
+        ),
+        (
+            "github.com/src/glibc.git",
+            ("github.com/src/glibc.git", "github.com/src", "github.com"),
+            False,
+        ),
+        (  # gitlab.com/packit denied
+            "gitlab.com/packit/packit.git",
+            ("gitlab.com/packit/packit.git", "gitlab.com/packit"),
+            True,
+        ),
+    ),
+    indirect=["mocked_model"],
+)
+def test_is_denied(allowlist, account_name, mocked_model, is_denied):
+    assert allowlist.is_namespace_or_parent_denied(account_name) == is_denied
+
+
+@pytest.mark.parametrize(
+    "event, mocked_model, approved, user_namespace",
     [
         (
             PullRequestCommentGithubEvent(
@@ -216,6 +249,7 @@ def test_is_approved(allowlist, account_name, mocked_model, is_approved):
             ),
             ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
+            "github.com/bar",
         ),
         (
             IssueCommentEvent(
@@ -231,6 +265,7 @@ def test_is_approved(allowlist, account_name, mocked_model, is_approved):
             ),
             ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
+            "github.com/baz",
         ),
         (
             PullRequestCommentGithubEvent(
@@ -248,6 +283,7 @@ def test_is_approved(allowlist, account_name, mocked_model, is_approved):
             ),
             ("github.com/fero/dwm.git", "github.com/fero"),
             True,
+            "github.com/lojzo",
         ),
         (
             IssueCommentEvent(
@@ -266,6 +302,7 @@ def test_is_approved(allowlist, account_name, mocked_model, is_approved):
                 "gitlab.com/packit-service/src",
             ),
             True,
+            "gitlab.com/lojzo",
         ),
         (
             PullRequestCommentGithubEvent(
@@ -283,15 +320,23 @@ def test_is_approved(allowlist, account_name, mocked_model, is_approved):
             ),
             [],
             True,
+            "github.com/admin",
         ),
     ],
     indirect=["mocked_model"],
 )
-def test_check_and_report_calls_method(allowlist, event, mocked_model, approved):
+def test_check_and_report_calls_method(
+    allowlist, event, mocked_model, approved, user_namespace
+):
     gp = GitProject("", GitService(), "")
-
+    flexmock(DBAllowlist).should_receive("get_namespace").with_args(
+        user_namespace
+    ).and_return()
     flexmock(gp).should_receive("can_merge_pr").with_args(event.actor).and_return(
         approved
+    )
+    flexmock(Allowlist).should_receive("is_namespace_or_parent_denied").and_return(
+        False
     )
     mocked_pr_or_issue = flexmock(author=None)
     if isinstance(event, IssueCommentEvent):
@@ -312,6 +357,96 @@ def test_check_and_report_calls_method(allowlist, event, mocked_model, approved)
             job_configs=[],
         )
         == approved
+    )
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        PullRequestCommentGithubEvent(
+            action=PullRequestCommentAction.created,
+            pr_id=0,
+            base_repo_namespace="base",
+            base_repo_name="",
+            base_ref="",
+            target_repo_namespace="foo",
+            target_repo_name="bar",
+            project_url="https://github.com/foo/bar",
+            actor="bar",
+            comment="",
+            comment_id=0,
+        ),
+        IssueCommentEvent(
+            action=IssueCommentAction.created,
+            issue_id=0,
+            repo_namespace="foo",
+            repo_name="bar",
+            target_repo="",
+            project_url="https://github.com/foo/bar",
+            actor="baz",
+            comment="",
+            comment_id=0,
+        ),
+        PullRequestCommentGithubEvent(
+            action=PullRequestCommentAction.created,
+            pr_id=0,
+            base_repo_namespace="foo",
+            base_repo_name="dwm",
+            base_ref="",
+            target_repo_namespace="fero",
+            target_repo_name="dwm.git",
+            project_url="https://github.com/fero/dwm",
+            actor="lojzo",
+            comment="",
+            comment_id=0,
+        ),
+        IssueCommentEvent(
+            action=IssueCommentAction.created,
+            issue_id=0,
+            repo_namespace="packit-service/src",
+            repo_name="glibc",
+            target_repo="",
+            project_url="https://gitlab.com/packit-service/src/glibc",
+            actor="lojzo",
+            comment="",
+            comment_id=0,
+        ),
+        PullRequestCommentGithubEvent(
+            action=PullRequestCommentAction.created,
+            pr_id=0,
+            base_repo_namespace="banned_namespace",
+            base_repo_name="",
+            base_ref="",
+            target_repo_namespace="banned_namespace_again",
+            target_repo_name="some_repo",
+            project_url="https://github.com/banned_namespace_again/some_repo",
+            actor="ljzo",
+            comment="",
+            comment_id=0,
+        ),
+    ],
+)
+def test_check_and_report_denied_project(allowlist, event):
+    gp = GitProject("", GitService(), "")
+    flexmock(Allowlist).should_receive("is_denied").and_return(False)
+    flexmock(Allowlist).should_receive("is_namespace_or_parent_denied").and_return(True)
+    mocked_pr_or_issue = flexmock(author=None)
+    if isinstance(event, IssueCommentEvent):
+        flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
+    else:
+        flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
+    mocked_pr_or_issue.should_receive("comment").with_args(
+        f"{Allowlist._strip_protocol_and_add_git(event.project_url)} or parent namespaces denied!"
+    ).once()
+
+    ServiceConfig.get_service_config().admins = {"admin"}
+    assert (
+        allowlist.check_and_report(
+            event,
+            gp,
+            job_configs=[],
+        )
+        is False
     )
 
 
@@ -512,7 +647,13 @@ def test_check_and_report(
         flexmock(EventData).should_receive("from_event_dict").and_return(
             flexmock(commit_sha="0000000", pr_id="0")
         )
-
+        actor_namespace = (
+            f"{'github.com' if isinstance(event.project, GithubProject) else 'gitlab.com'}"
+            f"/{event.actor}"
+        )
+        flexmock(DBAllowlist).should_receive("get_namespace").with_args(
+            actor_namespace
+        ).and_return()
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
             notification_project_mock = flexmock()
             notification_project_mock.should_receive("get_issue_list").with_args(
@@ -544,7 +685,7 @@ def test_check_and_report(
             )
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
-                description="github.com/the-namespace not allowed!",
+                description=str,
                 state=BaseCommitStatus.neutral,
                 url="https://issue.url",
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
@@ -570,6 +711,9 @@ def test_check_and_report(
                 "fedora-rawhide-x86_64",
             }
         )
+        flexmock(Allowlist).should_receive("is_namespace_or_parent_denied").and_return(
+            False
+        )
         mock_model(allowlist_entries, resolved_through)
 
         assert (
@@ -580,6 +724,143 @@ def test_check_and_report(
             )
             is is_valid
         )
+
+
+def test_check_and_report_actor_denied_issue(allowlist):
+    event = IssueCommentEvent(
+        action=IssueCommentAction.created,
+        issue_id=0,
+        repo_namespace="foo",
+        repo_name="bar",
+        target_repo="",
+        project_url="https://github.com/foo/bar",
+        actor="bar",
+        comment="",
+        comment_id=0,
+    )
+    issue = flexmock()
+    flexmock(issue).should_receive("comment").with_args(
+        "User namespace bar denied!"
+    ).once()
+    flexmock(
+        GithubProject,
+        create_check_run=lambda *args, **kwargs: None,
+        get_issue=lambda *args, **kwargs: issue,
+    )
+    job_configs = [
+        JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=["fedora-rawhide"],
+                )
+            },
+        )
+    ]
+
+    git_project = GithubProject("the-repo", GithubService(), "the-namespace")
+    flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
+    flexmock(EventData).should_receive("from_event_dict").and_return(
+        flexmock(commit_sha="0000000", pr_id="0")
+    )
+    flexmock(DBAllowlist).should_receive("get_namespace").with_args(
+        "github.com/bar"
+    ).and_return(flexmock(status=AllowlistStatus.denied))
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
+        {
+            "fedora-rawhide-x86_64",
+        }
+    )
+
+    assert (
+        allowlist.check_and_report(
+            event,
+            git_project,
+            job_configs=job_configs,
+        )
+        is False
+    )
+
+
+def test_check_and_report_actor_pull_request(allowlist):
+    event = PullRequestGithubEvent(
+        action=PullRequestAction.opened,
+        pr_id=0,
+        base_repo_namespace="base",
+        base_repo_name="",
+        base_ref="",
+        target_repo_namespace="foo",
+        target_repo_name="bar",
+        project_url="https://github.com/foo/bar",
+        actor="bar",
+        commit_sha="",
+    )
+    flexmock(
+        GithubProject,
+        create_check_run=lambda *args, **kwargs: None,
+        get_pr=lambda *args, **kwargs: flexmock(
+            source_project=flexmock(), author=None, comment=lambda *args, **kwargs: None
+        ),
+    )
+    job_configs = [
+        JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=["fedora-rawhide"],
+                )
+            },
+        )
+    ]
+    flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
+        flexmock(jobs=job_configs, get_package_config_for=lambda job_config: flexmock())
+    )
+    flexmock(PullRequestModel).should_receive("get_or_create").and_return(
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
+    )
+
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    git_project = GithubProject("the-repo", GithubService(), "the-namespace")
+    flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
+    flexmock(EventData).should_receive("from_event_dict").and_return(
+        flexmock(commit_sha="0000000", pr_id="0")
+    )
+    flexmock(DBAllowlist).should_receive("get_namespace").with_args(
+        "github.com/bar"
+    ).and_return(flexmock(status=AllowlistStatus.denied))
+    flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+    flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
+    flexmock(StatusReporter).should_receive("report").with_args(
+        description="User namespace denied!",
+        state=BaseCommitStatus.neutral,
+        url=None,
+        check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
+        markdown_content=DENIED_MSG,
+        links_to_external_services=None,
+        update_feedback_time=object,
+    ).once()
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
+        {
+            "fedora-rawhide-x86_64",
+        }
+    )
+
+    assert (
+        allowlist.check_and_report(
+            event,
+            git_project,
+            job_configs=job_configs,
+        )
+        is False
+    )
 
 
 @pytest.mark.parametrize(

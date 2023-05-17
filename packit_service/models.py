@@ -1998,7 +1998,7 @@ class AllowlistModel(Base):
         return sa_session().query(AllowlistModel).filter_by(namespace=namespace).first()
 
     @classmethod
-    def get_namespaces_by_status(cls, status: str) -> Iterable["AllowlistModel"]:
+    def get_by_status(cls, status: str) -> Iterable["AllowlistModel"]:
         """
         Get list of namespaces with specific status.
 

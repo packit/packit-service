@@ -60,7 +60,10 @@ def test_verification_successful():
     )
     assert json.dumps(event_dict)
 
-    flexmock(Allowlist).should_receive("is_approved").and_return(False)
+    flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
+        False
+    )
+    flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive(
         "is_github_username_from_fas_account_matching"
     ).with_args(fas_account="my-fas-account", sender_login="phracek").and_return(True)
@@ -119,7 +122,10 @@ def test_verification_not_successful():
     )
     assert json.dumps(event_dict)
 
-    flexmock(Allowlist).should_receive("is_approved").and_return(False)
+    flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
+        False
+    )
+    flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive(
         "is_github_username_from_fas_account_matching"
     ).with_args(fas_account="my-fas-account", sender_login="phracek").and_return(False)
@@ -240,7 +246,9 @@ def test_verification_already_approved():
     )
     assert json.dumps(event_dict)
 
-    flexmock(Allowlist).should_receive("is_approved").and_return(True)
+    flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
+        True
+    )
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
         "example-user"
@@ -343,7 +351,9 @@ def test_verification_not_original_triggerer():
     )
     assert json.dumps(event_dict)
 
-    flexmock(Allowlist).should_receive("is_approved").and_return(True)
+    flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
+        True
+    )
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
         "example-user"
