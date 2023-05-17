@@ -212,29 +212,6 @@ def pc_build_release():
 
 
 @pytest.fixture(scope="module")
-def pc_tests():
-    return PackageConfig(
-        jobs=[
-            JobConfig(
-                type=JobType.tests,
-                trigger=JobConfigTriggerType.pull_request,
-                packages={
-                    "package": CommonPackageConfig(
-                        _targets=["fedora-all"],
-                        specfile_path="test.spec",
-                    )
-                },
-            )
-        ],
-        packages={
-            "package": CommonPackageConfig(
-                specfile_path="test.spec",
-            )
-        },
-    )
-
-
-@pytest.fixture(scope="module")
 def copr_build_branch_push():
     return copr_build_model(
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -1552,70 +1529,6 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
-
-    processing_results = SteveJobs().process_message(copr_build_start)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
-    )
-    assert json.dumps(event_dict)
-
-    run_copr_build_start_handler(
-        package_config=package_config,
-        event=event_dict,
-        job_config=job_config,
-    )
-
-
-def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr):
-    flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock())
-    )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
-        pc_tests
-    )
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
-    )
-    flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
-        EXPECTED_BUILD_CHECK_NAME
-    )
-    flexmock(TestingFarmJobHelper).should_receive("get_test_check").and_return(
-        EXPECTED_TESTING_FARM_CHECK_NAME
-    )
-
-    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
-        copr_build_pr
-    )
-    url = get_copr_build_info_url(1)
-    flexmock(requests).should_receive("get").and_return(requests.Response())
-    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
-    copr_build_pr.should_receive("set_start_time").once()
-    copr_build_pr.should_call("set_status").with_args(BuildStatus.pending).once()
-    copr_build_pr.should_receive("set_build_logs_url")
-
-    # check if packit-service sets the correct PR status
-    flexmock(StatusReporter).should_receive("report").with_args(
-        state=BaseCommitStatus.running,
-        description="RPM build is in progress...",
-        url=url,
-        check_names=EXPECTED_BUILD_CHECK_NAME,
-        markdown_content=None,
-        links_to_external_services=None,
-        update_feedback_time=object,
-    ).never()
-
-    flexmock(StatusReporter).should_receive("report").with_args(
-        state=BaseCommitStatus.running,
-        description="RPM build is in progress...",
-        url=url,
-        check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
-        markdown_content=None,
-        links_to_external_services=None,
-        update_feedback_time=object,
-    ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
 

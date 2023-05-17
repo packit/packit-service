@@ -82,37 +82,6 @@ def configured_as(job_type: JobType):
     return _add_to_mapping
 
 
-def required_for(job_type: JobType):
-    """
-    [class decorator]
-    Specify a job_type for which this handler is the prerequisite.
-    E.g. for test, we need to run build first.
-
-    If there is a matching job_type defined by @configured_as,
-    we don't use the decorated handler with the job-config using this job_type.
-    If there is none, we use the job-config with this job_type.
-
-    Example:
-        - When there is a build and test defined, we run build only once
-          with the build job-config.
-        - When there is only test defined,
-          we run build with the test job-configuration.
-
-    ```
-    @configured_as(job_type=JobType.copr_build)
-    @configured_as(job_type=JobType.build)
-    @required_for(job_type=JobType.tests)
-    class CoprBuildHandler(JobHandler):
-    ```
-    """
-
-    def _add_to_mapping(kls: Type["JobHandler"]):
-        MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job_type].add(kls)
-        return kls
-
-    return _add_to_mapping
-
-
 def reacts_to(event: Type["Event"]):
     """
     [class decorator]

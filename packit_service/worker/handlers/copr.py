@@ -56,7 +56,6 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
     reacts_to,
-    required_for,
     run_for_comment,
     run_for_check_rerun,
     RetriableJobHandler,
@@ -135,7 +134,6 @@ class AbstractCoprBuildReportHandler(
 
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
-@required_for(job_type=JobType.tests)
 @reacts_to(event=CoprBuildStartEvent)
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
@@ -206,7 +204,6 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
-@required_for(job_type=JobType.tests)
 @reacts_to(event=CoprBuildEndEvent)
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
