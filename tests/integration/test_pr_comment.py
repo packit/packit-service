@@ -200,6 +200,8 @@ def test_pr_comment_build_test_handler(
         description="Test job requires build job definition in the configuration.",
         state=BaseCommitStatus.neutral,
         url="",
+        markdown_content="For more info, please check out "
+        "[the documentation](https://packit.dev/docs/testing-farm)",
     ).once()
     flexmock(Signature).should_receive("apply_async").never()
     pr = flexmock(head_commit="12345")
