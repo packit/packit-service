@@ -112,7 +112,7 @@ def test_vm_image_build(github_vm_image_build_comment):
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
     flexmock(VMImageBuildTargetModel).should_receive("create").and_return(flexmock())
     flexmock(Celery).should_receive("send_task")
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(github_vm_image_build_comment)
     event_dict, _, job_config, package_config = get_parameters_from_results(

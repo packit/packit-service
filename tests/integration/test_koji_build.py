@@ -68,7 +68,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
 
     # 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     # Database
     flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
@@ -140,7 +140,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
 
     # 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     # Database
     run_model_flexmock = flexmock()

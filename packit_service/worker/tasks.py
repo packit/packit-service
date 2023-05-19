@@ -142,7 +142,7 @@ def process_message(self, event: dict) -> List[TaskResults]:
     Returns:
         task results
     """
-    return SteveJobs().process_message(event=event)
+    return SteveJobs.process_message(event=event)
 
 
 @celery_app.task(

@@ -281,7 +281,7 @@ def test_check_rerun_pr_testing_farm_handler(
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_testing_farm)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -338,7 +338,7 @@ def test_check_rerun_pr_koji_build_handler(
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -412,7 +412,7 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -495,7 +495,7 @@ def test_check_rerun_push_testing_farm_handler(
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_testing_farm)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -554,7 +554,7 @@ def test_check_rerun_push_koji_build_handler(
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build_push)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -612,7 +612,7 @@ def test_check_rerun_release_koji_build_handler(
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -672,7 +672,7 @@ def test_check_rerun_release_propose_downstream_handler(
         update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(
         check_rerun_event_propose_downstream

@@ -163,7 +163,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     processing_results = SteveJobs().process_message(new_hotness_update)

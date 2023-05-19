@@ -330,7 +330,7 @@ def test_copr_build_end(
         "https://my.host/my.srpm"
     ).mock()
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -401,7 +401,7 @@ def test_copr_build_end_push(
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_push)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -467,7 +467,7 @@ def test_copr_build_end_release(
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_release)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -716,7 +716,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -838,7 +838,7 @@ def test_copr_build_end_push_testing_farm(copr_build_end_push, copr_build_branch
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_push)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -941,7 +941,7 @@ def test_copr_build_end_push_testing_farm_different_branch(
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_push)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1099,7 +1099,7 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1269,7 +1269,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1456,7 +1456,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         .at_least()
         .once()
     )
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1530,7 +1530,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1592,7 +1592,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
         .once()
     )
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1641,7 +1641,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1705,7 +1705,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1748,7 +1748,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
         .at_least()
         .once()
     )
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
         srpm_build_model
@@ -1810,7 +1810,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
         .at_least()
         .once()
     )
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(CoprBuildJobHelper).should_receive("monitor_not_submitted_copr_builds")
 
     flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
@@ -1864,7 +1864,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]
     )
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
         srpm_build_model

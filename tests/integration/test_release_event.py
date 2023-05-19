@@ -191,7 +191,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     url = get_propose_downstream_info_url(model.id)
@@ -320,7 +320,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -450,7 +450,7 @@ def test_dist_git_push_release_handle_one_failed(
     )
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -576,7 +576,7 @@ def test_dist_git_push_release_handle_all_failed(
     )
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -668,7 +668,7 @@ def test_retry_propose_downstream_task(
 
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").once().and_return()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -780,7 +780,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Context, retries=2)
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").never()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
