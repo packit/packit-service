@@ -67,6 +67,7 @@ check-in-container:
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
+		--env PUSHGATEWAY_ADDRESS= \
 		-v $(CURDIR):/src:Z \
 		-w /src \
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml:Z \
