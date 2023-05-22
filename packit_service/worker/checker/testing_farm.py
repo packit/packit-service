@@ -6,6 +6,7 @@ import logging
 from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
+    DOCS_TESTING_FARM,
 )
 from packit_service.worker.checker.abstract import (
     ActorChecker,
@@ -118,6 +119,8 @@ class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
                 description="Test job requires build job definition in the configuration.",
                 state=BaseCommitStatus.neutral,
                 url="",
+                markdown_content=f"For more info, please check out "
+                f"[the documentation]({DOCS_TESTING_FARM})",
             )
             return False
 
