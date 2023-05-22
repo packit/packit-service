@@ -36,7 +36,7 @@ def test_verification_successful():
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
     flexmock(PackageConfigGetter).should_receive(
@@ -98,7 +98,7 @@ def test_verification_not_successful():
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
     flexmock(PackageConfigGetter).should_receive(
@@ -168,7 +168,7 @@ def test_verification_incorrect_format(comment):
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
     flexmock(PackageConfigGetter).should_receive(
@@ -222,7 +222,7 @@ def test_verification_already_approved():
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
     flexmock(PackageConfigGetter).should_receive(
@@ -327,7 +327,7 @@ def test_verification_not_original_triggerer():
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
     flexmock(PackageConfigGetter).should_receive(

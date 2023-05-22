@@ -93,7 +93,7 @@ def test_sync_from_downstream():
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("sync_from_downstream").with_args(
         dist_git_branch="main", upstream_branch="aaa", sync_only_specfile=True
     )
@@ -197,7 +197,7 @@ def test_downstream_koji_build():
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
         scratch=False,
@@ -513,7 +513,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="a-different-branch",
         scratch=False,

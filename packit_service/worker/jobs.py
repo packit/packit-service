@@ -116,16 +116,14 @@ class SteveJobs:
     Steve makes sure all the jobs are done with precision.
     """
 
+    pushgateway = Pushgateway()
+
     def __init__(self, event: Optional[Event] = None) -> None:
         self.event = event
 
     @cached_property
     def service_config(self) -> ServiceConfig:
         return ServiceConfig.get_service_config()
-
-    @cached_property
-    def pushgateway(self) -> Pushgateway:
-        return Pushgateway()
 
     @classmethod
     def process_message(cls, event: dict) -> List[TaskResults]:
@@ -140,7 +138,14 @@ class SteveJobs:
         """
         event_object: Optional[Event] = Parser.parse_event(event)
 
-        if not (event_object and event_object.pre_check()):
+        cls.pushgateway.events_processed.inc()
+        if event_not_handled := not event_object:
+            cls.pushgateway.events_not_handled.inc()
+        elif pre_check_failed := not event_object.pre_check():
+            cls.pushgateway.events_pre_check_failed.inc()
+        cls.pushgateway.push()
+
+        if event_not_handled or pre_check_failed:
             return []
 
         return cls(event_object).process()

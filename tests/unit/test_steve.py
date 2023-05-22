@@ -176,7 +176,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     ).times(
         1 if success else 0
     )
-    flexmock(Pushgateway).should_receive("push").times(2 if success else 0)
+    flexmock(Pushgateway).should_receive("push").times(3 if success else 1)
 
     url = get_propose_downstream_info_url(model.id)
 
@@ -232,6 +232,6 @@ def test_ignore_delete_branch(github_push):
         is_private=lambda: False,
     )
 
-    processing_results = SteveJobs().process_message(github_push)
+    processing_results = SteveJobs.process_message(github_push)
 
     assert processing_results == []

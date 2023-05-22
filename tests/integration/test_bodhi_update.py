@@ -56,7 +56,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
@@ -413,7 +413,7 @@ def test_bodhi_update_build_not_tagged_yet(
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
 
     flexmock(Task).should_receive("retry").and_raise(Retry).once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -473,7 +473,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(1)
-    flexmock(Pushgateway).should_receive("push").times(0)
+    flexmock(Pushgateway).should_receive("push").times(1)
     flexmock(PackitAPI).should_receive("create_update").times(0)
 
     # Database structure
@@ -528,7 +528,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
@@ -589,7 +589,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(1)
-    flexmock(Pushgateway).should_receive("push").times(0)
+    flexmock(Pushgateway).should_receive("push").times(1)
     flexmock(PackitAPI).should_receive("create_update").times(0)
 
     # Database structure
@@ -644,7 +644,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f36",
         update_type="enhancement",

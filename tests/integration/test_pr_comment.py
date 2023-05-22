@@ -265,7 +265,7 @@ def test_pr_comment_build_build_and_test_handler(
         "is_custom_copr_project_defined"
     ).and_return(False).once()
     flexmock(Signature).should_receive("apply_async").twice()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -357,7 +357,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -589,7 +589,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -701,7 +701,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -889,7 +889,7 @@ def test_pr_test_command_handler_retries(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
 
     payload = {
         "api_key": "secret-token",
@@ -1104,7 +1104,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1330,7 +1330,7 @@ def test_pr_test_command_handler_compose_not_present(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1478,7 +1478,7 @@ def test_pr_test_command_handler_composes_not_available(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1623,7 +1623,7 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=False, details={})
     )
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1915,7 +1915,7 @@ def test_retest_failed(
         {"some_target"}
     )
 
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -2028,7 +2028,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     ).and_return(group_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -2258,7 +2258,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         build
     )
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -2531,7 +2531,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         koji_builds=["123"],
     ).once()
 
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
     event_dict, job, job_config, package_config = get_parameters_from_results(

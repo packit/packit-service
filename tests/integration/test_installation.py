@@ -44,7 +44,7 @@ def test_installation():
     flexmock(AllowlistModel).should_receive("add_namespace")
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -77,7 +77,7 @@ def test_reinstallation_already_approved_namespace():
     flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -113,7 +113,7 @@ def test_reinstallation_denied_namespace():
     flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -159,7 +159,7 @@ def test_reinstallation_not_approved_namespace(previous_sender_login, create_iss
         flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results

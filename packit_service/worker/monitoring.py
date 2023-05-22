@@ -140,6 +140,25 @@ class Pushgateway:
             ),
         )
 
+        self.events_processed = Counter(
+            "events_processed",
+            "The number of events processed from the Celery queue",
+            registry=self.registry,
+        )
+
+        self.events_not_handled = Counter(
+            "events_not_handled",
+            "The number of events resulting in a Celery task, "
+            "but then dropped during processing",
+            registry=self.registry,
+        )
+
+        self.events_pre_check_failed = Counter(
+            "events_pre_check_failed",
+            "The number of events for which pre_check() failed",
+            registry=self.registry,
+        )
+
     def push(self):
         if not (self.pushgateway_address and self.worker_name):
             logger.debug("Pushgateway address or worker name not defined.")
