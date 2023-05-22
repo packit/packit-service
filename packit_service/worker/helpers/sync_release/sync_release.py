@@ -9,7 +9,7 @@ from ogr.abstract import GitProject
 from packit.config import JobType, PackageConfig, JobConfig
 from packit.config.aliases import get_branches
 from packit_service.config import ServiceConfig
-from packit_service.models import AbstractTriggerDbType
+from packit_service.models import AbstractProjectEventDbType
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
@@ -27,7 +27,7 @@ class SyncReleaseHelper(BaseJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger: AbstractTriggerDbType,
+        db_trigger: AbstractProjectEventDbType,
         job_config: JobConfig,
         branches_override: Optional[Set[str]] = None,
     ):

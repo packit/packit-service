@@ -88,8 +88,8 @@ class VMImageBuildHandler(
         )
 
         run_model = PipelineModel.create(
-            type=self.data.db_trigger.job_trigger_model_type,
-            trigger_id=self.data.db_trigger.id,
+            type=self.data.db_trigger.project_event_model_type,
+            event_id=self.data.db_trigger.id,
         )
         VMImageBuildTargetModel.create(
             build_id=image_id,
@@ -147,7 +147,7 @@ class VMImageBuildResultHandler(
                     details={"msg": "State change already processed"},
                 )
 
-            self.data._db_trigger = model.runs[0].get_trigger_object()
+            self.data._db_trigger = model.runs[0].get_project_event_object()
             self.report_status(status, self.data.event_dict["message"])
             model.set_status(status)
             return TaskResults(

@@ -8,7 +8,7 @@ from ogr.abstract import GitProject
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
-from packit_service.models import AbstractTriggerDbType
+from packit_service.models import AbstractProjectEventDbType
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -26,7 +26,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger: AbstractTriggerDbType,
+        db_trigger: AbstractProjectEventDbType,
         job_config: JobConfig,
         branches_override: Optional[Set[str]] = None,
     ):
@@ -71,7 +71,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
     def get_check_cls(
         cls,
         branch: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ) -> str:
         """
@@ -79,7 +79,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         and identifier.
         """
         branch_str = f":{branch}" if branch else ""
-        trigger_str = f":{trigger_identifier}" if trigger_identifier else ""
+        trigger_str = f":{project_event_identifier}" if project_event_identifier else ""
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{cls.status_name}{trigger_str}{branch_str}{optional_suffix}"
 

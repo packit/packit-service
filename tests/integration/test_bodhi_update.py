@@ -82,7 +82,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         target="noarch",
         status="COMPLETE",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -155,7 +155,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         target="noarch",
         status="COMPLETE",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -234,7 +234,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         target="noarch",
         status="COMPLETE",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -327,7 +327,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         target="noarch",
         status="COMPLETE",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -402,7 +402,7 @@ def test_bodhi_update_build_not_tagged_yet(
         build_id=1864700
     ).and_return(
         flexmock(
-            get_trigger_object=lambda: flexmock(
+            get_project_event_object=lambda: flexmock(
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             )
         )
@@ -495,7 +495,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         target="noarch",
         status="BUILDING",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_start_old_format)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -540,7 +540,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         build_id=1864700
     ).and_return(
         flexmock(
-            get_trigger_object=lambda: flexmock(
+            get_project_event_object=lambda: flexmock(
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             )
         )
@@ -611,7 +611,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         target="noarch",
         status="COMPLETE",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler

@@ -22,7 +22,7 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED
 from packit_service.models import (
-    JobTriggerModelType,
+    ProjectEventModelType,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseModel,
@@ -106,7 +106,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
 
     run_model = flexmock(PipelineModel)
     trigger = flexmock(
-        job_trigger_model_type=JobTriggerModelType.release,
+        project_event_model_type=ProjectEventModelType.release,
         id=12,
         job_config_trigger_type=JobConfigTriggerType.release,
     )
@@ -158,7 +158,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=1,
-            job_trigger_model_type=JobConfigTriggerType.release,
+            project_event_model_type=JobConfigTriggerType.release,
         )
     )
     flexmock(Allowlist, check_and_report=True)

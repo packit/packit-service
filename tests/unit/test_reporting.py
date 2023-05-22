@@ -145,7 +145,7 @@ def test_set_status_gitlab(
 @pytest.mark.parametrize(
     (
         "project,commit_sha,pr_id,pr_object,state,title,summary,"
-        "check_name,url,check_status,check_conclusion,trigger_id"
+        "check_name,url,check_status,check_conclusion,event_id"
     ),
     [
         pytest.param(
@@ -216,7 +216,7 @@ def test_set_status_github_check(
     url,
     check_status,
     check_conclusion,
-    trigger_id,
+    event_id,
 ):
     flexmock(reporting).should_receive("get_random_news_sentence").and_return(
         "Interesting news."
@@ -227,7 +227,7 @@ def test_set_status_github_check(
         project=project,
         commit_sha=commit_sha,
         pr_id=pr_id,
-        trigger_id=trigger_id,
+        event_id=event_id,
         packit_user="packit",
     )
     act_upon = flexmock(GithubProject)
@@ -236,7 +236,7 @@ def test_set_status_github_check(
         name=check_name,
         commit_sha=commit_sha,
         url=url,
-        external_id=str(trigger_id),
+        external_id=str(event_id),
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(
@@ -395,7 +395,7 @@ def test_report_status_by_comment(
         "pr_id,pr_object,"
         "state,title,summary,"
         "check_name,url,check_status,"
-        "check_conclusion,commit_state_to_set,exception_type,trigger_id"
+        "check_conclusion,commit_state_to_set,exception_type,event_id"
     ),
     [
         pytest.param(
@@ -434,7 +434,7 @@ def test_status_instead_check(
     check_conclusion,
     commit_state_to_set,
     exception_type,
-    trigger_id,
+    event_id,
 ):
     flexmock(reporting).should_receive("get_random_news_sentence").and_return(
         "Interesting news."
@@ -444,7 +444,7 @@ def test_status_instead_check(
     reporter = StatusReporter.get_instance(
         project=project,
         commit_sha=commit_sha,
-        trigger_id=trigger_id,
+        event_id=event_id,
         pr_id=pr_id,
         packit_user="packit",
     )
@@ -454,7 +454,7 @@ def test_status_instead_check(
         name=check_name,
         commit_sha=commit_sha,
         url=url,
-        external_id=str(trigger_id),
+        external_id=str(event_id),
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(

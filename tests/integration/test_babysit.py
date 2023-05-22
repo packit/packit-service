@@ -19,7 +19,7 @@ from packit.config import (
 from packit.copr_helper import CoprHelper
 from packit_service.models import (
     CoprBuildTargetModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     TFTTestRunTargetModel,
     TestingFarmResult,
     BuildStatus,
@@ -102,13 +102,13 @@ def test_check_copr_build_updated(build_status, build_ended_on):
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
             commit_sha="123456",
-            job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            project_event=flexmock(type=ProjectEventModelType.pull_request),
             srpm_build=flexmock(url=None)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock(),
         )
-        .should_receive("get_trigger_object")
+        .should_receive("get_project_event_object")
         .and_return(
             flexmock(
                 project=flexmock(
@@ -118,7 +118,7 @@ def test_check_copr_build_updated(build_status, build_ended_on):
                 ),
                 pr_id=5,
                 job_config_trigger_type=JobConfigTriggerType.pull_request,
-                job_trigger_model_type=JobTriggerModelType.pull_request,
+                project_event_model_type=ProjectEventModelType.pull_request,
                 id=123,
             )
         )
@@ -183,14 +183,14 @@ def test_check_copr_build_waiting_started():
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
             commit_sha="123456",
-            job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            project_event=flexmock(type=ProjectEventModelType.pull_request),
             build_start_time=None,
             srpm_build=flexmock(url=None)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock(),
         )
-        .should_receive("get_trigger_object")
+        .should_receive("get_project_event_object")
         .and_return(
             flexmock(
                 project=flexmock(
@@ -200,7 +200,7 @@ def test_check_copr_build_waiting_started():
                 ),
                 pr_id=5,
                 job_config_trigger_type=JobConfigTriggerType.pull_request,
-                job_trigger_model_type=JobTriggerModelType.pull_request,
+                project_event_model_type=ProjectEventModelType.pull_request,
                 id=123,
             )
         )
@@ -267,14 +267,14 @@ def test_check_copr_build_waiting_already_started():
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
             commit_sha="123456",
-            job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            project_event=flexmock(type=ProjectEventModelType.pull_request),
             build_start_time="some timestamp",
             srpm_build=flexmock(url=None)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock(),
         )
-        .should_receive("get_trigger_object")
+        .should_receive("get_project_event_object")
         .and_return(
             flexmock(
                 project=flexmock(
@@ -284,7 +284,7 @@ def test_check_copr_build_waiting_already_started():
                 ),
                 pr_id=5,
                 job_config_trigger_type=JobConfigTriggerType.pull_request,
-                job_trigger_model_type=JobTriggerModelType.pull_request,
+                project_event_model_type=ProjectEventModelType.pull_request,
                 id=123,
             )
         )
@@ -450,10 +450,10 @@ def test_check_pending_testing_farm_runs(created):
             commit_sha="123456",
             target="fedora-rawhide-x86_64",
             data={},
-            job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            project_event=flexmock(type=ProjectEventModelType.pull_request),
             identifier=None,
         )
-        .should_receive("get_trigger_object")
+        .should_receive("get_project_event_object")
         .and_return(
             flexmock(
                 project=flexmock(
@@ -463,7 +463,7 @@ def test_check_pending_testing_farm_runs(created):
                 ),
                 pr_id=5,
                 job_config_trigger_type=JobConfigTriggerType.pull_request,
-                job_trigger_model_type=JobTriggerModelType.pull_request,
+                project_event_model_type=ProjectEventModelType.pull_request,
                 id=123,
             )
         )
@@ -532,10 +532,10 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
             commit_sha="123456",
             target="fedora-rawhide-x86_64",
             data={},
-            job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            project_event=flexmock(type=ProjectEventModelType.pull_request),
             identifier=identifier,
         )
-        .should_receive("get_trigger_object")
+        .should_receive("get_project_event_object")
         .and_return(
             flexmock(
                 project=flexmock(
@@ -545,7 +545,7 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
                 ),
                 pr_id=5,
                 job_config_trigger_type=JobConfigTriggerType.pull_request,
-                job_trigger_model_type=JobTriggerModelType.pull_request,
+                project_event_model_type=ProjectEventModelType.pull_request,
                 id=123,
             )
         )

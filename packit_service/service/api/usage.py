@@ -11,7 +11,7 @@ from flask_restx import Namespace, Resource
 from packit_service.models import (
     CoprBuildGroupModel,
     GitProjectModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     KojiBuildGroupModel,
     SRPMBuildModel,
     SyncReleaseModel,
@@ -316,7 +316,7 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
                         trigger_type=trigger_type,
                     ),
                 )
-                for trigger_type in JobTriggerModelType
+                for trigger_type in ProjectEventModelType
             }
         )
 
@@ -351,7 +351,7 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
                     trigger_type=trigger_type,
                 ),
             )
-            for trigger_type in JobTriggerModelType
+            for trigger_type in ProjectEventModelType
         },
         jobs=jobs,
     )
@@ -501,7 +501,7 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
         )
 
         jobs[job_name]["per_event"] = {}
-        for trigger_type in JobTriggerModelType:
+        for trigger_type in ProjectEventModelType:
             jobs[job_name]["per_event"][trigger_type.value] = get_result_dictionary(
                 project,
                 top_projects=GitProjectModel.get_job_usage_numbers(
@@ -532,7 +532,7 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
             ),
             count_name="events_handled",
         )
-        for trigger_type in JobTriggerModelType
+        for trigger_type in ProjectEventModelType
     }
 
     return dict(

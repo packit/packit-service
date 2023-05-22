@@ -19,7 +19,7 @@ from packit_service.constants import (
     KojiBuildState,
 )
 from packit_service.constants import KojiTaskState
-from packit_service.models import AbstractTriggerDbType, KojiBuildTargetModel
+from packit_service.models import AbstractProjectEventDbType, KojiBuildTargetModel
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
@@ -125,7 +125,7 @@ class KojiTaskReportHandler(
             event=event,
         )
         self.koji_task_event: KojiTaskEvent = KojiTaskEvent.from_event_dict(event)
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_trigger: Optional[AbstractProjectEventDbType] = None
         self._build: Optional[KojiBuildTargetModel] = None
 
     @property
@@ -137,9 +137,9 @@ class KojiTaskReportHandler(
         return self._build
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         if not self._db_trigger and self.build:
-            self._db_trigger = self.build.get_trigger_object()
+            self._db_trigger = self.build.get_project_event_object()
         return self._db_trigger
 
     def run(self):
@@ -256,7 +256,7 @@ class KojiBuildReportHandler(
             event=event,
         )
         self.koji_build_event: KojiBuildEvent = KojiBuildEvent.from_event_dict(event)
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_trigger: Optional[AbstractProjectEventDbType] = None
         self._build: Optional[KojiBuildTargetModel] = None
 
     @property
@@ -268,9 +268,9 @@ class KojiBuildReportHandler(
         return self._build
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         if not self._db_trigger and self.build:
-            self._db_trigger = self.build.get_trigger_object()
+            self._db_trigger = self.build.get_project_event_object()
         return self._db_trigger
 
     def run(self):

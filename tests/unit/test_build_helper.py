@@ -17,7 +17,7 @@ from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
-from packit_service.models import JobTriggerModelType
+from packit_service.models import ProjectEventModelType
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
@@ -39,12 +39,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
 
 
 def _mock_targets(jobs, job, job_type):
-    job_config_trigger_type, job_trigger_model_type = job_type
+    job_config_trigger_type, project_event_model_type = job_type
 
     project_service = flexmock(instance_url="https://github.com")
     db_trigger = flexmock(
         job_config_trigger_type=job_config_trigger_type,
-        job_trigger_model_type=job_trigger_model_type,
+        project_event_model_type=project_event_model_type,
     )
     if job_config_trigger_type == JobConfigTriggerType.commit:
         db_trigger.name = "main"
@@ -81,7 +81,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_targets",
         ),
@@ -97,7 +97,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_targets&pr_comment",
         ),
@@ -113,7 +113,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 )
             ],
-            (JobConfigTriggerType.release, JobTriggerModelType.release),
+            (JobConfigTriggerType.release, ProjectEventModelType.release),
             set(STABLE_VERSIONS),
             id="build_with_targets&release",
         ),
@@ -129,7 +129,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 )
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             set(STABLE_VERSIONS),
             id="build_with_targets&push",
         ),
@@ -154,7 +154,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_targets&pull_request_with_pr_and_push_defined",
         ),
@@ -179,7 +179,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_targets&pr_comment_with_pr_and_push_defined",
         ),
@@ -204,7 +204,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             set(STABLE_VERSIONS),
             id="build_with_targets&push_with_pr_and_push_defined",
         ),
@@ -216,7 +216,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="build_without_targets",
         ),
@@ -228,7 +228,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="test_without_targets",
         ),
@@ -244,7 +244,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="test_with_targets",
         ),
@@ -261,7 +261,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="build_without_target&test_without_targets",
         ),
@@ -282,7 +282,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_target&test_without_targets",
         ),
@@ -303,7 +303,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_without_target&test_with_targets",
         ),
@@ -324,7 +324,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             ONE_CHROOT_SET,
             id="build_without_target&test_with_one_str_target",
         ),
@@ -346,7 +346,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             {"fedora-stable"},
             id="build[pr+commit]&test[pr]&commit",
         ),
@@ -368,7 +368,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="build[pr+commit]&test[pr]&pr",
         ),
@@ -390,7 +390,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             {"fedora-stable"},
             id="build[pr+commit]&test[commit]&commit",
         ),
@@ -412,7 +412,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="build[pr+commit]&test[commit]&pr",
         ),
@@ -439,7 +439,7 @@ def _mock_targets(jobs, job, job_type):
                     packages={"packages": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             {"fedora-stable"},
             id="build[pr+commit+release]&test[pr]&commit",
         ),
@@ -460,7 +460,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             ONE_CHROOT_SET,
             id="build_with_mixed_build_alias",
         ),
@@ -485,7 +485,7 @@ def _mock_targets(jobs, job, job_type):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS + ["fedora-rawhide"]),
             id="build_with_mixed_build_tests",
         ),
@@ -511,7 +511,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="test_without_targets",
         ),
@@ -527,7 +527,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     },
                 )
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="test_with_targets",
         ),
@@ -544,7 +544,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="build_without_target&test_without_targets",
         ),
@@ -565,7 +565,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_target&test_without_targets",
         ),
@@ -586,7 +586,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_without_target&test_with_targets",
         ),
@@ -607,7 +607,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             ONE_CHROOT_SET,
             id="build_without_target&test_with_one_str_target",
         ),
@@ -629,7 +629,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             set(),
             id="build[pr+commit]&test[pr]&commit",
         ),
@@ -651,7 +651,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-stable"},
             id="build[pr+commit]&test[pr]&pr",
         ),
@@ -673,7 +673,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             {"fedora-stable"},
             id="build[pr+commit]&test[commit]&commit",
         ),
@@ -695,7 +695,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(),
             id="build[pr+commit]&test[commit]&pr",
         ),
@@ -722,7 +722,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             set(),
             id="build[pr+commit+release]&test[pr]&commit",
         ),
@@ -743,7 +743,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             ONE_CHROOT_SET,
             id="build_with_mixed_build_alias",
         ),
@@ -768,17 +768,17 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                     },
                 ),
             ],
-            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             {"fedora-rawhide"},
             id="build_with_mixed_build_tests",
         ),
     ],
 )
 def test_configured_tests_targets(jobs, job_type, test_chroots):
-    job_config_trigger_type, job_trigger_model_type = job_type
+    job_config_trigger_type, project_event_model_type = job_type
     db_trigger = flexmock(
         job_config_trigger_type=job_config_trigger_type,
-        job_trigger_model_type=job_trigger_model_type,
+        project_event_model_type=project_event_model_type,
     )
     if job_config_trigger_type == JobConfigTriggerType.commit:
         db_trigger.name = "main"
@@ -834,7 +834,7 @@ def test_deduced_copr_targets():
             packages={"packages": CommonPackageConfig()},
         ),
     ]
-    job_type = (JobConfigTriggerType.commit, JobTriggerModelType.branch_push)
+    job_type = (JobConfigTriggerType.commit, ProjectEventModelType.branch_push)
     copr_build_helper = _mock_targets(jobs, jobs[0], job_type)
     flexmock(CoprHelper).should_receive("get_chroots").with_args(
         owner=jobs[0].owner,
@@ -860,7 +860,7 @@ def test_deduced_copr_targets():
         metadata=flexmock(pr_id=None, identifier=None),
         db_trigger=flexmock(
             job_config_trigger_type=job_type[0],
-            job_trigger_model_type=job_type[1],
+            project_event_model_type=job_type[1],
             name="main",
         ),
     ).configured_tests_targets == {"opensuse-tumbleweed-x86_64"}
@@ -2166,7 +2166,7 @@ def test_build_handler_job_and_test_properties(
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,job_trigger_model_type,tag_name,job_owner,job_project",
+    "jobs,job_config_trigger_type,project_event_model_type,tag_name,job_owner,job_project",
     [
         pytest.param(
             [
@@ -2177,7 +2177,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -2196,7 +2196,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "custom-owner",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -2215,7 +2215,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "nobody",
             "custom-project",
@@ -2235,7 +2235,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -2255,7 +2255,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -2270,7 +2270,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.commit,
-            JobTriggerModelType.branch_push,
+            ProjectEventModelType.branch_push,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -2285,7 +2285,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.release,
-            JobTriggerModelType.release,
+            ProjectEventModelType.release,
             "v1.O.0",
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-releases",
@@ -2300,7 +2300,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.release,
-            JobTriggerModelType.release,
+            ProjectEventModelType.release,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-releases",
@@ -2330,7 +2330,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "pr-owner",
             "pr-project",
@@ -2350,7 +2350,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -2375,7 +2375,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -2400,7 +2400,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -2435,7 +2435,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            JobTriggerModelType.pull_request,
+            ProjectEventModelType.pull_request,
             None,
             "pr-owner",
             "pr-project",
@@ -2470,7 +2470,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.commit,
-            JobTriggerModelType.branch_push,
+            ProjectEventModelType.branch_push,
             None,
             "commit-owner",
             "commit-project",
@@ -2481,7 +2481,7 @@ def test_build_handler_job_and_test_properties(
 def test_copr_project_and_namespace(
     jobs,
     job_config_trigger_type,
-    job_trigger_model_type,
+    project_event_model_type,
     tag_name,
     job_owner,
     job_project,
@@ -2503,7 +2503,7 @@ def test_copr_project_and_namespace(
         ),
         db_trigger=flexmock(
             job_config_trigger_type=job_config_trigger_type,
-            job_trigger_model_type=job_trigger_model_type,
+            project_event_model_type=project_event_model_type,
             name="main",
         ),
     )
@@ -2602,7 +2602,7 @@ def test_check_if_custom_copr_can_be_used_and_report(
         metadata=flexmock(pr_id=None, identifier="the-event-identifier", tag_name=None),
         db_trigger=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         ),
     )
     copr_helper = flexmock(

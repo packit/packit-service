@@ -7,7 +7,7 @@ from flexmock import Mock
 
 from packit_service.models import (
     PipelineModel,
-    JobTriggerModel,
+    ProjectEventModel,
     VMImageBuildTargetModel,
     VMImageBuildStatus,
 )
@@ -46,7 +46,9 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
 
     mixin = Test()
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").and_return(flexmock(id=1))
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1)
+    )
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Building VM Image...",
         state=BaseCommitStatus.pending,
@@ -197,7 +199,7 @@ def test_vm_image_build_result_handler_ok(
                 status=None,
                 runs=[
                     flexmock()
-                    .should_receive("get_trigger_object")
+                    .should_receive("get_project_event_object")
                     .and_return(db_trigger)
                     .mock()
                 ],

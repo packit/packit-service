@@ -14,7 +14,7 @@ from ogr.abstract import GitProject
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     CoprBuildTargetModel,
     GitBranchModel,
     IssueModel,
@@ -62,7 +62,7 @@ class EventData:
         self,
         event_type: str,
         actor: str,
-        trigger_id: int,
+        event_id: int,
         project_url: str,
         tag_name: Optional[str],
         git_ref: Optional[str],
@@ -78,7 +78,7 @@ class EventData:
     ):
         self.event_type = event_type
         self.actor = actor
-        self.trigger_id = trigger_id
+        self.event_id = event_id
         self.project_url = project_url
         self.tag_name = tag_name
         self.git_ref = git_ref
@@ -98,14 +98,14 @@ class EventData:
 
         # lazy attributes
         self._project = None
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_trigger: Optional[AbstractProjectEventDbType] = None
 
     @classmethod
     def from_event_dict(cls, event: dict):
         event_type = event.get("event_type")
         # We used `user_login` in the past.
         actor = event.get("user_login") or event.get("actor")
-        trigger_id = event.get("trigger_id")
+        event_id = event.get("event_id")
         project_url = event.get("project_url")
         tag_name = event.get("tag_name")
         git_ref = event.get("git_ref")
@@ -126,7 +126,7 @@ class EventData:
         return EventData(
             event_type=event_type,
             actor=actor,
-            trigger_id=trigger_id,
+            event_id=event_id,
             project_url=project_url,
             tag_name=tag_name,
             git_ref=git_ref,
@@ -148,7 +148,7 @@ class EventData:
         return self._project
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         if not self._db_trigger:
             # TODO, do a better job
             # Probably, try to recreate original classes.
@@ -257,7 +257,7 @@ class Event:
         self._base_project: Optional[GitProject] = None
         self._package_config: Optional[PackageConfig] = None
         self._package_config_searched: bool = False
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_trigger: Optional[AbstractProjectEventDbType] = None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = default_dict or self.__dict__
@@ -266,7 +266,7 @@ class Event:
         d["event_type"] = self.__class__.__name__
 
         # we are trying to be lazy => don't touch database if it is not needed
-        d["trigger_id"] = self._db_trigger.id if self._db_trigger else None
+        d["event_id"] = self._db_trigger.id if self._db_trigger else None
         # we don't want to save non-serializable object
         d.pop("_db_trigger")
 
@@ -291,11 +291,11 @@ class Event:
         d.pop("_package_config")
         return d
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         return None
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         if not self._db_trigger:
             self._db_trigger = self.get_db_trigger()
         return self._db_trigger
@@ -416,7 +416,7 @@ class AbstractForgeIndependentEvent(Event):
             self._package_config_searched = True
         return self._package_config
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         raise NotImplementedError()
 
     @property

@@ -32,8 +32,8 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     CoprBuildTargetModel,
-    JobTriggerModel,
-    JobTriggerModelType,
+    ProjectEventModel,
+    ProjectEventModelType,
     PipelineModel,
     PullRequestModel,
     TFTTestRunTargetModel,
@@ -650,7 +650,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
@@ -667,7 +667,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
         flexmock(
             id=9,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
@@ -853,7 +853,7 @@ def test_pr_test_command_handler_retries(
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
@@ -864,7 +864,7 @@ def test_pr_test_command_handler_retries(
     pr_model = flexmock(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -873,13 +873,13 @@ def test_pr_test_command_handler_retries(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=123
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=123
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -1086,7 +1086,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     pr_model = flexmock(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1094,9 +1094,9 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
@@ -1312,7 +1312,7 @@ def test_pr_test_command_handler_compose_not_present(
     pr_model = flexmock(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1320,9 +1320,9 @@ def test_pr_test_command_handler_compose_not_present(
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
@@ -1460,7 +1460,7 @@ def test_pr_test_command_handler_composes_not_available(
     pr_model = flexmock(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1468,9 +1468,9 @@ def test_pr_test_command_handler_composes_not_available(
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
@@ -1583,11 +1583,11 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
         flexmock(
             id=9,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
     ).and_return(trigger)
     run_model = flexmock(test_run_group=None)
     test_run = flexmock(
@@ -1873,7 +1873,7 @@ def test_retest_failed(
         flexmock(
             id=9,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
     run_model = flexmock()
@@ -1998,7 +1998,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     pr_model = flexmock(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -2007,9 +2007,9 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -2217,7 +2217,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
     pr_model = flexmock(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -2225,9 +2225,9 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=9
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
     )

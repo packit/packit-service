@@ -11,7 +11,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import (
     VMImageBuildTargetModel,
     VMImageBuildStatus,
-    JobTriggerModelType,
+    ProjectEventModelType,
 )
 from packit_service.worker.helpers.build.babysit import (
     check_pending_vm_image_builds,
@@ -88,7 +88,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
     db_trigger = flexmock(
         id=1,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     if not vm_image_builder_result:
         flexmock(UpdateImageBuildHelper).should_receive("vm_image_builder").and_return(
@@ -132,7 +132,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                 status=None,
                 runs=[
                     flexmock()
-                    .should_receive("get_trigger_object")
+                    .should_receive("get_project_event_object")
                     .and_return(db_trigger)
                     .mock()
                 ],

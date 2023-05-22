@@ -21,7 +21,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildTargetModel,
     CoprBuildGroupModel,
-    JobTriggerModel,
+    ProjectEventModel,
     sa_session_transaction,
     SRPMBuildModel,
     PullRequestModel,
@@ -31,7 +31,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     IssueModel,
     PipelineModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     KojiBuildTargetModel,
     KojiBuildGroupModel,
     TFTTestRunTargetModel,
@@ -163,7 +163,7 @@ def clean_db():
         session.query(GithubInstallationModel).delete()
 
         session.query(PipelineModel).delete()
-        session.query(JobTriggerModel).delete()
+        session.query(ProjectEventModel).delete()
 
         session.query(TFTTestRunTargetModel).delete()
         session.query(CoprBuildTargetModel).delete()
@@ -354,29 +354,29 @@ def propose_model_submitted_issue(
 
 @pytest.fixture()
 def pr_trigger_model(pr_model):
-    yield JobTriggerModel.get_or_create(
-        type=JobTriggerModelType.pull_request, trigger_id=pr_model.id
+    yield ProjectEventModel.get_or_create(
+        type=ProjectEventModelType.pull_request, event_id=pr_model.id
     )
 
 
 @pytest.fixture()
 def different_pr_trigger_model(different_pr_model):
     yield PipelineModel.get_or_create(
-        type=JobTriggerModelType.pull_request, trigger_id=different_pr_model.id
+        type=ProjectEventModelType.pull_request, event_id=different_pr_model.id
     )
 
 
 @pytest.fixture()
 def release_trigger_model(release_model):
-    yield JobTriggerModel.get_or_create(
-        type=JobTriggerModelType.release, trigger_id=release_model.id
+    yield ProjectEventModel.get_or_create(
+        type=ProjectEventModelType.release, event_id=release_model.id
     )
 
 
 @pytest.fixture()
 def branch_trigger_model(branch_model):
-    yield JobTriggerModel.get_or_create(
-        type=JobTriggerModelType.branch_push, trigger_id=branch_model.id
+    yield ProjectEventModel.get_or_create(
+        type=ProjectEventModelType.branch_push, event_id=branch_model.id
     )
 
 
@@ -2094,11 +2094,11 @@ def few_runs(pr_model, different_pr_model):
 @pytest.fixture()
 def runs_without_build(pr_model, branch_model):
     run_model_for_pr_only_test = PipelineModel.create(
-        type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
+        type=pr_model.project_event_model_type, event_id=pr_model.id
     )
     TFTTestRunGroupModel.create([run_model_for_pr_only_test])
     run_model_for_branch_only_test = PipelineModel.create(
-        type=branch_model.job_trigger_model_type, trigger_id=branch_model.id
+        type=branch_model.project_event_model_type, event_id=branch_model.id
     )
     TFTTestRunGroupModel.create([run_model_for_branch_only_test])
 

@@ -14,8 +14,8 @@ from packit.config import JobConfigTriggerType, JobConfig, PackageConfig
 from packit.config.common_package_config import Deployment
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    JobTriggerModelType,
-    JobTriggerModel,
+    ProjectEventModelType,
+    ProjectEventModel,
     BuildStatus,
     PullRequestModel,
 )
@@ -95,7 +95,7 @@ def srpm_build_model(
     repo_namespace="foo",
     forge_instance="github.com",
     job_config_trigger_type=JobConfigTriggerType.pull_request,
-    job_trigger_model_type=JobTriggerModelType.pull_request,
+    project_event_model_type=ProjectEventModelType.pull_request,
     **trigger_model_kwargs,
 ):
     project_model = flexmock(
@@ -108,14 +108,14 @@ def srpm_build_model(
         pr_id=123,
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
         **trigger_model_kwargs,
     )
     trigger_model = flexmock(
         id=2,
-        type=job_trigger_model_type,
-        trigger_id=1,
-        get_trigger_object=lambda: pr_model,
+        type=project_event_model_type,
+        event_id=1,
+        get_project_event_object=lambda: pr_model,
     )
 
     runs = []
@@ -133,8 +133,8 @@ def srpm_build_model(
         build_start_time=None,
     )
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=pr_model.project_event_model_type, event_id=pr_model.id
     ).and_return(trigger_model)
 
     def mock_set_status(status):
@@ -145,9 +145,9 @@ def srpm_build_model(
 
     srpm_build.set_status = mock_set_status
     srpm_build.set_url = mock_set_url
-    srpm_build.get_trigger_object = lambda: pr_model
+    srpm_build.get_project_event_object = lambda: pr_model
 
-    run_model = flexmock(id=3, job_trigger=trigger_model, srpm_build=srpm_build)
+    run_model = flexmock(id=3, project_event=trigger_model, srpm_build=srpm_build)
     runs.append(run_model)
 
     return srpm_build
@@ -159,7 +159,7 @@ def copr_build_model(
     forge_instance="github.com",
     trigger_kls=PullRequestModel,
     job_config_trigger_type=JobConfigTriggerType.pull_request,
-    job_trigger_model_type=JobTriggerModelType.pull_request,
+    project_event_model_type=ProjectEventModelType.pull_request,
     **trigger_model_kwargs,
 ):
     project_model = flexmock(
@@ -177,15 +177,15 @@ def copr_build_model(
         id=1,
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
-        job_trigger_model_type=job_trigger_model_type,
+        project_event_model_type=project_event_model_type,
         **trigger_model_kwargs,
     )
 
     trigger_model = flexmock(
         id=2,
-        type=job_trigger_model_type,
-        trigger_id=1,
-        get_trigger_object=lambda: trigger_object_model,
+        type=project_event_model_type,
+        event_id=1,
+        get_project_event_object=lambda: trigger_object_model,
     )
 
     runs = []
@@ -217,9 +217,9 @@ def copr_build_model(
         build_logs_url="https://log-url",
     )
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=trigger_object_model.job_trigger_model_type,
-        trigger_id=trigger_object_model.id,
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=trigger_object_model.project_event_model_type,
+        event_id=trigger_object_model.id,
     ).and_return(trigger_model)
 
     def mock_set_status(status):
@@ -230,12 +230,12 @@ def copr_build_model(
 
     copr_build.set_status = mock_set_status
     copr_build._srpm_build_for_mocking = srpm_build
-    copr_build.get_trigger_object = lambda: trigger_object_model
+    copr_build.get_project_event_object = lambda: trigger_object_model
     copr_build.get_srpm_build = lambda: srpm_build
 
     run_model = flexmock(
         id=3,
-        job_trigger=trigger_model,
+        project_event=trigger_model,
         srpm_build=srpm_build,
         copr_build_group=copr_group,
         test_run_group=None,
@@ -249,7 +249,7 @@ def copr_build_model(
 def copr_build_pr():
     return copr_build_model(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
         pr_id=24,
         task_accepted_time=datetime.now(),
     )
@@ -265,13 +265,13 @@ def koji_build_pr():
         pr_id=123,
         project=project_model,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
     trigger_model = flexmock(
         id=2,
-        type=JobTriggerModelType.pull_request,
-        trigger_id=1,
-        get_trigger_object=lambda: pr_model,
+        type=ProjectEventModelType.pull_request,
+        event_id=1,
+        get_project_event_object=lambda: pr_model,
     )
     runs = []
     srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
@@ -287,16 +287,16 @@ def koji_build_pr():
         runs=runs,
     )
     koji_build_model._srpm_build_for_mocking = srpm_build
-    koji_build_model.get_trigger_object = lambda: pr_model
+    koji_build_model.get_project_event_object = lambda: pr_model
     koji_build_model.get_srpm_build = lambda: srpm_build
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=pr_model.project_event_model_type, event_id=pr_model.id
     ).and_return(trigger_model)
 
     run_model = flexmock(
         id=3,
-        job_trigger=trigger_model,
+        project_event=trigger_model,
         srpm_build=srpm_build,
         copr_build=koji_build_model,
     )

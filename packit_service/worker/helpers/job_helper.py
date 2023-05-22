@@ -15,7 +15,7 @@ from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import Deployment, ServiceConfig
-from packit_service.models import PipelineModel, JobTriggerModel
+from packit_service.models import PipelineModel, ProjectEventModel
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
@@ -137,15 +137,15 @@ class BaseJobHelper:
     @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
-            trigger = JobTriggerModel.get_or_create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
+            trigger = ProjectEventModel.get_or_create(
+                type=self.db_trigger.project_event_model_type,
+                event_id=self.db_trigger.id,
             )
             self._status_reporter = StatusReporter.get_instance(
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 packit_user=self.service_config.get_github_account_name(),
-                trigger_id=trigger.id if trigger else None,
+                event_id=trigger.id if trigger else None,
                 pr_id=self.metadata.pr_id,
             )
         return self._status_reporter

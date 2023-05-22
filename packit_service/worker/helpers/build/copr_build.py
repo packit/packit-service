@@ -43,12 +43,12 @@ from packit_service.constants import (
     DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     CoprBuildTargetModel,
     CoprBuildGroupModel,
     BuildStatus,
     SRPMBuildModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -77,7 +77,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger: AbstractTriggerDbType,
+        db_trigger: AbstractProjectEventDbType,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
@@ -127,7 +127,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         # More details: https://github.com/packit/packit-service/issues/1044
         ref_identifier = (
             "releases"
-            if self.db_trigger.job_trigger_model_type == JobTriggerModelType.release
+            if self.db_trigger.project_event_model_type == ProjectEventModelType.release
             else self.metadata.identifier
         )
 

@@ -25,7 +25,7 @@ from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
     IssueModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     PipelineModel,
     SyncReleaseModel,
     SyncReleaseStatus,
@@ -193,13 +193,13 @@ def test_issue_comment_propose_downstream_handler(
         flexmock(
             id=123,
             job_config_trigger_type=JobConfigTriggerType.release,
-            job_trigger_model_type=JobTriggerModelType.issue,
+            project_event_model_type=ProjectEventModelType.issue,
         )
     )
     trigger = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.release,
-        job_trigger_model_type=JobTriggerModelType.issue,
+        project_event_model_type=ProjectEventModelType.issue,
     )
     flexmock(IssueModel).should_receive("get_or_create").and_return(trigger)
 
@@ -307,7 +307,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
     db_trigger = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.release,
-        job_trigger_model_type=JobTriggerModelType.issue,
+        project_event_model_type=ProjectEventModelType.issue,
     )
     flexmock(IssueCommentEvent).should_receive("db_trigger").and_return(db_trigger)
     comment = flexmock()

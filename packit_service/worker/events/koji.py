@@ -10,8 +10,8 @@ from ogr.services.pagure import PagureProject
 
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
-    AbstractTriggerDbType,
-    JobTriggerModelType,
+    AbstractProjectEventDbType,
+    ProjectEventModelType,
     KojiBuildTargetModel,
     KojiBuildGroupModel,
     PullRequestModel,
@@ -49,8 +49,8 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
             self._build_model_searched = True
         return self._build_model
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return self.build_model.get_trigger_object() if self.build_model else None
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+        return self.build_model.get_project_event_object() if self.build_model else None
 
     @property
     def target(self) -> Optional[str]:
@@ -125,8 +125,8 @@ class KojiBuildEvent(AbstractKojiEvent):
         if not super().build_model:
             group = KojiBuildGroupModel.create(
                 run_model=PipelineModel.create(
-                    type=JobTriggerModelType.branch_push,
-                    trigger_id=GitBranchModel.get_or_create(
+                    type=ProjectEventModelType.branch_push,
+                    event_id=GitBranchModel.get_or_create(
                         branch_name=self.branch_name,
                         repo_name=self.repo_name,
                         namespace=self.namespace,

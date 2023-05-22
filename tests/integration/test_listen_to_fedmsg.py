@@ -26,7 +26,7 @@ from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
 from packit_service.models import (
     CoprBuildTargetModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     KojiBuildTargetModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
@@ -215,7 +215,7 @@ def pc_build_release():
 def copr_build_branch_push():
     return copr_build_model(
         job_config_trigger_type=JobConfigTriggerType.commit,
-        job_trigger_model_type=JobTriggerModelType.branch_push,
+        project_event_model_type=ProjectEventModelType.branch_push,
         name="build-branch",
         task_accepted_time=datetime.now(),
         trigger_kls=GitBranchModel,
@@ -226,7 +226,7 @@ def copr_build_branch_push():
 def copr_build_release():
     return copr_build_model(
         job_config_trigger_type=JobConfigTriggerType.release,
-        job_trigger_model_type=JobTriggerModelType.release,
+        project_event_model_type=ProjectEventModelType.release,
         tag_name="v1.0.1",
         commit_hash="0011223344",
         task_accepted_time=datetime.now(),
@@ -380,7 +380,7 @@ def test_copr_build_end_push(
         url=url,
         check_names=CoprBuildJobHelper.get_build_check_cls(
             copr_build_end_push["chroot"],
-            trigger_identifier=copr_build_branch_push.get_trigger_object().name,
+            project_event_identifier=copr_build_branch_push.get_project_event_object().name,
         ),
         markdown_content=None,
         links_to_external_services=None,
@@ -451,7 +451,7 @@ def test_copr_build_end_release(
         url=url,
         check_names=CoprBuildJobHelper.get_build_check_cls(
             copr_build_end_release["chroot"],
-            trigger_identifier=copr_build_release.get_trigger_object().tag_name,
+            project_event_identifier=copr_build_release.get_project_event_object().tag_name,
         ),
         markdown_content=None,
         links_to_external_services=None,
@@ -733,7 +733,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
-        copr_build_pr.get_trigger_object()
+        copr_build_pr.get_project_event_object()
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
         [copr_build_pr]
@@ -1289,7 +1289,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
-        copr_build_pr.get_trigger_object()
+        copr_build_pr.get_project_event_object()
     )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
     run_testing_farm_handler(
@@ -1476,7 +1476,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     )
 
     flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
-        copr_build_pr.get_trigger_object()
+        copr_build_pr.get_project_event_object()
     )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
     task = run_testing_farm_handler.__wrapped__.__func__

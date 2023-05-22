@@ -8,7 +8,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events.event import (
     AbstractForgeIndependentEvent,
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
 )
 
 
@@ -34,8 +34,8 @@ class VMImageBuildResultEvent(AbstractForgeIndependentEvent):
 
         self.topic = "vm-image-build-state-change"
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         model = VMImageBuildTargetModel.get_by_build_id(self.build_id)
         for run in model.runs:
-            return run.get_trigger_object()
+            return run.get_project_event_object()
         return None

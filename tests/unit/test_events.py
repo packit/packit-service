@@ -23,7 +23,7 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
     AllowlistStatus,
-    JobTriggerModel,
+    ProjectEventModel,
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -879,12 +879,12 @@ class TestEvents:
         ).and_return(testing_farm_results)
         flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
-                job_trigger=flexmock(),
+                project_event=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
                 commit_sha="12345",
                 identifier=identifier,
             )
-            .should_receive("get_trigger_object")
+            .should_receive("get_project_event_object")
             .and_return(flexmock(pr_id=10))
             .once()
             .mock()
@@ -914,12 +914,12 @@ class TestEvents:
         ).and_return(testing_farm_results_error)
         flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
-                job_trigger=flexmock(),
+                project_event=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
                 commit_sha="12345",
                 identifier=None,
             )
-            .should_receive("get_trigger_object")
+            .should_receive("get_project_event_object")
             .and_return(flexmock(pr_id=10))
             .once()
             .mock()
@@ -1455,12 +1455,14 @@ class TestEvents:
         assert json.dumps(event_object.pipeline_id)
 
     def test_parse_check_rerun_commit(self, check_rerun):
-        trigger = flexmock(JobTriggerModel, trigger_id=123)
+        trigger = flexmock(ProjectEventModel, event_id=123)
         branch_model = GitBranchModel(name="main")
-        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+        flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
             123456
         ).and_return(trigger)
-        flexmock(trigger).should_receive("get_trigger_object").and_return(branch_model)
+        flexmock(trigger).should_receive("get_project_event_object").and_return(
+            branch_model
+        )
         event_object = Parser.parse_event(check_rerun)
 
         assert isinstance(event_object, CheckRerunCommitEvent)
@@ -1494,12 +1496,14 @@ class TestEvents:
         assert event_object.actor == "lbarcziova"
 
     def test_parse_check_rerun_pull_request(self, check_rerun):
-        trigger = flexmock(JobTriggerModel, trigger_id=1234)
+        trigger = flexmock(ProjectEventModel, event_id=1234)
         pr_model = PullRequestModel(pr_id=12)
-        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+        flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
             123456
         ).and_return(trigger)
-        flexmock(trigger).should_receive("get_trigger_object").and_return(pr_model)
+        flexmock(trigger).should_receive("get_project_event_object").and_return(
+            pr_model
+        )
         event_object = Parser.parse_event(check_rerun)
 
         assert isinstance(event_object, CheckRerunPullRequestEvent)
@@ -1534,12 +1538,14 @@ class TestEvents:
         assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
     def test_parse_check_rerun_release(self, check_rerun):
-        trigger = flexmock(JobTriggerModel, trigger_id=123)
+        trigger = flexmock(ProjectEventModel, event_id=123)
         release_model = ProjectReleaseModel(tag_name="0.1.0")
-        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+        flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
             123456
         ).and_return(trigger)
-        flexmock(trigger).should_receive("get_trigger_object").and_return(release_model)
+        flexmock(trigger).should_receive("get_project_event_object").and_return(
+            release_model
+        )
 
         event_object = Parser.parse_event(check_rerun)
 

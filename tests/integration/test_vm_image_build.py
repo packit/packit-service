@@ -21,7 +21,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     PipelineModel,
     VMImageBuildTargetModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
 )
 from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -77,7 +77,7 @@ def test_vm_image_build(github_vm_image_build_comment):
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
             id=1,
         )
     )

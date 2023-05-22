@@ -14,7 +14,7 @@ from celery import signature
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     TFTTestRunTargetModel,
     CoprBuildTargetModel,
     BuildStatus,
@@ -147,8 +147,8 @@ class TestingFarmHandler(
 
         run_model = (
             PipelineModel.create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
+                type=self.db_trigger.project_event_model_type,
+                event_id=self.db_trigger.id,
             )
             if self.testing_farm_job_helper.skip_build or not builds
             # All the builds should be in the same copr build group, therefore
@@ -365,7 +365,7 @@ class TestingFarmResultsHandler(
         self.pipeline_id = event.get("pipeline_id")
         self.log_url = event.get("log_url")
         self.summary = event.get("summary")
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_trigger: Optional[AbstractProjectEventDbType] = None
         self.created = event.get("created")
 
     @staticmethod
@@ -373,13 +373,13 @@ class TestingFarmResultsHandler(
         return (IsEventForJob,)
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         if not self._db_trigger:
             run_model = TFTTestRunTargetModel.get_by_pipeline_id(
                 pipeline_id=self.pipeline_id
             )
             if run_model:
-                self._db_trigger = run_model.get_trigger_object()
+                self._db_trigger = run_model.get_project_event_object()
         return self._db_trigger
 
     def run(self) -> TaskResults:

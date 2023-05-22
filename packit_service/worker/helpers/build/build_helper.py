@@ -367,13 +367,15 @@ class BaseBuildJobHelper(BaseJobHelper):
         cls,
         job_name: str = None,
         chroot: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ):
         chroot_str = f":{chroot}" if chroot else ""
         # replace ':' in the trigger identifier
         trigger_str = (
-            f":{trigger_identifier.replace(':', '-')}" if trigger_identifier else ""
+            f":{project_event_identifier.replace(':', '-')}"
+            if project_event_identifier
+            else ""
         )
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{job_name}{trigger_str}{chroot_str}{optional_suffix}"
@@ -382,26 +384,26 @@ class BaseBuildJobHelper(BaseJobHelper):
     def get_build_check_cls(
         cls,
         chroot: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ):
         return cls.get_check_cls(
-            cls.status_name_build, chroot, trigger_identifier, identifier
+            cls.status_name_build, chroot, project_event_identifier, identifier
         )
 
     @classmethod
     def get_test_check_cls(
         cls,
         chroot: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ):
         return cls.get_check_cls(
-            cls.status_name_test, chroot, trigger_identifier, identifier
+            cls.status_name_test, chroot, project_event_identifier, identifier
         )
 
     @property
-    def trigger_identifier_for_status(self):
+    def project_event_identifier_for_status(self):
         # for commit and release triggers, we add the identifier to
         # the status name (branch name in case of commit trigger,
         # tag name in case of release trigger)
@@ -417,7 +419,7 @@ class BaseBuildJobHelper(BaseJobHelper):
     def get_build_check(self, chroot: str = None) -> str:
         return self.get_build_check_cls(
             chroot,
-            self.trigger_identifier_for_status,
+            self.project_event_identifier_for_status,
             self.job_build_or_job_config.identifier,
         )
 
@@ -429,7 +431,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         return [
             self.get_test_check_cls(
-                target, self.trigger_identifier_for_status, test_job_config.identifier
+                target,
+                self.project_event_identifier_for_status,
+                test_job_config.identifier,
             )
             for target in self.tests_targets_for_test_job(test_job_config)
         ]
@@ -670,7 +674,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                         url=url,
                         check_names=self.get_test_check_cls(
                             target,
-                            self.trigger_identifier_for_status,
+                            self.project_event_identifier_for_status,
                             test_job.identifier,
                         ),
                         markdown_content=markdown_content,

@@ -19,8 +19,8 @@ from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import (
     GitBranchModel,
     PullRequestModel,
-    JobTriggerModel,
-    JobTriggerModelType,
+    ProjectEventModel,
+    ProjectEventModelType,
 )
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
@@ -164,7 +164,7 @@ def test_precheck_push(github_push_event):
         flexmock(
             id=1,
             job_config_trigger_type=JobConfigTriggerType.commit,
-            job_trigger_model_type=JobTriggerModelType.branch_push,
+            project_event_model_type=ProjectEventModelType.branch_push,
             name="build-branch",
         )
     )
@@ -271,12 +271,12 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         flexmock(
             id=342,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=342
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=342
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.neutral,
         description="Non-scratch builds not possible from upstream.",

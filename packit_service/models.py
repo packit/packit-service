@@ -272,7 +272,7 @@ else:
     Base = declarative_base()
 
 
-class JobTriggerModelType(str, enum.Enum):
+class ProjectEventModelType(str, enum.Enum):
     pull_request = "pull_request"
     branch_push = "branch_push"
     release = "release"
@@ -286,18 +286,21 @@ class BuildsAndTestsConnector:
     """
 
     id: int
-    job_trigger_model_type: JobTriggerModelType
+    project_event_model_type: ProjectEventModelType
 
     def get_runs(self) -> List["PipelineModel"]:
         try:
             trigger = (
                 sa_session()
-                .query(JobTriggerModel)
-                .filter_by(type=self.job_trigger_model_type, trigger_id=self.id)
+                .query(ProjectEventModel)
+                .filter_by(type=self.project_event_model_type, event_id=self.id)
                 .one_or_none()
             )
         except MultipleResultsFound as e:
-            msg = f"Multiple run models for type {self.job_trigger_model_type} and id {self.id}."
+            msg = (
+                f"Multiple run models for type {self.project_event_model_type}"
+                f" and id {self.id}."
+            )
             logger.error(msg)
             raise PackitException(msg) from e
         return trigger.runs if trigger else []
@@ -350,37 +353,37 @@ class ProjectAndTriggersConnector:
 
     runs: Optional[List["PipelineModel"]]
 
-    def get_job_trigger_model(self) -> Optional["JobTriggerModel"]:
-        return self.runs[0].job_trigger if self.runs else None
+    def get_project_event_model(self) -> Optional["ProjectEventModel"]:
+        return self.runs[0].project_event if self.runs else None
 
-    def get_trigger_object(self) -> Optional["AbstractTriggerDbType"]:
-        job_trigger = self.get_job_trigger_model()
-        return job_trigger.get_trigger_object() if job_trigger else None
+    def get_project_event_object(self) -> Optional["AbstractProjectEventDbType"]:
+        project_event = self.get_project_event_model()
+        return project_event.get_project_event_object() if project_event else None
 
     def get_project(self) -> Optional["GitProjectModel"]:
-        trigger_object = self.get_trigger_object()
+        trigger_object = self.get_project_event_object()
         return trigger_object.project if trigger_object else None
 
     def get_pr_id(self) -> Optional[int]:
-        trigger_object = self.get_trigger_object()
+        trigger_object = self.get_project_event_object()
         if isinstance(trigger_object, PullRequestModel):
             return trigger_object.pr_id
         return None
 
     def get_issue_id(self) -> Optional[int]:
-        trigger_object = self.get_trigger_object()
+        trigger_object = self.get_project_event_object()
         if isinstance(trigger_object, IssueModel):
             return trigger_object.issue_id
         return None
 
     def get_branch_name(self) -> Optional[str]:
-        trigger_object = self.get_trigger_object()
+        trigger_object = self.get_project_event_object()
         if isinstance(trigger_object, GitBranchModel):
             return trigger_object.name
         return None
 
     def get_release_tag(self) -> Optional[str]:
-        trigger_object = self.get_trigger_object()
+        trigger_object = self.get_project_event_object()
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
         return None
@@ -394,11 +397,11 @@ class GroupAndTargetModelConnector:
 
     group_of_targets: ProjectAndTriggersConnector
 
-    def get_job_trigger_model(self) -> Optional["JobTriggerModel"]:
-        return self.group_of_targets.get_job_trigger_model()
+    def get_project_event_model(self) -> Optional["ProjectEventModel"]:
+        return self.group_of_targets.get_project_event_model()
 
-    def get_trigger_object(self) -> Optional["AbstractTriggerDbType"]:
-        return self.group_of_targets.get_trigger_object()
+    def get_project_event_object(self) -> Optional["AbstractProjectEventDbType"]:
+        return self.group_of_targets.get_project_event_object()
 
     def get_project(self) -> Optional["GitProjectModel"]:
         return self.group_of_targets.get_project()
@@ -615,7 +618,7 @@ class GitProjectModel(Base):
         Get the most active projects sorted by the number of related pipelines.
         """
         all_usage_numbers: dict[str, int] = Counter()
-        for trigger_type in JobTriggerModelType:
+        for trigger_type in ProjectEventModelType:
             all_usage_numbers.update(
                 cls.get_trigger_usage_numbers(
                     datetime_from=datetime_from,
@@ -667,7 +670,7 @@ class GitProjectModel(Base):
         """
         projects_per_instance: dict[str, set[str]] = {}
 
-        for trigger_type in JobTriggerModelType:
+        for trigger_type in ProjectEventModelType:
             trigger_model = MODEL_FOR_TRIGGER[trigger_type]
             query = (
                 sa_session()
@@ -676,9 +679,12 @@ class GitProjectModel(Base):
                     GitProjectModel.project_url,
                 )
                 .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
-                .join(JobTriggerModel, JobTriggerModel.trigger_id == trigger_model.id)
-                .join(PipelineModel, PipelineModel.job_trigger_id == JobTriggerModel.id)
-                .filter(JobTriggerModel.type == trigger_type)
+                .join(ProjectEventModel, ProjectEventModel.event_id == trigger_model.id)
+                .join(
+                    PipelineModel,
+                    PipelineModel.job_project_event_id == ProjectEventModel.id,
+                )
+                .filter(ProjectEventModel.type == trigger_type)
             )
             if datetime_from:
                 query = query.filter(PipelineModel.datetime >= datetime_from)
@@ -700,7 +706,7 @@ class GitProjectModel(Base):
     @classmethod
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_trigger_usage_count(
-        cls, trigger_type: JobTriggerModelType, datetime_from=None, datetime_to=None
+        cls, trigger_type: ProjectEventModelType, datetime_from=None, datetime_to=None
     ):
         """
         Get the number of triggers of a given type with at least one pipeline from the given period.
@@ -736,9 +742,12 @@ class GitProjectModel(Base):
                 count(trigger_model.id).over(partition_by=GitProjectModel.project_url),
             )
             .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
-            .join(JobTriggerModel, JobTriggerModel.trigger_id == trigger_model.id)
-            .join(PipelineModel, PipelineModel.job_trigger_id == JobTriggerModel.id)
-            .filter(JobTriggerModel.type == trigger_type)
+            .join(ProjectEventModel, ProjectEventModel.event_id == trigger_model.id)
+            .join(
+                PipelineModel,
+                PipelineModel.job_project_event_id == ProjectEventModel.id,
+            )
+            .filter(ProjectEventModel.type == trigger_type)
             .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
         )
         if datetime_from:
@@ -843,10 +852,13 @@ class GitProjectModel(Base):
                 ),
             )
             .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
-            .join(JobTriggerModel, JobTriggerModel.trigger_id == trigger_model.id)
-            .join(PipelineModel, PipelineModel.job_trigger_id == JobTriggerModel.id)
+            .join(ProjectEventModel, ProjectEventModel.event_id == trigger_model.id)
+            .join(
+                PipelineModel,
+                PipelineModel.job_project_event_id == ProjectEventModel.id,
+            )
             .join(job_result_model, job_result_model.id == pipeline_attribute)
-            .filter(JobTriggerModel.type == trigger_type)
+            .filter(ProjectEventModel.type == trigger_type)
             # We have all the dist git projects in because of how we parse the events.
             .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
         )
@@ -881,7 +893,7 @@ class GitProjectModel(Base):
         For each job, get the per-project number of jobs from the given period.
         """
         all_usage_numbers: dict[str, int] = Counter()
-        for trigger_type in JobTriggerModelType:
+        for trigger_type in ProjectEventModelType:
             all_usage_numbers.update(
                 cls.get_job_usage_numbers(
                     datetime_from=datetime_from,
@@ -915,7 +927,7 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
     project = relationship("GitProjectModel", back_populates="pull_requests")
 
     job_config_trigger_type = JobConfigTriggerType.pull_request
-    job_trigger_model_type = JobTriggerModelType.pull_request
+    project_event_model_type = ProjectEventModelType.pull_request
 
     @classmethod
     def get_or_create(
@@ -967,7 +979,7 @@ class IssueModel(BuildsAndTestsConnector, Base):
     project = relationship("GitProjectModel", back_populates="issues")
     # TODO: Fix this hardcoding! This is only to make propose-downstream work!
     job_config_trigger_type = JobConfigTriggerType.release
-    job_trigger_model_type = JobTriggerModelType.issue
+    project_event_model_type = ProjectEventModelType.issue
 
     @classmethod
     def get_or_create(
@@ -1005,7 +1017,7 @@ class GitBranchModel(BuildsAndTestsConnector, Base):
     project = relationship("GitProjectModel", back_populates="branches")
 
     job_config_trigger_type = JobConfigTriggerType.commit
-    job_trigger_model_type = JobTriggerModelType.branch_push
+    project_event_model_type = ProjectEventModelType.branch_push
 
     @classmethod
     def get_or_create(
@@ -1044,7 +1056,7 @@ class ProjectReleaseModel(Base):
     project = relationship("GitProjectModel", back_populates="releases")
 
     job_config_trigger_type = JobConfigTriggerType.release
-    job_trigger_model_type = JobTriggerModelType.release
+    project_event_model_type = ProjectEventModelType.release
 
     @classmethod
     def get_or_create(
@@ -1084,88 +1096,88 @@ class ProjectReleaseModel(Base):
         )
 
 
-AbstractTriggerDbType = Union[
+AbstractProjectEventDbType = Union[
     PullRequestModel,
     ProjectReleaseModel,
     GitBranchModel,
     IssueModel,
 ]
 
-MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {
-    JobTriggerModelType.pull_request: PullRequestModel,
-    JobTriggerModelType.branch_push: GitBranchModel,
-    JobTriggerModelType.release: ProjectReleaseModel,
-    JobTriggerModelType.issue: IssueModel,
+MODEL_FOR_TRIGGER: Dict[ProjectEventModelType, Type[AbstractProjectEventDbType]] = {
+    ProjectEventModelType.pull_request: PullRequestModel,
+    ProjectEventModelType.branch_push: GitBranchModel,
+    ProjectEventModelType.release: ProjectReleaseModel,
+    ProjectEventModelType.issue: IssueModel,
 }
 
 
-class JobTriggerModel(Base):
+class ProjectEventModel(Base):
     """
     Model representing a trigger of some packit task.
 
     It connects PipelineModel (and built/test models via that model)
-    with models like PullRequestModel, GitBranchModel or ProjectReleaseModel.
+    with models like IssueModel, PullRequestModel, GitBranchModel or ProjectReleaseModel.
 
     * It contains type and id of the other database_model.
       * We know table and id that we need to find in that table.
-    * Each PipelineModel has to be connected to exactly one JobTriggerModel.
-    * There can be multiple PipelineModels for one JobTriggerModel.
-      (e.g. For each push to PR, there will be new PipelineModel, but same JobTriggerModel.)
+    * Each PipelineModel has to be connected to exactly one ProjectEventModel.
+    * There can be multiple PipelineModels for one ProjectEventModel.
+      (e.g. For each push to PR, there will be new PipelineModel, but same ProjectEventModel.)
     """
 
-    __tablename__ = "job_triggers"
+    __tablename__ = "project_events"
     id = Column(Integer, primary_key=True)  # our database PK
-    type = Column(Enum(JobTriggerModelType))
-    trigger_id = Column(Integer, index=True)
+    type = Column(Enum(ProjectEventModelType))
+    event_id = Column(Integer, index=True)
 
-    runs = relationship("PipelineModel", back_populates="job_trigger")
+    runs = relationship("PipelineModel", back_populates="project_event")
 
     @classmethod
     def get_or_create(
-        cls, type: JobTriggerModelType, trigger_id: int
-    ) -> "JobTriggerModel":
+        cls, type: ProjectEventModelType, event_id: int
+    ) -> "ProjectEventModel":
         with sa_session_transaction() as session:
             trigger = (
-                session.query(JobTriggerModel)
-                .filter_by(type=type, trigger_id=trigger_id)
+                session.query(ProjectEventModel)
+                .filter_by(type=type, event_id=event_id)
                 .first()
             )
             if not trigger:
-                trigger = JobTriggerModel()
+                trigger = ProjectEventModel()
                 trigger.type = type
-                trigger.trigger_id = trigger_id
+                trigger.event_id = event_id
                 session.add(trigger)
             return trigger
 
     @classmethod
-    def get_by_id(cls, id_: int) -> Optional["JobTriggerModel"]:
-        return sa_session().query(JobTriggerModel).filter_by(id=id_).first()
+    def get_by_id(cls, id_: int) -> Optional["ProjectEventModel"]:
+        return sa_session().query(ProjectEventModel).filter_by(id=id_).first()
 
-    def get_trigger_object(self) -> Optional[AbstractTriggerDbType]:
+    def get_project_event_object(self) -> Optional[AbstractProjectEventDbType]:
         return (
             sa_session()
             .query(MODEL_FOR_TRIGGER[self.type])
-            .filter_by(id=self.trigger_id)
+            .filter_by(id=self.event_id)
             .first()
         )
 
     def __repr__(self):
-        return f"JobTriggerModel(type={self.type}, trigger_id={self.trigger_id})"
+        return f"ProjectEventModel(type={self.type}, event_id={self.event_id})"
 
 
 class PipelineModel(Base):
     """
     Represents one pipeline.
 
-    Connects JobTriggerModel (and triggers like PullRequestModel via that model) with
+    Connects ProjectEventModel (and triggers like PullRequestModel via that model) with
     build/test models like  SRPMBuildModel, CoprBuildTargetModel, KojiBuildTargetModel,
     and TFTTestRunGroupModel.
 
     * One model of each build/test target/group model can be connected.
     * Each build/test model can be connected to multiple PipelineModels (e.g. on retrigger).
-    * Each PipelineModel has to be connected to exactly one JobTriggerModel.
-    * There can be multiple PipelineModels for one JobTriggerModel.
-      (e.g. For each push to PR, there will be new PipelineModel, but same JobTriggerModel.)
+    * Each PipelineModel has to be connected to exactly one ProjectEventModel.
+    * There can be multiple PipelineModels for one ProjectEventModel.
+      (e.g. For each push to PR, there will be new PipelineModel, but same ProjectEventModel.)
     """
 
     __tablename__ = "pipelines"
@@ -1174,8 +1186,8 @@ class PipelineModel(Base):
     # so it will run when the model is initiated, not when the table is made
     datetime = Column(DateTime, default=datetime.utcnow)
 
-    job_trigger_id = Column(Integer, ForeignKey("job_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="runs")
+    job_project_event_id = Column(Integer, ForeignKey("project_events.id"))
+    project_event = relationship("ProjectEventModel", back_populates="runs")
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
@@ -1201,20 +1213,23 @@ class PipelineModel(Base):
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
     @classmethod
-    def create(cls, type: JobTriggerModelType, trigger_id: int) -> "PipelineModel":
+    def create(cls, type: ProjectEventModelType, event_id: int) -> "PipelineModel":
         with sa_session_transaction() as session:
             run_model = PipelineModel()
-            run_model.job_trigger = JobTriggerModel.get_or_create(
-                type=type, trigger_id=trigger_id
+            run_model.project_event = ProjectEventModel.get_or_create(
+                type=type, event_id=event_id
             )
             session.add(run_model)
             return run_model
 
-    def get_trigger_object(self) -> AbstractTriggerDbType:
-        return self.job_trigger.get_trigger_object()
+    def get_project_event_object(self) -> AbstractProjectEventDbType:
+        return self.project_event.get_project_event_object()
 
     def __repr__(self):
-        return f"PipelineModel(id={self.id}, datetime='{datetime}', job_trigger={self.job_trigger})"
+        return (
+            f"PipelineModel(id={self.id}, datetime='{datetime}', "
+            f"project_event={self.project_event})"
+        )
 
     @classmethod
     def __query_merged_runs(cls):
@@ -1297,8 +1312,8 @@ class CoprBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
             if run_model.copr_build_group:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    type=run_model.job_trigger.type,
-                    trigger_id=run_model.job_trigger.trigger_id,
+                    type=run_model.project_event.type,
+                    event_id=run_model.project_event.event_id,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = build_group
@@ -1600,8 +1615,8 @@ class KojiBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
             if run_model.koji_build_group:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    type=run_model.job_trigger.type,
-                    trigger_id=run_model.job_trigger.trigger_id,
+                    type=run_model.project_event.type,
+                    event_id=run_model.project_event.event_id,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.koji_build_group = build_group
@@ -1805,7 +1820,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def create_with_new_run(
         cls,
-        trigger_model: AbstractTriggerDbType,
+        trigger_model: AbstractProjectEventDbType,
         commit_sha: str,
         copr_build_id: Optional[str] = None,
         copr_web_url: Optional[str] = None,
@@ -1814,18 +1829,18 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         Create a new model for SRPM and connect it to the PipelineModel.
 
         * New SRPMBuildModel model will have connection to a new PipelineModel.
-        * The newly created PipelineModel can reuse existing JobTriggerModel
+        * The newly created PipelineModel can reuse existing ProjectEventModel
           (e.g.: one pull-request can have multiple runs).
 
         More specifically:
         * On PR creation:
           -> SRPMBuildModel is created.
           -> New PipelineModel is created.
-          -> JobTriggerModel is created.
+          -> ProjectEventModel is created.
         * On `/packit build` comment or new push:
           -> SRPMBuildModel is created.
           -> New PipelineModel is created.
-          -> JobTriggerModel is reused.
+          -> ProjectEventModel is reused.
         * On `/packit test` comment:
           -> SRPMBuildModel and CoprBuildTargetModel are reused.
           -> New TFTTestRunTargetModel is created.
@@ -1843,7 +1858,8 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
 
             # Create a new run model, reuse trigger_model if it exists:
             new_run_model = PipelineModel.create(
-                type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+                type=trigger_model.project_event_model_type,
+                event_id=trigger_model.id,
             )
             new_run_model.srpm_build = srpm_build
             session.add(new_run_model)
@@ -2089,8 +2105,8 @@ class TFTTestRunGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
                 if run_model.test_run_group:
                     # Clone run model
                     new_run_model = PipelineModel.create(
-                        type=run_model.job_trigger.type,
-                        trigger_id=run_model.job_trigger.trigger_id,
+                        type=run_model.project_event.type,
+                        event_id=run_model.project_event.event_id,
                     )
                     new_run_model.srpm_build = run_model.srpm_build
                     new_run_model.copr_build_group = run_model.copr_build_group
@@ -2345,25 +2361,25 @@ class SyncReleaseModel(ProjectAndTriggersConnector, Base):
     def create_with_new_run(
         cls,
         status: SyncReleaseStatus,
-        trigger_model: AbstractTriggerDbType,
+        trigger_model: AbstractProjectEventDbType,
         job_type: SyncReleaseJobType,
     ) -> Tuple["SyncReleaseModel", "PipelineModel"]:
         """
         Create a new model for SyncRelease and connect it to the PipelineModel.
 
         * New SyncReleaseModel model will have connection to a new PipelineModel.
-        * The newly created PipelineModel can reuse existing JobTriggerModel
+        * The newly created PipelineModel can reuse existing ProjectEventModel
           (e.g.: one IssueModel can have multiple runs).
 
         More specifically:
         * On `/packit propose-downstream` issue comment:
           -> SyncReleaseModel is created.
           -> New PipelineModel is created.
-          -> JobTriggerModel is created.
+          -> ProjectEventModel is created.
         * Something went wrong, after correction and another `/packit propose-downstream` comment:
           -> SyncReleaseModel is created.
           -> PipelineModel is created.
-          -> JobTriggerModel is reused.
+          -> ProjectEventModel is reused.
         * TODO: we will use propose-downstream in commit-checks - fill in once it's implemented
         """
         with sa_session_transaction() as session:
@@ -2374,7 +2390,8 @@ class SyncReleaseModel(ProjectAndTriggersConnector, Base):
 
             # Create a pipeline, reuse trigger_model if it exists:
             pipeline = PipelineModel.create(
-                type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+                type=trigger_model.project_event_model_type,
+                event_id=trigger_model.id,
             )
             pipeline.sync_release_run = sync_release
             session.add(pipeline)
@@ -2802,8 +2819,8 @@ class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
             if run_model.vm_image_build:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    type=run_model.job_trigger.type,
-                    trigger_id=run_model.job_trigger.trigger_id,
+                    type=run_model.project_event.type,
+                    event_id=run_model.project_event.event_id,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = run_model.copr_build_group

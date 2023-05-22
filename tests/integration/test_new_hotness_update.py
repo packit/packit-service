@@ -14,7 +14,7 @@ from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    JobTriggerModelType,
+    ProjectEventModelType,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseStatus,
@@ -39,7 +39,7 @@ def fedora_branches():
 @pytest.fixture
 def sync_release_model():
     trigger = flexmock(
-        job_trigger_model_type=JobTriggerModelType.release,
+        project_event_model_type=ProjectEventModelType.release,
         id=12,
         job_config_trigger_type=JobConfigTriggerType.release,
     )
@@ -159,7 +159,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
     flexmock(Signature).should_receive("apply_async").once()

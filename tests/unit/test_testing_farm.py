@@ -18,7 +18,7 @@ from packit.config import (
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildStatus
+from packit_service.models import ProjectEventModel, ProjectEventModelType, BuildStatus
 from packit_service.models import (
     TFTTestRunTargetModel,
     PullRequestModel,
@@ -157,10 +157,10 @@ def test_testing_farm_response(
     tft_test_run_model = flexmock(
         id=123,
         submitted_time=datetime.now(),
-        get_trigger_object=lambda: flexmock(
+        get_project_event_object=lambda: flexmock(
             id=12,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         ),
         target="fedora-rawhide-x86_64",
         status=None,
@@ -175,8 +175,8 @@ def test_testing_farm_response(
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
         tft_test_run_model
     )
-    flexmock(JobTriggerModel).should_receive("get_or_create").and_return(
-        flexmock(id=1, type=JobTriggerModelType.pull_request)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, type=ProjectEventModelType.pull_request)
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
@@ -1216,7 +1216,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
     )
     tf_handler._db_trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
         id=11,
     )
     tf_handler.run()
@@ -1690,7 +1690,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
 
