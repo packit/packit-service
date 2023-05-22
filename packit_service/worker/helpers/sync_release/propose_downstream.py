@@ -26,7 +26,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger: AbstractProjectEventDbType,
+        db_project_event: AbstractProjectEventDbType,
         job_config: JobConfig,
         branches_override: Optional[Set[str]] = None,
     ):
@@ -35,7 +35,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             job_config=job_config,
             branches_override=branches_override,
         )

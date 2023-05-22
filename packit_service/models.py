@@ -281,7 +281,7 @@ class ProjectEventModelType(str, enum.Enum):
 
 class BuildsAndTestsConnector:
     """
-    Abstract class that is inherited by trigger models
+    Abstract class that is inherited by project events models
     to share methods for accessing build/test models..
     """
 
@@ -290,7 +290,7 @@ class BuildsAndTestsConnector:
 
     def get_runs(self) -> List["PipelineModel"]:
         try:
-            trigger = (
+            project_event = (
                 sa_session()
                 .query(ProjectEventModel)
                 .filter_by(type=self.project_event_model_type, event_id=self.id)
@@ -303,7 +303,7 @@ class BuildsAndTestsConnector:
             )
             logger.error(msg)
             raise PackitException(msg) from e
-        return trigger.runs if trigger else []
+        return project_event.runs if project_event else []
 
     def _get_run_item(
         self, model_type: Type["AbstractBuildTestDbType"]
@@ -348,7 +348,7 @@ class BuildsAndTestsConnector:
 class ProjectAndTriggersConnector:
     """
     Abstract class that is inherited by build/test group models
-    to share methods for accessing project and trigger models.
+    to share methods for accessing project and project events models.
     """
 
     runs: Optional[List["PipelineModel"]]
@@ -361,38 +361,38 @@ class ProjectAndTriggersConnector:
         return project_event.get_project_event_object() if project_event else None
 
     def get_project(self) -> Optional["GitProjectModel"]:
-        trigger_object = self.get_project_event_object()
-        return trigger_object.project if trigger_object else None
+        project_event_object = self.get_project_event_object()
+        return project_event_object.project if project_event_object else None
 
     def get_pr_id(self) -> Optional[int]:
-        trigger_object = self.get_project_event_object()
-        if isinstance(trigger_object, PullRequestModel):
-            return trigger_object.pr_id
+        project_event_object = self.get_project_event_object()
+        if isinstance(project_event_object, PullRequestModel):
+            return project_event_object.pr_id
         return None
 
     def get_issue_id(self) -> Optional[int]:
-        trigger_object = self.get_project_event_object()
-        if isinstance(trigger_object, IssueModel):
-            return trigger_object.issue_id
+        project_event_object = self.get_project_event_object()
+        if isinstance(project_event_object, IssueModel):
+            return project_event_object.issue_id
         return None
 
     def get_branch_name(self) -> Optional[str]:
-        trigger_object = self.get_project_event_object()
-        if isinstance(trigger_object, GitBranchModel):
-            return trigger_object.name
+        project_event_object = self.get_project_event_object()
+        if isinstance(project_event_object, GitBranchModel):
+            return project_event_object.name
         return None
 
     def get_release_tag(self) -> Optional[str]:
-        trigger_object = self.get_project_event_object()
-        if isinstance(trigger_object, ProjectReleaseModel):
-            return trigger_object.tag_name
+        project_event_object = self.get_project_event_object()
+        if isinstance(project_event_object, ProjectReleaseModel):
+            return project_event_object.tag_name
         return None
 
 
 class GroupAndTargetModelConnector:
     """
     Abstract class that is inherited by build/test models
-    to share methods for accessing project and trigger models.
+    to share methods for accessing project and project events models.
     """
 
     group_of_targets: ProjectAndTriggersConnector
@@ -618,13 +618,13 @@ class GitProjectModel(Base):
         Get the most active projects sorted by the number of related pipelines.
         """
         all_usage_numbers: dict[str, int] = Counter()
-        for trigger_type in ProjectEventModelType:
+        for project_event_type in ProjectEventModelType:
             all_usage_numbers.update(
-                cls.get_trigger_usage_numbers(
+                cls.get_project_event_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=None,
-                    trigger_type=trigger_type,
+                    project_event_type=project_event_type,
                 )
             )
         return dict(
@@ -670,21 +670,27 @@ class GitProjectModel(Base):
         """
         projects_per_instance: dict[str, set[str]] = {}
 
-        for trigger_type in ProjectEventModelType:
-            trigger_model = MODEL_FOR_TRIGGER[trigger_type]
+        for project_event_type in ProjectEventModelType:
+            project_event_model = MODEL_FOR_PROJECT_EVENT[project_event_type]
             query = (
                 sa_session()
                 .query(
                     GitProjectModel.instance_url,
                     GitProjectModel.project_url,
                 )
-                .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
-                .join(ProjectEventModel, ProjectEventModel.event_id == trigger_model.id)
+                .join(
+                    project_event_model,
+                    GitProjectModel.id == project_event_model.project_id,
+                )
+                .join(
+                    ProjectEventModel,
+                    ProjectEventModel.event_id == project_event_model.id,
+                )
                 .join(
                     PipelineModel,
                     PipelineModel.job_project_event_id == ProjectEventModel.id,
                 )
-                .filter(ProjectEventModel.type == trigger_type)
+                .filter(ProjectEventModel.type == project_event_type)
             )
             if datetime_from:
                 query = query.filter(PipelineModel.datetime >= datetime_from)
@@ -705,8 +711,11 @@ class GitProjectModel(Base):
 
     @classmethod
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
-    def get_trigger_usage_count(
-        cls, trigger_type: ProjectEventModelType, datetime_from=None, datetime_to=None
+    def get_project_event_usage_count(
+        cls,
+        project_event_type: ProjectEventModelType,
+        datetime_from=None,
+        datetime_to=None,
     ):
         """
         Get the number of triggers of a given type with at least one pipeline from the given period.
@@ -714,18 +723,18 @@ class GitProjectModel(Base):
         # TODO: share the computation with _get_trigger_usage_numbers
         #       (one query with top and one without)
         return sum(
-            cls.get_trigger_usage_numbers(
+            cls.get_project_event_usage_numbers(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
-                trigger_type=trigger_type,
+                project_event_type=project_event_type,
                 top=None,
             ).values()
         )
 
     @classmethod
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
-    def get_trigger_usage_numbers(
-        cls, trigger_type, datetime_from=None, datetime_to=None, top=None
+    def get_project_event_usage_numbers(
+        cls, project_event_type, datetime_from=None, datetime_to=None, top=None
     ) -> dict[str, int]:
         """
         For each project, get the number of triggers of a given type with at least one pipeline
@@ -734,20 +743,27 @@ class GitProjectModel(Base):
         Order from the highest numbers.
         All if `top` not set, the first `top` projects returned otherwise.
         """
-        trigger_model = MODEL_FOR_TRIGGER[trigger_type]
+        project_event_model = MODEL_FOR_PROJECT_EVENT[project_event_type]
         query = (
             sa_session()
             .query(
                 GitProjectModel.project_url,
-                count(trigger_model.id).over(partition_by=GitProjectModel.project_url),
+                count(project_event_model.id).over(
+                    partition_by=GitProjectModel.project_url
+                ),
             )
-            .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
-            .join(ProjectEventModel, ProjectEventModel.event_id == trigger_model.id)
+            .join(
+                project_event_model,
+                GitProjectModel.id == project_event_model.project_id,
+            )
+            .join(
+                ProjectEventModel, ProjectEventModel.event_id == project_event_model.id
+            )
             .join(
                 PipelineModel,
                 PipelineModel.job_project_event_id == ProjectEventModel.id,
             )
-            .filter(ProjectEventModel.type == trigger_type)
+            .filter(ProjectEventModel.type == project_event_type)
             .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
         )
         if datetime_from:
@@ -756,11 +772,11 @@ class GitProjectModel(Base):
             query = query.filter(PipelineModel.datetime <= datetime_to)
 
         query = (
-            query.group_by(GitProjectModel.project_url, trigger_model.id)
+            query.group_by(GitProjectModel.project_url, project_event_model.id)
             .distinct()
             .order_by(
                 desc(
-                    count(trigger_model.id).over(
+                    count(project_event_model.id).over(
                         partition_by=GitProjectModel.project_url
                     )
                 )
@@ -777,13 +793,13 @@ class GitProjectModel(Base):
     def get_job_usage_numbers_count(
         cls,
         job_result_model,
-        trigger_type,
+        project_event_type,
         datetime_from=None,
         datetime_to=None,
     ) -> int:
         """
         Get the number of jobs of a given type with at least one pipeline
-        from the given period and given trigger.
+        from the given period and given project event.
         """
         return sum(
             cls.get_job_usage_numbers(
@@ -791,13 +807,13 @@ class GitProjectModel(Base):
                 datetime_to=datetime_to,
                 job_result_model=job_result_model,
                 top=None,
-                trigger_type=trigger_type,
+                project_event_type=project_event_type,
             ).values()
         )
 
     @classmethod
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
-    def get_job_usage_numbers_count_all_triggers(
+    def get_job_usage_numbers_count_all_project_events(
         cls,
         job_result_model,
         datetime_from=None,
@@ -808,7 +824,7 @@ class GitProjectModel(Base):
         from the given period.
         """
         return sum(
-            cls.get_job_usage_numbers_all_triggers(
+            cls.get_job_usage_numbers_all_project_events(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 job_result_model=job_result_model,
@@ -821,7 +837,7 @@ class GitProjectModel(Base):
     def get_job_usage_numbers(
         cls,
         job_result_model,
-        trigger_type,
+        project_event_type,
         datetime_from=None,
         datetime_to=None,
         top: Optional[int] = 10,
@@ -833,7 +849,7 @@ class GitProjectModel(Base):
         Order from the highest numbers.
         All if `top` not set, the first `top` projects returned otherwise.
         """
-        trigger_model = MODEL_FOR_TRIGGER[trigger_type]
+        project_event_model = MODEL_FOR_PROJECT_EVENT[project_event_type]
         pipeline_attribute = {
             SRPMBuildModel: PipelineModel.srpm_build_id,
             CoprBuildGroupModel: PipelineModel.copr_build_group_id,
@@ -851,14 +867,19 @@ class GitProjectModel(Base):
                     partition_by=GitProjectModel.project_url
                 ),
             )
-            .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
-            .join(ProjectEventModel, ProjectEventModel.event_id == trigger_model.id)
+            .join(
+                project_event_model,
+                GitProjectModel.id == project_event_model.project_id,
+            )
+            .join(
+                ProjectEventModel, ProjectEventModel.event_id == project_event_model.id
+            )
             .join(
                 PipelineModel,
                 PipelineModel.job_project_event_id == ProjectEventModel.id,
             )
             .join(job_result_model, job_result_model.id == pipeline_attribute)
-            .filter(ProjectEventModel.type == trigger_type)
+            .filter(ProjectEventModel.type == project_event_type)
             # We have all the dist git projects in because of how we parse the events.
             .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
         )
@@ -882,7 +903,7 @@ class GitProjectModel(Base):
 
     @classmethod
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
-    def get_job_usage_numbers_all_triggers(
+    def get_job_usage_numbers_all_project_events(
         cls,
         job_result_model,
         datetime_from=None,
@@ -893,14 +914,14 @@ class GitProjectModel(Base):
         For each job, get the per-project number of jobs from the given period.
         """
         all_usage_numbers: dict[str, int] = Counter()
-        for trigger_type in ProjectEventModelType:
+        for project_event_type in ProjectEventModelType:
             all_usage_numbers.update(
                 cls.get_job_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=None,
                     job_result_model=job_result_model,
-                    trigger_type=trigger_type,
+                    project_event_type=project_event_type,
                 )
             )
         return dict(
@@ -1103,7 +1124,9 @@ AbstractProjectEventDbType = Union[
     IssueModel,
 ]
 
-MODEL_FOR_TRIGGER: Dict[ProjectEventModelType, Type[AbstractProjectEventDbType]] = {
+MODEL_FOR_PROJECT_EVENT: Dict[
+    ProjectEventModelType, Type[AbstractProjectEventDbType]
+] = {
     ProjectEventModelType.pull_request: PullRequestModel,
     ProjectEventModelType.branch_push: GitBranchModel,
     ProjectEventModelType.release: ProjectReleaseModel,
@@ -1113,7 +1136,7 @@ MODEL_FOR_TRIGGER: Dict[ProjectEventModelType, Type[AbstractProjectEventDbType]]
 
 class ProjectEventModel(Base):
     """
-    Model representing a trigger of some packit task.
+    Model representing a project event which triggers some packit task.
 
     It connects PipelineModel (and built/test models via that model)
     with models like IssueModel, PullRequestModel, GitBranchModel or ProjectReleaseModel.
@@ -1137,17 +1160,17 @@ class ProjectEventModel(Base):
         cls, type: ProjectEventModelType, event_id: int
     ) -> "ProjectEventModel":
         with sa_session_transaction() as session:
-            trigger = (
+            project_event = (
                 session.query(ProjectEventModel)
                 .filter_by(type=type, event_id=event_id)
                 .first()
             )
-            if not trigger:
-                trigger = ProjectEventModel()
-                trigger.type = type
-                trigger.event_id = event_id
-                session.add(trigger)
-            return trigger
+            if not project_event:
+                project_event = ProjectEventModel()
+                project_event.type = type
+                project_event.event_id = event_id
+                session.add(project_event)
+            return project_event
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["ProjectEventModel"]:
@@ -1156,7 +1179,7 @@ class ProjectEventModel(Base):
     def get_project_event_object(self) -> Optional[AbstractProjectEventDbType]:
         return (
             sa_session()
-            .query(MODEL_FOR_TRIGGER[self.type])
+            .query(MODEL_FOR_PROJECT_EVENT[self.type])
             .filter_by(id=self.event_id)
             .first()
         )
@@ -1169,7 +1192,7 @@ class PipelineModel(Base):
     """
     Represents one pipeline.
 
-    Connects ProjectEventModel (and triggers like PullRequestModel via that model) with
+    Connects ProjectEventModel (and project events like PullRequestModel via that model) with
     build/test models like  SRPMBuildModel, CoprBuildTargetModel, KojiBuildTargetModel,
     and TFTTestRunGroupModel.
 
@@ -1820,7 +1843,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def create_with_new_run(
         cls,
-        trigger_model: AbstractProjectEventDbType,
+        project_event_model: AbstractProjectEventDbType,
         commit_sha: str,
         copr_build_id: Optional[str] = None,
         copr_web_url: Optional[str] = None,
@@ -1856,10 +1879,10 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             srpm_build.copr_web_url = copr_web_url
             session.add(srpm_build)
 
-            # Create a new run model, reuse trigger_model if it exists:
+            # Create a new run model, reuse project_event_model if it exists:
             new_run_model = PipelineModel.create(
-                type=trigger_model.project_event_model_type,
-                event_id=trigger_model.id,
+                type=project_event_model.project_event_model_type,
+                event_id=project_event_model.id,
             )
             new_run_model.srpm_build = srpm_build
             session.add(new_run_model)
@@ -2361,7 +2384,7 @@ class SyncReleaseModel(ProjectAndTriggersConnector, Base):
     def create_with_new_run(
         cls,
         status: SyncReleaseStatus,
-        trigger_model: AbstractProjectEventDbType,
+        project_event_model: AbstractProjectEventDbType,
         job_type: SyncReleaseJobType,
     ) -> Tuple["SyncReleaseModel", "PipelineModel"]:
         """
@@ -2388,10 +2411,10 @@ class SyncReleaseModel(ProjectAndTriggersConnector, Base):
             sync_release.job_type = job_type
             session.add(sync_release)
 
-            # Create a pipeline, reuse trigger_model if it exists:
+            # Create a pipeline, reuse project_event_model if it exists:
             pipeline = PipelineModel.create(
-                type=trigger_model.project_event_model_type,
-                event_id=trigger_model.id,
+                type=project_event_model.project_event_model_type,
+                event_id=project_event_model.id,
             )
             pipeline.sync_release_run = sync_release
             session.add(pipeline)

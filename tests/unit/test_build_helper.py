@@ -42,12 +42,12 @@ def _mock_targets(jobs, job, job_type):
     job_config_trigger_type, project_event_model_type = job_type
 
     project_service = flexmock(instance_url="https://github.com")
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         job_config_trigger_type=job_config_trigger_type,
         project_event_model_type=project_event_model_type,
     )
     if job_config_trigger_type == JobConfigTriggerType.commit:
-        db_trigger.name = "main"
+        db_project_event.name = "main"
 
     return CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
@@ -62,7 +62,7 @@ def _mock_targets(jobs, job, job_type):
             default_branch="main",
         ),
         metadata=flexmock(pr_id=None, identifier=None),
-        db_trigger=db_trigger,
+        db_project_event=db_project_event,
     )
 
 
@@ -776,12 +776,12 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
 )
 def test_configured_tests_targets(jobs, job_type, test_chroots):
     job_config_trigger_type, project_event_model_type = job_type
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         job_config_trigger_type=job_config_trigger_type,
         project_event_model_type=project_event_model_type,
     )
     if job_config_trigger_type == JobConfigTriggerType.commit:
-        db_trigger.name = "main"
+        db_project_event.name = "main"
 
     project_service = flexmock(instance_url="https://github.com")
     helper = TestingFarmJobHelper(
@@ -797,7 +797,7 @@ def test_configured_tests_targets(jobs, job_type, test_chroots):
             default_branch="main",
         ),
         metadata=flexmock(pr_id=None, identifier=None),
-        db_trigger=db_trigger,
+        db_project_event=db_project_event,
     )
 
     assert helper.package_config.jobs
@@ -858,7 +858,7 @@ def test_deduced_copr_targets():
             default_branch="main",
         ),
         metadata=flexmock(pr_id=None, identifier=None),
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=job_type[0],
             project_event_model_type=job_type[1],
             name="main",
@@ -1099,7 +1099,7 @@ def test_build_targets_overrides(
         job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
         metadata=flexmock(pr_id=None),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_project_event=flexmock(job_config_trigger_type=job_config_trigger_type),
         build_targets_override=build_targets_override,
         tests_targets_override=tests_targets_override,
     )
@@ -1321,7 +1321,7 @@ def test_tests_targets_overrides(
         job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
         metadata=flexmock(pr_id=None),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_project_event=flexmock(job_config_trigger_type=job_config_trigger_type),
         build_targets_override=build_targets_override,
         tests_targets_override=tests_targets_override,
     )
@@ -1423,7 +1423,9 @@ def test_copr_build_target2test_targets(
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=None),
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
     )
     flexmock(CoprHelper, get_valid_build_targets=get_build_targets)
     assert (
@@ -1471,7 +1473,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
             job_config=jobs[i],
             project=flexmock(),
             metadata=flexmock(pr_id=None),
-            db_trigger=flexmock(
+            db_project_event=flexmock(
                 job_config_trigger_type=JobConfigTriggerType.pull_request
             ),
         )
@@ -1677,7 +1679,9 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=None),
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
     )
     flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-31", "fedora-32", default=None
@@ -1744,7 +1748,7 @@ def test_koji_targets_overrides(
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_project_event=flexmock(job_config_trigger_type=job_config_trigger_type),
         build_targets_override=targets_override,
     )
     assert koji_build_helper.build_targets == build_targets
@@ -2142,11 +2146,11 @@ def test_build_handler_job_and_test_properties(
     result_job_build,
     result_job_tests,
 ):
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         job_config_trigger_type=job_config_trigger_type,
     )
     if job_config_trigger_type == JobConfigTriggerType.commit:
-        db_trigger.name = "main"
+        db_project_event.name = "main"
 
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
@@ -2156,7 +2160,7 @@ def test_build_handler_job_and_test_properties(
         job_config=init_job,
         project=flexmock(default_branch="main"),
         metadata=flexmock(pr_id=None),
-        db_trigger=db_trigger,
+        db_project_event=db_project_event,
     )
 
     assert copr_build_helper.package_config.jobs
@@ -2501,7 +2505,7 @@ def test_copr_project_and_namespace(
         metadata=flexmock(
             pr_id=None, identifier="the-event-identifier", tag_name=tag_name
         ),
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=job_config_trigger_type,
             project_event_model_type=project_event_model_type,
             name="main",
@@ -2600,7 +2604,7 @@ def test_check_if_custom_copr_can_be_used_and_report(
             ),
         ),
         metadata=flexmock(pr_id=None, identifier="the-event-identifier", tag_name=None),
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             project_event_model_type=ProjectEventModelType.pull_request,
         ),
@@ -2695,7 +2699,7 @@ def test_targets_for_koji_build(
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=pr_id),
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=job_config_trigger_type, name="build-branch"
         ),
     )
@@ -2747,7 +2751,9 @@ def test_repository_cache_invocation():
             namespace=flexmock(),
         ),
         metadata=flexmock(pr_id=None, git_ref=flexmock()),
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
     )
 
     flexmock(RepositoryCache).should_call("__init__").once()
@@ -2779,7 +2785,9 @@ def test_local_project_not_called_when_initializing_api():
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=1),
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
     )
     flexmock(LocalProject).should_receive("__init__").never()
     assert copr_build_helper.api

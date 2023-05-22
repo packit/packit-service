@@ -415,14 +415,14 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     )
     # SRPMBuildModel is (sadly) not shared between Koji and Copr builds.
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(
-        trigger_model=pr1, commit_sha="687abc76d67d"
+        project_event_model=pr1, commit_sha="687abc76d67d"
     )
     copr_group = CoprBuildGroupModel.create(run_model_for_copr)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
-        trigger_model=pr1, commit_sha="687abc76d67d"
+        project_event_model=pr1, commit_sha="687abc76d67d"
     )
     koji_group = KojiBuildGroupModel.create(run_model_for_koji)
     srpm_build_for_copr.set_logs("asd\nqwe\n")

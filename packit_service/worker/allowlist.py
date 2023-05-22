@@ -395,7 +395,7 @@ class Allowlist:
                 ),
                 project=project,
                 metadata=EventData.from_event_dict(event.get_dict()),
-                db_trigger=event.db_trigger,
+                db_project_event=event.db_project_event,
                 job_config=job_config,
                 build_targets_override=event.build_targets_override,
                 tests_targets_override=event.tests_targets_override,

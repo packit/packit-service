@@ -111,7 +111,7 @@ def srpm_build_model(
         project_event_model_type=ProjectEventModelType.pull_request,
         **trigger_model_kwargs,
     )
-    trigger_model = flexmock(
+    project_event_model = flexmock(
         id=2,
         type=project_event_model_type,
         event_id=1,
@@ -135,7 +135,7 @@ def srpm_build_model(
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=pr_model.project_event_model_type, event_id=pr_model.id
-    ).and_return(trigger_model)
+    ).and_return(project_event_model)
 
     def mock_set_status(status):
         srpm_build.status = status
@@ -147,7 +147,9 @@ def srpm_build_model(
     srpm_build.set_url = mock_set_url
     srpm_build.get_project_event_object = lambda: pr_model
 
-    run_model = flexmock(id=3, project_event=trigger_model, srpm_build=srpm_build)
+    run_model = flexmock(
+        id=3, job_project_event=project_event_model, srpm_build=srpm_build
+    )
     runs.append(run_model)
 
     return srpm_build
@@ -181,7 +183,7 @@ def copr_build_model(
         **trigger_model_kwargs,
     )
 
-    trigger_model = flexmock(
+    project_event_model = flexmock(
         id=2,
         type=project_event_model_type,
         event_id=1,
@@ -220,7 +222,7 @@ def copr_build_model(
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=trigger_object_model.project_event_model_type,
         event_id=trigger_object_model.id,
-    ).and_return(trigger_model)
+    ).and_return(project_event_model)
 
     def mock_set_status(status):
         copr_build.status = status
@@ -235,7 +237,7 @@ def copr_build_model(
 
     run_model = flexmock(
         id=3,
-        project_event=trigger_model,
+        job_project_event=project_event_model,
         srpm_build=srpm_build,
         copr_build_group=copr_group,
         test_run_group=None,
@@ -267,7 +269,7 @@ def koji_build_pr():
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
     )
-    trigger_model = flexmock(
+    project_event_model = flexmock(
         id=2,
         type=ProjectEventModelType.pull_request,
         event_id=1,
@@ -292,11 +294,11 @@ def koji_build_pr():
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=pr_model.project_event_model_type, event_id=pr_model.id
-    ).and_return(trigger_model)
+    ).and_return(project_event_model)
 
     run_model = flexmock(
         id=3,
-        project_event=trigger_model,
+        job_project_event=project_event_model,
         srpm_build=srpm_build,
         copr_build=koji_build_model,
     )

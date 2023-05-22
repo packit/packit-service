@@ -101,7 +101,7 @@ def build_helper(
     owner=None,
     trigger=None,
     jobs=None,
-    db_trigger=None,
+    db_project_event=None,
     selected_job=None,
     project_type: Type[GitProject] = GithubProject,
     build_targets_override=None,
@@ -153,7 +153,7 @@ def build_helper(
             task_accepted_time=datetime.now(timezone.utc),
             project_url="https://git.instance.io/the/example/namespace/the-example-repo",
         ),
-        db_trigger=db_trigger,
+        db_project_event=db_project_event,
         build_targets_override=build_targets_override,
         pushgateway=Pushgateway(),
         celery_task=task,
@@ -168,7 +168,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
     is correct and not the one about permissions"""
     helper = build_helper(
         event=github_pr_event,
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
@@ -239,7 +239,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
 def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     helper = build_helper(
         event=github_pr_event,
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
@@ -281,7 +281,9 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build)
     flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build).times(4)
-    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+    flexmock(PullRequestGithubEvent).should_receive("db_project_event").and_return(
+        flexmock()
+    )
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
@@ -340,7 +342,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
 ):
     helper = build_helper(
         event=github_pr_event,
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
@@ -364,7 +366,9 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             flexmock(),
         )
     )
-    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+    flexmock(PullRequestGithubEvent).should_receive("db_project_event").and_return(
+        flexmock()
+    )
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
@@ -453,7 +457,7 @@ def test_report_pending_build_and_test_on_build_submission(
         service_config=ServiceConfig.get_service_config(),
         project=project,
         metadata=None,
-        db_trigger=None,
+        db_project_event=None,
     )
     helper._srpm_model = flexmock(id=1)
     web_url = "copr-url"
@@ -589,7 +593,7 @@ def test_get_job_config_index(package_config, job_config, result):
             service_config=ServiceConfig.get_service_config(),
             project=None,
             metadata=None,
-            db_trigger=None,
+            db_project_event=None,
         ).get_job_config_index()
         == result
     )
@@ -669,7 +673,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     is correct and not the one about permissions"""
     helper = build_helper(
         event=github_pr_event,
-        db_trigger=flexmock(
+        db_project_event=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,

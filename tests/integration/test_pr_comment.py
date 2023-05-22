@@ -41,7 +41,7 @@ from packit_service.models import (
     TestingFarmResult,
     BuildStatus,
 )
-from packit_service.service.db_triggers import AddPullRequestDbTrigger
+from packit_service.service.db_project_events import AddPullRequestDbTrigger
 from packit_service.utils import (
     get_packit_commands_from_comment,
     load_job_config,
@@ -148,12 +148,14 @@ def mock_pr_comment_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -325,12 +327,14 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -546,12 +550,14 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -647,14 +653,16 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -850,14 +858,16 @@ def test_pr_test_command_handler_retries(
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -1074,12 +1084,14 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -1287,12 +1299,14 @@ def test_pr_test_command_handler_compose_not_present(
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
 
     run_model = flexmock(test_run_group=None)
@@ -1436,12 +1450,14 @@ def test_pr_test_command_handler_composes_not_available(
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     run_model = flexmock(test_run_group=None)
     test_run = flexmock(
@@ -1565,12 +1581,14 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -1588,7 +1606,7 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(trigger)
+    ).and_return(project_event)
     run_model = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
@@ -1683,10 +1701,12 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     gh_project.should_receive("can_merge_pr").with_args("phracek").and_return(False)
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
@@ -1753,10 +1773,12 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
     gh_project.should_receive("can_merge_pr").with_args("phracek").and_return(False)
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
@@ -1986,12 +2008,14 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -2205,12 +2229,14 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -2493,12 +2519,14 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         "'downstream_package_name': 'jouduv-dort'}"
     )
 
-    trigger = flexmock(
+    project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        project_event
+    )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        trigger
+        project_event
     )
 
     pagure_project = flexmock(

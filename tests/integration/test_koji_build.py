@@ -196,12 +196,14 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
 
 
 def test_koji_build_error_msg(distgit_push_packit):
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.commit,
         project_event_model_type=ProjectEventModelType.release,
     )
-    flexmock(PushPagureEvent).should_receive("db_trigger").and_return(db_trigger)
+    flexmock(PushPagureEvent).should_receive("db_project_event").and_return(
+        db_project_event
+    )
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
     flexmock(Signature).should_receive("apply_async").once()
 

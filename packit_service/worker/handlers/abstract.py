@@ -290,7 +290,7 @@ class JobHandler(Handler):
         self.data = EventData.from_event_dict(event)
         self.pushgateway = Pushgateway()
 
-        self._db_trigger: Optional[AbstractProjectEventDbType] = None
+        self._db_project_event: Optional[AbstractProjectEventDbType] = None
         self._project: Optional[GitProject] = None
         self._clean_workplace()
 

@@ -641,7 +641,7 @@ def test_check_and_report(
         flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
         # needs to be included when running only `test_allowlist`
-        # flexmock(event).should_receive("db_trigger").and_return(
+        # flexmock(event).should_receive("db_project_event").and_return(
         #     flexmock(job_config_trigger_type=job_configs[0].trigger).mock()
         # )
         flexmock(EventData).should_receive("from_event_dict").and_return(
@@ -826,7 +826,7 @@ def test_check_and_report_actor_pull_request(allowlist):
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, trigger_id=123
+        type=ProjectEventModelType.pull_request, event_id=123
     ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     flexmock(event, project=git_project).should_receive("get_dict").and_return(None)

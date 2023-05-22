@@ -60,7 +60,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger,
+        db_project_event,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
@@ -71,7 +71,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             job_config=job_config,
             build_targets_override=build_targets_override,
             tests_targets_override=tests_targets_override,
@@ -953,7 +953,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             package_config=None,
             project=None,
             metadata=None,
-            db_trigger=None,
+            db_project_event=None,
             job_config=None,
         )
 

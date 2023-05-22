@@ -3,7 +3,7 @@
 from typing import Dict, Optional
 
 from ogr.abstract import GitProject, Comment
-from packit_service.service.db_triggers import (
+from packit_service.service.db_project_events import (
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
     AddReleaseDbTrigger,

@@ -46,12 +46,12 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
 
         # Lazy properties
         self._pr_id: Optional[int] = None
-        self._db_trigger: Optional[AbstractProjectEventDbType] = None
+        self._db_project_event: Optional[AbstractProjectEventDbType] = None
 
     @property
     def pr_id(self) -> Optional[int]:
-        if not self._pr_id and isinstance(self.db_trigger, PullRequestModel):
-            self._pr_id = self.db_trigger.pr_id
+        if not self._pr_id and isinstance(self.db_project_event, PullRequestModel):
+            self._pr_id = self.db_project_event.pr_id
         return self._pr_id
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:

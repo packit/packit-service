@@ -27,7 +27,7 @@ class SyncReleaseHelper(BaseJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger: AbstractProjectEventDbType,
+        db_project_event: AbstractProjectEventDbType,
         job_config: JobConfig,
         branches_override: Optional[Set[str]] = None,
     ):
@@ -36,7 +36,7 @@ class SyncReleaseHelper(BaseJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             job_config=job_config,
         )
         self.branches_override = branches_override
@@ -76,8 +76,8 @@ class SyncReleaseHelper(BaseJobHelper):
         if not self._job:
             for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type) and (
-                    self.db_trigger
-                    and self.db_trigger.job_config_trigger_type == job.trigger
+                    self.db_project_event
+                    and self.db_project_event.job_config_trigger_type == job.trigger
                 ):
                     self._job = job
                     break

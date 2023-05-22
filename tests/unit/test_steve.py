@@ -31,7 +31,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_triggers import AddReleaseDbTrigger
+from packit_service.service.db_project_events import AddReleaseDbTrigger
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -105,7 +105,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     )
 
     run_model = flexmock(PipelineModel)
-    trigger = flexmock(
+    project_event = flexmock(
         project_event_model_type=ProjectEventModelType.release,
         id=12,
         job_config_trigger_type=JobConfigTriggerType.release,
@@ -116,11 +116,11 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         repo_name="the-repo",
         project_url="https://github.com/the-namespace/the-repo",
         commit_hash="12345",
-    ).and_return(trigger).times(1 if success else 0)
+    ).and_return(project_event).times(1 if success else 0)
     propose_downstream_model = flexmock(sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
-        trigger_model=trigger,
+        project_event_model=project_event,
         job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
@@ -154,7 +154,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=1,

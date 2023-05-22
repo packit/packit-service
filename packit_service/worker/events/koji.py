@@ -210,8 +210,8 @@ class KojiTaskEvent(AbstractKojiEvent):
 
     @property
     def pr_id(self) -> Optional[int]:
-        if not self._pr_id and isinstance(self.db_trigger, PullRequestModel):
-            self._pr_id = self.db_trigger.pr_id
+        if not self._pr_id and isinstance(self.db_project_event, PullRequestModel):
+            self._pr_id = self.db_project_event.pr_id
         return self._pr_id
 
     @property
@@ -227,12 +227,12 @@ class KojiTaskEvent(AbstractKojiEvent):
     @property
     def git_ref(self) -> str:
         if not self._git_ref:
-            if isinstance(self.db_trigger, PullRequestModel):
+            if isinstance(self.db_project_event, PullRequestModel):
                 self._git_ref = self.commit_sha
-            elif isinstance(self.db_trigger, ProjectReleaseModel):
-                self._git_ref = self.db_trigger.tag_name
-            elif isinstance(self.db_trigger, GitBranchModel):
-                self._git_ref = self.db_trigger.name
+            elif isinstance(self.db_project_event, ProjectReleaseModel):
+                self._git_ref = self.db_project_event.tag_name
+            elif isinstance(self.db_project_event, GitBranchModel):
+                self._git_ref = self.db_project_event.name
             else:
                 self._git_ref = self.commit_sha
         return self._git_ref
@@ -240,12 +240,12 @@ class KojiTaskEvent(AbstractKojiEvent):
     @property
     def identifier(self) -> str:
         if not self._identifier:
-            if isinstance(self.db_trigger, PullRequestModel):
-                self._identifier = str(self.db_trigger.pr_id)
-            elif isinstance(self.db_trigger, ProjectReleaseModel):
-                self._identifier = self.db_trigger.tag_name
-            elif isinstance(self.db_trigger, GitBranchModel):
-                self._identifier = self.db_trigger.name
+            if isinstance(self.db_project_event, PullRequestModel):
+                self._identifier = str(self.db_project_event.pr_id)
+            elif isinstance(self.db_project_event, ProjectReleaseModel):
+                self._identifier = self.db_project_event.tag_name
+            elif isinstance(self.db_project_event, GitBranchModel):
+                self._identifier = self.db_project_event.name
             else:
                 self._identifier = self.commit_sha
         return self._identifier

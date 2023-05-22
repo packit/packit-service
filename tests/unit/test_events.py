@@ -784,7 +784,7 @@ class TestEvents:
         flexmock(PullRequestModel).should_receive("get_or_create").and_return(
             flexmock()
         )
-        # assert event_object.db_trigger
+        # assert event_object.db_project_event
         assert isinstance(event_object.project, GitlabProject)
         assert (
             event_object.project.full_repo_name == "redhat/centos-stream/rpms/luksmeta"
@@ -900,7 +900,7 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.db_trigger
+        assert event_object.db_project_event
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
         assert event_object.identifier == identifier
@@ -935,7 +935,7 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.db_trigger
+        assert event_object.db_project_event
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
         assert not event_object.identifier
@@ -1658,7 +1658,7 @@ class TestEvents:
         assert event_object.packages_config
 
         if create_db_trigger:
-            assert event_object.db_trigger
+            assert event_object.db_project_event
 
     def test_get_submitted_time_from_model(self):
         date = datetime.utcnow()
@@ -1691,7 +1691,7 @@ class TestEvents:
         )
 
     @pytest.mark.parametrize(
-        "check_name, db_trigger, result",
+        "check_name, db_project_event, result",
         [
             pytest.param(
                 "propose-downstream:f35",
@@ -1815,5 +1815,5 @@ class TestEvents:
             ),
         ],
     )
-    def test_parse_check_name(self, check_name, db_trigger, result):
-        assert Parser.parse_check_name(check_name, db_trigger) == result
+    def test_parse_check_name(self, check_name, db_project_event, result):
+        assert Parser.parse_check_name(check_name, db_project_event) == result

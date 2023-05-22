@@ -197,7 +197,7 @@ class AbstractSyncReleaseHandler(
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.data.db_trigger,
+                db_project_event=self.data.db_project_event,
                 job_config=self.job_config,
                 branches_override=self.data.branches_override,
             )
@@ -256,7 +256,7 @@ class AbstractSyncReleaseHandler(
 
         sync_release_model, _ = SyncReleaseModel.create_with_new_run(
             status=SyncReleaseStatus.running,
-            trigger_model=self.data.db_trigger,
+            project_event_model=self.data.db_project_event,
             job_type=SyncReleaseJobType.propose_downstream
             if self.job_config.type == JobType.propose_downstream
             else SyncReleaseJobType.pull_from_upstream,

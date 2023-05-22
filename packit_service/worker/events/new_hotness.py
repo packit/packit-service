@@ -15,7 +15,7 @@ from packit_service.worker.events.event import use_for_job_config_trigger
 logger = getLogger(__name__)
 
 
-# the decorator is needed in case the DB trigger is not created (not valid arguments)
+# the decorator is needed in case the DB project event is not created (not valid arguments)
 # but we still want to report from pre_check of the PullFromUpstreamHandler
 @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.release)
 class NewHotnessUpdateEvent(Event):
@@ -51,14 +51,16 @@ class NewHotnessUpdateEvent(Event):
         return None
 
     @property
-    def db_trigger(self) -> Optional[ProjectReleaseModel]:
+    def db_project_event(self) -> Optional[ProjectReleaseModel]:
         if not (
             self.tag_name
             and self.repo_name
             and self.repo_namespace
             and self.project_url
         ):
-            logger.info("Not going to create the DB trigger, not valid arguments.")
+            logger.info(
+                "Not going to create the DB project event, not valid arguments."
+            )
             return None
 
         return ProjectReleaseModel.get_or_create(

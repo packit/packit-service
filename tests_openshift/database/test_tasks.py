@@ -64,7 +64,7 @@ def packit_build_752():
     )
 
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
-        trigger_model=pr_model, commit_sha="687abc76d67d"
+        project_event_model=pr_model, commit_sha="687abc76d67d"
     )
     group = CoprBuildGroupModel.create(run_model)
     srpm_build.set_logs("asd\nqwe\n")

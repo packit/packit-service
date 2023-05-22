@@ -796,7 +796,7 @@ class Parser:
 
     @staticmethod
     def parse_check_name(
-        check_name: str, db_trigger: AbstractProjectEventDbType
+        check_name: str, db_project_event: AbstractProjectEventDbType
     ) -> Optional[Tuple[str, str, str]]:
         """
         Parse the given name of the check run.
@@ -807,9 +807,9 @@ class Parser:
         "rpm-build:main:fedora-34-x86_64:identifier"
         "propose-downstream:f35"
 
-        For the build and test runs, if the trigger is release/commit, the branch
+        For the build and test runs, if the project event is release/commit, the branch
         name or release name is included in the check name - it can be ignored,
-        since we are having the DB trigger (obtained via external ID of the check).
+        since we are having the DB project event (obtained via external ID of the check).
 
         Returns:
             tuple of job name (e.g. rpm-build), target and identifier obtained from check run
@@ -839,7 +839,7 @@ class Parser:
             )
             if (
                 check_name_job in build_test_job_names
-                and db_trigger.job_config_trigger_type
+                and db_project_event.job_config_trigger_type
                 in (
                     JobConfigTriggerType.commit,
                     JobConfigTriggerType.release,
@@ -908,7 +908,9 @@ class Parser:
         external_id = nested_get(event, "check_run", "external_id")
 
         if not external_id:
-            logger.warning("No external_id to identify the original trigger provided.")
+            logger.warning(
+                "No external_id to identify the original project event provided."
+            )
             return None
 
         project_event = ProjectEventModel.get_by_id(int(external_id))
@@ -947,7 +949,7 @@ class Parser:
                 pr_id=db_project_event.pr_id,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_project_event,
+                db_project_event=db_project_event,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
@@ -961,7 +963,7 @@ class Parser:
                 tag_name=db_project_event.tag_name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_project_event,
+                db_project_event=db_project_event,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
@@ -975,7 +977,7 @@ class Parser:
                 git_ref=db_project_event.name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_project_event,
+                db_project_event=db_project_event,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
