@@ -21,16 +21,11 @@
           - python3-sqlalchemy
           - python3-psycopg2
           - python3-prometheus_client
-          - python3-celery
           - python3-redis # celery[redis]
           - python3-lazy-object-proxy
           - python3-flask-restx
-          - python3-flask-cors
           - python3-flask-talisman
-          - python3-flexmock # because of the hack during the alembic upgrade
-          # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
           - python-jwt
-          # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
           # This is to be able to provide service version via API
           - python-setuptools_scm
@@ -41,6 +36,9 @@
         name:
           - sentry-sdk[flask]
           - syslog-rfc5424-formatter
+          - celery==5.2.* # RPM not available on c9s
+          - flask-cors # RHBZ#2100076
+          - flexmock # because of alembic (d90948124e46_..._.py )
         executable: pip3
     - name: Check if all pip packages have all dependencies installed
       command: pip check

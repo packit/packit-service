@@ -8,13 +8,13 @@
     - name: Install test RPM dependencies
       dnf:
         name:
-          - python3-flexmock
           - tar
           - rsync
         state: present
     - name: Install pip deps
       pip:
         name:
+          - flexmock
           - requre
           - pytest
           - pytest-cov

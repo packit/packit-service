@@ -9,8 +9,8 @@
   tasks:
     - import_tasks: tasks/process-source-branch.yaml
     - name: Pip-install gevent & greenlet
-      # https://bugzilla.redhat.com/show_bug.cgi?id=2158732
-      # Install it before python3-sqlalchemy RPM
+      # greenlet < 2.0.1 (required by gevent < 22) leaks memory on Python-3.11 (RHBZ#2158732)
+      # Install gevent >= 22 (requires greenlet>2) before python3-sqlalchemy RPM
       # which would otherwise pull in greenlet<2 RPM
       pip:
         name:
@@ -25,10 +25,6 @@
           - python3-prometheus_client
           - python3-sqlalchemy
           - python3-psycopg2
-          # celery-5.3.0b1.fc37 doesn't play well with flower
-          # celery-5.2.6.fc37 requires billiard<4.0 and F37 has billiard-4.1.0
-          # so we're installing 5.2.x from PyPI, see below
-          #           - python3-celery
           - python3-redis # celery[redis]
           - python3-lazy-object-proxy
           - dnf-utils
@@ -40,10 +36,6 @@
           - postgresql # pg_dump
           - python3-boto3 # AWS (S3)
           - python3-fasjson-client
-          # concurrency pool, see run_worker.sh
-          # temporarily installed from PyPI, see above
-          #           - python3-gevent
-          # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
         state: present
         install_weak_deps: False
@@ -52,9 +44,8 @@
         name:
           - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
           - sentry-sdk
-          - syslog-rfc5424-formatter
-          - git+https://github.com/jpopelka/billiard.git@v3_py311
-          - celery==5.2.*
+          - syslog-rfc5424-formatter # Logging to Splunk
+          - celery==5.2.* # celery-5.3.0b1 doesn't play well with flower
         executable: pip3
     - name: Check if all pip packages have all dependencies installed
       command: pip check

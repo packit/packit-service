@@ -1,6 +1,6 @@
 # For running tests locally, see check_in_container target in Makefile
 
-FROM quay.io/packit/base
+FROM quay.io/packit/base:c9s
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \
