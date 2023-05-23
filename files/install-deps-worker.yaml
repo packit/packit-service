@@ -23,7 +23,8 @@
           - nss_wrapper # openshift anyuid passwd madness
           - python3-requests
           - python3-prometheus_client
-          - python3-sqlalchemy+postgresql
+          - python3-sqlalchemy
+          - python3-psycopg2
           # celery-5.3.0b1.fc37 doesn't play well with flower
           # celery-5.2.6.fc37 requires billiard<4.0 and F37 has billiard-4.1.0
           # so we're installing 5.2.x from PyPI, see below

@@ -18,7 +18,8 @@
           - python3-mod_wsgi
           - mod_ssl
           - python3-alembic
-          - python3-sqlalchemy+postgresql
+          - python3-sqlalchemy
+          - python3-psycopg2
           - python3-prometheus_client
           - python3-celery
           - python3-redis # celery[redis]
