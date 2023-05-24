@@ -96,7 +96,11 @@ class GithubWebhook(Resource):
 
         celery_app.send_task(
             name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
-            kwargs={"event": msg},
+            kwargs={
+                "event": msg,
+                "source": "github",
+                "event_type": request.headers.get("X-GitHub-Event"),
+            },
         )
         github_webhook_calls.labels(result="accepted", process_id=os.getpid()).inc()
 
@@ -117,11 +121,10 @@ class GithubWebhook(Resource):
 
         interests = {
             "check_run": action == "rerequested",
+            "issue_comment": action in {"created", "edited"},
             "pull_request": action in {"opened", "reopened", "synchronize"},
-            "pull_request_review_comment": action in {"created", "edited"},
-            "issue_comment": action == "created",
-            "release": action == "published",
             "push": not deleted,
+            "release": action == "published",
             "installation": action == "created",
         }
         _interested = interests.get(event, False)
