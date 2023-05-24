@@ -130,3 +130,133 @@ def test_validate_token(mock_config, headers, is_good):
                 webhooks.GitlabWebhook.validate_token(temp)
         else:
             webhooks.GitlabWebhook.validate_token(temp)
+
+
+@pytest.mark.parametrize(
+    "headers, payload, interested",
+    [
+        (
+            {"X-GitHub-Event": "check_run", "X-GitHub-Delivery": "uuid"},
+            {"action": "rerequested"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "pull_request", "X-GitHub-Delivery": "uuid"},
+            {"action": "opened"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "pull_request", "X-GitHub-Delivery": "uuid"},
+            {"action": "reopened"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "pull_request", "X-GitHub-Delivery": "uuid"},
+            {"action": "closed"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "pull_request", "X-GitHub-Delivery": "uuid"},
+            {"action": "edited"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "pull_request", "X-GitHub-Delivery": "uuid"},
+            {"action": "synchronize"},
+            True,
+        ),
+        (
+            {
+                "X-GitHub-Event": "pull_request_review_comment",
+                "X-GitHub-Delivery": "uuid",
+            },
+            {"action": "created"},
+            True,
+        ),
+        (
+            {
+                "X-GitHub-Event": "pull_request_review_comment",
+                "X-GitHub-Delivery": "uuid",
+            },
+            {"action": "edited"},
+            True,
+        ),
+        (
+            {
+                "X-GitHub-Event": "pull_request_review_comment",
+                "X-GitHub-Delivery": "uuid",
+            },
+            {"action": "deleted"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "issue_comment", "X-GitHub-Delivery": "uuid"},
+            {"action": "created"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "issue_comment", "X-GitHub-Delivery": "uuid"},
+            {"action": "created"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "issue_comment", "X-GitHub-Delivery": "uuid"},
+            {"action": "edited"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "release", "X-GitHub-Delivery": "uuid"},
+            {"action": "created"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "release", "X-GitHub-Delivery": "uuid"},
+            {"action": "published"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "release", "X-GitHub-Delivery": "uuid"},
+            {"action": "released"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "push", "X-GitHub-Delivery": "uuid"},
+            {"deleted": False},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "push", "X-GitHub-Delivery": "uuid"},
+            {"deleted": True},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "installation", "X-GitHub-Delivery": "uuid"},
+            {"action": "created"},
+            True,
+        ),
+        (
+            {"X-GitHub-Event": "installation", "X-GitHub-Delivery": "uuid"},
+            {"action": "deleted"},
+            False,
+        ),
+        (
+            {"X-GitHub-Event": "label"},
+            {"action": "created"},
+            False,
+        ),
+    ],
+)
+def test_interested(mock_config, headers, payload, interested):
+    # flexmock config before import as it fails on looking for config
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        flexmock(ServiceConfig)
+    )
+
+    from packit_service.service.api import webhooks
+
+    webhooks.config = mock_config
+
+    with Flask(__name__).test_request_context(
+        json=payload, content_type="application/json", headers=headers
+    ):
+        assert webhooks.GithubWebhook.interested() == interested

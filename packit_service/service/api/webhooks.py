@@ -106,16 +106,27 @@ class GithubWebhook(Resource):
     def interested():
         """
         Check whether we want to process this event.
+
         Returns:
-             `False` if we are not interested in this kind of event
+             False if we are not interested in this kind of event
         """
-        event_type = request.headers.get("X-GitHub-Event")
+        event = request.headers.get("X-GitHub-Event")
         uuid = request.headers.get("X-GitHub-Delivery")
         action = request.json.get("action")
+        deleted = request.json.get("deleted")
 
-        # we don't care about created or completed check runs
-        _interested = event_type != "check_run" or action == "rerequested"
-        logger.debug(f"{event_type} {uuid}{'' if _interested else ' (not interested)'}")
+        interests = {
+            "check_run": action == "rerequested",
+            "pull_request": action in {"opened", "reopened", "synchronize"},
+            "pull_request_review_comment": action in {"created", "edited"},
+            "issue_comment": action == "created",
+            "release": action == "published",
+            "push": not deleted,
+            "installation": action == "created",
+        }
+        _interested = interests.get(event, False)
+
+        logger.debug(f"{event} {uuid}{'' if _interested else ' (not interested)'}")
         return _interested
 
     @staticmethod
