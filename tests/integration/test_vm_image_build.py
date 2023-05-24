@@ -26,6 +26,7 @@ from packit_service.models import (
 from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import first_dict_value, get_parameters_from_results
 from packit_service.worker.handlers.vm_image import VMImageBuildHandler
+from packit.copr_helper import CoprHelper
 
 
 def test_vm_image_build(github_vm_image_build_comment):
@@ -91,6 +92,13 @@ def test_vm_image_build(github_vm_image_build_comment):
         ),
     )
     flexmock(Signature).should_receive("apply_async").times(1)
+    repo_download_url = (
+        "https://download.copr.fedorainfracloud.org/"
+        "results/mmassari/knx-stack/fedora-36-x86_64/"
+    )
+    flexmock(CoprHelper).should_receive("get_repo_download_url").once().and_return(
+        repo_download_url
+    )
     flexmock(VMImageBuildHandler).should_receive("vm_image_builder").and_return(
         flexmock()
         .should_receive("create_image")
@@ -103,8 +111,7 @@ def test_vm_image_build(github_vm_image_build_comment):
                 "upload_request": {"type": "aws", "options": {}},
             },
             {"packages": ["python-knx-stack"]},
-            "https://download.copr.fedorainfracloud.org/"
-            "results/mmassari/knx-stack/fedora-36-x86_64/",
+            repo_download_url,
         )
         .mock()
     )

@@ -124,7 +124,15 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
     flexmock(db_trigger).should_receive("__str__").and_return("db_trigger object")
     handler.data._db_trigger = db_trigger
     handler._project = project
+    handler._packit_api = flexmock(copr_helper=flexmock())
 
+    repo_download_url = (
+        "https://download.copr.fedorainfracloud.org/"
+        "results/mmassari/knx-stack/fedora-36-x86_64/"
+    )
+    handler.packit_api.copr_helper.should_receive("get_repo_download_url").with_args(
+        owner="mmassari", project="knx-stack", chroot="fedora-36-x86_64"
+    ).and_return(repo_download_url)
     flexmock(handler).should_receive("vm_image_builder").and_return(
         flexmock()
         .should_receive("create_image")
@@ -137,8 +145,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
                 "upload_request": {"type": "aws", "options": {}},
             },
             {"packages": ["python-knx-stack"]},
-            "https://download.copr.fedorainfracloud.org/"
-            "results/mmassari/knx-stack/fedora-36-x86_64/",
+            repo_download_url,
         )
         .mock()
     )
