@@ -688,7 +688,7 @@ class GitProjectModel(Base):
                 )
                 .join(
                     PipelineModel,
-                    PipelineModel.job_project_event_id == ProjectEventModel.id,
+                    PipelineModel.project_event_id == ProjectEventModel.id,
                 )
                 .filter(ProjectEventModel.type == project_event_type)
             )
@@ -761,7 +761,7 @@ class GitProjectModel(Base):
             )
             .join(
                 PipelineModel,
-                PipelineModel.job_project_event_id == ProjectEventModel.id,
+                PipelineModel.project_event_id == ProjectEventModel.id,
             )
             .filter(ProjectEventModel.type == project_event_type)
             .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
@@ -876,7 +876,7 @@ class GitProjectModel(Base):
             )
             .join(
                 PipelineModel,
-                PipelineModel.job_project_event_id == ProjectEventModel.id,
+                PipelineModel.project_event_id == ProjectEventModel.id,
             )
             .join(job_result_model, job_result_model.id == pipeline_attribute)
             .filter(ProjectEventModel.type == project_event_type)
@@ -1209,7 +1209,7 @@ class PipelineModel(Base):
     # so it will run when the model is initiated, not when the table is made
     datetime = Column(DateTime, default=datetime.utcnow)
 
-    job_project_event_id = Column(Integer, ForeignKey("project_events.id"))
+    project_event_id = Column(Integer, ForeignKey("project_events.id"))
     project_event = relationship("ProjectEventModel", back_populates="runs")
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)

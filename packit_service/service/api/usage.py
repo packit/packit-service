@@ -301,22 +301,22 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
         jobs[job_model.__tablename__]["per_event"] = {}
         jobs[job_model.__tablename__]["per_event"].update(
             {
-                trigger_type.value: dict(
+                project_event_type.value: dict(
                     job_runs=GitProjectModel.get_job_usage_numbers_count(
                         datetime_from=datetime_from,
                         datetime_to=datetime_to,
                         job_result_model=job_model,
-                        project_event_type=trigger_type,
+                        project_event_type=project_event_type,
                     ),
                     top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers(
                         datetime_from=datetime_from,
                         datetime_to=datetime_to,
                         top=top,
                         job_result_model=job_model,
-                        trigger_type=trigger_type,
+                        project_event_type=project_event_type,
                     ),
                 )
-                for trigger_type in ProjectEventModelType
+                for project_event_type in ProjectEventModelType
             }
         )
 
@@ -338,20 +338,20 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
             ),
         ),
         events={
-            trigger_type.value: dict(
+            project_event_type.value: dict(
                 events_handled=GitProjectModel.get_project_event_usage_count(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
-                    project_event_type=trigger_type,
+                    project_event_type=project_event_type,
                 ),
                 top_projects=GitProjectModel.get_project_event_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=top,
-                    trigger_type=trigger_type,
+                    project_event_type=project_event_type,
                 ),
             )
-            for trigger_type in ProjectEventModelType
+            for project_event_type in ProjectEventModelType
         },
         jobs=jobs,
     )
