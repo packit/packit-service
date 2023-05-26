@@ -42,6 +42,7 @@ from packit_service.worker.events import (
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
     ReleaseGitlabEvent,
+    CheckRerunEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers import (
@@ -2650,6 +2651,7 @@ def test_handler_doesnt_match_to_job(
 @pytest.mark.parametrize(
     "event_kls,job_config_trigger_type,jobs,result,kwargs",
     [
+        # GitHub comment event tests
         pytest.param(
             PullRequestCommentGithubEvent,
             JobConfigTriggerType.pull_request,
@@ -2746,6 +2748,252 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            PullRequestGithubEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            ReleaseEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        # GitLab comment event tests
+        pytest.param(
+            MergeRequestCommentGitlabEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            MergeRequestCommentGitlabEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            MergeRequestCommentGitlabEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            MergeRequestGitlabEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            ReleaseGitlabEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+            ],
+            {},
+        ),
+        # Pagure comment event tests
+        pytest.param(
             PullRequestCommentPagureEvent,
             JobConfigTriggerType.pull_request,
             [
@@ -2841,6 +3089,7 @@ def test_handler_doesnt_match_to_job(
                             identifier="first",
                         )
                     },
+                    manual_trigger=True,
                 ),
             ],
             [
@@ -2852,6 +3101,7 @@ def test_handler_doesnt_match_to_job(
                             identifier="first",
                         )
                     },
+                    manual_trigger=True,
                 ),
             ],
             {},
@@ -2893,6 +3143,56 @@ def test_handler_doesnt_match_to_job(
                 ),
             ],
             {"issue_id": 1},
+        ),
+        # Common re-run event
+        pytest.param(
+            CheckRerunEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
+                    manual_trigger=True,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
+                    manual_trigger=False,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
+                    manual_trigger=True,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
+                    manual_trigger=False,
+                ),
+            ],
+            {"job_identifier": "first"},
         ),
     ],
 )

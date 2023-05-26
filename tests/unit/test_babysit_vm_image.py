@@ -116,6 +116,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                 flexmock(
                     trigger=JobConfigTriggerType.pull_request,
                     type=JobType.vm_image_build,
+                    manual_trigger=False,
                 )
             ],
         )
@@ -156,6 +157,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                 get_pr_id=lambda: 21,
                 owner="owner",
                 commit_sha="123456",
+                manual_trigger=False,
             ),
         )
         == stop_babysitting
