@@ -162,6 +162,7 @@ def test_testing_farm_response(
             id=12,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             project_event_model_type=ProjectEventModelType.pull_request,
+            commit_sha="0000000000",
         ),
         target="fedora-rawhide-x86_64",
         status=None,

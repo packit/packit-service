@@ -244,12 +244,15 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
+            commit_sha="0000000",
         ),
     )
     helper.job_config.srpm_build_deps = srpm_build_deps
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0000000")
+    )
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
         account_login="packit-service"
     ).and_return(
@@ -347,6 +350,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
+            commit_sha="0000000",
         ),
         task=CeleryTask(
             flexmock(
@@ -358,8 +362,10 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     )
     helper.job_config.srpm_build_deps = ["make", "findutils"]
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0000000")
+    )
     flexmock(GithubProject).should_receive("get_pr").and_raise(exc)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (

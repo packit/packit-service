@@ -459,7 +459,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Run copr build using custom source method.
         """
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
-            commit_sha=self.metadata.commit_sha,
             project_event_model=self.db_project_event,
         )
         group = self._get_or_create_build_group()
@@ -514,7 +513,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
             CoprBuildTargetModel.create(
                 build_id=None,
-                commit_sha=self.metadata.commit_sha,
                 project_name=self.job_project,
                 owner=self.job_owner,
                 web_url=None,

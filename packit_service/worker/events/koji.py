@@ -132,11 +132,11 @@ class KojiBuildEvent(AbstractKojiEvent):
                         namespace=self.namespace,
                         project_url=self.project_url,
                     ).id,
+                    commit_sha=self._commit_sha,
                 ),
             )
             self._build_model = KojiBuildTargetModel.create(
                 build_id=str(self.build_id),
-                commit_sha=self._commit_sha,
                 web_url=self.web_url,
                 target="noarch",  # TODO: where to get this info from?
                 status=self.state.value,

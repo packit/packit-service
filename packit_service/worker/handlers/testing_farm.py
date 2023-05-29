@@ -153,6 +153,7 @@ class TestingFarmHandler(
             PipelineModel.create(
                 type=self.db_project_event.project_event_model_type,
                 event_id=self.db_project_event.id,
+                commit_sha=self.db_project_event.commit_sha,
             )
             if self.testing_farm_job_helper.skip_build or not builds
             # All the builds should be in the same copr build group, therefore
@@ -171,7 +172,6 @@ class TestingFarmHandler(
                 TFTTestRunTargetModel.create(
                     pipeline_id=None,
                     identifier=self.job_config.identifier,
-                    commit_sha=self.data.commit_sha,
                     status=TestingFarmResult.new,
                     target=target,
                     web_url=None,

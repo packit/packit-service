@@ -201,6 +201,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
 
     flexmock(Allowlist, check_and_report=True)
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
         "https://src.fedoraproject.org/rpms/redis"

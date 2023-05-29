@@ -629,12 +629,15 @@ def test_check_and_report(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
+            commit_sha="0000000",
         )
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
 
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     for event, is_valid, resolved_through in events:
@@ -822,12 +825,15 @@ def test_check_and_report_actor_pull_request(allowlist):
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
+            commit_sha="0000000",
         )
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0000000")
+    )
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
     flexmock(EventData).should_receive("from_event_dict").and_return(

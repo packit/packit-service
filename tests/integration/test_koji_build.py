@@ -205,6 +205,7 @@ def test_koji_build_error_msg(distgit_push_packit):
         db_project_event
     )
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(distgit_push_packit)

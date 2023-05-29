@@ -293,7 +293,7 @@ def test_testing_farm_response_non_existing_pr(
 
 def test_testing_farm_response_existing_branch_push(
     clean_before_and_after,
-    branch_model,
+    branch_project_event_model,
     a_new_test_run_branch_push,
     tf_notification,
     tf_result,
@@ -301,6 +301,7 @@ def test_testing_farm_response_existing_branch_push(
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
         SampleValues.pipeline_id
     ).and_return(tf_result)
+    branch_model = branch_project_event_model.get_project_event_object()
     event_object = Parser.parse_event(tf_notification)
     assert isinstance(event_object, TestingFarmResultsEvent)
 
@@ -370,11 +371,11 @@ def test_koji_build_scratch_end(
 def test_parse_check_rerun_commit(
     clean_before_and_after,
     branch_model,
-    branch_trigger_model,
+    branch_project_event_model,
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        branch_trigger_model.id
+        branch_project_event_model.id
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
@@ -395,9 +396,14 @@ def test_parse_check_rerun_commit(
 
 
 def test_parse_check_rerun_pull_request(
-    clean_before_and_after, pr_model, pr_trigger_model, check_rerun_event_dict_commit
+    clean_before_and_after,
+    pr_model,
+    pr_project_event_model,
+    check_rerun_event_dict_commit,
 ):
-    check_rerun_event_dict_commit["check_run"]["external_id"] = str(pr_trigger_model.id)
+    check_rerun_event_dict_commit["check_run"]["external_id"] = str(
+        pr_project_event_model.id
+    )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
     assert isinstance(event_object, CheckRerunPullRequestEvent)
@@ -420,11 +426,11 @@ def test_parse_check_rerun_pull_request(
 def test_parse_check_rerun_release(
     clean_before_and_after,
     release_model,
-    release_trigger_model,
+    release_project_event_model,
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        release_trigger_model.id
+        release_project_event_model.id
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 

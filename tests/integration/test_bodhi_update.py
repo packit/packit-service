@@ -124,6 +124,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
@@ -198,6 +199,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
@@ -282,6 +284,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)

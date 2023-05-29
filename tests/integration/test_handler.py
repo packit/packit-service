@@ -272,11 +272,14 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
             id=342,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             project_event_model_type=ProjectEventModelType.pull_request,
+            commit_sha="00000000",
         )
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=342
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=342, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.neutral,
         description="Non-scratch builds not possible from upstream.",

@@ -233,6 +233,7 @@ def test_ignore_delete_branch(github_push):
         is_private=lambda: False,
     )
 
+    flexmock(Pushgateway).should_receive("push").times(1)
     processing_results = SteveJobs.process_message(github_push)
 
     assert processing_results == []

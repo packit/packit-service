@@ -159,6 +159,7 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
         )
     )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(PackitAPI).should_receive("sync_from_downstream").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
@@ -248,6 +249,7 @@ def test_downstream_koji_build_failure_no_issue():
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -304,6 +306,7 @@ def test_downstream_koji_build_failure_issue_created():
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -368,6 +371,7 @@ def test_downstream_koji_build_failure_issue_comment():
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -440,6 +444,7 @@ def test_downstream_koji_build_no_config():
         )
     )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").times(0)
 
@@ -602,6 +607,7 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(PackitAPI).should_receive("build").times(0)
 

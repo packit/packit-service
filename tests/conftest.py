@@ -109,6 +109,7 @@ def srpm_build_model(
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
         **trigger_model_kwargs,
     )
     project_event_model = flexmock(
@@ -134,7 +135,9 @@ def srpm_build_model(
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=pr_model.project_event_model_type, event_id=pr_model.id
+        type=pr_model.project_event_model_type,
+        event_id=pr_model.id,
+        commit_sha="0011223344",
     ).and_return(project_event_model)
 
     def mock_set_status(status):
@@ -175,12 +178,19 @@ def copr_build_model(
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
 
-    trigger_object_model = Trigger(
-        id=1,
-        project=project_model,
-        job_config_trigger_type=job_config_trigger_type,
-        project_event_model_type=project_event_model_type,
-        **trigger_model_kwargs,
+    trigger_object_model = (
+        flexmock(
+            Trigger(
+                id=1,
+                project=project_model,
+                job_config_trigger_type=job_config_trigger_type,
+                project_event_model_type=project_event_model_type,
+                **trigger_model_kwargs,
+            )
+        )
+        .should_receive("get_project_event")
+        .and_return(flexmock(commit_sha="0011223344"))
+        .mock()
     )
 
     project_event_model = flexmock(
@@ -222,6 +232,7 @@ def copr_build_model(
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=trigger_object_model.project_event_model_type,
         event_id=trigger_object_model.id,
+        commit_sha="0011223344",
     ).and_return(project_event_model)
 
     def mock_set_status(status):
@@ -268,6 +279,7 @@ def koji_build_pr():
         project=project_model,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     project_event_model = flexmock(
         id=2,
@@ -293,7 +305,9 @@ def koji_build_pr():
     koji_build_model.get_srpm_build = lambda: srpm_build
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=pr_model.project_event_model_type, event_id=pr_model.id
+        type=pr_model.project_event_model_type,
+        event_id=pr_model.id,
+        commit_sha="0011223344",
     ).and_return(project_event_model)
 
     run_model = flexmock(

@@ -217,6 +217,7 @@ def test_pr_comment_build_test_handler(
         "[the documentation](https://packit.dev/docs/testing-farm)",
     ).once()
     flexmock(Signature).should_receive("apply_async").never()
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -463,6 +464,7 @@ def test_pr_comment_empty_handler(
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
     results = SteveJobs().process_message(pr_empty_comment_event)[0]
     assert results["success"]
@@ -491,6 +493,7 @@ def test_pr_comment_packit_only_handler(
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
     results = SteveJobs().process_message(
         pr_packit_comment_command_without_argument_event
@@ -523,6 +526,7 @@ def test_pr_comment_wrong_packit_command_handler(
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)[0]
     assert results["success"]
@@ -873,6 +877,7 @@ def test_pr_test_command_handler_retries(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
@@ -886,6 +891,7 @@ def test_pr_test_command_handler_retries(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -895,12 +901,16 @@ def test_pr_test_command_handler_retries(
     ).and_return(pr_model)
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0011223344")
+    )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0011223344"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0011223344")
+    )
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -1096,7 +1106,9 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
     project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        commit_sha="0011223344",
     )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
@@ -1110,6 +1122,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1118,8 +1131,10 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0011223344")
+    )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
@@ -1228,7 +1243,6 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=None,
         identifier=None,
-        commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
@@ -1311,7 +1325,9 @@ def test_pr_test_command_handler_compose_not_present(
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
     project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        commit_sha="0011223344",
     )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
@@ -1338,6 +1354,7 @@ def test_pr_test_command_handler_compose_not_present(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1346,8 +1363,16 @@ def test_pr_test_command_handler_compose_not_present(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="0011223344",
+    ).and_return(
+        flexmock(
+            id=2,
+            type=ProjectEventModelType.pull_request,
+            commit_sha="0011223344",
+        )
+    )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
@@ -1488,6 +1513,7 @@ def test_pr_test_command_handler_composes_not_available(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1496,8 +1522,10 @@ def test_pr_test_command_handler_composes_not_available(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0011223344")
+    )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
@@ -1735,6 +1763,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").times(0)
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
@@ -1808,6 +1837,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
     flexmock(Signature).should_receive("apply_async").times(0)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description="phracek can't run tests (and builds) internally",
@@ -1853,6 +1883,7 @@ def test_trigger_packit_command_without_config(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     err_msg = (
         "No config file for packit (e.g. `.packit.yaml`) found in namespace/repo on commit 12345"
         "\n\n"
@@ -2034,6 +2065,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="1234567",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -2043,8 +2075,10 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     ).and_return(pr_model)
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="1234567"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="1234567")
+    )
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -2148,6 +2182,7 @@ def test_invalid_packit_command_with_config(
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
     )
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -2179,6 +2214,7 @@ def test_invalid_packit_command_without_config(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
     processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[
         0
@@ -2255,6 +2291,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         id=9,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -2263,8 +2300,10 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0011223344")
+    )
     flexmock(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
     )
@@ -2474,7 +2513,6 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
             pipeline_id=None,
             identifier=None,
-            commit_sha="0011223344",
             status=TestingFarmResult.new,
             target=t,
             web_url=None,

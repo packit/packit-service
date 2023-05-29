@@ -9,7 +9,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from packit_service.models import ProjectAndTriggersConnector
+from packit_service.models import ProjectAndEventsConnector
 
 from alembic import op
 import sqlalchemy as sa
@@ -102,7 +102,7 @@ class TestingFarmResult(str, enum.Enum):
     needs_inspection = "needs_inspection"
 
 
-class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
+class TFTTestRunTargetModel(ProjectAndEventsConnector, Base):
     __tablename__ = "tft_test_run_targets"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
@@ -132,7 +132,7 @@ class BuildStatus(str, enum.Enum):
     waiting_for_srpm = "waiting_for_srpm"
 
 
-class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
+class CoprBuildTargetModel(ProjectAndEventsConnector, Base):
     __tablename__ = "copr_build_targets"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
@@ -178,7 +178,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     runs = relationship("PipelineModel", back_populates="copr_build")
 
 
-class SRPMBuildModel(ProjectAndTriggersConnector, Base):
+class SRPMBuildModel(ProjectAndEventsConnector, Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
     status = Column(Enum(BuildStatus))
@@ -198,7 +198,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     runs = relationship("PipelineModel", back_populates="srpm_build")
 
 
-class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
+class KojiBuildTargetModel(ProjectAndEventsConnector, Base):
     __tablename__ = "koji_build_targets"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
@@ -237,7 +237,7 @@ class SyncReleaseTargetStatus(str, enum.Enum):
     submitted = "submitted"
 
 
-class SyncReleaseTargetModel(ProjectAndTriggersConnector, Base):
+class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     __tablename__ = "sync_release_run_targets"
     id = Column(Integer, primary_key=True)
     branch = Column(String, default="unknown")
@@ -265,7 +265,7 @@ class SyncReleaseJobType(str, enum.Enum):
     propose_downstream = "propose_downstream"
 
 
-class SyncReleaseModel(ProjectAndTriggersConnector, Base):
+class SyncReleaseModel(ProjectAndEventsConnector, Base):
     __tablename__ = "sync_release_runs"
     id = Column(Integer, primary_key=True)
     status = Column(Enum(SyncReleaseStatus))

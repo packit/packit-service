@@ -8,7 +8,7 @@ Create Date: 2022-01-17 13:51:01.783926
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
-from packit_service.models import ProjectAndTriggersConnector
+from packit_service.models import ProjectAndEventsConnector
 
 import sqlalchemy as sa
 from alembic import op
@@ -56,7 +56,7 @@ class JobTriggerModel(Base):
     runs = relationship("RunModel", back_populates="job_trigger")
 
 
-class CoprBuildModel(ProjectAndTriggersConnector, Base):
+class CoprBuildModel(ProjectAndEventsConnector, Base):
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
@@ -114,7 +114,7 @@ class TestingFarmResult(str, enum.Enum):
     needs_inspection = "needs_inspection"
 
 
-class TFTTestRunModel(ProjectAndTriggersConnector, Base):
+class TFTTestRunModel(ProjectAndEventsConnector, Base):
     __tablename__ = "tft_test_runs"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
@@ -130,7 +130,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     runs = relationship("RunModel", back_populates="test_run")
 
 
-class KojiBuildModel(ProjectAndTriggersConnector, Base):
+class KojiBuildModel(ProjectAndEventsConnector, Base):
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
@@ -178,7 +178,7 @@ class RunModel(Base):
     test_run = relationship("TFTTestRunModel", back_populates="runs")
 
 
-class SRPMBuildModel(ProjectAndTriggersConnector, Base):
+class SRPMBuildModel(ProjectAndEventsConnector, Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
     success = Column(Boolean)

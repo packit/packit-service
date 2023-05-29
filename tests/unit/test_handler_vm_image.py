@@ -160,7 +160,6 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
     flexmock(VMImageBuildTargetModel).should_receive("create").with_args(
         build_id=None,
-        commit_sha="4321aa",
         project_name="knx-stack",
         owner="mmassari",
         project_url="https://github.com/majamassarini/knx-stack",

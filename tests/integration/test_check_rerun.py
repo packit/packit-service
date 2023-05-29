@@ -123,7 +123,10 @@ def mock_pr_functionality(request):
         123456
     ).and_return(project_event)
     flexmock(project_event).should_receive("get_project_event_object").and_return(
-        PullRequestModel(pr_id=123)
+        flexmock(PullRequestModel(pr_id=123))
+        .should_receive("get_project_event")
+        .and_return(flexmock(commit_sha="12345"))
+        .mock()
     )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=123,
@@ -131,7 +134,7 @@ def mock_pr_functionality(request):
         repo_name="hello-world",
         project_url="https://github.com/packit/hello-world",
     ).and_return(
-        flexmock(id=12, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        flexmock(id=123, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
         flexmock(id=123456)
@@ -167,7 +170,10 @@ def mock_push_functionality(request):
         123456
     ).and_return(project_event)
     flexmock(project_event).should_receive("get_project_event_object").and_return(
-        GitBranchModel(name="main")
+        flexmock(GitBranchModel(name="main"))
+        .should_receive("get_project_event")
+        .and_return(flexmock(commit_sha="12345"))
+        .mock()
     )
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -213,7 +219,10 @@ def mock_release_functionality(request):
         123456
     ).and_return(project_event)
     flexmock(project_event).should_receive("get_project_event_object").and_return(
-        ProjectReleaseModel(tag_name="0.1.0")
+        flexmock(ProjectReleaseModel(tag_name="0.1.0"))
+        .should_receive("get_project_event")
+        .and_return(flexmock(commit_sha="12345"))
+        .mock()
     )
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="0.1.0",

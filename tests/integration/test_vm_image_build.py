@@ -79,6 +79,7 @@ def test_vm_image_build(github_vm_image_build_comment):
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             project_event_model_type=ProjectEventModelType.pull_request,
             id=1,
+            commit_sha="123456",
         )
     )
     flexmock(Allowlist).should_receive("check_and_report").and_return(True)

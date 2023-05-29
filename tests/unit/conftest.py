@@ -54,5 +54,6 @@ def fake_package_config_job_config_project_db_trigger():
         id=1,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="123456",
     )
     return (package_config, job_config, project, db_project_event)

@@ -288,7 +288,7 @@ class BuildsAndTestsConnector:
     id: int
     project_event_model_type: ProjectEventModelType
 
-    def get_runs(self) -> List["PipelineModel"]:
+    def get_project_event(self) -> "ProjectEventModel":
         try:
             project_event = (
                 sa_session()
@@ -296,6 +296,7 @@ class BuildsAndTestsConnector:
                 .filter_by(type=self.project_event_model_type, event_id=self.id)
                 .one_or_none()
             )
+            return project_event
         except MultipleResultsFound as e:
             msg = (
                 f"Multiple run models for type {self.project_event_model_type}"
@@ -303,6 +304,9 @@ class BuildsAndTestsConnector:
             )
             logger.error(msg)
             raise PackitException(msg) from e
+
+    def get_runs(self) -> List["PipelineModel"]:
+        project_event = self.get_project_event()
         return project_event.runs if project_event else []
 
     def _get_run_item(
@@ -344,8 +348,13 @@ class BuildsAndTestsConnector:
     def get_test_runs(self):
         return self._get_run_item(model_type=TFTTestRunTargetModel)
 
+    @property
+    def commit_sha(self) -> str:
+        project_event = self.get_project_event()
+        return project_event.commit_sha if project_event else None
 
-class ProjectAndTriggersConnector:
+
+class ProjectAndEventsConnector:
     """
     Abstract class that is inherited by build/test group models
     to share methods for accessing project and project events models.
@@ -363,6 +372,16 @@ class ProjectAndTriggersConnector:
     def get_project(self) -> Optional["GitProjectModel"]:
         project_event_object = self.get_project_event_object()
         return project_event_object.project if project_event_object else None
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        project_event_model = self.get_project_event_model()
+        return project_event_model.commit_sha
+
+    @commit_sha.setter
+    def commit_sha(self, value: str) -> None:
+        project_event_model = self.get_project_event_model()
+        project_event_model.commit_sha = value
 
     def get_pr_id(self) -> Optional[int]:
         project_event_object = self.get_project_event_object()
@@ -395,7 +414,7 @@ class GroupAndTargetModelConnector:
     to share methods for accessing project and project events models.
     """
 
-    group_of_targets: ProjectAndTriggersConnector
+    group_of_targets: ProjectAndEventsConnector
 
     def get_project_event_model(self) -> Optional["ProjectEventModel"]:
         return self.group_of_targets.get_project_event_model()
@@ -417,6 +436,14 @@ class GroupAndTargetModelConnector:
 
     def get_release_tag(self) -> Optional[str]:
         return self.group_of_targets.get_release_tag()
+
+    @property
+    def commit_sha(self) -> str:
+        return self.group_of_targets.commit_sha
+
+    @commit_sha.setter
+    def commit_sha(self, value: str):
+        self.group_of_targets.commit_sha = value
 
 
 class GroupModel:
@@ -1068,7 +1095,7 @@ class GitBranchModel(BuildsAndTestsConnector, Base):
         return f"GitBranchModel(name={self.name},  project={self.project})"
 
 
-class ProjectReleaseModel(Base):
+class ProjectReleaseModel(BuildsAndTestsConnector, Base):
     __tablename__ = "project_releases"
     id = Column(Integer, primary_key=True)  # our database PK
     tag_name = Column(String)
@@ -1152,23 +1179,39 @@ class ProjectEventModel(Base):
     id = Column(Integer, primary_key=True)  # our database PK
     type = Column(Enum(ProjectEventModelType))
     event_id = Column(Integer, index=True)
+    commit_sha = Column(String, index=True)
 
     runs = relationship("PipelineModel", back_populates="project_event")
 
     @classmethod
     def get_or_create(
-        cls, type: ProjectEventModelType, event_id: int
+        cls, type: ProjectEventModelType, event_id: int, commit_sha: str
     ) -> "ProjectEventModel":
+        if (
+            type
+            in (
+                ProjectEventModelType.pull_request,
+                ProjectEventModelType.branch_push,
+                ProjectEventModelType.release,
+            )
+            and commit_sha is None
+        ):
+            msg = (
+                f"Do not create a ProjectEventModel of type {type} without commit_sha!"
+            )
+            logger.error(msg)
+            raise PackitException(msg)
         with sa_session_transaction() as session:
             project_event = (
                 session.query(ProjectEventModel)
-                .filter_by(type=type, event_id=event_id)
+                .filter_by(type=type, event_id=event_id, commit_sha=commit_sha)
                 .first()
             )
             if not project_event:
                 project_event = ProjectEventModel()
                 project_event.type = type
                 project_event.event_id = event_id
+                project_event.commit_sha = commit_sha
                 session.add(project_event)
             return project_event
 
@@ -1185,7 +1228,10 @@ class ProjectEventModel(Base):
         )
 
     def __repr__(self):
-        return f"ProjectEventModel(type={self.type}, event_id={self.event_id})"
+        return (
+            f"ProjectEventModel(type={self.type}, event_id={self.event_id}, "
+            f"commit_sha={self.commit_sha})"
+        )
 
 
 class PipelineModel(Base):
@@ -1236,11 +1282,13 @@ class PipelineModel(Base):
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
     @classmethod
-    def create(cls, type: ProjectEventModelType, event_id: int) -> "PipelineModel":
+    def create(
+        cls, type: ProjectEventModelType, event_id: int, commit_sha: str
+    ) -> "PipelineModel":
         with sa_session_transaction() as session:
             run_model = PipelineModel()
             run_model.project_event = ProjectEventModel.get_or_create(
-                type=type, event_id=event_id
+                type=type, event_id=event_id, commit_sha=commit_sha
             )
             session.add(run_model)
             return run_model
@@ -1280,7 +1328,7 @@ class PipelineModel(Base):
             .group_by(
                 PipelineModel.srpm_build_id,
                 case(
-                    [(PipelineModel.srpm_build_id.isnot(null()), 0)],
+                    (PipelineModel.srpm_build_id.isnot(null()), 0),
                     else_=PipelineModel.id,
                 ),
             )
@@ -1296,7 +1344,7 @@ class PipelineModel(Base):
             .group_by(
                 PipelineModel.srpm_build_id,
                 case(
-                    [(PipelineModel.srpm_build_id.isnot(null()), 0)],
+                    (PipelineModel.srpm_build_id.isnot(null()), 0),
                     else_=PipelineModel.id,
                 ),
             )
@@ -1308,7 +1356,7 @@ class PipelineModel(Base):
         return sa_session().query(PipelineModel).filter_by(id=id_).first()
 
 
-class CoprBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
+class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "copr_build_groups"
     id = Column(Integer, primary_key=True)
     submitted_time = Column(DateTime, default=datetime.utcnow)
@@ -1337,6 +1385,7 @@ class CoprBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
                 new_run_model = PipelineModel.create(
                     type=run_model.project_event.type,
                     event_id=run_model.project_event.event_id,
+                    commit_sha=run_model.project_event.commit_sha,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = build_group
@@ -1372,8 +1421,6 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
 
-    # commit sha of the PR (or a branch, release) we used for a build
-    commit_sha = Column(String, index=True)
     # what's the build status?
     status = Column(Enum(BuildStatus))
     # chroot, but we use the word target in our docs
@@ -1547,27 +1594,58 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         All owner/project_name builds sorted from latest to oldest
         with the given commit_sha and optional target.
         """
-        non_none_args = {
-            arg: value for arg, value in locals().items() if value is not None
-        }
-
-        return (
+        query = (
             sa_session()
             .query(CoprBuildTargetModel)
-            .filter_by(**non_none_args)
+            .join(
+                CoprBuildTargetModel.group_of_targets,
+            )
+            .join(
+                PipelineModel,
+                PipelineModel.copr_build_group_id == CoprBuildGroupModel.id,
+            )
+            .join(
+                ProjectEventModel,
+                PipelineModel.project_event_id == ProjectEventModel.id,
+            )
+            .filter(CoprBuildTargetModel.project_name == project_name)
+            .filter(ProjectEventModel.commit_sha == commit_sha)
             .order_by(CoprBuildTargetModel.build_id.desc())
         )
+
+        if owner:
+            query = query.filter(CoprBuildTargetModel.owner == owner)
+        if target:
+            query = query.filter(CoprBuildTargetModel.target == target)
+        if status:
+            query = query.filter(CoprBuildTargetModel.status == status)
+
+        return query
 
     @classmethod
     def get_all_by_commit(cls, commit_sha: str) -> Iterable["CoprBuildTargetModel"]:
         """Returns all builds that match a given commit sha"""
-        return sa_session().query(CoprBuildTargetModel).filter_by(commit_sha=commit_sha)
+        return (
+            sa_session()
+            .query(CoprBuildTargetModel)
+            .join(
+                CoprBuildTargetModel.group_of_targets,
+            )
+            .join(
+                PipelineModel,
+                PipelineModel.copr_build_group_id == CoprBuildGroupModel.id,
+            )
+            .join(
+                ProjectEventModel,
+                PipelineModel.project_event_id == ProjectEventModel.id,
+            )
+            .filter(ProjectEventModel.commit_sha == commit_sha)
+        )
 
     @classmethod
     def create(
         cls,
         build_id: Optional[str],
-        commit_sha: str,
         project_name: str,
         owner: str,
         web_url: Optional[str],
@@ -1582,7 +1660,6 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             build.status = status
             build.project_name = project_name
             build.owner = owner
-            build.commit_sha = commit_sha
             build.web_url = web_url
             build.target = target
             build.task_accepted_time = task_accepted_time
@@ -1608,7 +1685,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         )
 
 
-class KojiBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
+class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "koji_build_groups"
     id = Column(Integer, primary_key=True)
     submitted_time = Column(DateTime, default=datetime.utcnow)
@@ -1641,6 +1718,7 @@ class KojiBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
                 new_run_model = PipelineModel.create(
                     type=run_model.project_event.type,
                     event_id=run_model.project_event.event_id,
+                    commit_sha=run_model.project_event.commit_sha,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.koji_build_group = build_group
@@ -1658,8 +1736,6 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
 
-    # commit sha of the PR (or a branch, release) we used for a build
-    commit_sha = Column(String)
     # what's the build status?
     status = Column(String)
     # chroot, but we use the word target in our docs
@@ -1785,7 +1861,6 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     def create(
         cls,
         build_id: Optional[str],
-        commit_sha: str,
         web_url: Optional[str],
         target: str,
         status: str,
@@ -1796,7 +1871,6 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             build = cls()
             build.build_id = build_id
             build.status = status
-            build.commit_sha = commit_sha
             build.web_url = web_url
             build.target = target
             build.scratch = scratch
@@ -1822,7 +1896,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         )
 
 
-class SRPMBuildModel(ProjectAndTriggersConnector, Base):
+class SRPMBuildModel(ProjectAndEventsConnector, Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
     status = Column(Enum(BuildStatus))
@@ -1831,7 +1905,6 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
-    commit_sha = Column(String)
     # url for downloading the SRPM
     url = Column(Text)
     # attributes for SRPM built by Copr
@@ -1845,7 +1918,6 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     def create_with_new_run(
         cls,
         project_event_model: AbstractProjectEventDbType,
-        commit_sha: str,
         copr_build_id: Optional[str] = None,
         copr_web_url: Optional[str] = None,
     ) -> Tuple["SRPMBuildModel", "PipelineModel"]:
@@ -1875,7 +1947,6 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         with sa_session_transaction() as session:
             srpm_build = cls()
             srpm_build.status = BuildStatus.pending
-            srpm_build.commit_sha = commit_sha
             srpm_build.copr_build_id = copr_build_id
             srpm_build.copr_web_url = copr_web_url
             session.add(srpm_build)
@@ -1884,6 +1955,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             new_run_model = PipelineModel.create(
                 type=project_event_model.project_event_model_type,
                 event_id=project_event_model.id,
+                commit_sha=project_event_model.commit_sha,
             )
             new_run_model.srpm_build = srpm_build
             session.add(new_run_model)
@@ -2104,7 +2176,7 @@ class TestingFarmResult(str, enum.Enum):
     complete = "complete"
 
 
-class TFTTestRunGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
+class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "tft_test_run_groups"
     id = Column(Integer, primary_key=True)
     submitted_time = Column(DateTime, default=datetime.utcnow)
@@ -2131,6 +2203,7 @@ class TFTTestRunGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
                     new_run_model = PipelineModel.create(
                         type=run_model.project_event.type,
                         event_id=run_model.project_event.event_id,
+                        commit_sha=run_model.project_event.commit_sha,
                     )
                     new_run_model.srpm_build = run_model.srpm_build
                     new_run_model.copr_build_group = run_model.copr_build_group
@@ -2156,7 +2229,6 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
     identifier = Column(String)
-    commit_sha = Column(String)
     status = Column(Enum(TestingFarmResult))
     target = Column(String)
     web_url = Column(String)
@@ -2204,7 +2276,6 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     def create(
         cls,
         pipeline_id: Optional[str],
-        commit_sha: str,
         status: TestingFarmResult,
         target: str,
         test_run_group: "TFTTestRunGroupModel",
@@ -2217,7 +2288,6 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
             test_run = cls()
             test_run.pipeline_id = pipeline_id
             test_run.identifier = identifier
-            test_run.commit_sha = commit_sha
             test_run.status = status
             test_run.target = target
             test_run.web_url = web_url
@@ -2263,11 +2333,26 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         """
         All tests with the given commit_sha and optional target.
         """
-        non_none_args = {
-            arg: value for arg, value in locals().items() if value is not None
-        }
+        query = (
+            sa_session()
+            .query(TFTTestRunTargetModel)
+            .join(
+                TFTTestRunTargetModel.group_of_targets,
+            )
+            .join(
+                PipelineModel,
+                PipelineModel.test_run_group_id == TFTTestRunGroupModel.id,
+            )
+            .join(
+                ProjectEventModel,
+                PipelineModel.project_event_id == ProjectEventModel.id,
+            )
+            .filter(ProjectEventModel.commit_sha == commit_sha)
+        )
+        if target:
+            query = query.filter(TFTTestRunTargetModel.target == target)
 
-        return sa_session().query(TFTTestRunTargetModel).filter_by(**non_none_args)
+        return query
 
     @classmethod
     def get_range(cls, first: int, last: int) -> Iterable["TFTTestRunTargetModel"]:
@@ -2290,7 +2375,7 @@ class SyncReleaseTargetStatus(str, enum.Enum):
     submitted = "submitted"
 
 
-class SyncReleaseTargetModel(ProjectAndTriggersConnector, Base):
+class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     __tablename__ = "sync_release_run_targets"
     id = Column(Integer, primary_key=True)
     branch = Column(String, default="unknown")
@@ -2361,7 +2446,7 @@ class SyncReleaseJobType(str, enum.Enum):
     propose_downstream = "propose_downstream"
 
 
-class SyncReleaseModel(ProjectAndTriggersConnector, Base):
+class SyncReleaseModel(ProjectAndEventsConnector, Base):
     __tablename__ = "sync_release_runs"
     id = Column(Integer, primary_key=True)
     status = Column(Enum(SyncReleaseStatus))
@@ -2416,6 +2501,7 @@ class SyncReleaseModel(ProjectAndTriggersConnector, Base):
             pipeline = PipelineModel.create(
                 type=project_event_model.project_event_model_type,
                 event_id=project_event_model.id,
+                commit_sha=project_event_model.commit_sha,
             )
             pipeline.sync_release_run = sync_release
             session.add(pipeline)
@@ -2686,7 +2772,7 @@ class VMImageBuildStatus(str, enum.Enum):
     error = "error"
 
 
-class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
+class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
     """
     Representation of VM Image build for one target.
     """
@@ -2700,8 +2786,6 @@ class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
     # project name as shown in copr
     project_name = Column(String)
     owner = Column(String)
-    # commit sha of the PR (or a branch, release) we used for a build
-    commit_sha = Column(String, index=True)
     # what's the build status?
     status = Column(Enum(VMImageBuildStatus))
     # chroot, but we use the word target in our docs
@@ -2797,29 +2881,52 @@ class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
         """All owner/project_name builds sorted from latest to oldest
         with the given commit_sha and optional target.
         """
-        non_none_args = {
-            arg: value for arg, value in locals().items() if value is not None
-        }
-
-        return (
+        query = (
             sa_session()
             .query(VMImageBuildTargetModel)
-            .filter_by(**non_none_args)
+            .join(
+                PipelineModel,
+                PipelineModel.vm_image_build_id == VMImageBuildTargetModel.id,
+            )
+            .join(
+                ProjectEventModel,
+                PipelineModel.project_event_id == ProjectEventModel.id,
+            )
+            .filter(VMImageBuildTargetModel.project_name == project_name)
+            .filter(ProjectEventModel.commit_sha == commit_sha)
             .order_by(VMImageBuildTargetModel.build_id.desc())
         )
+
+        if owner:
+            query = query.filter(VMImageBuildTargetModel.owner == owner)
+        if target:
+            query = query.filter(VMImageBuildTargetModel.target == target)
+
+        return query
 
     @classmethod
     def get_all_by_commit(cls, commit_sha: str) -> Iterable["VMImageBuildTargetModel"]:
         """Returns all builds that match a given commit sha"""
-        return (
-            sa_session().query(VMImageBuildTargetModel).filter_by(commit_sha=commit_sha)
+        query = (
+            sa_session()
+            .query(VMImageBuildTargetModel)
+            .join(
+                PipelineModel,
+                PipelineModel.vm_image_build_id == VMImageBuildTargetModel.id,
+            )
+            .join(
+                ProjectEventModel,
+                PipelineModel.project_event_id == ProjectEventModel.id,
+            )
+            .filter(ProjectEventModel.commit_sha == commit_sha)
+            .order_by(VMImageBuildTargetModel.build_id.desc())
         )
+        return query
 
     @classmethod
     def create(
         cls,
         build_id: str,
-        commit_sha: str,
         project_name: str,
         owner: str,
         project_url: str,
@@ -2834,7 +2941,6 @@ class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
             build.status = status
             build.project_name = project_name
             build.owner = owner
-            build.commit_sha = commit_sha
             build.project_url = project_url
             build.target = target
             build.task_accepted_time = task_accepted_time
@@ -2845,6 +2951,7 @@ class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
                 new_run_model = PipelineModel.create(
                     type=run_model.project_event.type,
                     event_id=run_model.project_event.event_id,
+                    commit_sha=run_model.project_event.commit_sha,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = run_model.copr_build_group

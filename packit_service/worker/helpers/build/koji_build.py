@@ -129,7 +129,6 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
             koji_build = KojiBuildTargetModel.create(
                 build_id=None,
-                commit_sha=self.metadata.commit_sha,
                 web_url=None,
                 target=target,
                 status="pending",

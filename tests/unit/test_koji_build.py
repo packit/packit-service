@@ -112,10 +112,13 @@ def test_koji_build_check_names(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=JobConfigTriggerType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=JobConfigTriggerType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         trigger
     )
@@ -197,10 +200,13 @@ def test_koji_build_failed_kerberos(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         trigger
     )
@@ -275,10 +281,13 @@ def test_koji_build_target_not_supported(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
     )
@@ -347,10 +356,13 @@ def test_koji_build_with_multiple_targets(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
     )
@@ -427,10 +439,13 @@ def test_koji_build_failed(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
     )
@@ -505,10 +520,13 @@ def test_koji_build_failed_srpm(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
     )
@@ -571,10 +589,13 @@ def test_koji_build_targets_override(github_pr_event):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="00000000",
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="00000000"
+    ).and_return(
+        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
         project_event
     )

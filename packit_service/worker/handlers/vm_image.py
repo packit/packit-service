@@ -90,10 +90,10 @@ class VMImageBuildHandler(
         run_model = PipelineModel.create(
             type=self.data.db_project_event.project_event_model_type,
             event_id=self.data.db_project_event.id,
+            commit_sha=self.data.db_project_event.commit_sha,
         )
         VMImageBuildTargetModel.create(
             build_id=image_id,
-            commit_sha=self.data.commit_sha,
             project_name=self.project_name,
             owner=self.owner,
             project_url=self.project_url,

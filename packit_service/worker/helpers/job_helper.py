@@ -140,6 +140,7 @@ class BaseJobHelper:
             project_event = ProjectEventModel.get_or_create(
                 type=self.db_project_event.project_event_model_type,
                 event_id=self.db_project_event.id,
+                commit_sha=self.db_project_event.commit_sha,
             )
             self._status_reporter = StatusReporter.get_instance(
                 project=self.project,

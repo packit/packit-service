@@ -499,7 +499,6 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             project_event_model=self.db_project_event,
-            commit_sha=self.metadata.commit_sha,
         )
         self._srpm_model.set_start_time(datetime.datetime.utcnow())
 

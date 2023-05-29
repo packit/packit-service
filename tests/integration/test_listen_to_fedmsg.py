@@ -684,7 +684,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=None,
         identifier=None,
-        commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
@@ -2067,6 +2066,7 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").never()
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
 
