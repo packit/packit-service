@@ -70,6 +70,9 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
+MANUAL_EVENTS = [AbstractCommentEvent, CheckRerunEvent]
+
+
 def get_handlers_for_comment(
     comment: str, packit_comment_command_prefix: str
 ) -> Set[Type[JobHandler]]:
@@ -614,6 +617,14 @@ class SteveJobs:
                     or self.event.job_identifier == job.identifier
                 )
                 and job not in jobs_matching_trigger
+                # Manual trigger condition
+                and (
+                    not job.manual_trigger
+                    or any(
+                        isinstance(self.event, event_type)
+                        for event_type in MANUAL_EVENTS
+                    )
+                )
             ):
                 jobs_matching_trigger.append(job)
 

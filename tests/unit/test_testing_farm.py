@@ -1646,6 +1646,40 @@ def test_get_artifacts(chroot, build, additional_build, result):
             True,
             id="multiple_test_jobs_build_required_internal_job_skip_build",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=False,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="public",
+                        )
+                    },
+                    manual_trigger=False,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    skip_build=True,
+                    manual_trigger=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
+                ),
+            ],
+            {"event_type": "PullRequestGithubEvent"},
+            True,
+            id="multiple_test_jobs_build_required_internal_job_skip_build_manual_trigger",
+        ),
     ],
 )
 def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
