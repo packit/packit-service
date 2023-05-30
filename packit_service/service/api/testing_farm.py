@@ -59,12 +59,14 @@ class TestingFarmResults(Resource):
             logger.info(f"/testing-farm/results {exc}")
             return str(exc), HTTPStatus.UNAUTHORIZED
 
-        # There's only one key in the msg,
-        # so make sure we don't confuse this with something else
-        msg["source"] = "testing-farm"
+        msg["source"] = "testing-farm"  # TODO: remove me
         celery_app.send_task(
             name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
-            kwargs={"event": msg},
+            kwargs={
+                "event": msg,
+                "source": "testing-farm",
+                "event_type": "results",
+            },
         )
 
         return "Test results accepted", HTTPStatus.OK
