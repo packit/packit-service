@@ -16,6 +16,7 @@ import celery
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import DEPRECATED_JOB_TYPES
+from packit.utils import nested_get
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     DOCS_CONFIGURATION_URL,
@@ -129,17 +130,29 @@ class SteveJobs:
         return ServiceConfig.get_service_config()
 
     @classmethod
-    def process_message(cls, event: dict) -> List[TaskResults]:
+    def process_message(
+        cls,
+        event: dict,
+        source: Optional[str] = None,
+        event_type: Optional[str] = None,
+    ) -> List[TaskResults]:
         """
         Entrypoint for message processing.
 
+        For values of 'source' and 'event_type' see Parser.MAPPING.
+
         Args:
             event: Dict with webhook/fed-msg payload.
+            source: Source of the event, for example: "github".
+            event_type: Type of the event.
 
         Returns:
             List of results of the processing tasks.
         """
-        event_object: Optional[Event] = Parser.parse_event(event)
+        parser = nested_get(
+            Parser.MAPPING, source, event_type, default=Parser.parse_event
+        )
+        event_object: Optional[Event] = parser(event)
 
         cls.pushgateway.events_processed.inc()
         if event_not_handled := not event_object:

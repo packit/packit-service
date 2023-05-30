@@ -171,22 +171,6 @@ def test_validate_token(mock_config, headers, is_good):
                 "X-GitHub-Delivery": "uuid",
             },
             {"action": "created"},
-            True,
-        ),
-        (
-            {
-                "X-GitHub-Event": "pull_request_review_comment",
-                "X-GitHub-Delivery": "uuid",
-            },
-            {"action": "edited"},
-            True,
-        ),
-        (
-            {
-                "X-GitHub-Event": "pull_request_review_comment",
-                "X-GitHub-Delivery": "uuid",
-            },
-            {"action": "deleted"},
             False,
         ),
         (
@@ -202,7 +186,7 @@ def test_validate_token(mock_config, headers, is_good):
         (
             {"X-GitHub-Event": "issue_comment", "X-GitHub-Delivery": "uuid"},
             {"action": "edited"},
-            False,
+            True,
         ),
         (
             {"X-GitHub-Event": "release", "X-GitHub-Delivery": "uuid"},

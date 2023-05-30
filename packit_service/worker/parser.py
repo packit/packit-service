@@ -533,8 +533,76 @@ class Parser:
         )
 
     @staticmethod
+    def parse_github_comment_event(
+        event,
+    ) -> Optional[Union[PullRequestCommentGithubEvent, IssueCommentEvent]]:
+        """Check whether the comment event from GitHub comes from a PR or issue,
+        and parse accordingly.
+        """
+        if nested_get(event, "issue", "pull_request"):
+            return Parser.parse_pull_request_comment_event(event)
+        else:
+            return Parser.parse_issue_comment_event(event)
+
+    @staticmethod
+    def parse_pull_request_comment_event(
+        event,
+    ) -> Optional[PullRequestCommentGithubEvent]:
+        """Look into the provided event and see if it is Github PR comment event."""
+        # This check is redundant when the method is called from parse_github_comment_event(),
+        # but it's needed when called from parse_event().
+        if not nested_get(event, "issue", "pull_request"):
+            return None
+
+        pr_id = nested_get(event, "issue", "number")
+        action = event.get("action")
+        if action not in {"created", "edited"} or not pr_id:
+            return None
+
+        comment = nested_get(event, "comment", "body")
+        comment_id = nested_get(event, "comment", "id")
+        logger.info(
+            f"Github PR#{pr_id} comment: {comment!r} id#{comment_id} {action!r} event."
+        )
+
+        base_repo_namespace = nested_get(event, "issue", "user", "login")
+        base_repo_name = nested_get(event, "repository", "name")
+        if not (base_repo_name and base_repo_namespace):
+            logger.warning("No full name of the repository.")
+            return None
+
+        user_login = nested_get(event, "comment", "user", "login")
+        if not user_login:
+            logger.warning("No GitHub login name from event.")
+            return None
+        if user_login in {"packit-as-a-service[bot]", "packit-as-a-service-stg[bot]"}:
+            logger.debug("Our own comment.")
+            return None
+
+        target_repo_namespace = nested_get(event, "repository", "owner", "login")
+        target_repo_name = nested_get(event, "repository", "name")
+
+        logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
+        https_url = event["repository"]["html_url"]
+        return PullRequestCommentGithubEvent(
+            action=PullRequestCommentAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=None,
+            base_ref=None,  # the payload does not include this info
+            target_repo_namespace=target_repo_namespace,
+            target_repo_name=target_repo_name,
+            project_url=https_url,
+            actor=user_login,
+            comment=comment,
+            comment_id=comment_id,
+        )
+
+    @staticmethod
     def parse_issue_comment_event(event) -> Optional[IssueCommentEvent]:
         """Look into the provided event and see if it is Github issue comment event."""
+        # This check is redundant when the method is called from parse_github_comment_event(),
+        # but it's needed when called from parse_event().
         if nested_get(event, "issue", "pull_request"):
             return None
 
@@ -723,58 +791,6 @@ class Parser:
             actor=actor,
             comment=comment,
             commit_sha=commit_sha,
-            comment_id=comment_id,
-        )
-
-    @staticmethod
-    def parse_pull_request_comment_event(
-        event,
-    ) -> Optional[PullRequestCommentGithubEvent]:
-        """Look into the provided event and see if it is Github PR comment event."""
-        if not nested_get(event, "issue", "pull_request"):
-            return None
-
-        pr_id = nested_get(event, "issue", "number")
-        action = event.get("action")
-        if action not in {"created", "edited"} or not pr_id:
-            return None
-
-        comment = nested_get(event, "comment", "body")
-        comment_id = nested_get(event, "comment", "id")
-        logger.info(
-            f"Github PR#{pr_id} comment: {comment!r} id#{comment_id} {action!r} event."
-        )
-
-        base_repo_namespace = nested_get(event, "issue", "user", "login")
-        base_repo_name = nested_get(event, "repository", "name")
-        if not (base_repo_name and base_repo_namespace):
-            logger.warning("No full name of the repository.")
-            return None
-
-        user_login = nested_get(event, "comment", "user", "login")
-        if not user_login:
-            logger.warning("No GitHub login name from event.")
-            return None
-        if user_login in {"packit-as-a-service[bot]", "packit-as-a-service-stg[bot]"}:
-            logger.debug("Our own comment.")
-            return None
-
-        target_repo_namespace = nested_get(event, "repository", "owner", "login")
-        target_repo_name = nested_get(event, "repository", "name")
-
-        logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
-        https_url = event["repository"]["html_url"]
-        return PullRequestCommentGithubEvent(
-            action=PullRequestCommentAction[action],
-            pr_id=pr_id,
-            base_repo_namespace=base_repo_namespace,
-            base_repo_name=None,
-            base_ref=None,  # the payload does not include this info
-            target_repo_namespace=target_repo_namespace,
-            target_repo_name=target_repo_name,
-            project_url=https_url,
-            actor=user_login,
-            comment=comment,
             comment_id=comment_id,
         )
 
@@ -1544,3 +1560,14 @@ class Parser:
             message,
             created_at,
         )
+
+    MAPPING = {
+        "github": {
+            "check_run": parse_check_rerun_event,
+            "pull_request": parse_pr_event,
+            "issue_comment": parse_github_comment_event,
+            "release": parse_release_event,
+            "push": parse_github_push_event,
+            "installation": parse_installation_event,
+        }
+    }
