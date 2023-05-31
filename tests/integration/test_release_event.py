@@ -20,7 +20,7 @@ from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED
 from packit_service.models import (
-    JobTriggerModelType,
+    ProjectEventModelType,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseModel,
@@ -29,7 +29,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_triggers import AddReleaseDbTrigger
+from packit_service.service.db_project_events import AddReleaseDbTrigger
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -49,8 +49,8 @@ def fedora_branches():
 
 @pytest.fixture
 def propose_downstream_model():
-    trigger = flexmock(
-        job_trigger_model_type=JobTriggerModelType.release,
+    project_event = flexmock(
+        project_event_model_type=ProjectEventModelType.release,
         id=12,
         job_config_trigger_type=JobConfigTriggerType.release,
     )
@@ -61,11 +61,11 @@ def propose_downstream_model():
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
         commit_hash="123456",
-    ).and_return(trigger).once()
+    ).and_return(project_event).once()
     propose_downstream_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
-        trigger_model=trigger,
+        project_event_model=project_event,
         job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).once()
 
@@ -183,11 +183,11 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
@@ -312,11 +312,11 @@ def test_dist_git_push_release_handle_multiple_branches(
 
     flexmock(PkgTool).should_receive("clone").and_return(None)
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
@@ -441,11 +441,11 @@ def test_dist_git_push_release_handle_one_failed(
     flexmock(PkgTool).should_receive("clone").and_return(None)
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
 
@@ -536,11 +536,11 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
         Exception, "Failed"
     ).times(len(fedora_branches))
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
 
@@ -636,11 +636,11 @@ def test_retry_propose_downstream_task(
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
@@ -740,11 +740,11 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
     flexmock(Signature).should_receive("apply_async").once()

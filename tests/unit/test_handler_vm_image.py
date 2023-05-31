@@ -7,7 +7,7 @@ from flexmock import Mock
 
 from packit_service.models import (
     PipelineModel,
-    JobTriggerModel,
+    ProjectEventModel,
     VMImageBuildTargetModel,
     VMImageBuildStatus,
 )
@@ -37,16 +37,20 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
                 package_config,
                 job_config,
                 project,
-                db_trigger,
+                db_project_event,
             ) = fake_package_config_job_config_project_db_trigger
             self.package_config = package_config
             self.job_config = job_config
             self._project = project
-            self.data = flexmock(db_trigger=db_trigger, commit_sha="123456", pr_id="21")
+            self.data = flexmock(
+                db_project_event=db_project_event, commit_sha="123456", pr_id="21"
+            )
 
     mixin = Test()
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").and_return(flexmock(id=1))
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1)
+    )
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Building VM Image...",
         state=BaseCommitStatus.pending,
@@ -108,7 +112,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         package_config,
         job_config,
         project,
-        db_trigger,
+        db_project_event,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildHandler(
         package_config,
@@ -121,8 +125,10 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         },
         None,
     )
-    flexmock(db_trigger).should_receive("__str__").and_return("db_trigger object")
-    handler.data._db_trigger = db_trigger
+    flexmock(db_project_event).should_receive("__str__").and_return(
+        "db_project_event object"
+    )
+    handler.data._db_project_event = db_project_event
     handler._project = project
     handler._packit_api = flexmock(copr_helper=flexmock())
 
@@ -175,7 +181,7 @@ def test_vm_image_build_result_handler_ok(
         package_config,
         job_config,
         project,
-        db_trigger,
+        db_project_event,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildResultHandler(
         package_config,
@@ -197,8 +203,8 @@ def test_vm_image_build_result_handler_ok(
                 status=None,
                 runs=[
                     flexmock()
-                    .should_receive("get_trigger_object")
-                    .and_return(db_trigger)
+                    .should_receive("get_project_event_object")
+                    .and_return(db_project_event)
                     .mock()
                 ],
             )
@@ -220,7 +226,7 @@ def test_vm_image_build_result_handler_ko(
         package_config,
         job_config,
         project,
-        db_trigger,
+        db_project_event,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildResultHandler(
         package_config,

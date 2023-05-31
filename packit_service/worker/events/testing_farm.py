@@ -8,7 +8,7 @@ from ogr.services.pagure import PagureProject
 
 from packit_service.models import (
     TestingFarmResult,
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     PullRequestModel,
     TFTTestRunTargetModel,
 )
@@ -46,12 +46,12 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
 
         # Lazy properties
         self._pr_id: Optional[int] = None
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_project_event: Optional[AbstractProjectEventDbType] = None
 
     @property
     def pr_id(self) -> Optional[int]:
-        if not self._pr_id and isinstance(self.db_trigger, PullRequestModel):
-            self._pr_id = self.db_trigger.pr_id
+        if not self._pr_id and isinstance(self.db_project_event, PullRequestModel):
+            self._pr_id = self.db_project_event.pr_id
         return self._pr_id
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -60,11 +60,11 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         result["pr_id"] = self.pr_id
         return result
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         run_model = TFTTestRunTargetModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id
         )
-        return run_model.get_trigger_object() if run_model else None
+        return run_model.get_project_event_object() if run_model else None
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

@@ -11,7 +11,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
-from packit_service.service.db_triggers import (
+from packit_service.service.db_project_events import (
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
     AddReleaseDbTrigger,
@@ -212,7 +212,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         project_url: str,
         repo_namespace: str,
         repo_name: str,
-        db_trigger: Union[PullRequestModel, GitBranchModel, ProjectReleaseModel],
+        db_project_event: Union[PullRequestModel, GitBranchModel, ProjectReleaseModel],
         commit_sha: str,
         actor: str,
         pr_id: Optional[int] = None,
@@ -225,7 +225,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.repo_name = repo_name
         self.commit_sha = commit_sha
         self.actor = actor
-        self._db_trigger = db_trigger
+        self._db_project_event = db_project_event
         self.job_identifier = job_identifier
 
     @property
@@ -248,7 +248,7 @@ class CheckRerunEvent(AbstractGithubEvent):
 
 
 class CheckRerunCommitEvent(CheckRerunEvent):
-    _db_trigger: GitBranchModel
+    _db_project_event: GitBranchModel
 
     def __init__(
         self,
@@ -259,7 +259,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
         git_ref: str,
         check_name_job: str,
         check_name_target: str,
-        db_trigger,
+        db_project_event,
         actor: str,
         job_identifier: Optional[str] = None,
     ):
@@ -269,7 +269,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
             project_url=project_url,
             repo_namespace=repo_namespace,
             repo_name=repo_name,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             commit_sha=commit_sha,
             actor=actor,
             job_identifier=job_identifier,
@@ -279,7 +279,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
 
 
 class CheckRerunPullRequestEvent(CheckRerunEvent):
-    _db_trigger: PullRequestModel
+    _db_project_event: PullRequestModel
 
     def __init__(
         self,
@@ -290,7 +290,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
         commit_sha: str,
         check_name_job: str,
         check_name_target: str,
-        db_trigger,
+        db_project_event,
         actor: str,
         job_identifier: Optional[str] = None,
     ):
@@ -300,7 +300,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
             project_url=project_url,
             repo_namespace=repo_namespace,
             repo_name=repo_name,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             commit_sha=commit_sha,
             pr_id=pr_id,
             actor=actor,
@@ -311,7 +311,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
 
 
 class CheckRerunReleaseEvent(CheckRerunEvent):
-    _db_trigger: ProjectReleaseModel
+    _db_project_event: ProjectReleaseModel
 
     def __init__(
         self,
@@ -322,7 +322,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
         commit_sha: str,
         check_name_job: str,
         check_name_target: str,
-        db_trigger,
+        db_project_event,
         actor: str,
         job_identifier: Optional[str] = None,
     ):
@@ -332,7 +332,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
             project_url=project_url,
             repo_namespace=repo_namespace,
             repo_name=repo_name,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             commit_sha=commit_sha,
             actor=actor,
             job_identifier=job_identifier,

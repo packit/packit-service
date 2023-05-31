@@ -11,7 +11,7 @@ from flask_restx import Namespace, Resource
 from packit_service.models import (
     CoprBuildGroupModel,
     GitProjectModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     KojiBuildGroupModel,
     SRPMBuildModel,
     SyncReleaseModel,
@@ -286,12 +286,12 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
         SyncReleaseModel,
     ]:
         jobs[job_model.__tablename__] = dict(
-            job_runs=GitProjectModel.get_job_usage_numbers_count_all_triggers(
+            job_runs=GitProjectModel.get_job_usage_numbers_count_all_project_events(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 job_result_model=job_model,
             ),
-            top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers_all_triggers(
+            top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers_all_project_events(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 top=top,
@@ -301,22 +301,22 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
         jobs[job_model.__tablename__]["per_event"] = {}
         jobs[job_model.__tablename__]["per_event"].update(
             {
-                trigger_type.value: dict(
+                project_event_type.value: dict(
                     job_runs=GitProjectModel.get_job_usage_numbers_count(
                         datetime_from=datetime_from,
                         datetime_to=datetime_to,
                         job_result_model=job_model,
-                        trigger_type=trigger_type,
+                        project_event_type=project_event_type,
                     ),
                     top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers(
                         datetime_from=datetime_from,
                         datetime_to=datetime_to,
                         top=top,
                         job_result_model=job_model,
-                        trigger_type=trigger_type,
+                        project_event_type=project_event_type,
                     ),
                 )
-                for trigger_type in JobTriggerModelType
+                for project_event_type in ProjectEventModelType
             }
         )
 
@@ -338,20 +338,20 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
             ),
         ),
         events={
-            trigger_type.value: dict(
-                events_handled=GitProjectModel.get_trigger_usage_count(
+            project_event_type.value: dict(
+                events_handled=GitProjectModel.get_project_event_usage_count(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
-                    trigger_type=trigger_type,
+                    project_event_type=project_event_type,
                 ),
-                top_projects=GitProjectModel.get_trigger_usage_numbers(
+                top_projects=GitProjectModel.get_project_event_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=top,
-                    trigger_type=trigger_type,
+                    project_event_type=project_event_type,
                 ),
             )
-            for trigger_type in JobTriggerModelType
+            for project_event_type in ProjectEventModelType
         },
         jobs=jobs,
     )
@@ -491,7 +491,7 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
         job_name: str = job_model.__tablename__  # type: ignore
         jobs[job_name] = get_result_dictionary(
             project,
-            top_projects=GitProjectModel.get_job_usage_numbers_all_triggers(
+            top_projects=GitProjectModel.get_job_usage_numbers_all_project_events(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 top=None,
@@ -501,15 +501,17 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
         )
 
         jobs[job_name]["per_event"] = {}
-        for trigger_type in JobTriggerModelType:
-            jobs[job_name]["per_event"][trigger_type.value] = get_result_dictionary(
+        for project_event_type in ProjectEventModelType:
+            jobs[job_name]["per_event"][
+                project_event_type.value
+            ] = get_result_dictionary(
                 project,
                 top_projects=GitProjectModel.get_job_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=None,
                     job_result_model=job_model,
-                    trigger_type=trigger_type,
+                    project_event_type=project_event_type,
                 ),
                 count_name="job_runs",
             )
@@ -522,17 +524,17 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
         count_name="events_handled",
     )
     events_handled["per_event"] = {
-        trigger_type.value: get_result_dictionary(
+        project_event_type.value: get_result_dictionary(
             project=project,
-            top_projects=GitProjectModel.get_trigger_usage_numbers(
+            top_projects=GitProjectModel.get_project_event_usage_numbers(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 top=None,
-                trigger_type=trigger_type,
+                project_event_type=project_event_type,
             ),
             count_name="events_handled",
         )
-        for trigger_type in JobTriggerModelType
+        for project_event_type in ProjectEventModelType
     }
 
     return dict(

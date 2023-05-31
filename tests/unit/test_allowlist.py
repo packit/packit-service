@@ -25,8 +25,8 @@ from packit_service.models import (
     AllowlistModel as DBAllowlist,
     AllowlistStatus,
     PullRequestModel,
-    JobTriggerModel,
-    JobTriggerModelType,
+    ProjectEventModel,
+    ProjectEventModelType,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
@@ -628,20 +628,20 @@ def test_check_and_report(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=123
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=123
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
 
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     for event, is_valid, resolved_through in events:
         flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
         # needs to be included when running only `test_allowlist`
-        # flexmock(event).should_receive("db_trigger").and_return(
+        # flexmock(event).should_receive("db_project_event").and_return(
         #     flexmock(job_config_trigger_type=job_configs[0].trigger).mock()
         # )
         flexmock(EventData).should_receive("from_event_dict").and_return(
@@ -821,13 +821,13 @@ def test_check_and_report_actor_pull_request(allowlist):
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
 
-    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=JobTriggerModelType.pull_request, trigger_id=123
-    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=123
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
     flexmock(EventData).should_receive("from_event_dict").and_return(

@@ -24,7 +24,7 @@ from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
 )
 from packit_service.models import (
-    JobTriggerModelType,
+    ProjectEventModelType,
 )
 from packit_service.worker.events.pagure import (
     PushPagureEvent,
@@ -79,7 +79,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
             status="pending",
             web_url="some-url",
             build_logs_url=None,
-            get_trigger_object=lambda: flexmock(
+            get_project_event_object=lambda: flexmock(
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             ),
         )
@@ -161,7 +161,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
         target="noarch",
         status="BUILDING",
         run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+    ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
     flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
         build_id=1874074
     ).and_return(
@@ -170,7 +170,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
             status="BUILDING",
             web_url="https://koji.fedoraproject.org/koji/taskinfo?taskID=79721403",
             build_logs_url=None,
-            get_trigger_object=lambda: flexmock(
+            get_project_event_object=lambda: flexmock(
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             ),
         )
@@ -196,12 +196,14 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
 
 
 def test_koji_build_error_msg(distgit_push_packit):
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.commit,
-        job_trigger_model_type=JobTriggerModelType.release,
+        project_event_model_type=ProjectEventModelType.release,
     )
-    flexmock(PushPagureEvent).should_receive("db_trigger").and_return(db_trigger)
+    flexmock(PushPagureEvent).should_receive("db_project_event").and_return(
+        db_project_event
+    )
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
     flexmock(Signature).should_receive("apply_async").once()
 

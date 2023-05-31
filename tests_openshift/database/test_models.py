@@ -12,7 +12,7 @@ from packit_service.models import (
     GitBranchModel,
     GitProjectModel,
     GithubInstallationModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     KojiBuildTargetModel,
     KojiBuildGroupModel,
     ProjectAuthenticationIssueModel,
@@ -56,22 +56,22 @@ def test_create_branch_model(clean_before_and_after, branch_model):
 
 
 def test_create_pr_trigger_model(clean_before_and_after, pr_trigger_model):
-    assert pr_trigger_model.type == JobTriggerModelType.pull_request
-    pr = pr_trigger_model.get_trigger_object()
+    assert pr_trigger_model.type == ProjectEventModelType.pull_request
+    pr = pr_trigger_model.get_project_event_object()
     assert isinstance(pr, PullRequestModel)
     assert pr.pr_id == 342
 
 
 def test_create_release_trigger_model(clean_before_and_after, release_trigger_model):
-    assert release_trigger_model.type == JobTriggerModelType.release
-    release = release_trigger_model.get_trigger_object()
+    assert release_trigger_model.type == ProjectEventModelType.release
+    release = release_trigger_model.get_project_event_object()
     assert isinstance(release, ProjectReleaseModel)
     assert release.tag_name == "v1.0.2"
 
 
 def test_create_branch_trigger_model(clean_before_and_after, branch_trigger_model):
-    assert branch_trigger_model.type == JobTriggerModelType.branch_push
-    branch = branch_trigger_model.get_trigger_object()
+    assert branch_trigger_model.type == ProjectEventModelType.branch_push
+    branch = branch_trigger_model.get_project_event_object()
     assert isinstance(branch, GitBranchModel)
     assert branch.name == "build-branch"
 
@@ -415,14 +415,14 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     )
     # SRPMBuildModel is (sadly) not shared between Koji and Copr builds.
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(
-        trigger_model=pr1, commit_sha="687abc76d67d"
+        project_event_model=pr1, commit_sha="687abc76d67d"
     )
     copr_group = CoprBuildGroupModel.create(run_model_for_copr)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
-        trigger_model=pr1, commit_sha="687abc76d67d"
+        project_event_model=pr1, commit_sha="687abc76d67d"
     )
     koji_group = KojiBuildGroupModel.create(run_model_for_koji)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
@@ -454,12 +454,12 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     assert srpm_build_for_copr in pr1.get_srpm_builds()
     assert srpm_build_for_koji in pr1.get_srpm_builds()
 
-    assert copr_build.get_job_trigger_model() == koji_build.get_job_trigger_model()
+    assert copr_build.get_project_event_model() == koji_build.get_project_event_model()
 
-    assert srpm_build_for_copr.get_trigger_object() == pr1
-    assert srpm_build_for_koji.get_trigger_object() == pr1
-    assert copr_build.get_trigger_object() == pr1
-    assert koji_build.get_trigger_object() == pr1
+    assert srpm_build_for_copr.get_project_event_object() == pr1
+    assert srpm_build_for_koji.get_project_event_object() == pr1
+    assert copr_build.get_project_event_object() == pr1
+    assert koji_build.get_project_event_object() == pr1
 
     assert len(koji_build.group_of_targets.runs) == 1
     assert koji_build.group_of_targets.runs[0] == run_model_for_koji
@@ -493,8 +493,8 @@ def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
     assert len({m.group_of_targets.runs[0] for m in multiple_new_test_runs}) == 3
     # Exactly one PipelineModel for each TFTTestRunTargetModel
     assert all(len(m.group_of_targets.runs) == 1 for m in multiple_new_test_runs)
-    # Two JobTriggerModels:
-    assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
+    # Two ProjectEventModel:
+    assert len({m.get_project_event_object() for m in multiple_new_test_runs}) == 2
 
 
 def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run_pr):
@@ -572,7 +572,7 @@ def test_tmt_test_get_by_pipeline_id_pr(
         test_run_model.pipeline_id
     )
     assert test_run_for_pipeline_id
-    assert test_run_for_pipeline_id.get_trigger_object() == pr_model
+    assert test_run_for_pipeline_id.get_project_event_object() == pr_model
 
 
 def test_tmt_test_get_range(clean_before_and_after, multiple_new_test_runs):
@@ -598,7 +598,7 @@ def test_tmt_test_get_by_pipeline_id_branch_push(
 
     test_run = TFTTestRunTargetModel.get_by_pipeline_id(test_run_model.pipeline_id)
     assert test_run
-    assert test_run.get_trigger_object() == branch_model
+    assert test_run.get_project_event_object() == branch_model
 
 
 def test_tmt_test_get_by_pipeline_id_release(
@@ -618,7 +618,7 @@ def test_tmt_test_get_by_pipeline_id_release(
 
     test_run = TFTTestRunTargetModel.get_by_pipeline_id(test_run_model.pipeline_id)
     assert test_run
-    assert test_run.get_trigger_object() == release_model
+    assert test_run.get_project_event_object() == release_model
 
 
 def test_pr_id_property_for_srpm_build(srpm_build_model_with_new_run_for_pr):
@@ -758,7 +758,7 @@ def test_pr_get_copr_builds(
     different_pr_model,
     a_copr_build_for_branch_push,
 ):
-    pr_model = a_copr_build_for_pr.get_trigger_object()
+    pr_model = a_copr_build_for_pr.get_project_event_object()
     copr_builds = pr_model.get_copr_builds()
     assert a_copr_build_for_pr in copr_builds
     assert len(copr_builds) == 1
@@ -768,7 +768,7 @@ def test_pr_get_copr_builds(
 def test_pr_get_koji_builds(
     clean_before_and_after, a_koji_build_for_pr, different_pr_model
 ):
-    pr_model = a_koji_build_for_pr.get_trigger_object()
+    pr_model = a_koji_build_for_pr.get_project_event_object()
     assert a_koji_build_for_pr in pr_model.get_koji_builds()
     assert not different_pr_model.get_koji_builds()
 
@@ -777,7 +777,7 @@ def test_pr_get_srpm_builds(
     clean_before_and_after, srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr
 ):
     srpm_build_model, _ = srpm_build_model_with_new_run_for_pr
-    pr_model = a_copr_build_for_pr.get_trigger_object()
+    pr_model = a_copr_build_for_pr.get_project_event_object()
     assert srpm_build_model in pr_model.get_srpm_builds()
 
 

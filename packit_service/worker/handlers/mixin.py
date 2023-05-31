@@ -12,7 +12,7 @@ from packit_service.utils import get_packit_commands_from_comment
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     CoprBuildTargetModel,
     SRPMBuildModel,
 )
@@ -75,7 +75,7 @@ class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigFromEventMixin):
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.data.db_trigger,
+                db_project_event=self.data.db_project_event,
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,
                 tests_targets_override=self.data.tests_targets_override,
@@ -279,13 +279,13 @@ class GetSRPMBuild(Protocol):
 
     @property
     @abstractmethod
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
         ...
 
 
 class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
     _build: Optional[SRPMBuildModel] = None
-    _db_trigger: Optional[AbstractTriggerDbType] = None
+    _db_project_event: Optional[AbstractProjectEventDbType] = None
 
     @property
     def build(self):
@@ -300,10 +300,10 @@ class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
         return self._build
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            self._db_trigger = self.build.get_trigger_object()
-        return self._db_trigger
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+        if not self._db_project_event:
+            self._db_project_event = self.build.get_project_event_object()
+        return self._db_project_event
 
 
 class GetCoprBuild(Protocol):
@@ -311,25 +311,25 @@ class GetCoprBuild(Protocol):
 
     @property
     @abstractmethod
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
         ...
 
 
 class GetCoprBuildMixin(GetCoprBuild, ConfigFromEventMixin):
     _build: Optional[CoprBuildTargetModel] = None
-    _db_trigger: Optional[AbstractTriggerDbType] = None
+    _db_project_event: Optional[AbstractProjectEventDbType] = None
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+        if not self._db_project_event:
             # copr build end
             if self.build_id:
                 build = CoprBuildTargetModel.get_by_id(self.build_id)
-                self._db_trigger = build.get_trigger_object()
+                self._db_project_event = build.get_project_event_object()
             # other events
             else:
-                self._db_trigger = self.data.db_trigger
-        return self._db_trigger
+                self._db_project_event = self.data.db_project_event
+        return self._db_project_event
 
 
 class GetCoprBuildJobHelper(Protocol):
@@ -355,7 +355,7 @@ class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigFromEventMixin):
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.data.db_trigger,
+                db_project_event=self.data.db_project_event,
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,
                 tests_targets_override=self.data.tests_targets_override,
@@ -389,7 +389,7 @@ class GetCoprBuildJobHelperForIdMixin(
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.db_trigger,
+                db_project_event=self.db_project_event,
                 job_config=self.job_config,
                 pushgateway=self.pushgateway,
                 build_targets_override=build_targets_override,
@@ -421,7 +421,7 @@ class GetTestingFarmJobHelperMixin(
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.db_trigger,
+                db_project_event=self.db_project_event,
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,
                 tests_targets_override=self.data.tests_targets_override,

@@ -25,7 +25,7 @@ from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
     IssueModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     PipelineModel,
     SyncReleaseModel,
     SyncReleaseStatus,
@@ -189,25 +189,25 @@ def test_issue_comment_propose_downstream_handler(
         )
     )
 
-    flexmock(IssueCommentGitlabEvent).should_receive("db_trigger").and_return(
+    flexmock(IssueCommentGitlabEvent).should_receive("db_project_event").and_return(
         flexmock(
             id=123,
             job_config_trigger_type=JobConfigTriggerType.release,
-            job_trigger_model_type=JobTriggerModelType.issue,
+            project_event_model_type=ProjectEventModelType.issue,
         )
     )
-    trigger = flexmock(
+    project_event = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.release,
-        job_trigger_model_type=JobTriggerModelType.issue,
+        project_event_model_type=ProjectEventModelType.issue,
     )
-    flexmock(IssueModel).should_receive("get_or_create").and_return(trigger)
+    flexmock(IssueModel).should_receive("get_or_create").and_return(project_event)
 
     run_model = flexmock(PipelineModel)
     propose_downstream_model = flexmock(sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
-        trigger_model=trigger,
+        project_event_model=project_event,
         job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).once()
 
@@ -304,12 +304,14 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
     project.should_receive("get_latest_release").and_return(flexmock(tag_name="123"))
     project.should_receive("get_sha_from_tag").and_return("abcdef")
     project.should_receive("has_write_access").and_return(True)
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.release,
-        job_trigger_model_type=JobTriggerModelType.issue,
+        project_event_model_type=ProjectEventModelType.issue,
     )
-    flexmock(IssueCommentEvent).should_receive("db_trigger").and_return(db_trigger)
+    flexmock(IssueCommentEvent).should_receive("db_project_event").and_return(
+        db_project_event
+    )
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()

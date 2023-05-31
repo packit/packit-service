@@ -48,7 +48,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger,
+        db_project_event,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
@@ -59,7 +59,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             job_config=job_config,
             pushgateway=pushgateway,
         )
@@ -109,8 +109,8 @@ class BaseBuildJobHelper(BaseJobHelper):
         matches.
         """
         if (
-            not self.db_trigger
-            or self.db_trigger.job_config_trigger_type != job_config.trigger
+            not self.db_project_event
+            or self.db_project_event.job_config_trigger_type != job_config.trigger
         ):
             return False
 
@@ -119,9 +119,10 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         configured_branch = job_config.branch or self.project.default_branch
         logger.info(
-            f"Configured branch: {configured_branch}, branch from trigger: {self.db_trigger.name}"
+            f"Configured branch: {configured_branch}, branch from trigger: "
+            f"{self.db_project_event.name}"
         )
-        return bool(re.match(configured_branch, self.db_trigger.name))
+        return bool(re.match(configured_branch, self.db_project_event.name))
 
     @property
     def job_build(self) -> Optional[JobConfig]:
@@ -367,13 +368,15 @@ class BaseBuildJobHelper(BaseJobHelper):
         cls,
         job_name: str = None,
         chroot: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ):
         chroot_str = f":{chroot}" if chroot else ""
-        # replace ':' in the trigger identifier
+        # replace ':' in the project event identifier
         trigger_str = (
-            f":{trigger_identifier.replace(':', '-')}" if trigger_identifier else ""
+            f":{project_event_identifier.replace(':', '-')}"
+            if project_event_identifier
+            else ""
         )
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{job_name}{trigger_str}{chroot_str}{optional_suffix}"
@@ -382,42 +385,42 @@ class BaseBuildJobHelper(BaseJobHelper):
     def get_build_check_cls(
         cls,
         chroot: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ):
         return cls.get_check_cls(
-            cls.status_name_build, chroot, trigger_identifier, identifier
+            cls.status_name_build, chroot, project_event_identifier, identifier
         )
 
     @classmethod
     def get_test_check_cls(
         cls,
         chroot: str = None,
-        trigger_identifier: Optional[str] = None,
+        project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ):
         return cls.get_check_cls(
-            cls.status_name_test, chroot, trigger_identifier, identifier
+            cls.status_name_test, chroot, project_event_identifier, identifier
         )
 
     @property
-    def trigger_identifier_for_status(self):
+    def project_event_identifier_for_status(self):
         # for commit and release triggers, we add the identifier to
-        # the status name (branch name in case of commit trigger,
-        # tag name in case of release trigger)
+        # the status name (branch name in case of commit project event,
+        # tag name in case of release project event)
         identifier = None
 
-        if isinstance(self.db_trigger, ProjectReleaseModel):
-            identifier = self.db_trigger.tag_name
-        elif isinstance(self.db_trigger, GitBranchModel):
-            identifier = self.db_trigger.name
+        if isinstance(self.db_project_event, ProjectReleaseModel):
+            identifier = self.db_project_event.tag_name
+        elif isinstance(self.db_project_event, GitBranchModel):
+            identifier = self.db_project_event.name
 
         return identifier
 
     def get_build_check(self, chroot: str = None) -> str:
         return self.get_build_check_cls(
             chroot,
-            self.trigger_identifier_for_status,
+            self.project_event_identifier_for_status,
             self.job_build_or_job_config.identifier,
         )
 
@@ -429,7 +432,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         return [
             self.get_test_check_cls(
-                target, self.trigger_identifier_for_status, test_job_config.identifier
+                target,
+                self.project_event_identifier_for_status,
+                test_job_config.identifier,
             )
             for target in self.tests_targets_for_test_job(test_job_config)
         ]
@@ -479,7 +484,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         results: Optional[TaskResults] = None
 
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
-            trigger_model=self.db_trigger, commit_sha=self.metadata.commit_sha
+            trigger_model=self.db_project_event, commit_sha=self.metadata.commit_sha
         )
         self._srpm_model.set_start_time(datetime.datetime.utcnow())
 
@@ -670,7 +675,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                         url=url,
                         check_names=self.get_test_check_cls(
                             target,
-                            self.trigger_identifier_for_status,
+                            self.project_event_identifier_for_status,
                             test_job.identifier,
                         ),
                         markdown_content=markdown_content,

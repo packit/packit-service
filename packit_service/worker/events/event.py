@@ -14,7 +14,7 @@ from ogr.abstract import GitProject
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     CoprBuildTargetModel,
     GitBranchModel,
     IssueModel,
@@ -62,7 +62,7 @@ class EventData:
         self,
         event_type: str,
         actor: str,
-        trigger_id: int,
+        event_id: int,
         project_url: str,
         tag_name: Optional[str],
         git_ref: Optional[str],
@@ -78,7 +78,7 @@ class EventData:
     ):
         self.event_type = event_type
         self.actor = actor
-        self.trigger_id = trigger_id
+        self.event_id = event_id
         self.project_url = project_url
         self.tag_name = tag_name
         self.git_ref = git_ref
@@ -98,14 +98,14 @@ class EventData:
 
         # lazy attributes
         self._project = None
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_project_event: Optional[AbstractProjectEventDbType] = None
 
     @classmethod
     def from_event_dict(cls, event: dict):
         event_type = event.get("event_type")
         # We used `user_login` in the past.
         actor = event.get("user_login") or event.get("actor")
-        trigger_id = event.get("trigger_id")
+        event_id = event.get("event_id")
         project_url = event.get("project_url")
         tag_name = event.get("tag_name")
         git_ref = event.get("git_ref")
@@ -126,7 +126,7 @@ class EventData:
         return EventData(
             event_type=event_type,
             actor=actor,
-            trigger_id=trigger_id,
+            event_id=event_id,
             project_url=project_url,
             tag_name=tag_name,
             git_ref=git_ref,
@@ -148,8 +148,8 @@ class EventData:
         return self._project
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+        if not self._db_project_event:
             # TODO, do a better job
             # Probably, try to recreate original classes.
             if self.event_type in {
@@ -162,7 +162,7 @@ class EventData:
                 "PullRequestFlagPagureEvent",
                 "CheckRerunPullRequestEvent",
             }:
-                self._db_trigger = PullRequestModel.get_or_create(
+                self._db_project_event = PullRequestModel.get_or_create(
                     pr_id=self.pr_id,
                     namespace=self.project.namespace,
                     repo_name=self.project.repo,
@@ -174,7 +174,7 @@ class EventData:
                 "PushPagureEvent",
                 "CheckRerunCommitEvent",
             }:
-                self._db_trigger = GitBranchModel.get_or_create(
+                self._db_project_event = GitBranchModel.get_or_create(
                     branch_name=self.git_ref,
                     namespace=self.project.namespace,
                     repo_name=self.project.repo,
@@ -187,7 +187,7 @@ class EventData:
                 "CheckRerunReleaseEvent",
                 "NewHotnessUpdateEvent",
             }:
-                self._db_trigger = ProjectReleaseModel.get_or_create(
+                self._db_project_event = ProjectReleaseModel.get_or_create(
                     tag_name=self.tag_name,
                     namespace=self.project.namespace,
                     repo_name=self.project.repo,
@@ -198,7 +198,7 @@ class EventData:
                 "IssueCommentEvent",
                 "IssueCommentGitlabEvent",
             }:
-                self._db_trigger = IssueModel.get_or_create(
+                self._db_project_event = IssueModel.get_or_create(
                     issue_id=self.issue_id,
                     namespace=self.project.namespace,
                     repo_name=self.project.repo,
@@ -209,7 +209,7 @@ class EventData:
                     "We don't know, what to search in the database for this event data."
                 )
 
-        return self._db_trigger
+        return self._db_project_event
 
     def get_dict(self) -> dict:
         d = self.__dict__
@@ -225,14 +225,14 @@ class EventData:
         if self.branches_override:
             d["branches_override"] = list(self.branches_override)
         d.pop("_project", None)
-        d.pop("_db_trigger", None)
+        d.pop("_db_project_event", None)
         return d
 
     def get_project(self) -> Optional[GitProject]:
         if not self.project_url:
             return None
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_trigger.project.project_url
+            url=self.project_url or self.db_project_event.project.project_url
         )
 
 
@@ -257,7 +257,7 @@ class Event:
         self._base_project: Optional[GitProject] = None
         self._package_config: Optional[PackageConfig] = None
         self._package_config_searched: bool = False
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._db_project_event: Optional[AbstractProjectEventDbType] = None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = default_dict or self.__dict__
@@ -266,9 +266,9 @@ class Event:
         d["event_type"] = self.__class__.__name__
 
         # we are trying to be lazy => don't touch database if it is not needed
-        d["trigger_id"] = self._db_trigger.id if self._db_trigger else None
+        d["event_id"] = self._db_project_event.id if self._db_project_event else None
         # we don't want to save non-serializable object
-        d.pop("_db_trigger")
+        d.pop("_db_project_event")
 
         d["created_at"] = int(d["created_at"].timestamp())
         task_accepted_time = d.get("task_accepted_time")
@@ -276,7 +276,7 @@ class Event:
             int(task_accepted_time.timestamp()) if task_accepted_time else None
         )
         d["project_url"] = d.get("project_url") or (
-            self.db_trigger.project.project_url if self.db_trigger else None
+            self.db_project_event.project.project_url if self.db_project_event else None
         )
         if self.build_targets_override:
             d["build_targets_override"] = list(self.build_targets_override)
@@ -291,14 +291,14 @@ class Event:
         d.pop("_package_config")
         return d
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         return None
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            self._db_trigger = self.get_db_trigger()
-        return self._db_trigger
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+        if not self._db_project_event:
+            self._db_project_event = self.get_db_trigger()
+        return self._db_project_event
 
     @property
     def job_config_trigger_type(self) -> Optional[JobConfigTriggerType]:
@@ -315,12 +315,12 @@ class Event:
         ) in MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE.items():
             if isinstance(self, event_cls):
                 return job_config_trigger_type
-        if not self.db_trigger:
+        if not self.db_project_event:
             logger.warning(
                 f"Event {self} does not have a matching object in the database."
             )
             return None
-        return self.db_trigger.job_config_trigger_type
+        return self.db_project_event.job_config_trigger_type
 
     @property
     def project(self):
@@ -416,7 +416,7 @@ class AbstractForgeIndependentEvent(Event):
             self._package_config_searched = True
         return self._package_config
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
         raise NotImplementedError()
 
     @property
@@ -424,11 +424,11 @@ class AbstractForgeIndependentEvent(Event):
         return self._pr_id
 
     def get_project(self) -> Optional[GitProject]:
-        if not (self.project_url or self.db_trigger):
+        if not (self.project_url or self.db_project_event):
             return None
 
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_trigger.project.project_url
+            url=self.project_url or self.db_project_event.project.project_url
         )
 
     def get_base_project(self) -> Optional[GitProject]:

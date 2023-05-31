@@ -43,12 +43,12 @@ from packit_service.constants import (
     DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     CoprBuildTargetModel,
     CoprBuildGroupModel,
     BuildStatus,
     SRPMBuildModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -77,7 +77,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger: AbstractTriggerDbType,
+        db_project_event: AbstractProjectEventDbType,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
@@ -90,7 +90,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_trigger=db_trigger,
+            db_project_event=db_project_event,
             job_config=job_config,
             build_targets_override=build_targets_override,
             tests_targets_override=tests_targets_override,
@@ -127,7 +127,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         # More details: https://github.com/packit/packit-service/issues/1044
         ref_identifier = (
             "releases"
-            if self.db_trigger.job_trigger_model_type == JobTriggerModelType.release
+            if self.db_project_event.project_event_model_type
+            == ProjectEventModelType.release
             else self.metadata.identifier
         )
 
@@ -455,7 +456,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             commit_sha=self.metadata.commit_sha,
-            trigger_model=self.db_trigger,
+            project_event_model=self.db_project_event,
         )
         group = self._get_or_create_build_group()
         try:

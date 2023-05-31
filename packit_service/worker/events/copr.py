@@ -10,8 +10,8 @@ from ogr.services.pagure import PagureProject
 from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
     CoprBuildTargetModel,
-    JobTriggerModelType,
-    AbstractTriggerDbType,
+    ProjectEventModelType,
+    AbstractProjectEventDbType,
     SRPMBuildModel,
 )
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
@@ -35,22 +35,22 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         pkg: str,
         timestamp,
     ):
-        trigger_db = build.get_trigger_object()
+        trigger_db = build.get_project_event_object()
         self.commit_sha = build.commit_sha
         self.base_repo_name = trigger_db.project.repo_name
         self.base_repo_namespace = trigger_db.project.namespace
         git_ref = self.commit_sha  # ref should be name of the branch, not a hash
         self.topic = FedmsgTopic(topic)
 
-        trigger_db = build.get_trigger_object()
+        trigger_db = build.get_project_event_object()
         pr_id = None
-        if trigger_db.job_trigger_model_type == JobTriggerModelType.pull_request:
+        if trigger_db.project_event_model_type == ProjectEventModelType.pull_request:
             pr_id = trigger_db.pr_id  # type: ignore
             self.identifier = str(trigger_db.pr_id)  # type: ignore
-        elif trigger_db.job_trigger_model_type == JobTriggerModelType.release:
+        elif trigger_db.project_event_model_type == ProjectEventModelType.release:
             pr_id = None
             self.identifier = trigger_db.tag_name  # type: ignore
-        elif trigger_db.job_trigger_model_type == JobTriggerModelType.branch_push:
+        elif trigger_db.project_event_model_type == ProjectEventModelType.branch_push:
             pr_id = None
             self.identifier = trigger_db.name  # type: ignore
 
@@ -66,8 +66,8 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         self.pkg = pkg
         self.timestamp = timestamp
 
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return self.build.get_trigger_object()
+    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+        return self.build.get_project_event_object()
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

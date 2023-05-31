@@ -26,8 +26,8 @@ from packit_service.models import (
     ProjectReleaseModel,
     GitBranchModel,
     PullRequestModel,
-    JobTriggerModel,
-    AbstractTriggerDbType,
+    ProjectEventModel,
+    AbstractProjectEventDbType,
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
@@ -796,7 +796,7 @@ class Parser:
 
     @staticmethod
     def parse_check_name(
-        check_name: str, db_trigger: AbstractTriggerDbType
+        check_name: str, db_project_event: AbstractProjectEventDbType
     ) -> Optional[Tuple[str, str, str]]:
         """
         Parse the given name of the check run.
@@ -807,9 +807,9 @@ class Parser:
         "rpm-build:main:fedora-34-x86_64:identifier"
         "propose-downstream:f35"
 
-        For the build and test runs, if the trigger is release/commit, the branch
+        For the build and test runs, if the project event is release/commit, the branch
         name or release name is included in the check name - it can be ignored,
-        since we are having the DB trigger (obtained via external ID of the check).
+        since we are having the DB project event (obtained via external ID of the check).
 
         Returns:
             tuple of job name (e.g. rpm-build), target and identifier obtained from check run
@@ -839,7 +839,7 @@ class Parser:
             )
             if (
                 check_name_job in build_test_job_names
-                and db_trigger.job_config_trigger_type
+                and db_project_event.job_config_trigger_type
                 in (
                     JobConfigTriggerType.commit,
                     JobConfigTriggerType.release,
@@ -908,18 +908,20 @@ class Parser:
         external_id = nested_get(event, "check_run", "external_id")
 
         if not external_id:
-            logger.warning("No external_id to identify the original trigger provided.")
+            logger.warning(
+                "No external_id to identify the original project event provided."
+            )
             return None
 
-        job_trigger = JobTriggerModel.get_by_id(int(external_id))
-        if not job_trigger:
-            logger.warning(f"Job trigger with ID {external_id} not found.")
+        project_event = ProjectEventModel.get_by_id(int(external_id))
+        if not project_event:
+            logger.warning(f"Job project event with ID {external_id} not found.")
             return None
 
-        db_trigger = job_trigger.get_trigger_object()
-        logger.info(f"Original trigger: {db_trigger}")
+        db_project_event = project_event.get_project_event_object()
+        logger.info(f"Original project event: {db_project_event}")
 
-        parse_result = Parser.parse_check_name(check_name, db_trigger)
+        parse_result = Parser.parse_check_name(check_name, db_project_event)
         if parse_result is None:
             return None
 
@@ -938,44 +940,44 @@ class Parser:
         commit_sha = nested_get(event, "check_run", "head_sha")
 
         event = None
-        if isinstance(db_trigger, PullRequestModel):
+        if isinstance(db_project_event, PullRequestModel):
             event = CheckRerunPullRequestEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                pr_id=db_trigger.pr_id,
+                pr_id=db_project_event.pr_id,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_trigger,
+                db_project_event=db_project_event,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
 
-        elif isinstance(db_trigger, ProjectReleaseModel):
+        elif isinstance(db_project_event, ProjectReleaseModel):
             event = CheckRerunReleaseEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                tag_name=db_trigger.tag_name,
+                tag_name=db_project_event.tag_name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_trigger,
+                db_project_event=db_project_event,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
 
-        elif isinstance(db_trigger, GitBranchModel):
+        elif isinstance(db_project_event, GitBranchModel):
             event = CheckRerunCommitEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                git_ref=db_trigger.name,
+                git_ref=db_project_event.name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_trigger,
+                db_project_event=db_project_event,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )

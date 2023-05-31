@@ -15,7 +15,7 @@ from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import Deployment, ServiceConfig
-from packit_service.models import PipelineModel, JobTriggerModel
+from packit_service.models import PipelineModel, ProjectEventModel
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
@@ -30,7 +30,7 @@ class BaseJobHelper:
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger,
+        db_project_event,
         job_config: JobConfig,
         pushgateway: Optional[Pushgateway] = None,
     ):
@@ -38,7 +38,7 @@ class BaseJobHelper:
         self.job_config = job_config
         self.package_config = package_config
         self.project: GitProject = project
-        self.db_trigger = db_trigger
+        self.db_project_event = db_project_event
         self.metadata: EventData = metadata
         self.run_model: Optional[PipelineModel] = None
         self.pushgateway = pushgateway
@@ -137,15 +137,15 @@ class BaseJobHelper:
     @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
-            trigger = JobTriggerModel.get_or_create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
+            project_event = ProjectEventModel.get_or_create(
+                type=self.db_project_event.project_event_model_type,
+                event_id=self.db_project_event.id,
             )
             self._status_reporter = StatusReporter.get_instance(
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 packit_user=self.service_config.get_github_account_name(),
-                trigger_id=trigger.id if trigger else None,
+                event_id=project_event.id if project_event else None,
                 pr_id=self.metadata.pr_id,
             )
         return self._status_reporter

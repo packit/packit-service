@@ -18,7 +18,7 @@ from packit.config import (
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildStatus
+from packit_service.models import ProjectEventModel, ProjectEventModelType, BuildStatus
 from packit_service.models import (
     TFTTestRunTargetModel,
     PullRequestModel,
@@ -106,7 +106,7 @@ def test_testing_farm_response(
     ).and_return(package_config)
     config = flexmock(command_handler_work_dir=flexmock())
     flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
-    flexmock(TFResultsEvent).should_receive("db_trigger").and_return(None)
+    flexmock(TFResultsEvent).should_receive("db_project_event").and_return(None)
     config.should_receive("get_project").with_args(
         url="https://github.com/packit/ogr"
     ).and_return(
@@ -157,10 +157,10 @@ def test_testing_farm_response(
     tft_test_run_model = flexmock(
         id=123,
         submitted_time=datetime.now(),
-        get_trigger_object=lambda: flexmock(
+        get_project_event_object=lambda: flexmock(
             id=12,
             job_config_trigger_type=JobConfigTriggerType.pull_request,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         ),
         target="fedora-rawhide-x86_64",
         status=None,
@@ -175,8 +175,8 @@ def test_testing_farm_response(
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
         tft_test_run_model
     )
-    flexmock(JobTriggerModel).should_receive("get_or_create").and_return(
-        flexmock(id=1, type=JobTriggerModelType.pull_request)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, type=ProjectEventModelType.pull_request)
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
@@ -220,7 +220,7 @@ def test_distro2compose(target, compose, use_internal_tf):
         package_config=flexmock(jobs=[]),
         project=flexmock(),
         metadata=flexmock(),
-        db_trigger=flexmock(),
+        db_project_event=flexmock(),
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
@@ -255,7 +255,7 @@ def test_distro2compose_for_aarch64(target, compose, use_internal_tf):
         package_config=flexmock(jobs=[]),
         project=flexmock(),
         metadata=flexmock(),
-        db_trigger=flexmock(),
+        db_project_event=flexmock(),
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
@@ -640,14 +640,14 @@ def test_payload(
         project_url=project_url,
         pr_id=123,
     )
-    db_trigger = flexmock()
+    db_project_event = flexmock()
 
     job_helper = TFJobHelper(
         service_config=service_config,
         package_config=package_config,
         project=project,
         metadata=metadata,
-        db_trigger=db_trigger,
+        db_project_event=db_project_event,
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
@@ -839,7 +839,7 @@ def test_merge_extra_params_with_install():
     package_config = flexmock()
     project = flexmock(full_repo_name="test/merge")
     metadata = flexmock(commit_sha="0000000", pr_id=None)
-    db_trigger = flexmock()
+    db_project_event = flexmock()
     job_config = flexmock(
         fmf_url="https://github.com/fmf/",
         fmf_ref="main",
@@ -860,7 +860,7 @@ def test_merge_extra_params_with_install():
         },
     )
     helper = TFJobHelper(
-        service_config, package_config, project, metadata, db_trigger, job_config
+        service_config, package_config, project, metadata, db_project_event, job_config
     )
 
     payload = helper._payload("rhel-7.9", "rhel-7.9")
@@ -997,14 +997,14 @@ def test_test_repo(
         project_url=source_project_url,
         pr_id=123,
     )
-    db_trigger = flexmock()
+    db_project_event = flexmock()
 
     job_helper = TFJobHelper(
         service_config=service_config,
         package_config=package_config,
         project=project,
         metadata=metadata,
-        db_trigger=db_trigger,
+        db_project_event=db_project_event,
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
@@ -1214,9 +1214,9 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
     flexmock(tf_handler).should_receive("project").and_return(
         flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock()
     )
-    tf_handler._db_trigger = flexmock(
+    tf_handler._db_project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
         id=11,
     )
     tf_handler.run()
@@ -1267,7 +1267,7 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
         package_config=flexmock(jobs=[]),
         project=git_project,
         metadata=metadata,
-        db_trigger=flexmock(),
+        db_project_event=flexmock(),
         job_config=job_config,
     )
 
@@ -1295,7 +1295,9 @@ def test_get_additional_builds():
         package_config=flexmock(jobs=[]),
         project=git_project,
         metadata=metadata,
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
         job_config=job_config,
     )
     additional_copr_build = flexmock(
@@ -1351,7 +1353,9 @@ def test_get_additional_builds_pr_not_in_db():
         package_config=flexmock(jobs=[]),
         project=git_project,
         metadata=metadata,
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
         job_config=job_config,
     )
 
@@ -1388,7 +1392,9 @@ def test_get_additional_builds_builds_not_in_db():
         package_config=flexmock(jobs=[]),
         project=git_project,
         metadata=metadata,
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
         job_config=job_config,
     )
 
@@ -1432,7 +1438,9 @@ def test_get_additional_builds_wrong_format():
         package_config=flexmock(jobs=[]),
         project=git_project,
         metadata=metadata,
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
         job_config=job_config,
     )
 
@@ -1550,7 +1558,9 @@ def test_get_artifacts(chroot, build, additional_build, result):
         package_config=flexmock(jobs=[]),
         project=git_project,
         metadata=metadata,
-        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
         job_config=job_config,
     )
 
@@ -1690,7 +1700,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
+            project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
 
@@ -1726,7 +1736,7 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
         package_config=flexmock(jobs=[]),
         project=flexmock(),
         metadata=flexmock(),
-        db_trigger=flexmock(),
+        db_project_event=flexmock(),
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,

@@ -8,7 +8,7 @@ from typing import Optional
 
 from ogr.abstract import GitProject
 from packit_service.models import (
-    AbstractTriggerDbType,
+    AbstractProjectEventDbType,
     GitBranchModel,
     IssueModel,
     ProjectReleaseModel,
@@ -30,7 +30,7 @@ class AddReleaseDbTrigger:
         raise NotImplementedError()
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
         return ProjectReleaseModel.get_or_create(
             tag_name=self.tag_name,
             namespace=self.repo_namespace,
@@ -46,7 +46,7 @@ class AddPullRequestDbTrigger:
     project_url: str
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
         return PullRequestModel.get_or_create(
             pr_id=self.pr_id,
             namespace=self.project.namespace,
@@ -62,7 +62,7 @@ class AddIssueDbTrigger:
     project_url: str
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
         return IssueModel.get_or_create(
             issue_id=self.issue_id,
             namespace=self.repo_namespace,
@@ -78,7 +78,7 @@ class AddBranchPushDbTrigger:
     project_url: str
 
     @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
         return GitBranchModel.get_or_create(
             branch_name=self.git_ref,
             namespace=self.repo_namespace,

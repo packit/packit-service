@@ -10,7 +10,7 @@ from typing import Dict, Optional, Set
 from ogr.abstract import Comment
 
 from packit_service.models import TestingFarmResult, BuildStatus
-from packit_service.service.db_triggers import (
+from packit_service.service.db_project_events import (
     AddIssueDbTrigger,
     AddPullRequestDbTrigger,
 )

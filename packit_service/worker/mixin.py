@@ -424,7 +424,7 @@ class GetReporterFromJobHelperMixin(Config):
                 self.package_config,
                 self.project,
                 self.data,
-                self.data.db_trigger,
+                self.data.db_project_event,
                 self.job_config,
                 None,
             )

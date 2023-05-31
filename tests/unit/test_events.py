@@ -23,7 +23,7 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
     AllowlistStatus,
-    JobTriggerModel,
+    ProjectEventModel,
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -784,7 +784,7 @@ class TestEvents:
         flexmock(PullRequestModel).should_receive("get_or_create").and_return(
             flexmock()
         )
-        # assert event_object.db_trigger
+        # assert event_object.db_project_event
         assert isinstance(event_object.project, GitlabProject)
         assert (
             event_object.project.full_repo_name == "redhat/centos-stream/rpms/luksmeta"
@@ -879,12 +879,12 @@ class TestEvents:
         ).and_return(testing_farm_results)
         flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
-                job_trigger=flexmock(),
+                project_event=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
                 commit_sha="12345",
                 identifier=identifier,
             )
-            .should_receive("get_trigger_object")
+            .should_receive("get_project_event_object")
             .and_return(flexmock(pr_id=10))
             .once()
             .mock()
@@ -900,7 +900,7 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.db_trigger
+        assert event_object.db_project_event
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
         assert event_object.identifier == identifier
@@ -914,12 +914,12 @@ class TestEvents:
         ).and_return(testing_farm_results_error)
         flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
-                job_trigger=flexmock(),
+                project_event=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
                 commit_sha="12345",
                 identifier=None,
             )
-            .should_receive("get_trigger_object")
+            .should_receive("get_project_event_object")
             .and_return(flexmock(pr_id=10))
             .once()
             .mock()
@@ -935,7 +935,7 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.db_trigger
+        assert event_object.db_project_event
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
         assert not event_object.identifier
@@ -1455,12 +1455,14 @@ class TestEvents:
         assert json.dumps(event_object.pipeline_id)
 
     def test_parse_check_rerun_commit(self, check_rerun):
-        trigger = flexmock(JobTriggerModel, trigger_id=123)
+        trigger = flexmock(ProjectEventModel, event_id=123)
         branch_model = GitBranchModel(name="main")
-        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+        flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
             123456
         ).and_return(trigger)
-        flexmock(trigger).should_receive("get_trigger_object").and_return(branch_model)
+        flexmock(trigger).should_receive("get_project_event_object").and_return(
+            branch_model
+        )
         event_object = Parser.parse_event(check_rerun)
 
         assert isinstance(event_object, CheckRerunCommitEvent)
@@ -1494,12 +1496,14 @@ class TestEvents:
         assert event_object.actor == "lbarcziova"
 
     def test_parse_check_rerun_pull_request(self, check_rerun):
-        trigger = flexmock(JobTriggerModel, trigger_id=1234)
+        trigger = flexmock(ProjectEventModel, event_id=1234)
         pr_model = PullRequestModel(pr_id=12)
-        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+        flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
             123456
         ).and_return(trigger)
-        flexmock(trigger).should_receive("get_trigger_object").and_return(pr_model)
+        flexmock(trigger).should_receive("get_project_event_object").and_return(
+            pr_model
+        )
         event_object = Parser.parse_event(check_rerun)
 
         assert isinstance(event_object, CheckRerunPullRequestEvent)
@@ -1534,12 +1538,14 @@ class TestEvents:
         assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
     def test_parse_check_rerun_release(self, check_rerun):
-        trigger = flexmock(JobTriggerModel, trigger_id=123)
+        trigger = flexmock(ProjectEventModel, event_id=123)
         release_model = ProjectReleaseModel(tag_name="0.1.0")
-        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+        flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
             123456
         ).and_return(trigger)
-        flexmock(trigger).should_receive("get_trigger_object").and_return(release_model)
+        flexmock(trigger).should_receive("get_project_event_object").and_return(
+            release_model
+        )
 
         event_object = Parser.parse_event(check_rerun)
 
@@ -1652,7 +1658,7 @@ class TestEvents:
         assert event_object.packages_config
 
         if create_db_trigger:
-            assert event_object.db_trigger
+            assert event_object.db_project_event
 
     def test_get_submitted_time_from_model(self):
         date = datetime.utcnow()
@@ -1685,7 +1691,7 @@ class TestEvents:
         )
 
     @pytest.mark.parametrize(
-        "check_name, db_trigger, result",
+        "check_name, db_project_event, result",
         [
             pytest.param(
                 "propose-downstream:f35",
@@ -1809,5 +1815,5 @@ class TestEvents:
             ),
         ],
     )
-    def test_parse_check_name(self, check_name, db_trigger, result):
-        assert Parser.parse_check_name(check_name, db_trigger) == result
+    def test_parse_check_name(self, check_name, db_project_event, result):
+        assert Parser.parse_check_name(check_name, db_project_event) == result

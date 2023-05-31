@@ -118,8 +118,8 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
     git_project.should_receive("can_merge_pr").and_return(can_merge_pr)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_trigger = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
-    flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
+    db_project_event = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
 
     if not success:
         flexmock(KojiBuildJobHelper).should_receive("report_status_to_all")
@@ -182,8 +182,8 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
     )
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_trigger = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
-    flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
+    db_project_event = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
 
     checker = checker_kls(package_config, job_config, event)
 
@@ -345,11 +345,11 @@ def test_koji_branch_merge_queue():
     git_project.should_receive("can_merge_pr").and_return(True)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_trigger = flexmock(
+    db_project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.commit,
         name="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
     )
-    flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
 
     checker = IsJobConfigTriggerMatchingKoji(package_config, job_config, event)
 

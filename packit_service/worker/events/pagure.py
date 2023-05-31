@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from ogr.abstract import Comment, GitProject
 
-from packit_service.service.db_triggers import (
+from packit_service.service.db_project_events import (
     AddBranchPushDbTrigger,
     AddPullRequestDbTrigger,
 )

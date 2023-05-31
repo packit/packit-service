@@ -11,7 +11,7 @@ from flexmock import flexmock
 
 from packit_service.models import (
     CoprBuildTargetModel,
-    JobTriggerModelType,
+    ProjectEventModelType,
     SRPMBuildModel,
 )
 from packit_service.service.app import packit_as_a_service as application
@@ -57,7 +57,7 @@ def test_get_logs(client):
     project_mock.repo_name = "bar"
 
     pr_mock = flexmock()
-    pr_mock.job_trigger_model_type = JobTriggerModelType.pull_request
+    pr_mock.project_event_model_type = ProjectEventModelType.pull_request
     pr_mock.pr_id = 234
     pr_mock.target_project = project_mock
 
@@ -81,7 +81,7 @@ def test_get_logs(client):
         year=2020, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
     )
     copr_build_mock.project_name = "example_project"
-    copr_build_mock.should_receive("get_trigger_object").and_return(pr_mock)
+    copr_build_mock.should_receive("get_project_event_object").and_return(pr_mock)
     copr_build_mock.should_receive("get_project").and_return(project_mock)
     copr_build_mock.should_receive("get_srpm_build").and_return(srpm_build_mock)
 

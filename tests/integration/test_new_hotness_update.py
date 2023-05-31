@@ -14,7 +14,7 @@ from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    JobTriggerModelType,
+    ProjectEventModelType,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseStatus,
@@ -23,7 +23,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_triggers import AddReleaseDbTrigger
+from packit_service.service.db_project_events import AddReleaseDbTrigger
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -38,8 +38,8 @@ def fedora_branches():
 
 @pytest.fixture
 def sync_release_model():
-    trigger = flexmock(
-        job_trigger_model_type=JobTriggerModelType.release,
+    project_event = flexmock(
+        project_event_model_type=ProjectEventModelType.release,
         id=12,
         job_config_trigger_type=JobConfigTriggerType.release,
     )
@@ -50,11 +50,11 @@ def sync_release_model():
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
         commit_hash=None,
-    ).and_return(trigger)
+    ).and_return(project_event)
     sync_release_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
-        trigger_model=trigger,
+        project_event_model=project_event,
         job_type=SyncReleaseJobType.pull_from_upstream,
     ).and_return(sync_release_model, run_model).once()
 
@@ -155,11 +155,11 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
-            job_trigger_model_type=JobTriggerModelType.release,
+            project_event_model_type=ProjectEventModelType.release,
         )
     )
     flexmock(Signature).should_receive("apply_async").once()
