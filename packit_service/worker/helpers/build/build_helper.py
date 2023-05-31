@@ -105,8 +105,10 @@ class BaseBuildJobHelper(BaseJobHelper):
     def is_job_config_trigger_matching(self, job_config: JobConfig) -> bool:
         """
         Check whether the job config matches the DB trigger type.
-        In case the job config trigger is commit, also check that the branch
-        matches.
+        In case the job config trigger is commit, check that the branch
+        matches. In case the job config trigger is pull request, check
+        if the branch is configured and if yes, check whether it matches
+        the target branch of the pull request.
         """
         if (
             not self.db_project_event
@@ -114,15 +116,27 @@ class BaseBuildJobHelper(BaseJobHelper):
         ):
             return False
 
-        if job_config.trigger != JobConfigTriggerType.commit:
-            return True
+        if job_config.trigger == JobConfigTriggerType.commit:
+            configured_branch = job_config.branch or self.project.default_branch
+            logger.info(
+                f"Configured branch: {configured_branch}, branch from trigger: "
+                f"{self.db_project_event.name}"
+            )
+            return bool(re.match(configured_branch, self.db_project_event.name))
 
-        configured_branch = job_config.branch or self.project.default_branch
-        logger.info(
-            f"Configured branch: {configured_branch}, branch from trigger: "
-            f"{self.db_project_event.name}"
-        )
-        return bool(re.match(configured_branch, self.db_project_event.name))
+        if job_config.trigger == JobConfigTriggerType.pull_request:
+            configured_branch = job_config.branch
+            if not configured_branch:
+                return True
+            target_branch = self.project.get_pr(
+                self.db_project_event.pr_id
+            ).target_branch
+            logger.info(
+                f"Configured branch: {configured_branch}, PR target branch: {target_branch}"
+            )
+            return bool(re.match(configured_branch, target_branch))
+
+        return True
 
     @property
     def job_build(self) -> Optional[JobConfig]:

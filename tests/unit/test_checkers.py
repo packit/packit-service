@@ -114,11 +114,14 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
         namespace="packit",
         repo="ogr",
         default_branch="main",
+        get_pr=lambda pr_id: flexmock(target_branch="release"),
     )
     git_project.should_receive("can_merge_pr").and_return(can_merge_pr)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
+    db_project_event = flexmock(
+        job_config_trigger_type=trigger, name=event["git_ref"], pr_id=1
+    )
     flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
 
     if not success:
@@ -183,6 +186,71 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
     db_project_event = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+
+    checker = checker_kls(package_config, job_config, event)
+
+    assert checker.pre_check() == success
+
+
+@pytest.mark.parametrize(
+    "checker_kls",
+    (
+        IsJobConfigTriggerMatchingKoji,
+        IsJobConfigTriggerMatchingCopr,
+        IsJobConfigTriggerMatchingTF,
+    ),
+)
+@pytest.mark.parametrize(
+    "configured_branch, success, event, trigger",
+    (
+        pytest.param(
+            "the-branch",
+            True,
+            construct_dict(event=PullRequestGithubEvent.__name__),
+            JobConfigTriggerType.pull_request,
+            id="GitHub PR target branch matches",
+        ),
+        pytest.param(
+            "the-other-branch",
+            False,
+            construct_dict(event=PullRequestGithubEvent.__name__),
+            JobConfigTriggerType.pull_request,
+            id="GitHub PR target branch does not match",
+        ),
+        pytest.param(
+            "the-branch",
+            True,
+            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            JobConfigTriggerType.pull_request,
+            id="GitLab PR target branch matches",
+        ),
+        pytest.param(
+            "the-other-branch",
+            False,
+            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            JobConfigTriggerType.pull_request,
+            id="GitLab PR target branch does not match",
+        ),
+    ),
+)
+def test_pr_event_checker(configured_branch, success, event, trigger, checker_kls):
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.upstream_koji_build,
+        trigger=trigger,
+        targets={"fedora-37"},
+        branch=configured_branch,
+    )
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+        get_pr=lambda pr_id: flexmock(target_branch="the-branch"),
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_event = flexmock(job_config_trigger_type=trigger, pr_id=1)
     flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
 
     checker = checker_kls(package_config, job_config, event)
