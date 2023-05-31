@@ -63,6 +63,9 @@ def package_config__job_config__pull_request_event(package_config__job_config):
     flexmock(PullRequestCommentPagureEvent).should_receive("commit_sha").and_return(
         "abcdef"
     )
+    flexmock(PullRequestCommentPagureEvent).should_receive(
+        "get_packages_config"
+    ).and_return(package_config)
     data = PullRequestCommentPagureEvent(
         pr_id=123,
         action=PullRequestAction.opened,

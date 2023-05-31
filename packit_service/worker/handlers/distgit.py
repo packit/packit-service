@@ -77,6 +77,7 @@ from packit_service.worker.mixin import (
     LocalProjectMixin,
     ConfigFromEventMixin,
     GetBranchesFromIssueMixin,
+    ConfigFromUrlMixin,
     ConfigFromDistGitUrlMixin,
     GetPagurePullRequestMixin,
     PackitAPIWithUpstreamMixin,
@@ -163,7 +164,7 @@ class SyncFromDownstream(
 
 class AbstractSyncReleaseHandler(
     RetriableJobHandler,
-    ConfigFromEventMixin,
+    ConfigFromUrlMixin,
     LocalProjectMixin,
     PackitAPIWithUpstreamMixin,
 ):
@@ -186,8 +187,10 @@ class AbstractSyncReleaseHandler(
             event=event,
             celery_task=celery_task,
         )
+        self._project_url = self.data.project_url
         self._sync_release_run_id = sync_release_run_id
         self.helper: Optional[SyncReleaseHelper] = None
+        self.tag = self.data.tag_name
 
     @property
     def sync_release_helper(self) -> SyncReleaseHelper:
@@ -213,7 +216,7 @@ class AbstractSyncReleaseHandler(
             )
             downstream_pr = self.packit_api.sync_release(
                 dist_git_branch=branch,
-                tag=self.data.tag_name,
+                tag=self.tag,
                 create_pr=True,
                 local_pr_branch_suffix=branch_suffix,
                 use_downstream_specfile=is_pull_from_upstream_job,
@@ -478,14 +481,16 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         PackageConfigGetter.create_issue_if_needed(
             project=self.project,
             title=f"{self.job_name_for_reporting.capitalize()} failed for "
-            f"release {self.data.tag_name}",
+            f"release {self.tag}",
             message=body_msg,
             comment_to_existing=body_msg,
         )
 
 
 @configured_as(job_type=JobType.pull_from_upstream)
+@run_for_comment(command="pull-from-upstream")
 @reacts_to(event=NewHotnessUpdateEvent)
+@reacts_to(event=PullRequestCommentPagureEvent)
 class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     task_name = TaskName.pull_from_upstream
     helper_kls = PullFromUpstreamHelper
@@ -508,6 +513,11 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             celery_task=celery_task,
             sync_release_run_id=sync_release_run_id,
         )
+        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+            # use upstream project URL when retriggering from dist-git PR
+            self._project_url = package_config.upstream_project_url
+            # there is no tag information when retriggering from dist-git PR
+            self.tag = self.packit_api.up.get_last_tag()
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
@@ -517,7 +527,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         report_in_issue_repository(
             issue_repository=self.job_config.issue_repository,
             service_config=self.service_config,
-            title=f"Pull from upstream failed for release {self.data.tag_name}",
+            title=f"Pull from upstream failed for release {self.tag}",
             message=message
             + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
             comment_to_existing=message,

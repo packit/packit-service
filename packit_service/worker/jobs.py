@@ -599,6 +599,15 @@ class SteveJobs:
                     # A koji_build job with comment trigger
                     # can be re-triggered by a Pagure comment in a PR
                     matching_jobs.append(job)
+                elif (
+                    job.type == JobType.pull_from_upstream
+                    and job.trigger == JobConfigTriggerType.release
+                    and self.event.job_config_trigger_type
+                    == JobConfigTriggerType.pull_request
+                ):
+                    # A pull_from_upstream job with release trigger
+                    # can be re-triggered by a comment in a dist-git PR
+                    matching_jobs.append(job)
         elif isinstance(self.event, AbstractIssueCommentEvent):
             for job in self.event.packages_config.get_job_views():
                 if (

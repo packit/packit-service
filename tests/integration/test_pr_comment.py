@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+import shutil
 from typing import List
 
 import pytest
@@ -12,6 +13,8 @@ from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
 from packit.copr_helper import CoprHelper
+from packit.distgit import DistGit
+from packit.upstream import Upstream
 
 import packit_service.models
 import packit_service.service.urls as urls
@@ -40,6 +43,11 @@ from packit_service.models import (
     TFTTestRunGroupModel,
     TestingFarmResult,
     BuildStatus,
+    SyncReleaseModel,
+    SyncReleaseStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseJobType,
 )
 from packit_service.service.db_project_events import AddPullRequestDbTrigger
 from packit_service.utils import (
@@ -47,6 +55,7 @@ from packit_service.utils import (
     load_job_config,
 )
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.handlers.bodhi import (
@@ -64,6 +73,7 @@ from packit_service.worker.tasks import (
     run_koji_build_handler,
     run_retrigger_bodhi_update,
     run_testing_farm_handler,
+    run_pull_from_upstream_handler,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -2574,4 +2584,141 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         job_config=job_config,
     )
 
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
+    pagure_pr_comment_added["pullrequest"]["comments"][0][
+        "comment"
+    ] = "/packit pull-from-upstream"
+
+    model = flexmock(status="queued", id=1234, branch="main")
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
+    ).and_return(model)
+
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec', 'upstream_project_url': "
+        "'https://github.com/packit-service/hello-world'"
+        ", jobs: [{trigger: release, job: pull_from_upstream, metadata: {targets:[]}}]}"
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    distgit_project = flexmock(
+        get_files=lambda ref, recursive: [".packit.yaml"],
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name=pagure_pr_comment_added["pullrequest"]["project"]["fullname"],
+        repo=pagure_pr_comment_added["pullrequest"]["project"]["name"],
+        namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
+        is_private=lambda: False,
+        default_branch="main",
+        service=flexmock(get_project=lambda **_: None),
+    )
+    project = flexmock(
+        full_repo_name="packit-service/hello-world",
+        repo="hello-world",
+        namespace="packit-service",
+        get_files=lambda ref, filter_regex: [],
+        get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: "https://github.com/packit/hello-world",
+        is_private=lambda: False,
+        default_branch="main",
+    )
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.working_dir = ""
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
+    )
+
+    flexmock(Upstream).should_receive("get_last_tag").and_return("7.0.3")
+
+    flexmock(Allowlist, check_and_report=True)
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True
+    )
+
+    service_config = ServiceConfig().get_service_config()
+    flexmock(service_config).should_receive("get_project").with_args(
+        pagure_pr_comment_added["pullrequest"]["project"]["full_url"]
+    ).and_return(distgit_project)
+    flexmock(service_config).should_receive("get_project").with_args(
+        "https://github.com/packit-service/hello-world"
+    ).and_return(project)
+
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="main",
+        tag="7.0.3",
+        create_pr=True,
+        local_pr_branch_suffix="update-pull_from_upstream",
+        use_downstream_specfile=True,
+        sync_default_files=False,
+    ).and_return(flexmock(url="some_url")).once()
+    flexmock(PackitAPI).should_receive("clean")
+
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.running
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr_url").with_args(
+        downstream_pr_url="some_url"
+    ).once()
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.submitted
+    ).once()
+    flexmock(model).should_receive("set_start_time").once()
+    flexmock(model).should_receive("set_finished_time").once()
+    flexmock(model).should_receive("set_logs").once()
+
+    project_event = flexmock(
+        project_event_model_type=ProjectEventModelType.pull_request,
+        id=12,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    run_model = flexmock(PipelineModel)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=pagure_pr_comment_added["pullrequest"]["id"],
+        namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
+        repo_name=pagure_pr_comment_added["pullrequest"]["project"]["name"],
+        project_url=pagure_pr_comment_added["pullrequest"]["project"]["full_url"],
+    ).and_return(project_event)
+    sync_release_model = flexmock(id=123, sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
+        project_event_model=project_event,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    ).and_return(sync_release_model, run_model).once()
+    flexmock(sync_release_model).should_receive("set_status").with_args(
+        status=SyncReleaseStatus.finished
+    ).once()
+
+    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            project_event_model_type=ProjectEventModelType.pull_request,
+        )
+    )
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(shutil).should_receive("rmtree").with_args("")
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_pull_from_upstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
     assert first_dict_value(results["job"])["success"]
