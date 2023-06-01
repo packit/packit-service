@@ -6,6 +6,7 @@ from os import getenv
 from socket import gaierror
 
 from flask import Flask
+from flask_cors import CORS
 
 # Mypy errors out with Module 'flask' has no attribute '__version__'.
 # Python can find flask's version but mypy cannot.
@@ -77,6 +78,7 @@ def get_flask_application():
 
 
 packit_as_a_service = Proxy(get_flask_application)
+CORS(packit_as_a_service)
 
 # Make Prometheus Client serve the /metrics endpoint
 application = DispatcherMiddleware(packit_as_a_service, {"/metrics": prometheus_app()})
