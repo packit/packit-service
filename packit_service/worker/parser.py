@@ -154,7 +154,6 @@ class Parser:
                 Parser.parse_new_hotness_update_event,
                 Parser.parse_gitlab_release_event,
                 Parser.parse_gitlab_tag_push_event,
-                Parser.parse_vm_image_build_result_event,
             ),
         ):
             if response:
@@ -1542,39 +1541,6 @@ class Parser:
             distgit_project_url=distgit_project_url,
         )
 
-    @staticmethod
-    def parse_vm_image_build_result_event(event) -> Optional[VMImageBuildResultEvent]:
-        """a vm image build changed state"""
-        topic = event.get("topic")
-
-        if topic != "vm-image-build-state-change":
-            # Topic not supported.
-            return None
-
-        logger.info(f"VM image build state changed {event.get('status')}")
-
-        build_id = event.get("build_id")
-        copr_chroot = event.get("copr_chroot")
-        pr_id = event.get("pr_id")
-        actor = event.get("actor")
-        commit_sha = event.get("commit_sha")
-        project_url = event.get("project_url")
-        status = event.get("status")
-        message = event.get("message")
-        created_at = event.get("created_at")
-
-        return VMImageBuildResultEvent(
-            build_id,
-            copr_chroot,
-            pr_id,
-            actor,
-            commit_sha,
-            project_url,
-            status,
-            message,
-            created_at,
-        )
-
     MAPPING = {
         "github": {
             "check_run": parse_check_rerun_event,
@@ -1584,6 +1550,7 @@ class Parser:
             "push": parse_github_push_event,
             "installation": parse_installation_event,
         },
+        # https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html
         "gitlab": {
             "Merge Request Hook": parse_mr_event,
             "Note Hook": parse_gitlab_comment_event,
