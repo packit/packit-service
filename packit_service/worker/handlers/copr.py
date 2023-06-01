@@ -398,6 +398,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             for job_config in self.copr_build_helper.job_tests_all:
                 if (
                     not job_config.skip_build
+                    and not job_config.manual_trigger
                     and self.copr_event.chroot
                     in self.copr_build_helper.build_targets_for_test_job(job_config)
                 ):
