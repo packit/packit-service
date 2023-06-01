@@ -12,10 +12,10 @@ from packit_service.models import (
     PullRequestModel,
     TFTTestRunTargetModel,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import AbstractResultEvent
 
 
-class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
+class TestingFarmResultsEvent(AbstractResultEvent):
     __test__ = False
 
     def __init__(

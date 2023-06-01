@@ -43,8 +43,10 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     ReleaseGitlabEvent,
     CheckRerunEvent,
+    VMImageBuildResultEvent,
+    AbstractCoprBuildEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, AbstractKojiEvent
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -3193,6 +3195,90 @@ def test_handler_doesnt_match_to_job(
                 ),
             ],
             {"job_identifier": "first"},
+        ),
+        pytest.param(
+            TestingFarmResultsEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            VMImageBuildResultEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            AbstractCoprBuildEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            {},
+        ),
+        pytest.param(
+            AbstractKojiEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                    manual_trigger=True,
+                ),
+            ],
+            {},
         ),
     ],
 )

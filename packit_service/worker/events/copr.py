@@ -14,13 +14,13 @@ from packit_service.models import (
     AbstractProjectEventDbType,
     SRPMBuildModel,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.worker.events.enums import FedmsgTopic
 
 logger = getLogger(__name__)
 
 
-class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
+class AbstractCoprBuildEvent(AbstractResultEvent):
     build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
 
     def __init__(

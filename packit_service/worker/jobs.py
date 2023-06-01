@@ -38,6 +38,7 @@ from packit_service.worker.events.comment import (
     AbstractCommentEvent,
     AbstractIssueCommentEvent,
 )
+from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -71,7 +72,7 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-MANUAL_EVENTS = [AbstractCommentEvent, CheckRerunEvent]
+MANUAL_OR_RESULT_EVENTS = [AbstractCommentEvent, AbstractResultEvent, CheckRerunEvent]
 
 
 def get_handlers_for_comment(
@@ -635,7 +636,7 @@ class SteveJobs:
                     not job.manual_trigger
                     or any(
                         isinstance(self.event, event_type)
-                        for event_type in MANUAL_EVENTS
+                        for event_type in MANUAL_OR_RESULT_EVENTS
                     )
                 )
             ):
