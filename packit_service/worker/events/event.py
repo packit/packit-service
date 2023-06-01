@@ -492,3 +492,12 @@ class AbstractForgeIndependentEvent(Event):
             models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),
             statuses_to_filter_with=statuses_to_filter_with,
         )
+
+
+class AbstractResultEvent(AbstractForgeIndependentEvent):
+    """
+    This class is used only as an Abstract for result events to
+    allow Steve properly filter jobs with manual trigger.
+    """
+
+    pass

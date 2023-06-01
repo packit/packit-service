@@ -20,12 +20,12 @@ from packit_service.models import (
     PipelineModel,
 )
 from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
     use_for_job_config_trigger,
+    AbstractResultEvent,
 )
 
 
-class AbstractKojiEvent(AbstractForgeIndependentEvent):
+class AbstractKojiEvent(AbstractResultEvent):
     def __init__(
         self,
         build_id: int,

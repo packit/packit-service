@@ -7,12 +7,12 @@ from packit_service.models import (
     VMImageBuildStatus,
 )
 from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
     AbstractProjectEventDbType,
+    AbstractResultEvent,
 )
 
 
-class VMImageBuildResultEvent(AbstractForgeIndependentEvent):
+class VMImageBuildResultEvent(AbstractResultEvent):
     def __init__(
         self,
         build_id: str,
