@@ -1541,36 +1541,37 @@ class Parser:
             distgit_project_url=distgit_project_url,
         )
 
+    # The .__func__ are needed for Python < 3.10
     MAPPING = {
         "github": {
-            "check_run": parse_check_rerun_event,
-            "pull_request": parse_pr_event,
-            "issue_comment": parse_github_comment_event,
-            "release": parse_release_event,
-            "push": parse_github_push_event,
-            "installation": parse_installation_event,
+            "check_run": parse_check_rerun_event.__func__,  # type: ignore
+            "pull_request": parse_pr_event.__func__,  # type: ignore
+            "issue_comment": parse_github_comment_event.__func__,  # type: ignore
+            "release": parse_release_event.__func__,  # type: ignore
+            "push": parse_github_push_event.__func__,  # type: ignore
+            "installation": parse_installation_event.__func__,  # type: ignore
         },
         # https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html
         "gitlab": {
-            "Merge Request Hook": parse_mr_event,
-            "Note Hook": parse_gitlab_comment_event,
-            "Push Hook": parse_gitlab_push_event,
-            "Tag Push Hook": parse_gitlab_tag_push_event,
-            "Pipeline Hook": parse_pipeline_event,
-            "Release Hook": parse_gitlab_release_event,
+            "Merge Request Hook": parse_mr_event.__func__,  # type: ignore
+            "Note Hook": parse_gitlab_comment_event.__func__,  # type: ignore
+            "Push Hook": parse_gitlab_push_event.__func__,  # type: ignore
+            "Tag Push Hook": parse_gitlab_tag_push_event.__func__,  # type: ignore
+            "Pipeline Hook": parse_pipeline_event.__func__,  # type: ignore
+            "Release Hook": parse_gitlab_release_event.__func__,  # type: ignore
         },
         "fedora-messaging": {
-            "pagure.pull-request.flag.added": parse_pagure_pr_flag_event,
-            "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event,
-            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event,
-            "git.receive": parse_pagure_push_event,
-            "copr.build.start": parse_copr_event,
-            "copr.build.end": parse_copr_event,
-            "buildsys.task.state.change": parse_koji_task_event,
-            "buildsys.build.state.change": parse_koji_build_event,
-            "hotness.update.bug.file": parse_new_hotness_update_event,
+            "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
+            "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
+            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore # noqa: E501
+            "git.receive": parse_pagure_push_event.__func__,  # type: ignore
+            "copr.build.start": parse_copr_event.__func__,  # type: ignore
+            "copr.build.end": parse_copr_event.__func__,  # type: ignore
+            "buildsys.task.state.change": parse_koji_task_event.__func__,  # type: ignore
+            "buildsys.build.state.change": parse_koji_build_event.__func__,  # type: ignore
+            "hotness.update.bug.file": parse_new_hotness_update_event.__func__,  # type: ignore
         },
         "testing-farm": {
-            "results": parse_testing_farm_results_event,
+            "results": parse_testing_farm_results_event.__func__,  # type: ignore
         },
     }
