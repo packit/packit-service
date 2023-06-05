@@ -1537,10 +1537,11 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     @staticmethod
     def get_all_by(
-        project_name: str,
         commit_sha: str,
+        project_name: str = None,
         owner: str = None,
         target: str = None,
+        status: BuildStatus = None,
     ) -> Iterable["CoprBuildTargetModel"]:
         """
         All owner/project_name builds sorted from latest to oldest
