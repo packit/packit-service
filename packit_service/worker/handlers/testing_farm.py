@@ -34,6 +34,7 @@ from packit_service.worker.checker.testing_farm import (
     IsEventOk,
     IsJobConfigTriggerMatching,
     IsCoprBuildDefined,
+    IsIdentifierFromCommentMatching,
 )
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
@@ -122,6 +123,7 @@ class TestingFarmHandler(
             IsEventOk,
             IsCoprBuildDefined,
             CanActorRunJob,
+            IsIdentifierFromCommentMatching,
         )
 
     def _get_or_create_group(

@@ -1153,7 +1153,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
     package_config.spec_source_id = 1
 
     event = {
-        "event_type": "CoprBuileEndEvent",
+        "event_type": "CoprBuildEndEvent",
         "commit_sha": valid_commit_sha,
         "targets_override": ["target-x86_64"],
     }
@@ -1751,3 +1751,49 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
         flexmock(TFJobHelper).should_receive("report_status_to_tests_for_test_target")
 
     assert job_helper._is_supported_architecture(target) == supported
+
+
+@pytest.mark.parametrize(
+    "comment,expected_identifier,expected_pr_arg",
+    [
+        (
+            "/packit-dev test --identifier my-id-1 namespace-1/repo-1#33",
+            "my-id-1",
+            "namespace-1/repo-1#33",
+        ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --identifier my-id-2",
+            "my-id-2",
+            "namespace-2/repo-2#36",
+        ),
+    ],
+)
+def test_parse_comment_arguments(
+    comment: str, expected_identifier: str, expected_pr_arg: str
+):
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            )
+        },
+    )
+    metadata = flexmock(event_dict={"comment": comment})
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request
+        ),
+        job_config=job_config,
+    )
+
+    assert helper.comment_arguments.pr_argument == expected_pr_arg
+    assert helper.comment_arguments.identifier == expected_identifier
