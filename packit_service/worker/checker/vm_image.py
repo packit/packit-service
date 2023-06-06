@@ -72,33 +72,24 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
     def pre_check(
         self,
     ) -> bool:
-        copr_builds = CoprBuildTargetModel.get_all_by_commit(
+        copr_builds = CoprBuildTargetModel.get_all_by(
+            project_name=self.job_config.project,
             commit_sha=self.data.commit_sha,
+            owner=self.job_config.owner,
+            target=self.job_config.copr_chroot,
+            status=BuildStatus.success,
         )
-        if not any(copr_builds):
-            msg = f"No Copr build found for commit sha {self.data.commit_sha}"
-            logger.debug(msg)
-            self.report_pre_check_failure(msg)
-            return False
 
-        for build in copr_builds:
-            # make sure that the build is done in the configured Copr project
-            if (
-                build.project_name == self.job_config.project
-                and build.owner == self.job_config.owner
-            ):
-                # we trust the user has correctly selected the binary RPM to be installed
-                # we cannot check for that as we don't know what exactly is user trying to do
-                # they can easily install multiple packages that are built from multiple projects
-                # let's just make sure that the build from the current commit is already done
-                if (
-                    build.target == self.job_config.copr_chroot
-                    and build.status == BuildStatus.success
-                ):
-                    return True
+        if copr_builds:
+            return True
+
+        project = (
+            f"project {self.job_config.owner}/{self.job_config.project}, "
+            if self.job_config.owner and self.job_config.project
+            else ""
+        )
         msg = (
-            "No successful Copr build found for project "
-            f"{self.job_config.owner}/{self.job_config.project} "
+            f"No successful Copr build found for {project}"
             f"commit {self.data.commit_sha} "
             f"and chroot (target) {self.job_config.copr_chroot}"
         )

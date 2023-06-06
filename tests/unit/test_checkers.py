@@ -281,42 +281,9 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
         ),
         pytest.param(
             False,
-            [
-                flexmock(
-                    project_name="knx-stack",
-                    owner="mmassari",
-                    target="fedora-36-x86_64",
-                    status="failed",
-                    built_packages=[],
-                ),
-            ],
-            (
-                "No successful Copr build found for project mmassari/knx-stack"
-                " commit 1 and chroot (target) fedora-36-x86_64"
-            ),
-            id="No successful copr build for project found",
-        ),
-        pytest.param(
-            False,
-            [
-                flexmock(
-                    project_name="knx-stack",
-                    owner="mmassari",
-                    target="fedora-38-arm_32",
-                    status="failed",
-                    built_packages=[],
-                ),
-            ],
-            (
-                "No successful Copr build found for project mmassari/knx-stack"
-                " commit 1 and chroot (target) fedora-36-x86_64"
-            ),
-            id="No copr build for target found",
-        ),
-        pytest.param(
-            False,
             [],
-            "No Copr build found for commit sha 1",
+            "No successful Copr build found for project mmassari/knx-stack, "
+            "commit 1 and chroot (target) fedora-36-x86_64",
             id="No copr build found",
         ),
     ),
@@ -326,9 +293,7 @@ def test_vm_image_is_copr_build_ok_for_chroot(
 ):
     package_config, job_config, _, _ = fake_package_config_job_config_project_db_trigger
 
-    flexmock(CoprBuildTargetModel).should_receive("get_all_by_commit").and_return(
-        copr_builds
-    )
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(copr_builds)
 
     checker = IsCoprBuildForChrootOk(
         package_config,
