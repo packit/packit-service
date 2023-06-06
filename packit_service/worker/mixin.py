@@ -20,6 +20,7 @@ from packit.vm_image_build import ImageBuilder
 from ogr.abstract import GitProject, PullRequest, PRStatus
 
 from packit_service.config import ServiceConfig
+from packit_service.models import CoprBuildTargetModel, BuildStatus
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
@@ -364,6 +365,7 @@ class GetVMImageBuilderMixin(Config):
 
 class GetVMImageDataMixin(Config):
     job_config: JobConfig
+    _copr_build: Optional[CoprBuildTargetModel] = None
 
     @property
     def chroot(self) -> str:
@@ -375,17 +377,19 @@ class GetVMImageDataMixin(Config):
 
     @property
     def owner(self) -> str:
-        return self.job_config.owner
+        return self.job_config.owner or (
+            self.copr_build.owner if self.copr_build else None
+        )
 
     @property
     def project_name(self) -> str:
-        return self.job_config.project
+        return self.job_config.project or (
+            self.copr_build.project_name if self.copr_build else None
+        )
 
     @property
     def image_name(self) -> str:
-        return (
-            f"{self.job_config.owner}/" f"{self.job_config.project}/{self.data.pr_id}"
-        )
+        return f"{self.owner}/" f"{self.project_name}/{self.data.pr_id}"
 
     @property
     def image_distribution(self) -> str:
@@ -398,6 +402,25 @@ class GetVMImageDataMixin(Config):
     @property
     def image_customizations(self) -> dict:
         return self.job_config.image_customizations
+
+    @property
+    def copr_build(self) -> Optional[CoprBuildTargetModel]:
+        if not self._copr_build:
+            copr_builds = CoprBuildTargetModel.get_all_by(
+                project_name=self.job_config.project,
+                commit_sha=self.data.commit_sha,
+                owner=self.job_config.owner,
+                target=self.job_config.copr_chroot,
+                status=BuildStatus.success,
+            )
+
+            for copr_build in copr_builds:
+                project_event_object = copr_build.get_project_event_object()
+                # check whether the event trigger matches
+                if project_event_object.id == self.data.db_project_event.id:
+                    self._copr_build = copr_build
+                    break
+        return self._copr_build
 
 
 class GetReporter(Protocol):

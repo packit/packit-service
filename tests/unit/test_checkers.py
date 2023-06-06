@@ -11,14 +11,14 @@ from packit.config import (
 )
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
-from packit_service.worker.checker.koji import (
-    PermissionOnKoji,
+from packit_service.worker.checker.copr import (
+    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
 )
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
 )
-from packit_service.worker.checker.copr import (
-    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
+from packit_service.worker.checker.koji import (
+    PermissionOnKoji,
 )
 from packit_service.worker.checker.testing_farm import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
@@ -265,16 +265,19 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
 
 
 @pytest.mark.parametrize(
-    "success, copr_builds, error_msg",
+    "success, project_name, owner, copr_builds, error_msg",
     (
         pytest.param(
             True,
+            "knx-stack",
+            "mmassari",
             [
                 flexmock(
                     project_name="knx-stack",
                     owner="mmassari",
                     target="fedora-36-x86_64",
                     status="success",
+                    get_project_event_object=lambda: flexmock(id=1),
                 ),
             ],
             None,
@@ -282,17 +285,35 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
         ),
         pytest.param(
             False,
+            "knx-stack",
+            "mmassari",
             [],
             "No successful Copr build found for project mmassari/knx-stack, "
             "commit 1 and chroot (target) fedora-36-x86_64",
             id="No copr build found",
         ),
+        pytest.param(
+            False,
+            None,
+            None,
+            [],
+            "No successful Copr build found for "
+            "commit 1 and chroot (target) fedora-36-x86_64",
+            id="No copr build found, job config without Copr project info",
+        ),
     ),
 )
 def test_vm_image_is_copr_build_ok_for_chroot(
-    fake_package_config_job_config_project_db_trigger, success, copr_builds, error_msg
+    fake_package_config_job_config_project_db_trigger,
+    success,
+    project_name,
+    owner,
+    copr_builds,
+    error_msg,
 ):
     package_config, job_config, _, _ = fake_package_config_job_config_project_db_trigger
+    job_config.project = project_name
+    job_config.owner = owner
 
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(copr_builds)
 
@@ -301,6 +322,7 @@ def test_vm_image_is_copr_build_ok_for_chroot(
         job_config,
         {"event_type": PullRequestCommentGithubEvent.__name__, "commit_sha": "1"},
     )
+    checker.data._db_project_event = flexmock(id=1)
 
     if error_msg:
         flexmock(checker).should_receive("report_pre_check_failure").with_args(

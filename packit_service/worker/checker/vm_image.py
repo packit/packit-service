@@ -3,20 +3,17 @@
 
 import logging
 
-from packit_service.models import CoprBuildTargetModel, BuildStatus
+from packit_service.constants import DOCS_VM_IMAGE_BUILD
+from packit_service.models import (
+    VMImageBuildStatus,
+)
 from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.mixin import (
     GetVMImageDataMixin,
     ConfigFromEventMixin,
     GetReporterFromJobHelperMixin,
 )
-from packit_service.models import (
-    VMImageBuildStatus,
-)
-
 from packit_service.worker.reporting import BaseCommitStatus
-
-from packit_service.constants import DOCS_VM_IMAGE_BUILD
 
 logger = logging.getLogger(__name__)
 
@@ -72,15 +69,7 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
     def pre_check(
         self,
     ) -> bool:
-        copr_builds = CoprBuildTargetModel.get_all_by(
-            project_name=self.job_config.project,
-            commit_sha=self.data.commit_sha,
-            owner=self.job_config.owner,
-            target=self.job_config.copr_chroot,
-            status=BuildStatus.success,
-        )
-
-        if copr_builds:
+        if self.copr_build:
             return True
 
         project = (
@@ -88,6 +77,7 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
             if self.job_config.owner and self.job_config.project
             else ""
         )
+
         msg = (
             f"No successful Copr build found for {project}"
             f"commit {self.data.commit_sha} "

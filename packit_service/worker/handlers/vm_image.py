@@ -75,9 +75,9 @@ class VMImageBuildHandler(
             )
 
         repo_url = self.packit_api.copr_helper.get_repo_download_url(
-            owner=self.job_config.owner,
-            project=self.job_config.project,
-            chroot=self.job_config.copr_chroot,
+            owner=self.owner,
+            project=self.project_name,
+            chroot=self.chroot,
         )
         image_id = self.vm_image_builder.create_image(
             self.image_distribution,
