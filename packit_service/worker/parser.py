@@ -139,7 +139,6 @@ class Parser:
                 Parser.parse_github_push_event,
                 Parser.parse_check_rerun_event,
                 Parser.parse_installation_event,
-                Parser.parse_push_pagure_event,
                 Parser.parse_testing_farm_results_event,
                 Parser.parse_copr_event,
                 Parser.parse_mr_event,
@@ -149,12 +148,12 @@ class Parser:
                 Parser.parse_gitlab_issue_comment_event,
                 Parser.parse_gitlab_push_event,
                 Parser.parse_pipeline_event,
+                Parser.parse_pagure_push_event,
                 Parser.parse_pagure_pr_flag_event,
                 Parser.parse_pagure_pull_request_comment_event,
                 Parser.parse_new_hotness_update_event,
                 Parser.parse_gitlab_release_event,
                 Parser.parse_gitlab_tag_push_event,
-                Parser.parse_vm_image_build_result_event,
             ),
         ):
             if response:
@@ -645,6 +644,18 @@ class Parser:
         )
 
     @staticmethod
+    def parse_gitlab_comment_event(
+        event,
+    ) -> Optional[Union[MergeRequestCommentGitlabEvent, IssueCommentGitlabEvent]]:
+        """Check whether the comment event from Gitlab comes from an MR or issue,
+        and parse accordingly.
+        """
+        if event.get("merge_request"):
+            return Parser.parse_merge_request_comment_event(event)
+        else:
+            return Parser.parse_gitlab_issue_comment_event(event)
+
+    @staticmethod
     def parse_gitlab_issue_comment_event(event) -> Optional[IssueCommentGitlabEvent]:
         """Look into the provided event and see if it is Gitlab Issue comment event."""
         if event.get("object_kind") != "note":
@@ -1063,7 +1074,7 @@ class Parser:
         return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
-    def parse_push_pagure_event(event) -> Optional[PushPagureEvent]:
+    def parse_pagure_push_event(event) -> Optional[PushPagureEvent]:
         """this corresponds to dist-git event when someone pushes new commits"""
         topic = event.get("topic")
         if topic != "org.fedoraproject.prod.git.receive":
@@ -1530,46 +1541,37 @@ class Parser:
             distgit_project_url=distgit_project_url,
         )
 
-    @staticmethod
-    def parse_vm_image_build_result_event(event) -> Optional[VMImageBuildResultEvent]:
-        """a vm image build changed state"""
-        topic = event.get("topic")
-
-        if topic != "vm-image-build-state-change":
-            # Topic not supported.
-            return None
-
-        logger.info(f"VM image build state changed {event.get('status')}")
-
-        build_id = event.get("build_id")
-        copr_chroot = event.get("copr_chroot")
-        pr_id = event.get("pr_id")
-        actor = event.get("actor")
-        commit_sha = event.get("commit_sha")
-        project_url = event.get("project_url")
-        status = event.get("status")
-        message = event.get("message")
-        created_at = event.get("created_at")
-
-        return VMImageBuildResultEvent(
-            build_id,
-            copr_chroot,
-            pr_id,
-            actor,
-            commit_sha,
-            project_url,
-            status,
-            message,
-            created_at,
-        )
-
+    # The .__func__ are needed for Python < 3.10
     MAPPING = {
         "github": {
-            "check_run": parse_check_rerun_event,
-            "pull_request": parse_pr_event,
-            "issue_comment": parse_github_comment_event,
-            "release": parse_release_event,
-            "push": parse_github_push_event,
-            "installation": parse_installation_event,
-        }
+            "check_run": parse_check_rerun_event.__func__,  # type: ignore
+            "pull_request": parse_pr_event.__func__,  # type: ignore
+            "issue_comment": parse_github_comment_event.__func__,  # type: ignore
+            "release": parse_release_event.__func__,  # type: ignore
+            "push": parse_github_push_event.__func__,  # type: ignore
+            "installation": parse_installation_event.__func__,  # type: ignore
+        },
+        # https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html
+        "gitlab": {
+            "Merge Request Hook": parse_mr_event.__func__,  # type: ignore
+            "Note Hook": parse_gitlab_comment_event.__func__,  # type: ignore
+            "Push Hook": parse_gitlab_push_event.__func__,  # type: ignore
+            "Tag Push Hook": parse_gitlab_tag_push_event.__func__,  # type: ignore
+            "Pipeline Hook": parse_pipeline_event.__func__,  # type: ignore
+            "Release Hook": parse_gitlab_release_event.__func__,  # type: ignore
+        },
+        "fedora-messaging": {
+            "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
+            "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
+            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore # noqa: E501
+            "git.receive": parse_pagure_push_event.__func__,  # type: ignore
+            "copr.build.start": parse_copr_event.__func__,  # type: ignore
+            "copr.build.end": parse_copr_event.__func__,  # type: ignore
+            "buildsys.task.state.change": parse_koji_task_event.__func__,  # type: ignore
+            "buildsys.build.state.change": parse_koji_build_event.__func__,  # type: ignore
+            "hotness.update.bug.file": parse_new_hotness_update_event.__func__,  # type: ignore
+        },
+        "testing-farm": {
+            "results": parse_testing_farm_results_event.__func__,  # type: ignore
+        },
     }

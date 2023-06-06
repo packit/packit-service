@@ -199,7 +199,11 @@ class GitlabWebhook(Resource):
 
         celery_app.send_task(
             name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
-            kwargs={"event": msg},
+            kwargs={
+                "event": msg,
+                "source": "gitlab",
+                "event_type": request.headers.get("X-Gitlab-Event"),
+            },
         )
 
         return "Webhook accepted. We thank you, Gitlab.", HTTPStatus.ACCEPTED

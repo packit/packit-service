@@ -362,7 +362,7 @@ def distgit_push_packit():
 
 @pytest.fixture(scope="module")
 def distgit_push_event(distgit_push_packit) -> PushPagureEvent:
-    return Parser.parse_push_pagure_event(distgit_push_packit)
+    return Parser.parse_pagure_push_event(distgit_push_packit)
 
 
 @pytest.fixture(scope="module")
