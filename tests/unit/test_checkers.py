@@ -4,7 +4,11 @@
 import pytest
 from flexmock import flexmock
 
-from packit.config.job_config import JobType, JobConfigTriggerType
+from packit.config import (
+    CommonPackageConfig,
+    JobType,
+    JobConfigTriggerType,
+)
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.koji import (
@@ -18,6 +22,7 @@ from packit_service.worker.checker.copr import (
 )
 from packit_service.worker.checker.testing_farm import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
+    IsIdentifierFromCommentMatching,
 )
 from packit_service.worker.checker.vm_image import (
     IsCoprBuildForChrootOk,
@@ -422,3 +427,62 @@ def test_koji_branch_merge_queue():
     checker = IsJobConfigTriggerMatchingKoji(package_config, job_config, event)
 
     assert checker.pre_check()
+
+
+@pytest.mark.parametrize(
+    "comment, result",
+    (
+        pytest.param(
+            "/packit-dev test --identifier my-id-1",
+            True,
+            id="Matching identifier specified",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            True,
+            id="No identifier specified",
+        ),
+        pytest.param(
+            "/packit-dev test --identifier my-id-2",
+            False,
+            id="Non-matching identifier specified",
+        ),
+    ),
+)
+def test_tf_comment_identifier(comment, result):
+    """
+    Check that Testing Farm checker for comment attributes works properly.
+    """
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        targets={"fedora-37"},
+        skip_build=True,
+        manual_trigger=True,
+        packages={"package": CommonPackageConfig()},
+        identifier="my-id-1",
+    )
+
+    event = {
+        "event_type": PullRequestCommentGithubEvent.__name__,
+        "comment": comment,
+    }
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_event = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+
+    checker = IsIdentifierFromCommentMatching(
+        package_config=package_config, job_config=job_config, event=event
+    )
+
+    assert checker.pre_check() == result

@@ -125,3 +125,26 @@ class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
             return False
 
         return True
+
+
+class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
+    """
+    Check that job identifier is matching comment --identifier option when it is specified.
+    If identifier is not specified it will allow all jobs execution,
+    otherwise only jobs with the same identifier.
+    """
+
+    def pre_check(self) -> bool:
+        if (
+            not self.testing_farm_job_helper.comment_arguments.identifier
+            or self.testing_farm_job_helper.comment_arguments.identifier
+            == self.job_config.identifier
+        ):
+            return True
+
+        logger.info(
+            f"Skipping running tests for the job, identifiers doesn't match "
+            f"(job:{self.job_config.identifier} "
+            f"!= comment:${self.testing_farm_job_helper.comment_arguments.identifier})"
+        )
+        return False

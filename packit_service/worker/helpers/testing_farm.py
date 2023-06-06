@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import re
 from typing import Dict, Any, Optional, Set, List, Union, Tuple, Callable
 
 import requests
@@ -32,7 +33,7 @@ from packit_service.models import (
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
-from packit_service.utils import get_package_nvrs, get_packit_commands_from_comment
+from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
     EventData,
@@ -49,6 +50,41 @@ from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
+
+
+class CommentArguments:
+    """
+    Parse arguments from trigger comment and provide the attributes to Testing Farm helper.
+    """
+
+    packit_command: str = None
+    identifier: str = None
+    pr_argument: str = None
+
+    def __init__(self, command_prefix: str, comment: str):
+        if comment is None:
+            return
+
+        # Try to parse identifier argument from comment
+        logger.debug(f"Parsing comment -> {comment}")
+        logger.debug(f"Used command prefix -> {command_prefix}")
+
+        match = re.search(
+            r"^" + re.escape(command_prefix) + r"\s(?P<packit_command>\S+)", comment
+        )
+        if match:
+            self.packit_command = match.group("packit_command")
+            logger.debug(f"Parsed packit_command: {self.packit_command}")
+
+        match = re.search(r"--identifier[\s=](?P<identifier>\S+)", comment)
+        if match:
+            self.identifier = match.group("identifier")
+            logger.debug(f"Parsed test argument -> identifier: {self.identifier}")
+
+        match = re.search(r"(?P<pr_arg>[^/\s]+/[^#]+#\d+)", comment)
+        if match:
+            self.pr_argument = match.group("pr_arg")
+            logger.debug(f"Parsed test argument -> pr_argument: {self.pr_argument}")
 
 
 class TestingFarmJobHelper(CoprBuildJobHelper):
@@ -84,11 +120,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self._tft_api_url: str = ""
         self._tft_token: str = ""
         self.__pr = None
-        self._comment_command_parts: Optional[List[str]] = None
         self._copr_builds_from_other_pr: Optional[
             Dict[str, CoprBuildTargetModel]
         ] = None
         self._test_check_names: Optional[List[str]] = None
+        self._comment_arguments: Optional[CommentArguments] = None
 
     @property
     def tft_api_url(self) -> str:
@@ -204,22 +240,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.__pr
 
     @property
-    def comment_command_parts(self) -> Optional[List[str]]:
+    def comment_arguments(self) -> Optional[CommentArguments]:
         """
-        List of packit comment command parts if the testing farm was triggered by a comment.
-
-        Example:
-            '/packit test' -> ["test"]
-            '/packit test namespace/repo#pr' -> ["test", "namespace/repo#pr"]
+        Build CommentArguments class by event comment data.
         """
-        if not self._comment_command_parts and (
-            comment := self.metadata.event_dict.get("comment")
-        ):
-            self._comment_command_parts = get_packit_commands_from_comment(
-                comment,
-                packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        if not self._comment_arguments:
+            self._comment_arguments = CommentArguments(
+                self.service_config.comment_command_prefix,
+                self.metadata.event_dict.get("comment"),
             )
-        return self._comment_command_parts
+        return self._comment_arguments
 
     def is_comment_event(self) -> bool:
         return self.metadata.event_type in (
@@ -229,16 +259,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def is_copr_build_comment_event(self) -> bool:
-        return self.is_comment_event() and self.comment_command_parts[0] in (
+        return self.is_comment_event() and self.comment_arguments.packit_command in (
             "build",
             "copr-build",
         )
 
     def is_test_comment_event(self) -> bool:
-        return self.is_comment_event() and self.comment_command_parts[0] == "test"
+        return (
+            self.is_comment_event() and self.comment_arguments.packit_command == "test"
+        )
 
     def is_test_comment_pr_argument_present(self):
-        return self.is_test_comment_event() and len(self.comment_command_parts) == 2
+        return self.is_test_comment_event() and self.comment_arguments.pr_argument
+
+    def is_test_comment_identifier_present(self):
+        return self.is_test_comment_event() and self.comment_arguments.identifier
 
     def build_required(self) -> bool:
         return not self.skip_build and (
@@ -1128,16 +1163,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         Returns:
             tuple of strings for namespace, repo and pr_id
         """
-        if not self.comment_command_parts or len(self.comment_command_parts) != 2:
+        if not self.comment_arguments.pr_argument:
             return None
 
-        pr_argument = self.comment_command_parts[1]
-        # pr_argument should be in format namespace/repo#pr_id
-        pr_argument_parts = pr_argument.split("#")
+        # self.comment_arguments.pr_argument should be in format namespace/repo#pr_id
+        pr_argument_parts = self.comment_arguments.pr_argument.split("#")
         if len(pr_argument_parts) != 2:
             logger.debug(
                 "Unexpected format of the test argument:"
-                f" not able to split the test argument {pr_argument} with '#'."
+                f" not able to split the test argument "
+                f"{self.comment_arguments.pr_argument} with '#'."
             )
             return None
 
@@ -1146,7 +1181,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if len(namespace_repo) != 2:
             logger.debug(
                 "Unexpected format of the test argument: "
-                f"not able to split the test argument {pr_argument} with '/'."
+                f"not able to split the test argument "
+                f"{self.comment_arguments.pr_argument} with '/'."
             )
             return None
         namespace, repo = namespace_repo
