@@ -83,13 +83,16 @@ def test_vm_image_build(github_vm_image_build_comment):
     )
     flexmock(Allowlist).should_receive("check_and_report").and_return(True)
 
-    flexmock(CoprBuildTargetModel).should_receive("get_all_by_commit").and_return(
-        flexmock(
-            owner="mmassari",
-            project_name="knx-stack",
-            target="fedora-36-x86_64",
-            status="success",
-        ),
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
+        [
+            flexmock(
+                owner="mmassari",
+                project_name="knx-stack",
+                target="fedora-36-x86_64",
+                status="success",
+                get_project_event_object=lambda: flexmock(id=1),
+            )
+        ]
     )
     flexmock(Signature).should_receive("apply_async").times(1)
     repo_download_url = (
