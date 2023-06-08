@@ -23,6 +23,7 @@ from packit_service.worker.checker.copr import (
 from packit_service.worker.checker.testing_farm import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
     IsIdentifierFromCommentMatching,
+    IsLabelFromCommentMatching,
 )
 from packit_service.worker.checker.vm_image import (
     IsCoprBuildForChrootOk,
@@ -447,6 +448,66 @@ def test_tf_comment_identifier(comment, result):
     flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
 
     checker = IsIdentifierFromCommentMatching(
+        package_config=package_config, job_config=job_config, event=event
+    )
+
+    assert checker.pre_check() == result
+
+
+@pytest.mark.parametrize(
+    "comment, result",
+    (
+        pytest.param(
+            "/packit-dev test --labels label1,label2",
+            True,
+            id="Matching label specified",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            True,
+            id="No labels specified",
+        ),
+        pytest.param(
+            "/packit-dev test --labels random-label1,random-label2",
+            False,
+            id="Non-matching label specified",
+        ),
+    ),
+)
+def test_tf_comment_labels(comment, result):
+    """
+    Check that Testing Farm checker for comment attributes works properly.
+    """
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        targets={"fedora-37"},
+        skip_build=True,
+        manual_trigger=True,
+        packages={"package": CommonPackageConfig()},
+        identifier="my-id-1",
+        labels=["label1", "label3"],
+    )
+
+    event = {
+        "event_type": PullRequestCommentGithubEvent.__name__,
+        "comment": comment,
+    }
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_event = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+
+    checker = IsLabelFromCommentMatching(
         package_config=package_config, job_config=job_config, event=event
     )
 

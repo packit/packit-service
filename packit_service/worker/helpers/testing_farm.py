@@ -59,6 +59,7 @@ class CommentArguments:
 
     packit_command: str = None
     identifier: str = None
+    labels: List[str] = None
     pr_argument: str = None
 
     def __init__(self, command_prefix: str, comment: str):
@@ -80,6 +81,11 @@ class CommentArguments:
         if match:
             self.identifier = match.group("identifier")
             logger.debug(f"Parsed test argument -> identifier: {self.identifier}")
+
+        match = re.search(r"--labels[\s=](?P<labels>\S+)", comment)
+        if match:
+            self.labels = match.group("labels").split(",")
+            logger.debug(f"Parsed test argument -> labels: {self.labels}")
 
         match = re.search(r"(?P<pr_arg>[^/\s]+/[^#]+#\d+)", comment)
         if match:
@@ -274,6 +280,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def is_test_comment_identifier_present(self):
         return self.is_test_comment_event() and self.comment_arguments.identifier
+
+    def is_test_comment_label_present(self):
+        return self.is_test_comment_event() and self.comment_arguments.labels
 
     def build_required(self) -> bool:
         return not self.skip_build and (

@@ -148,3 +148,25 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             f"!= comment:${self.testing_farm_job_helper.comment_arguments.identifier})"
         )
         return False
+
+
+class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
+    """
+    Check that job label is matching comment --labels option when it is specified.
+    If labels are not specified it will allow all jobs execution,
+    otherwise only jobs with the same label.
+    """
+
+    def pre_check(self) -> bool:
+        if not self.testing_farm_job_helper.comment_arguments.labels or any(
+            x in self.testing_farm_job_helper.comment_arguments.labels
+            for x in self.job_config.labels
+        ):
+            return True
+
+        logger.info(
+            f"Skipping running tests for the job, labels don't match "
+            f"(job:{self.job_config.labels} "
+            f"!= comment:${self.testing_farm_job_helper.comment_arguments.labels})"
+        )
+        return False
