@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 from datetime import datetime, timezone
+from typing import List
 
 import pytest
 from celery.canvas import Signature
@@ -1754,22 +1755,33 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
 
 
 @pytest.mark.parametrize(
-    "comment,expected_identifier,expected_pr_arg",
+    "comment,expected_identifier,expected_labels,expected_pr_arg",
     [
         (
-            "/packit-dev test --identifier my-id-1 namespace-1/repo-1#33",
+            "/packit-dev test --identifier my-id-1 --labels label1,label2 namespace-1/repo-1#33",
             "my-id-1",
+            ["label1", "label2"],
             "namespace-1/repo-1#33",
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --identifier my-id-2",
             "my-id-2",
+            None,
+            "namespace-2/repo-2#36",
+        ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --labels label1 --identifier my-id-2",
+            "my-id-2",
+            ["label1"],
             "namespace-2/repo-2#36",
         ),
     ],
 )
 def test_parse_comment_arguments(
-    comment: str, expected_identifier: str, expected_pr_arg: str
+    comment: str,
+    expected_identifier: str,
+    expected_labels: List[str],
+    expected_pr_arg: str,
 ):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
@@ -1797,3 +1809,4 @@ def test_parse_comment_arguments(
 
     assert helper.comment_arguments.pr_argument == expected_pr_arg
     assert helper.comment_arguments.identifier == expected_identifier
+    assert helper.comment_arguments.labels == expected_labels
