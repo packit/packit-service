@@ -366,13 +366,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # We assign a commit hash for merging only if:
             # • there are no custom fmf tests set
             # • we merge and have a PR
-            # TODO: Remove once it's fixed on TF side
-            # if (
-            #     not self.custom_fmf
-            #     and self.job_config.merge_pr_in_ci
-            #     and self.target_branch_sha
-            # ):
-            #     fmf["merge_sha"] = self.target_branch_sha
+            if (
+                not self.custom_fmf
+                and self.job_config.merge_pr_in_ci
+                and self.target_branch_sha
+            ):
+                fmf["merge_sha"] = self.target_branch_sha
 
         if self.tmt_plan:
             fmf["name"] = self.tmt_plan
