@@ -136,8 +136,8 @@ class TestingFarmResults(Resource):
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT,
+            headers={"Content-Range": f"test-results {first + 1}-{last}/*"},
         )
-        resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
         return resp
 
 

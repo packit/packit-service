@@ -37,8 +37,11 @@ class PullFromUpstreamList(Resource):
         ):
             result.append(get_sync_release_info(pull_results))
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"pull-from-upstreams {first + 1}-{last}/*"
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT,
+            headers={"Content-Range": f"pull-from-upstreams {first + 1}-{last}/*"},
+        )
         return resp
 
 

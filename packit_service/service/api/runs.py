@@ -135,8 +135,8 @@ class RunsList(Resource):
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT,
+            headers={"Content-Range": f"runs {first + 1}-{last}/*"},
         )
-        resp.headers["Content-Range"] = f"runs {first + 1}-{last}/*"
         return resp
 
 

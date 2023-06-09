@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from http import HTTPStatus
-from json import dumps
 from typing import Any, Dict, Union
-
-from flask import make_response
 
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -21,11 +18,16 @@ from packit_service.models import (
 )
 
 
-def response_maker(result: Any, status: HTTPStatus = HTTPStatus.OK):
-    """response_maker is a wrapper around flask's make_response"""
-    resp = make_response(dumps(result), status.value)
-    resp.headers["Content-Type"] = "application/json"
-    return resp
+def response_maker(
+    result: Any, status: HTTPStatus = HTTPStatus.OK, headers: dict = None
+):
+    """response_maker for customizing flask response"""
+    custom_headers = {
+        "Content-Type": "application/json",
+    }
+    if headers:
+        custom_headers.update(headers)
+    return result, status.value, custom_headers
 
 
 def get_project_info_from_build(

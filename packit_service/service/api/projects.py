@@ -44,8 +44,8 @@ class ProjectsList(Resource):
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
+            headers={"Content-Range": f"git-projects {first + 1}-{last}/*"},
         )
-        resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
 
 
@@ -102,8 +102,8 @@ class ProjectsForge(Resource):
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
+            headers={"Content-Range": f"git-projects {first + 1}-{last}/*"},
         )
-        resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
 
 
@@ -196,9 +196,9 @@ class ProjectsPRs(Resource):
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
+            headers={"Content-Range": f"git-project-prs {first + 1}-{last}/*"},
         )
 
-        resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
         return resp
 
 

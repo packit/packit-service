@@ -37,8 +37,11 @@ class ProposeDownstreamList(Resource):
         ):
             result.append(get_sync_release_info(propose_downstream_results))
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"propose-downstreams {first + 1}-{last}/*"
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT,
+            headers={"Content-Range": f"propose-downstreams {first + 1}-{last}/*"},
+        )
         return resp
 
 

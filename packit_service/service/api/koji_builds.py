@@ -54,8 +54,8 @@ class KojiBuildsList(Resource):
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT,
+            headers={"Content-Range": f"koji-builds {first + 1}-{last}/*"},
         )
-        resp.headers["Content-Range"] = f"koji-builds {first + 1}-{last}/*"
         return resp
 
 
