@@ -36,6 +36,32 @@ payload = ns.model(
     },
 )
 
+test_result_model = ns.model(
+    "TestResult",
+    {
+        "packit_id": fields.Integer(required=True, example="189004"),
+        "pipeline_id": fields.String(
+            required=True, example="d0108ce4-7ab9-4084-8f73-08c641fb284a"
+        ),
+        "ref": fields.String(
+            required=True, example="f51c87d8af543b6189374e8ec36be92779273dc3"
+        ),
+        "status": fields.String(required=True, example="failed"),
+        "target": fields.String(required=True, example="centos-stream-9-x86_64"),
+        "web_url": fields.String(
+            required=True,
+            example="https://artifacts.dev.testing-farm.io/d0108ce4-7ab9-4084-8f73-08c641fb284a",
+        ),
+        "pr_id": fields.Integer(required=True, example="1314"),
+        "submitted_time": fields.Integer(required=True, example="1678228395"),
+        "repo_namespace": fields.String(required=True, example="keylime"),
+        "repo_name": fields.String(required=True, example="keylime"),
+        "project_url": fields.String(
+            required=True, example="https://github.com/keylime/keylime"
+        ),
+    },
+)
+
 
 @ns.route("/results")
 class TestingFarmResults(Resource):
@@ -104,6 +130,7 @@ class TestingFarmResults(Resource):
         logger.warning(msg)
         raise ValidationFailed(msg)
 
+    @ns.marshal_list_with(test_result_model)
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Testing Farm Results follow")
     def get(self):
@@ -141,9 +168,47 @@ class TestingFarmResults(Resource):
         return resp
 
 
+test_run_model = ns.model(
+    "TestRun",
+    {
+        "pipeline_id": fields.String(
+            required=True, example="d0108ce4-7ab9-4084-8f73-08c641fb284a"
+        ),
+        "status": fields.String(required=True, example="failed"),
+        "chroot": fields.String(required=True, example="centos-stream-9-x86_64"),
+        "commit_sha": fields.String(
+            required=True, example="f51c87d8af543b6189374e8ec36be92779273dc3"
+        ),
+        "web_url": fields.String(
+            required=True,
+            example="https://artifacts.dev.testing-farm.io/d0108ce4-7ab9-4084-8f73-08c641fb284a",
+        ),
+        "copr_build_ids": fields.List(
+            fields.Integer(example="65510"),
+            required=True,
+        ),
+        "run_ids": fields.List(
+            fields.Integer(example="631055"),
+            required=True,
+        ),
+        "submitted_time": fields.Integer(required=True, example="1678228395"),
+        "repo_namespace": fields.String(required=True, example="keylime"),
+        "repo_name": fields.String(required=True, example="keylime"),
+        "git_repo": fields.String(
+            required=True, example="https://github.com/keylime/keylime"
+        ),
+        "pr_id": fields.Integer(required=True, example="1314"),
+        "issue_id": fields.Integer(required=True, example="null"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+    },
+)
+
+
 @ns.route("/<int:id>")
 @ns.param("id", "Packit id of the test run")
 class TestingFarmResult(Resource):
+    @ns.marshal_list_with(test_run_model)
     @ns.response(HTTPStatus.OK.value, "OK, test run details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "No info about test run stored in DB")
     def get(self, id):
@@ -171,9 +236,35 @@ class TestingFarmResult(Resource):
         return response_maker(test_result_dict)
 
 
+test_run_group_model = ns.model(
+    "TestRun",
+    {
+        "submitted_time": fields.Integer(required=True, example="1676341150"),
+        "run_ids": fields.List(
+            fields.Integer(example="631055"),
+            required=True,
+        ),
+        "test_target_ids": fields.List(
+            fields.Integer(example="11"),
+            required=True,
+        ),
+        "repo_namespace": fields.String(required=True, example="keylime"),
+        "repo_name": fields.String(required=True, example="keylime"),
+        "git_repo": fields.String(
+            required=True, example="https://github.com/keylime/keylime"
+        ),
+        "pr_id": fields.Integer(required=True, example="1314"),
+        "issue_id": fields.Integer(required=True, example="null"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+    },
+)
+
+
 @ns.route("/groups/<int:id>")
 @ns.param("id", "Packit id of the test run group")
 class TestingFarmGroup(Resource):
+    @ns.marshal_list_with(test_run_group_model)
     @ns.response(HTTPStatus.OK, "OK, test run group details follow")
     @ns.response(
         HTTPStatus.NOT_FOUND.value, "No info about test run group stored in DB"
