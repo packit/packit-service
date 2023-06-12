@@ -5,7 +5,7 @@ from http import HTTPStatus
 from logging import getLogger
 from typing import Dict
 
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 
 from packit_service.models import (
     CoprBuildGroupModel,
@@ -124,8 +124,57 @@ def process_runs(runs):
     return result
 
 
+srpm_run_model = ns.model(
+    "InfoSRPMRun",
+    {
+        "packit_id": fields.Integer(example="118888"),
+        "status": fields.String(example="BuildStatus.success"),
+    },
+)
+
+run_model = ns.model(
+    "InfoRun",
+    {
+        "packit_id": fields.Integer(example="649860"),
+        "target": fields.String(example="fedora-rawhide-x86_64"),
+        "status": fields.String(example="BuildStatus.success"),
+    },
+)
+
+trigger_model = ns.model(
+    "TriggerInfo",
+    {
+        "repo_namespace": fields.String(required=True, example="OpenSCAP"),
+        "repo_name": fields.String(required=True, example="openscap"),
+        "git_repo": fields.String(
+            required=True, example="https://github.com/OpenSCAP/openscap"
+        ),
+        "pr_id": fields.Integer(required=True, example="1954"),
+        "issue_id": fields.Integer(required=True, example="null"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+    },
+)
+
+run_model = ns.model(
+    "Run",
+    {
+        "merged_run_id": fields.Integer(required=True, example="631056"),
+        "srpm": fields.Nested(srpm_run_model, required=True),
+        "copr": fields.List(fields.Nested(run_model), required=True),
+        "koji": fields.List(fields.Nested(run_model), required=True),
+        "test_run": fields.List(fields.Nested(run_model), required=True),
+        "propose_downstream": fields.List(fields.Nested(run_model), required=True),
+        "pull_from_upstream": fields.List(fields.Nested(run_model), required=True),
+        "time_submitted": fields.Integer(required=True, example="1678229975"),
+        "trigger": fields.Nested(trigger_model, required=True),
+    },
+)
+
+
 @ns.route("")
 class RunsList(Resource):
+    @ns.marshal_list_with(run_model)
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "List of runs follows")
     def get(self):
@@ -143,6 +192,7 @@ class RunsList(Resource):
 @ns.route("/merged/<int:id>")
 @ns.param("id", "First packit ID of the merged run")
 class MergedRun(Resource):
+    @ns.marshal_with(run_model)
     @ns.response(HTTPStatus.OK.value, "OK, merged run details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
@@ -155,9 +205,23 @@ class MergedRun(Resource):
         )
 
 
+run_id_model = ns.model(
+    "RunID",
+    {
+        "run_id": fields.Integer(required=True, example="631056"),
+        "trigger": fields.Nested(trigger_model, required=True),
+        "srpm_build_id": fields.Integer(required=True, example="631056"),
+        "copr_build_group_id": fields.Integer(required=True, example="631056"),
+        "koji_build_group_id": fields.Integer(required=True, example="null"),
+        "test_run_group_id": fields.Integer(required=True, example="null"),
+    },
+)
+
+
 @ns.route("/<int:id>")
 @ns.param("id", "Packit ID of the run")
 class Run(Resource):
+    @ns.marshal_with(run_id_model)
     @ns.response(HTTPStatus.OK.value, "OK, run details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
