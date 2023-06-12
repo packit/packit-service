@@ -4,7 +4,7 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 
 from packit_service.models import GitProjectModel
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -17,9 +17,25 @@ ns = Namespace(
     "projects", description="Repositories which have Packit Service enabled."
 )
 
+project_model = ns.model(
+    "Project",
+    {
+        "namespace": fields.String(required=True, example="systemd"),
+        "repo_name": fields.String(required=True, example="systemd"),
+        "project_url": fields.String(
+            required=True, example="https://github.com/systemd/systemd"
+        ),
+        "prs_handled": fields.Integer(required=True, example="100"),
+        "branches_handled": fields.Integer(required=True, example="100"),
+        "releases_handled": fields.Integer(required=True, example="0"),
+        "issues_handled": fields.Integer(required=True, example="0"),
+    },
+)
+
 
 @ns.route("")
 class ProjectsList(Resource):
+    @ns.marshal_list_with(project_model)
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Projects list follows")
     @ns.response(HTTPStatus.OK.value, "OK")
@@ -54,6 +70,7 @@ class ProjectsList(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectInfo(Resource):
+    @ns.marshal_with(project_model)
     @ns.response(HTTPStatus.OK.value, "Project details follow")
     def get(self, forge, namespace, repo_name):
         """Project Details"""
@@ -78,11 +95,12 @@ class ProjectInfo(Resource):
 @ns.route("/<forge>")
 @ns.param("forge", "Git Forge")
 class ProjectsForge(Resource):
+    @ns.marshal_list_with(project_model)
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Projects list follows")
     @ns.response(HTTPStatus.OK.value, "OK")
     def get(self, forge):
-        """List of projects of given forge (e.g. github.com, gitlab.com)"""
+        """List of projects of given forge. (e.g. github.com, gitlab.com)"""
 
         result = []
         first, last = indices()
@@ -111,6 +129,7 @@ class ProjectsForge(Resource):
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 class ProjectsNamespace(Resource):
+    @ns.marshal_list_with(project_model)
     @ns.response(HTTPStatus.OK.value, "Projects details follow")
     def get(self, forge, namespace):
         """List of projects of given forge and namespace"""
@@ -129,11 +148,64 @@ class ProjectsNamespace(Resource):
         return response_maker(result)
 
 
+build_info_model = ns.model(
+    "BuildInfo",
+    {
+        "build_id": fields.Integer(example="1672735"),
+        "chroot": fields.String(example="fedora-32-x86_64"),
+        "status": fields.String(example="success"),
+        "web_url": fields.String(
+            example="https://copr.fedorainfracloud.org/coprs/build/1672735/"
+        ),
+    },
+)
+
+srpm_build_info_model = ns.model(
+    "SRPMBuildInfo",
+    {
+        "srpm_build_id": fields.Integer(example="10095"),
+        "status": fields.String(example="success"),
+        "log_url": fields.String(
+            example="https://dashboard.localhost/results/srpm-builds/10095"
+        ),
+    },
+)
+
+tests_info_model = ns.model(
+    "TestsInfo",
+    {
+        "pipeline_id": fields.String(example="b995ba28-6659-467e-a9ff-35466fb4f525"),
+        "chroot": fields.String(example="fedora-31-x86_64"),
+        "status": fields.String(example="error"),
+        "web_url": fields.String(
+            example=(
+                "https://console-testing-farm.apps.ci.centos.org/"
+                "pipeline/b995ba28-6659-467e-a9ff-35466fb4f525"
+            )
+        ),
+    },
+)
+
+project_pr_model = ns.model(
+    "ProjectPullRequest",
+    {
+        "pr_id": fields.Integer(required=True, example="1872"),
+        "builds": fields.Nested(build_info_model, required=True),
+        "koji_builds": fields.Nested(
+            build_info_model, required=True
+        ),  # TODO: no good example, never populated?
+        "srpm_builds": fields.Nested(srpm_build_info_model, required=True),
+        "tests": fields.Nested(tests_info_model, required=True),
+    },
+)
+
+
 @ns.route("/<forge>/<namespace>/<repo_name>/prs")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectsPRs(Resource):
+    @ns.marshal_list_with(project_pr_model)
     @ns.expect(pagination_arguments)
     @ns.response(
         HTTPStatus.PARTIAL_CONTENT.value, "Project PRs handled by Packit Service follow"
@@ -207,6 +279,8 @@ class ProjectsPRs(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectIssues(Resource):
+    # TODO: docs OK but is not marshalling correctly
+    # @ns.marshal_with(fields.List(fields.Integer(example="432344")))
     @ns.response(
         HTTPStatus.OK.value, "OK, project issues handled by Packit Service follow"
     )
@@ -222,11 +296,23 @@ class ProjectIssues(Resource):
         )
 
 
+project_release_model = ns.model(
+    "ProjectRelease",
+    {
+        "tag_name": fields.String(required=True, example="0.15.0"),
+        "commit_hash": fields.String(
+            required=True, example="b86243ea30c7809f507abe2e59359cf9cadf11a5"
+        ),
+    },
+)
+
+
 @ns.route("/<forge>/<namespace>/<repo_name>/releases")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectReleases(Resource):
+    @ns.marshal_list_with(project_release_model)
     @ns.response(
         HTTPStatus.OK.value, "OK, project releases handled by Packit Service follow"
     )
@@ -244,11 +330,26 @@ class ProjectReleases(Resource):
         return response_maker(result)
 
 
+project_branch_model = ns.model(
+    "ProjectBranch",
+    {
+        "branch": fields.String(required=True, example="main"),
+        "builds": fields.Nested(build_info_model, required=True),
+        "koji_builds": fields.Nested(
+            build_info_model, required=True
+        ),  # TODO: no good example, never populated?
+        "srpm_builds": fields.Nested(srpm_build_info_model, required=True),
+        "tests": fields.Nested(tests_info_model, required=True),
+    },
+)
+
+
 @ns.route("/<forge>/<namespace>/<repo_name>/branches")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectBranches(Resource):
+    @ns.marshal_list_with(project_branch_model)
     @ns.response(
         HTTPStatus.OK.value, "OK, project branches handled by Packit Service follow"
     )
