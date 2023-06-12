@@ -208,7 +208,7 @@ test_run_model = ns.model(
 @ns.route("/<int:id>")
 @ns.param("id", "Packit id of the test run")
 class TestingFarmResult(Resource):
-    @ns.marshal_list_with(test_run_model)
+    @ns.marshal_with(test_run_model)
     @ns.response(HTTPStatus.OK.value, "OK, test run details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "No info about test run stored in DB")
     def get(self, id):
@@ -237,7 +237,7 @@ class TestingFarmResult(Resource):
 
 
 test_run_group_model = ns.model(
-    "TestRun",
+    "TestGroupRun",
     {
         "submitted_time": fields.Integer(required=True, example="1676341150"),
         "run_ids": fields.List(
@@ -264,7 +264,7 @@ test_run_group_model = ns.model(
 @ns.route("/groups/<int:id>")
 @ns.param("id", "Packit id of the test run group")
 class TestingFarmGroup(Resource):
-    @ns.marshal_list_with(test_run_group_model)
+    @ns.marshal_with(test_run_group_model)
     @ns.response(HTTPStatus.OK, "OK, test run group details follow")
     @ns.response(
         HTTPStatus.NOT_FOUND.value, "No info about test run group stored in DB"

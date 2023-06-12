@@ -4,7 +4,7 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 
 from packit_service.models import (
     KojiBuildTargetModel,
@@ -18,9 +18,37 @@ logger = getLogger("packit_service")
 
 koji_builds_ns = Namespace("koji-builds", description="Production builds")
 
+koji_build_model = koji_builds_ns.model(
+    "KojiBuild",
+    {
+        "packit_id": fields.Integer(required=True, example="189004"),
+        "build_id": fields.String(required=True, example="98402378"),
+        "status": fields.String(required=True, example="success"),
+        "build_submitted_time": fields.Integer(required=True, example="1678228395"),
+        "chroot": fields.String(required=True, example="epel8"),
+        "web_url": fields.String(
+            required=True,
+            example="https://koji.fedoraproject.org/koji/taskinfo?taskID=98402378",
+        ),
+        "build_logs_url": fields.String(
+            required=True,
+            example="https://kojipkgs.fedoraproject.org//work/tasks/2378/98402378/build.log",
+        ),
+        "pr_id": fields.Integer(required=True, example="2953"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+        "project_url": fields.String(
+            required=True, example="https://github.com/rear/rear"
+        ),
+        "repo_namespace": fields.String(required=True, example="rear"),
+        "repo_name": fields.String(required=True, example="rear"),
+    },
+)
+
 
 @koji_builds_ns.route("")
 class KojiBuildsList(Resource):
+    @koji_builds_ns.marshal_list_with(koji_build_model)
     @koji_builds_ns.expect(pagination_arguments)
     @koji_builds_ns.response(HTTPStatus.PARTIAL_CONTENT, "Koji builds list follows")
     def get(self):
@@ -59,9 +87,48 @@ class KojiBuildsList(Resource):
         return resp
 
 
+koji_build_run_model = koji_builds_ns.model(
+    "KojiBuildRun",
+    {
+        "build_id": fields.String(required=True, example="45270685"),
+        "status": fields.String(required=True, example="pending"),
+        "chroot": fields.String(required=True, example="f32"),
+        "build_start_time": fields.Integer(required=True, example="null"),
+        "build_finished_time": fields.Integer(required=True, example="null"),
+        "build_submitted_time": fields.Integer(required=True, example="1678228395"),
+        "commit_sha": fields.String(
+            required=True, example="00f81fe880f945143293123c217f7d566439b3d9"
+        ),
+        "web_url": fields.String(
+            required=True,
+            example="https://koji.fedoraproject.org/koji/taskinfo?taskID=45270685",
+        ),
+        "build_logs_url": fields.String(
+            required=True,
+            example="null",
+        ),
+        "srpm_build_id": fields.Integer(required=True, example="3414"),
+        "run_ids": fields.List(
+            fields.Integer(example="60390"),
+            required=True,
+        ),
+        "repo_namespace": fields.String(required=True, example="packit-service"),
+        "repo_name": fields.String(required=True, example="hello-world"),
+        "git_repo": fields.String(
+            required=True, example="https://github.com/packit-service/hello-world"
+        ),
+        "pr_id": fields.Integer(required=True, example="114"),
+        "issue_id": fields.Integer(required=True, example="null"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+    },
+)
+
+
 @koji_builds_ns.route("/<int:id>")
 @koji_builds_ns.param("id", "Packit id of the build")
 class KojiBuildItem(Resource):
+    @koji_builds_ns.marshal_with(koji_build_run_model)
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build details follow")
     @koji_builds_ns.response(
         HTTPStatus.NOT_FOUND.value, "No info about build stored in DB"
@@ -95,9 +162,35 @@ class KojiBuildItem(Resource):
         return response_maker(build_dict)
 
 
+koji_build_run_group_model = koji_builds_ns.model(
+    "KojiBuildGroupRun",
+    {
+        "submitted_time": fields.Integer(required=True, example="1676343581"),
+        "run_ids": fields.List(
+            fields.Integer(example="281347"),
+            required=True,
+        ),
+        "build_target_ids": fields.List(
+            fields.Integer(example="494"),
+            required=True,
+        ),
+        "repo_namespace": fields.String(required=True, example="packit"),
+        "repo_name": fields.String(required=True, example="ogr"),
+        "git_repo": fields.String(
+            required=True, example="https://github.com/packit/ogr"
+        ),
+        "pr_id": fields.Integer(required=True, example="700"),
+        "issue_id": fields.Integer(required=True, example="null"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+    },
+)
+
+
 @koji_builds_ns.route("/groups/<int:id>")
 @koji_builds_ns.param("id", "Packit id of the koji build group")
 class KojiBuildGroup(Resource):
+    @koji_builds_ns.marshal_with(koji_build_run_group_model)
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build group details follow")
     @koji_builds_ns.response(
         HTTPStatus.NOT_FOUND.value, "No info about koji build group stored in DB"
