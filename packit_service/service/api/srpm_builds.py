@@ -5,7 +5,7 @@ from http import HTTPStatus
 from logging import getLogger
 
 from packit_service.service.urls import get_srpm_build_info_url
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 
 from packit_service.models import SRPMBuildModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -15,9 +15,30 @@ logger = getLogger("packit_service")
 
 ns = Namespace("srpm-builds", description="SRPM builds")
 
+srpm_build_model = ns.model(
+    "SRPMBuild",
+    {
+        "srpm_build_id": fields.Integer(required=True, example="118888"),
+        "status": fields.String(required=True, example="success"),
+        "log_url": fields.String(
+            required=True,
+            example="https://dashboard.localhost/results/srpm-builds/118888",
+        ),
+        "build_submitted_time": fields.Integer(required=True, example="1678229975"),
+        "repo_namespace": fields.String(required=True, example="rear"),
+        "repo_name": fields.String(required=True, example="rear"),
+        "project_url": fields.String(
+            required=True, example="https://github.com/rear/rear"
+        ),
+        "pr_id": fields.Integer(required=True, example="61"),
+        "branch_name": fields.String(required=True, example="null"),
+    },
+)
+
 
 @ns.route("")
 class SRPMBuildsList(Resource):
+    @ns.marshal_list_with(srpm_build_model)
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "SRPM builds list follows")
     def get(self):
@@ -52,9 +73,56 @@ class SRPMBuildsList(Resource):
         return resp
 
 
+srpm_build_run_model = ns.model(
+    "SRPMBuildRun",
+    {
+        "status": fields.String(required=True, example="success"),
+        "build_submitted_time": fields.Integer(required=True, example="1678222061"),
+        "build_start_time": fields.Integer(required=True, example="1678222090"),
+        "build_finished_time": fields.Integer(required=True, example="1678222238"),
+        "url": fields.String(
+            required=True,
+            example=(
+                "https://download.copr.fedorainfracloud.org/results/packit/"
+                "OpenSCAP-openscap-1954/srpm-builds/05604030/"
+                "openscap-1.3.8-0.20230307205027846228.pr1954.33.gf5ac85d5c.src.rpm"
+            ),
+        ),
+        "logs": fields.String(required=True, example="null"),
+        "logs_url": fields.String(
+            required=True,
+            example=(
+                "https://download.copr.fedorainfracloud.org/results/"
+                "packit/OpenSCAP-openscap-1954/srpm-builds/05604030/"
+                "builder-live.log"
+            ),
+        ),
+        "copr_build_id": fields.String(required=True, example="5604030"),
+        "copr_web_url": fields.String(
+            required=True,
+            example="https://copr.fedorainfracloud.org/coprs/build/5604030",
+        ),
+        "run_ids": fields.List(
+            fields.Integer(example="631038"),
+            required=True,
+        ),
+        "repo_namespace": fields.String(required=True, example="OpenSCAP"),
+        "repo_name": fields.String(required=True, example="openscap"),
+        "git_repo": fields.String(
+            required=True, example="https://github.com/OpenSCAP/openscap"
+        ),
+        "pr_id": fields.Integer(required=True, example="1954"),
+        "issue_id": fields.Integer(required=True, example="null"),
+        "branch_name": fields.String(required=True, example="null"),
+        "release": fields.String(required=True, example="null"),
+    },
+)
+
+
 @ns.route("/<int:id>")
 @ns.param("id", "Packit id of the SRPM build")
 class SRPMBuildItem(Resource):
+    @ns.marshal_with(srpm_build_run_model)
     @ns.response(HTTPStatus.OK.value, "OK, SRPM build details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "SRPM build identifier not in db/hash")
     def get(self, id):
