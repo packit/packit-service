@@ -30,6 +30,8 @@
           - python-jwt
           # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
+          # This is to be able to provide service version via API
+          - python-setuptools_scm
         state: present
         install_weak_deps: False
     - name: Install pip deps
