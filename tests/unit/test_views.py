@@ -102,3 +102,13 @@ def test_get_srpm_logs(client):
 
     logs_url = get_srpm_build_info_url(2)
     assert logs_url == "https://localhost/results/srpm-builds/2"
+
+
+def test_system_api(client):
+    response = client.get("/api/system")
+    assert response.status_code == 200
+    response_data = response.json
+    for package in ["ogr", "packit", "specfile", "packit_service"]:
+        assert package in response_data
+        assert "version" in response_data[package]
+        assert len(response_data[package]["commit"]) == 7

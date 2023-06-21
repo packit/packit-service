@@ -17,6 +17,7 @@ from packit_service.service.api.runs import ns as runs_ns
 from packit_service.service.api.propose_downstream import ns as propose_downstream_ns
 from packit_service.service.api.usage import usage_ns
 from packit_service.service.api.pull_from_upstream import ns as pull_from_upstream_ns
+from packit_service.service.api.system import ns as system_ns
 
 # https://flask-restplus.readthedocs.io/en/stable/scaling.html
 blueprint = Blueprint("api", __name__, url_prefix="/api")
@@ -40,3 +41,4 @@ api.add_namespace(runs_ns)
 api.add_namespace(propose_downstream_ns)
 api.add_namespace(usage_ns)
 api.add_namespace(pull_from_upstream_ns)
+api.add_namespace(system_ns)
