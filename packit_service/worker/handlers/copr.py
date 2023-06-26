@@ -36,6 +36,7 @@ from packit_service.worker.checker.copr import (
     IsGitForgeProjectAndEventOk,
     BuildNotAlreadyStarted,
     IsJobConfigTriggerMatching,
+    IsPackageMatchingJobView,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -129,7 +130,7 @@ class AbstractCoprBuildReportHandler(
 ):
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (AreOwnerAndProjectMatchingJob,)
+        return (AreOwnerAndProjectMatchingJob, IsPackageMatchingJobView)
 
 
 @configured_as(job_type=JobType.copr_build)

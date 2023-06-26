@@ -18,6 +18,7 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
     GetCoprSRPMBuildMixin,
+    GetCoprBuildEventMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -70,6 +71,28 @@ class AreOwnerAndProjectMatchingJob(Checker, GetCoprBuildJobHelperForIdMixin):
             f"The Copr project {self.copr_event.owner}/{self.copr_event.project_name} "
             f"does not match the configuration "
             f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
+        )
+        return False
+
+
+class IsPackageMatchingJobView(Checker, GetCoprBuildEventMixin):
+    """
+    When running builds for multiple packages (in monorepo) in one job
+    config, we need to check whether the package that we are handling matches
+    the job configuration.
+    """
+
+    def pre_check(self) -> bool:
+        if (
+            not self.job_config.package
+            or self.copr_event.pkg == self.job_config.package
+        ):
+            return True
+
+        logger.debug(
+            f"The Copr build {self.copr_event.build_id} (pkg={self.copr_event.pkg}) "
+            f"does not match the package from the configuration "
+            f"({self.job_config.package})."
         )
         return False
 
