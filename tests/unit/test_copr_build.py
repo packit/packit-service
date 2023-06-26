@@ -25,6 +25,7 @@ from packit.config import (
     JobConfigTriggerType,
     JobType,
     PackageConfig,
+    JobConfigView,
 )
 from packit.copr_helper import CoprHelper
 from packit.exceptions import (
@@ -666,6 +667,33 @@ def test_submit_copr_build(
 )
 def test_normalise_copr_project_name(raw_name, expected_name):
     assert CoprBuildJobHelper.normalise_copr_project_name(raw_name) == expected_name
+
+
+def test_default_copr_project_name_for_monorepos(github_pr_event):
+    """Verify that comment we post when we fail to update chroots on our projects
+    is correct and not the one about permissions"""
+    helper = build_helper(
+        event=github_pr_event,
+        db_project_event=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            project_event_model_type=ProjectEventModelType.pull_request,
+        ),
+        jobs=[
+            JobConfigView(
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    skip_build=False,
+                    packages={
+                        "package-a": CommonPackageConfig(),
+                    },
+                ),
+                "package-a",
+            )
+        ],
+    )
+    assert helper.default_project_name == "the-example-namespace-the-example-repo-342"
 
 
 def test_copr_build_invalid_copr_project_name(github_pr_event):

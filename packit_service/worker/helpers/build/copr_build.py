@@ -140,6 +140,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             else ""
         )
 
+        # do not add the package identifier if handling monorepo job
+        if self.job_config.package:
+            configured_identifier = ""
+
         copr_project_name = (
             f"{service_prefix}{namespace}-{self.project.repo}-{ref_identifier}"
             f"{configured_identifier}"
