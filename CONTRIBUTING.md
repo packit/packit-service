@@ -63,17 +63,24 @@ In `.secrets/packit/dev/packit-service.yaml` fix url to tokman from `http://tokm
 ### binding on localhost
 
 ```yaml
-server_name: service.localhost:8443
+server_name: service.localhost:443
 ```
 
 and you should be able to make requests:
 
-    $ curl -k --head https://service.localhost:8443/api/
+    $ curl -k --head https://service.localhost:443/api/
     HTTP/1.1 200 OK
     Date: Wed, 23 Feb 2022 14:01:41 GMT
     Server: Apache/2.4.51 (Fedora) OpenSSL/1.1.1l mod_wsgi/4.7.1 Python/3.9
     Content-Length: 3824
     Content-Type: text/html; charset=utf-8
+
+Port 443 is used because the certificate is bundled with it
+otherwise `dashboard.localhost` can not reach `service.localhost/api`.
+
+For this reason `docker-compose` needs access to ports lower than 1024:
+
+    echo "net.ipv4.ip_unprivileged_port_start=443" > /etc/sysctl.d/docker-compose.conf; sysctl --system
 
 ### binding on other hosts
 
