@@ -6,7 +6,7 @@ from typing import Optional, List, Set
 
 from ogr.abstract import GitProject
 
-from packit.config import JobType, PackageConfig, JobConfig
+from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit_service.config import ServiceConfig
 from packit_service.models import AbstractProjectEventDbType
@@ -77,7 +77,15 @@ class SyncReleaseHelper(BaseJobHelper):
             for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type) and (
                     self.db_project_event
-                    and self.db_project_event.job_config_trigger_type == job.trigger
+                    and (
+                        self.db_project_event.job_config_trigger_type == job.trigger
+                        # pull-from-upstream can be retriggered by a dist-git PR comment,
+                        # in which case the trigger types don't match
+                        or job.type == JobType.pull_from_upstream
+                        and self.db_project_event.job_config_trigger_type
+                        == JobConfigTriggerType.pull_request
+                        and job.trigger == JobConfigTriggerType.release
+                    )
                 ):
                     self._job = job
                     break

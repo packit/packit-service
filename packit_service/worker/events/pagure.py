@@ -5,6 +5,7 @@ from logging import getLogger
 from typing import Dict, Optional
 
 from ogr.abstract import Comment, GitProject
+from ogr.parsing import RepoUrl
 
 from packit_service.service.db_project_events import (
     AddBranchPushDbTrigger,
@@ -84,8 +85,14 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
+        self._repo_url: Optional[RepoUrl] = None
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        result = super().get_dict()
+        d = self.__dict__
+        d["repo_name"] = self.repo_name
+        d["repo_namespace"] = self.repo_namespace
+        result = super().get_dict(d)
+        result.pop("_repo_url")
         result["action"] = result["action"].value
         return result
 
@@ -98,6 +105,24 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         )
         logger.debug(f"Base project: {project} owned by {self.base_repo_owner}")
         return project
+
+    @property
+    def repo_url(self) -> Optional[RepoUrl]:
+        if not self._repo_url:
+            self._repo_url = RepoUrl.parse(
+                self.packages_config.upstream_project_url
+                if self.packages_config
+                else None
+            )
+        return self._repo_url
+
+    @property
+    def repo_namespace(self) -> Optional[str]:
+        return self.repo_url.namespace if self.repo_url else None
+
+    @property
+    def repo_name(self) -> Optional[str]:
+        return self.repo_url.repo if self.repo_url else None
 
 
 class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):

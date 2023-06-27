@@ -14,6 +14,7 @@ from packit_service.worker.events import (
     IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
+from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
@@ -131,7 +132,7 @@ class IsProjectOk(Checker, GetProjectToSyncMixin):
         return self.project_to_sync is not None
 
 
-class ValidInformationForPullFromUpstream(Checker):
+class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
     """
     Check that package config (with upstream_project_url set) is present
     and that we were able to parse repo namespace, name and the tag name.
@@ -141,6 +142,10 @@ class ValidInformationForPullFromUpstream(Checker):
     def pre_check(self) -> bool:
         valid = True
         msg_to_report = None
+        issue_title = (
+            "Pull from upstream could not be run for update "
+            f"{self.data.event_dict.get('version')}"
+        )
 
         if not self.package_config.upstream_project_url:
             msg_to_report = (
@@ -160,17 +165,35 @@ class ValidInformationForPullFromUpstream(Checker):
             )
             valid = False
 
-        if not self.data.tag_name:
+        if (
+            self.data.event_type in (NewHotnessUpdateEvent.__name__,)
+            and not self.data.tag_name
+        ):
             msg_to_report = "We were not able to get the upstream tag name."
             valid = False
+
+        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+            commenter = self.data.actor
+            logger.debug(
+                f"Triggering pull-from-upstream through comment by: {commenter}"
+            )
+            if not self.is_packager(commenter):
+                msg_to_report = (
+                    f"pull-from-upstream retriggering through comment "
+                    f"on PR identifier {self.data.pr_id} "
+                    f"and project {self.data.project_url} "
+                    f"done by {commenter} who is not a packager."
+                )
+                issue_title = "Re-triggering pull-from-upstream "
+                "through a comment in dist-git PR failed"
+                valid = False
 
         if msg_to_report:
             logger.debug(msg_to_report)
             report_in_issue_repository(
                 issue_repository=self.job_config.issue_repository,
                 service_config=self.service_config,
-                title=f"Pull from upstream could not be run for update "
-                f"{self.data.event_dict.get('version')}",
+                title=issue_title,
                 message=msg_to_report,
                 comment_to_existing=msg_to_report,
             )
