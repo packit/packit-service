@@ -25,6 +25,7 @@
           - python3-lazy-object-proxy
           - python3-flask-restx
           - python3-flask-cors
+          - python3-flask-talisman
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
           - python-jwt
