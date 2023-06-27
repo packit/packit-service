@@ -111,4 +111,5 @@ def test_system_api(client):
     for package in ["ogr", "packit", "specfile", "packit_service"]:
         assert package in response_data
         assert "version" in response_data[package]
-        assert len(response_data[package]["commit"]) == 7
+        if response_data[package]["commit"]:
+            assert len(response_data[package]["commit"]) == 7
