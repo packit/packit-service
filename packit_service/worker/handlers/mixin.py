@@ -3,7 +3,7 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol, Iterator
+from typing import Any, Optional, Protocol, Iterator, Union
 from dataclasses import dataclass
 from packit.exceptions import PackitException
 from packit.config import PackageConfig, JobConfig
@@ -284,7 +284,7 @@ class GetSRPMBuild(Protocol):
 
 
 class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
-    _build: Optional[SRPMBuildModel] = None
+    _build: Optional[Union[CoprBuildTargetModel, SRPMBuildModel]] = None
     _db_project_event: Optional[AbstractProjectEventDbType] = None
 
     @property

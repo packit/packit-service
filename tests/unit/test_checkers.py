@@ -8,11 +8,14 @@ from packit.config import (
     CommonPackageConfig,
     JobType,
     JobConfigTriggerType,
+    JobConfigView,
+    JobConfig,
 )
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.copr import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
+    IsPackageMatchingJobView,
 )
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
@@ -31,6 +34,7 @@ from packit_service.worker.checker.vm_image import (
 )
 from packit_service.worker.events import (
     PullRequestGithubEvent,
+    AbstractCoprBuildEvent,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github import (
@@ -330,6 +334,30 @@ def test_vm_image_is_copr_build_ok_for_chroot(
         ).once()
 
     assert checker.pre_check() == success
+
+
+def test_copr_build_is_package_matching_job_view():
+    jobs = [
+        JobConfigView(
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={"package-a": CommonPackageConfig()},
+            ),
+            "package-a",
+        )
+    ]
+    flexmock(AbstractCoprBuildEvent).should_receive("from_event_dict").and_return(
+        flexmock(pkg="package-b", build_id=123)
+    )
+
+    checker = IsPackageMatchingJobView(
+        flexmock(),
+        jobs[0],
+        {"pkg": "package"},
+    )
+
+    assert not checker.pre_check()
 
 
 @pytest.mark.parametrize(
