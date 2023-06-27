@@ -32,8 +32,6 @@ exec mod_wsgi-express-3 start-server \
     --access-log \
     --log-to-terminal \
     --https-port "${HTTPS_PORT:-8443}" \
-    --https-only \
-    --hsts-policy "max-age=31536000;includeSubDomains" \
     --ssl-certificate-file /secrets/fullchain.pem \
     --ssl-certificate-key-file /secrets/privkey.pem \
     --server-name "${SERVER_NAME}" \
