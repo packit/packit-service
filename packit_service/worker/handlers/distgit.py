@@ -190,7 +190,7 @@ class AbstractSyncReleaseHandler(
         self._project_url = self.data.project_url
         self._sync_release_run_id = sync_release_run_id
         self.helper: Optional[SyncReleaseHelper] = None
-        self.tag = self.data.tag_name
+        self._tag = self.data.tag_name
 
     @property
     def sync_release_helper(self) -> SyncReleaseHelper:
@@ -205,6 +205,14 @@ class AbstractSyncReleaseHandler(
                 branches_override=self.data.branches_override,
             )
         return self.helper
+
+    @property
+    def tag(self) -> Optional[str]:
+        if not self._tag:
+            # there is no tag information when retriggering pull-from-upstream
+            # from dist-git PR
+            self._tag = self.packit_api.up.get_last_tag()
+        return self._tag
 
     def sync_branch(
         self, branch: str, model: SyncReleaseModel
@@ -516,8 +524,6 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             # use upstream project URL when retriggering from dist-git PR
             self._project_url = package_config.upstream_project_url
-            # there is no tag information when retriggering from dist-git PR
-            self.tag = self.packit_api.up.get_last_tag()
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
