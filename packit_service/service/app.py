@@ -6,13 +6,14 @@ from os import getenv
 from socket import gaierror
 
 from flask import Flask
-from flask_cors import CORS
 
 # Mypy errors out with Module 'flask' has no attribute '__version__'.
 # Python can find flask's version but mypy cannot.
 # So we use "type: ignore" to cause mypy to ignore that line.
 from flask import __version__ as flask_version  # type: ignore
+from flask_cors import CORS
 from flask_restx import __version__ as restx_version
+from flask_talisman import Talisman
 from lazy_object_proxy import Proxy
 from prometheus_client import make_wsgi_app as prometheus_app
 from syslog_rfc5424_formatter import RFC5424Formatter
@@ -78,7 +79,26 @@ def get_flask_application():
 
 
 packit_as_a_service = Proxy(get_flask_application)
+
 CORS(packit_as_a_service)
+
+INLINE = [
+    "'unsafe-inline'",
+    "'self'",
+]
+Talisman(
+    packit_as_a_service,
+    # https://github.com/wntrblm/flask-talisman#options
+    # https://infosec.mozilla.org/guidelines/web_security#implementation-notes
+    content_security_policy={
+        "default-src": "'self'",
+        "object-src": "'none'",
+        "img-src": ["'self'", "data:"],
+        # https://github.com/python-restx/flask-restx/issues/252
+        "style-src": INLINE,
+        "script-src": INLINE,
+    },
+)
 
 # Make Prometheus Client serve the /metrics endpoint
 application = DispatcherMiddleware(packit_as_a_service, {"/metrics": prometheus_app()})

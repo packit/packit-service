@@ -11,11 +11,11 @@ def client():
     application.config["TESTING"] = True
     # this affects all tests actually, heads up!
     application.config["SERVER_NAME"] = "localhost:5000"
-    application.config["PREFERRED_URL_SCHEME"] = "http"
+    application.config["PREFERRED_URL_SCHEME"] = "https"
 
     with application.test_client() as client:
         # the first call usually fails
-        client.get("http://localhost:5000/api/")
+        client.get("https://localhost:5000/api/")
         yield client
 
 
