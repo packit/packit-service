@@ -9,7 +9,8 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from ogr.services.github import GithubProject
+from ogr.abstract import AuthMethod
+from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
 from packit.copr_helper import CoprHelper
@@ -2638,6 +2639,10 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
             git=flexmock(clear_cache=lambda: None),
         )
     )
+
+    flexmock(GithubService).should_receive("set_auth_method").with_args(
+        AuthMethod.token
+    ).once()
 
     flexmock(Upstream).should_receive("get_last_tag").and_return("7.0.3")
 
