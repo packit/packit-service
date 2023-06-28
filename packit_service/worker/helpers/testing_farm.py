@@ -1065,12 +1065,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         # something went wrong
         if response.json() and "errors" in response.json():
-            msg = response.json()["errors"]
+            errors = response.json()["errors"]
             # specific case, unsupported arch
-            if nested_get(response.json(), "errors", "environments", "0", "arch"):
-                msg = response.json()["errors"]["environments"]["0"]["arch"]
+            if not (msg := nested_get(errors, "environments", "0", "arch")):
+                msg = "There was an error in the API request"
+            markdown_content = (
+                f"There was an error in the API request: {errors}\n"
+                "For the details of the API request parameters, see "
+                "[the Testing Farm API definition]"
+                "(https://testing-farm.gitlab.io/api/#operation/requestsPost)"
+            )
         else:
-            msg = f"Failed to submit tests: {response.reason}."
+            msg = response.reason
+            markdown_content = None
             if not self.celery_task.is_last_try():
                 return self._retry_on_submit_failure(test_run, response.reason)
 
@@ -1078,8 +1085,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         logger.error(f"{msg}, {self._payload_without_token(payload)}")
         self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.failure,
-            description=msg,
+            description=f"Failed to submit tests: {msg}.",
             target=test_run.target,
+            markdown_content=markdown_content,
         )
         return TaskResults(success=False, details={"msg": msg})
 
