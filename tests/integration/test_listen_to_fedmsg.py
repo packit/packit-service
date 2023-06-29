@@ -1634,7 +1634,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
             status_code=400,
             ok=False,
             content=b'{"errors": "some error"}',
-            json={"errors": "some error"},
+            json={
+                "errors": {"settings": {"pipeline": {"timeout": "unexpected type str"}}}
+            },
         )
     )
 
@@ -1649,10 +1651,13 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.failure,
-        description="some error",
+        description="Failed to submit tests: There was an error in the API request.",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
-        markdown_content=None,
+        markdown_content="There was an error in the API request: {'settings': {'pipeline': {"
+        "'timeout': 'unexpected type str'}}}\nFor the details"
+        " of the API request parameters, see [the Testing Farm API definition]"
+        "(https://testing-farm.gitlab.io/api/#operation/requestsPost)",
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
