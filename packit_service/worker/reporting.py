@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 NEWS_FOOTER = [
-    "Wondering what happened during the last year in Packit? "
-    "Take a look at [our blog post](https://packit.dev/posts/2022-features/).",
     "Do you maintain a Fedora package and don't have access to the upstream repository? "
     "Packit can help. "
     "Take a look [here](https://packit.dev/posts/pull-from-upstream/) to know more.",
