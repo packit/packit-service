@@ -27,7 +27,6 @@ from packit_service.models import (
     GitBranchModel,
     PullRequestModel,
     ProjectEventModel,
-    AbstractProjectEventDbType,
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
@@ -807,7 +806,7 @@ class Parser:
 
     @staticmethod
     def parse_check_name(
-        check_name: str, db_project_event: AbstractProjectEventDbType
+        check_name: str, db_project_event: ProjectEventModel
     ) -> Optional[Tuple[str, str, str]]:
         """
         Parse the given name of the check run.
@@ -839,6 +838,7 @@ class Parser:
             return None
 
         check_name_target, check_name_identifier = None, None
+        db_project_object = db_project_event.get_project_event_object()
 
         if len(check_name_parts) == 2:
             _, check_name_target = check_name_parts
@@ -850,7 +850,7 @@ class Parser:
             )
             if (
                 check_name_job in build_test_job_names
-                and db_project_event.job_config_trigger_type
+                and db_project_object.job_config_trigger_type
                 in (
                     JobConfigTriggerType.commit,
                     JobConfigTriggerType.release,
@@ -924,13 +924,13 @@ class Parser:
             )
             return None
 
-        project_event = ProjectEventModel.get_by_id(int(external_id))
-        if not project_event:
+        db_project_event = ProjectEventModel.get_by_id(int(external_id))
+        if not db_project_event:
             logger.warning(f"Job project event with ID {external_id} not found.")
             return None
 
-        db_project_event = project_event.get_project_event_object()
-        logger.info(f"Original project event: {db_project_event}")
+        db_project_object = db_project_event.get_project_event_object()
+        logger.info(f"Original project event: {db_project_object}")
 
         parse_result = Parser.parse_check_name(check_name, db_project_event)
         if parse_result is None:
@@ -951,13 +951,13 @@ class Parser:
         commit_sha = nested_get(event, "check_run", "head_sha")
 
         event = None
-        if isinstance(db_project_event, PullRequestModel):
+        if isinstance(db_project_object, PullRequestModel):
             event = CheckRerunPullRequestEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                pr_id=db_project_event.pr_id,
+                pr_id=db_project_object.pr_id,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
                 db_project_event=db_project_event,
@@ -965,13 +965,13 @@ class Parser:
                 job_identifier=check_name_identifier,
             )
 
-        elif isinstance(db_project_event, ProjectReleaseModel):
+        elif isinstance(db_project_object, ProjectReleaseModel):
             event = CheckRerunReleaseEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                tag_name=db_project_event.tag_name,
+                tag_name=db_project_object.tag_name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
                 db_project_event=db_project_event,
@@ -979,13 +979,13 @@ class Parser:
                 job_identifier=check_name_identifier,
             )
 
-        elif isinstance(db_project_event, GitBranchModel):
+        elif isinstance(db_project_object, GitBranchModel):
             event = CheckRerunCommitEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                git_ref=db_project_event.name,
+                git_ref=db_project_object.name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
                 db_project_event=db_project_event,

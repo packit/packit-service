@@ -19,10 +19,8 @@ from packit_service.models import (
     CoprBuildTargetModel,
     CoprBuildGroupModel,
     SRPMBuildModel,
-    PullRequestModel,
     BuildStatus,
     ProjectEventModel,
-    ProjectEventModelType,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent
 from packit_service.worker.helpers.build.babysit import check_copr_build
@@ -58,20 +56,16 @@ BUILD_ID = 1300329
 
 @pytest.fixture()
 def packit_build_752():
-    pr_model = PullRequestModel.get_or_create(
+    pr_model, pr_event = ProjectEventModel.add_pull_request_event(
         pr_id=752,
         namespace="packit-service",
         repo_name="packit",
         project_url="https://github.com/packit-service/packit",
-    )
-    ProjectEventModel.get_or_create(
-        type=ProjectEventModelType.pull_request,
-        event_id=pr_model.id,
         commit_sha="abcdef",
     )
 
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_event
     )
     group = CoprBuildGroupModel.create(run_model)
     srpm_build.set_logs("asd\nqwe\n")

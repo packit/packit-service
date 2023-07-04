@@ -66,7 +66,7 @@ from packit_service.worker.result import TaskResults
 
 
 @pytest.mark.parametrize(
-    "event_cls,db_project_event,jobs,result",
+    "event_cls,db_project_object,jobs,result",
     [
         # Single job defined:
         pytest.param(
@@ -895,7 +895,7 @@ from packit_service.worker.result import TaskResults
         ),
     ],
 )
-def test_get_handlers_for_event(event_cls, db_project_event, jobs, result):
+def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
     # (And real event classes have a lot of __init__ arguments.)
@@ -904,8 +904,8 @@ def test_get_handlers_for_event(event_cls, db_project_event, jobs, result):
             pass
 
         @property
-        def db_project_event(self):
-            return db_project_event
+        def db_project_object(self):
+            return db_project_object
 
         @property
         def packages_config(self):
@@ -921,7 +921,7 @@ def test_get_handlers_for_event(event_cls, db_project_event, jobs, result):
 
 
 @pytest.mark.parametrize(
-    "event_cls, comment, packit_comment_command_prefix, db_project_event, jobs, result",
+    "event_cls, comment, packit_comment_command_prefix, db_project_object, jobs, result",
     [
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1126,7 +1126,7 @@ def test_get_handlers_for_event(event_cls, db_project_event, jobs, result):
     ],
 )
 def test_get_handlers_for_comment_event(
-    event_cls, comment, packit_comment_command_prefix, db_project_event, jobs, result
+    event_cls, comment, packit_comment_command_prefix, db_project_object, jobs, result
 ):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
@@ -1136,8 +1136,8 @@ def test_get_handlers_for_comment_event(
             self.comment = comment
 
         @property
-        def db_project_event(self):
-            return db_project_event
+        def db_project_object(self):
+            return db_project_object
 
         @property
         def packages_config(self):
@@ -1160,7 +1160,7 @@ def test_get_handlers_for_comment_event(
 
 
 @pytest.mark.parametrize(
-    "event_cls,check_name_job,db_project_event,job_identifier,jobs,result",
+    "event_cls,check_name_job,db_project_object,job_identifier,jobs,result",
     [
         pytest.param(
             CheckRerunPullRequestEvent,
@@ -1326,7 +1326,7 @@ def test_get_handlers_for_comment_event(
     ],
 )
 def test_get_handlers_for_check_rerun_event(
-    event_cls, check_name_job, job_identifier, db_project_event, jobs, result
+    event_cls, check_name_job, job_identifier, db_project_object, jobs, result
 ):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
@@ -1337,8 +1337,8 @@ def test_get_handlers_for_check_rerun_event(
             self.job_identifier = job_identifier
 
         @property
-        def db_project_event(self):
-            return db_project_event
+        def db_project_object(self):
+            return db_project_object
 
         @property
         def packages_config(self):
@@ -1354,7 +1354,7 @@ def test_get_handlers_for_check_rerun_event(
 
 
 @pytest.mark.parametrize(
-    "handler_kls,event_cls,db_project_event,jobs,result_job_config",
+    "handler_kls,event_cls,db_project_object,jobs,result_job_config",
     [
         # Basic copr build:
         pytest.param(
@@ -2466,15 +2466,15 @@ def test_get_handlers_for_check_rerun_event(
     ],
 )
 def test_get_config_for_handler_kls(
-    handler_kls: Type[JobHandler], event_cls, db_project_event, jobs, result_job_config
+    handler_kls: Type[JobHandler], event_cls, db_project_object, jobs, result_job_config
 ):
     class Event(event_cls):  # type: ignore
         def __init__(self):
             pass
 
         @property
-        def db_project_event(self):
-            return db_project_event
+        def db_project_object(self):
+            return db_project_object
 
         @property
         def packages_config(self):
@@ -3355,7 +3355,7 @@ def test_create_tasks_tf_identifier(
 ):
     class Event(event_kls):
         def __init__(self):
-            self._db_project_event = None
+            self._db_project_object = None
 
         @property
         def packages_config(self):

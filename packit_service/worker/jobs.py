@@ -249,6 +249,7 @@ class SteveJobs:
             else None,
             "project": self.event.project,
             "metadata": EventData.from_event_dict(self.event.get_dict()),
+            "db_project_object": self.event.db_project_object,
             "db_project_event": self.event.db_project_event,
             "job_config": job_config,
         }

@@ -8,8 +8,8 @@ from ogr.abstract import Comment, GitProject
 from ogr.parsing import RepoUrl
 
 from packit_service.service.db_project_events import (
-    AddBranchPushDbTrigger,
-    AddPullRequestDbTrigger,
+    AddBranchPushEventToDb,
+    AddPullRequestEventToDb,
 )
 from packit_service.worker.events.enums import (
     PullRequestAction,
@@ -31,7 +31,7 @@ class AbstractPagureEvent(AbstractForgeIndependentEvent):
         ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
-class PushPagureEvent(AddBranchPushDbTrigger, AbstractPagureEvent):
+class PushPagureEvent(AddBranchPushEventToDb, AbstractPagureEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -125,7 +125,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         return self.repo_url.repo if self.repo_url else None
 
 
-class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
+class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
     def __init__(
         self,
         action: PullRequestAction,

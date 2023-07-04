@@ -10,11 +10,13 @@ from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
+    ProjectEventModel,
+    AbstractProjectObjectDbType,
 )
 from packit_service.service.db_project_events import (
-    AddPullRequestDbTrigger,
-    AddBranchPushDbTrigger,
-    AddReleaseDbTrigger,
+    AddPullRequestEventToDb,
+    AddBranchPushEventToDb,
+    AddReleaseEventToDb,
 )
 from packit_service.worker.events.comment import (
     AbstractPRCommentEvent,
@@ -41,7 +43,7 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
         ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
-class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
+class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
     ):
@@ -66,7 +68,7 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
         return result
 
 
-class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
+class PushGitHubEvent(AddBranchPushEventToDb, AbstractGithubEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -83,7 +85,7 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         self.identifier = git_ref
 
 
-class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
+class PullRequestGithubEvent(AddPullRequestEventToDb, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -212,7 +214,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         project_url: str,
         repo_namespace: str,
         repo_name: str,
-        db_project_event: Union[PullRequestModel, GitBranchModel, ProjectReleaseModel],
+        db_project_event: ProjectEventModel,
         commit_sha: str,
         actor: str,
         pr_id: Optional[int] = None,
@@ -226,6 +228,9 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.commit_sha = commit_sha
         self.actor = actor
         self._db_project_event = db_project_event
+        self._db_project_object: AbstractProjectObjectDbType = (
+            db_project_event.get_project_event_object()
+        )
         self.job_identifier = job_identifier
 
     @property
@@ -248,7 +253,7 @@ class CheckRerunEvent(AbstractGithubEvent):
 
 
 class CheckRerunCommitEvent(CheckRerunEvent):
-    _db_project_event: GitBranchModel
+    _db_project_object: GitBranchModel
 
     def __init__(
         self,
@@ -279,7 +284,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
 
 
 class CheckRerunPullRequestEvent(CheckRerunEvent):
-    _db_project_event: PullRequestModel
+    _db_project_object: PullRequestModel
 
     def __init__(
         self,
@@ -311,7 +316,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
 
 
 class CheckRerunReleaseEvent(CheckRerunEvent):
-    _db_project_event: ProjectReleaseModel
+    _db_project_object: ProjectReleaseModel
 
     def __init__(
         self,

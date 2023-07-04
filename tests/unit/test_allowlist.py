@@ -629,26 +629,24 @@ def test_check_and_report(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
-            commit_sha="0000000",
+            commit_sha="",
         )
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
-    ).and_return(
-        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="00000000")
-    )
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha=""
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha=""))
 
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     for event, is_valid, resolved_through in events:
         flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
         # needs to be included when running only `test_allowlist`
-        # flexmock(event).should_receive("db_project_event").and_return(
+        # flexmock(event).should_receive("db_project_object").and_return(
         #     flexmock(job_config_trigger_type=job_configs[0].trigger).mock()
         # )
         flexmock(EventData).should_receive("from_event_dict").and_return(
-            flexmock(commit_sha="0000000", pr_id="0")
+            flexmock(commit_sha="", pr_id="0")
         )
         actor_namespace = (
             f"{'github.com' if isinstance(event.project, GithubProject) else 'gitlab.com'}"
@@ -825,19 +823,17 @@ def test_check_and_report_actor_pull_request(allowlist):
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
-            commit_sha="0000000",
+            commit_sha="",
         )
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
-    ).and_return(
-        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0000000")
-    )
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha=""
+    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha=""))
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
     flexmock(EventData).should_receive("from_event_dict").and_return(
-        flexmock(commit_sha="0000000", pr_id="0")
+        flexmock(commit_sha="", pr_id="0")
     )
     flexmock(DBAllowlist).should_receive("get_namespace").with_args(
         "github.com/bar"

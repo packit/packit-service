@@ -80,6 +80,7 @@ class SampleValues:
     gitlab_repo_namespace = "the-namespace"
     gitlab_repo_name = "repo-name"
     gitlab_project_url = "https://gitlab.com/the-namespace/repo-name"
+    gitlab_commit_sha = "80201a74d96c"
 
     # build
     build_id = "123456"
@@ -192,85 +193,110 @@ def clean_before_and_after():
 
 
 @pytest.fixture()
-def pr_model():
-    yield PullRequestModel.get_or_create(
+def pr_project_event_model():
+    _, event = ProjectEventModel.add_pull_request_event(
         pr_id=SampleValues.pr_id,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
+        commit_sha=SampleValues.commit_sha,
     )
+    yield event
+
+
+@pytest.fixture()
+def pr_model(pr_project_event_model):
+    pr = pr_project_event_model.get_project_event_object()
+    yield pr
 
 
 @pytest.fixture()
 def mr_model():
-    yield PullRequestModel.get_or_create(
+    pr, _ = ProjectEventModel.add_pull_request_event(
         pr_id=SampleValues.mr_id,
         namespace=SampleValues.gitlab_repo_namespace,
         repo_name=SampleValues.gitlab_repo_name,
         project_url=SampleValues.gitlab_project_url,
+        commit_sha=SampleValues.gitlab_commit_sha,
     )
+    yield pr
 
 
 @pytest.fixture()
 def different_pr_model():
-    yield PullRequestModel.get_or_create(
+    pr, _ = ProjectEventModel.add_pull_request_event(
         pr_id=4,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
+        commit_sha=SampleValues.different_commit_sha,
     )
+    yield pr
 
 
 @pytest.fixture()
 def pagure_pr_model():
-    yield PullRequestModel.get_or_create(
+    pr, _ = ProjectEventModel.add_pull_request_event(
         pr_id=SampleValues.pagure_pr_id,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.pagure_project_url,
+        commit_sha=SampleValues.commit_sha,
     )
+    yield pr
 
 
 @pytest.fixture()
 def release_model():
-    yield ProjectReleaseModel.get_or_create(
+    release, _ = ProjectEventModel.add_release_event(
         tag_name=SampleValues.tag_name,
         commit_hash=SampleValues.commit_sha,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
     )
+    yield release
 
 
 @pytest.fixture()
 def different_release_model():
-    yield ProjectReleaseModel.get_or_create(
+    release, _ = ProjectEventModel.add_release_event(
         tag_name=SampleValues.different_tag_name,
         commit_hash=SampleValues.different_commit_sha,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
     )
+    yield release
 
 
 @pytest.fixture()
-def branch_model():
-    yield GitBranchModel.get_or_create(
+def branch_project_event_model():
+    _, event = ProjectEventModel.add_branch_push_event(
         branch_name=SampleValues.branch,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
+        commit_sha=SampleValues.commit_sha,
     )
+    yield event
+
+
+@pytest.fixture()
+def branch_model(branch_project_event_model):
+    yield branch_project_event_model.get_project_event_object()
 
 
 @pytest.fixture()
 def branch_model_gitlab():
-    yield GitBranchModel.get_or_create(
+    branch, _ = ProjectEventModel.add_branch_push_event(
         branch_name=SampleValues.branch,
         namespace=SampleValues.gitlab_repo_namespace,
         repo_name=SampleValues.gitlab_repo_name,
         project_url=SampleValues.gitlab_project_url,
+        commit_sha=SampleValues.gitlab_commit_sha,
     )
+    yield branch
 
 
 @pytest.fixture()
@@ -282,10 +308,9 @@ def propose_model():
 
 @pytest.fixture()
 def propose_downstream_model_release(release_project_event_model):
-    release_model = release_project_event_model.get_project_event_object()
     propose_downstream_model, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=release_model,
+        project_event_model=release_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     yield propose_downstream_model
@@ -293,10 +318,9 @@ def propose_downstream_model_release(release_project_event_model):
 
 @pytest.fixture()
 def pull_from_upstream_target_model(release_project_event_model):
-    release_model = release_project_event_model.get_project_event_object()
     pull_from_upstream_model, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=release_model,
+        project_event_model=release_project_event_model,
         job_type=SyncReleaseJobType.pull_from_upstream,
     )
 
@@ -312,10 +336,10 @@ def pull_from_upstream_target_model(release_project_event_model):
 
 
 @pytest.fixture()
-def propose_downstream_model_issue(an_issue_model):
+def propose_downstream_model_issue(an_issue_project_event_model):
     propose_downstream_model, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=an_issue_model,
+        project_event_model=an_issue_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     yield propose_downstream_model
@@ -358,15 +382,6 @@ def propose_model_submitted_issue(
 
 
 @pytest.fixture()
-def pr_project_event_model(pr_model):
-    yield ProjectEventModel.get_or_create(
-        type=ProjectEventModelType.pull_request,
-        event_id=pr_model.id,
-        commit_sha=SampleValues.commit_sha,
-    )
-
-
-@pytest.fixture()
 def different_pr_project_event_model(different_pr_model):
     yield ProjectEventModel.get_or_create(
         type=ProjectEventModelType.pull_request,
@@ -394,15 +409,6 @@ def different_release_project_event_model(different_release_model):
 
 
 @pytest.fixture()
-def branch_project_event_model(branch_model):
-    yield ProjectEventModel.get_or_create(
-        type=ProjectEventModelType.branch_push,
-        event_id=branch_model.id,
-        commit_sha=SampleValues.commit_sha,
-    )
-
-
-@pytest.fixture()
 def srpm_build_model_with_new_run_and_tf_for_pr(srpm_build_model_with_new_run_for_pr):
     srpm_model, run_model = srpm_build_model_with_new_run_for_pr
     tf_group_model = TFTTestRunGroupModel.create([run_model])
@@ -411,9 +417,8 @@ def srpm_build_model_with_new_run_and_tf_for_pr(srpm_build_model_with_new_run_fo
 
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_pr(pr_project_event_model):
-    pr_model = pr_project_event_model.get_project_event_object()
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status(BuildStatus.success)
@@ -431,9 +436,8 @@ def srpm_build_model_with_new_run_and_tf_for_branch(
 
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_branch(branch_project_event_model):
-    branch_model = branch_project_event_model.get_project_event_object()
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=branch_model
+        project_event_model=branch_project_event_model
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status(BuildStatus.success)
@@ -451,9 +455,8 @@ def srpm_build_model_with_new_run_and_tf_for_release(
 
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_release(release_project_event_model):
-    release_model = release_project_event_model.get_project_event_object()
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=release_model
+        project_event_model=release_project_event_model
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status(BuildStatus.success)
@@ -462,9 +465,8 @@ def srpm_build_model_with_new_run_for_release(release_project_event_model):
 
 @pytest.fixture()
 def srpm_build_in_copr_model(pr_project_event_model):
-    pr_model = pr_project_event_model.get_project_event_object()
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model,
+        project_event_model=pr_project_event_model,
         copr_build_id="123",
         copr_web_url="example-url",
     )
@@ -473,23 +475,35 @@ def srpm_build_in_copr_model(pr_project_event_model):
 
 
 @pytest.fixture()
-def an_issue_model():
-    yield IssueModel.get_or_create(
+def an_issue_project_event_model():
+    _, event = ProjectEventModel.add_issue_event(
         issue_id=SampleValues.issue_id,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
     )
+    yield event
 
 
 @pytest.fixture()
-def different_issue_model():
-    yield IssueModel.get_or_create(
+def an_issue_model(an_issue_project_event_model):
+    return an_issue_project_event_model.get_project_event_object()
+
+
+@pytest.fixture()
+def different_issue_project_event_model():
+    _, event = ProjectEventModel.add_issue_event(
         issue_id=SampleValues.different_issue_id,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
     )
+    yield event
+
+
+@pytest.fixture()
+def different_issue_model(different_issue_project_event_model):
+    return different_issue_project_event_model.get_project_event_object()
 
 
 @pytest.fixture()
@@ -572,18 +586,16 @@ def a_copr_build_waiting_for_srpm(srpm_build_in_copr_model):
 
 @pytest.fixture()
 def multiple_copr_builds(pr_project_event_model, different_pr_project_event_model):
-    pr_model = pr_project_event_model.get_project_event_object()
-    different_pr_model = different_pr_project_event_model.get_project_event_object()
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_model
+        project_event_model=different_pr_project_event_model
     )
     group_for_a_different_pr = CoprBuildGroupModel.create(run_model_for_a_different_pr)
 
@@ -633,20 +645,18 @@ def multiple_copr_builds(pr_project_event_model, different_pr_project_event_mode
 @pytest.fixture()
 def too_many_copr_builds(pr_project_event_model, different_pr_project_event_model):
     """Don't use for testing anything other than pagination, use multiple_copr_builds."""
-    pr_model = pr_project_event_model.get_project_event_object()
-    different_pr_model = different_pr_project_event_model.get_project_event_object()
     builds_list = []
     for i in range(20):
         _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-            project_event_model=pr_model
+            project_event_model=pr_project_event_model
         )
         group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
         _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-            project_event_model=pr_model
+            project_event_model=pr_project_event_model
         )
         group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
         _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-            project_event_model=different_pr_model
+            project_event_model=different_pr_project_event_model
         )
         group_for_a_different_pr = CoprBuildGroupModel.create(
             run_model_for_a_different_pr
@@ -793,18 +803,16 @@ def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
 
 @pytest.fixture()
 def multiple_koji_builds(pr_project_event_model, different_pr_project_event_model):
-    pr_model = pr_project_event_model.get_project_event_object()
-    different_pr_model = different_pr_project_event_model.get_project_event_object()
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     group_for_pr = KojiBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     group_for_same_pr = KojiBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_model
+        project_event_model=different_pr_project_event_model
     )
     group_for_a_different_pr = KojiBuildGroupModel.create(run_model_for_a_different_pr)
 
@@ -877,20 +885,18 @@ def a_new_test_run_branch_push(
 
 @pytest.fixture()
 def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_model):
-    pr_model = pr_project_event_model.get_project_event_object()
-    different_pr_model = different_pr_project_event_model.get_project_event_object()
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     test_group_for_pr = TFTTestRunGroupModel.create([run_model_for_pr])
     build_group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     test_group_for_same_pr = TFTTestRunGroupModel.create([run_model_for_same_pr])
     build_group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_model
+        project_event_model=different_pr_project_event_model
     )
     build_group_for_a_different_pr = CoprBuildGroupModel.create(
         run_model_for_a_different_pr
@@ -970,28 +976,24 @@ def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_mo
 def multiple_propose_downstream_runs_release_trigger(
     release_project_event_model, different_release_project_event_model
 ):
-    release_model = release_project_event_model.get_project_event_object()
-    different_release_model = (
-        different_release_project_event_model.get_project_event_object()
-    )
     propose_downstream_model1, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=release_model,
+        project_event_model=release_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     propose_downstream_model2, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.error,
-        project_event_model=release_model,
+        project_event_model=release_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     propose_downstream_model3, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=different_release_model,
+        project_event_model=different_release_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     propose_downstream_model4, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.finished,
-        project_event_model=different_release_model,
+        project_event_model=different_release_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
 
@@ -1007,28 +1009,24 @@ def multiple_propose_downstream_runs_release_trigger(
 def multiple_pull_from_upstream_runs(
     release_project_event_model, different_release_project_event_model
 ):
-    release_model = release_project_event_model.get_project_event_object()
-    different_release_model = (
-        different_release_project_event_model.get_project_event_object()
-    )
     pull_from_upstream_model1, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=release_model,
+        project_event_model=release_project_event_model,
         job_type=SyncReleaseJobType.pull_from_upstream,
     )
     pull_from_upstream_model2, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.error,
-        project_event_model=release_model,
+        project_event_model=release_project_event_model,
         job_type=SyncReleaseJobType.pull_from_upstream,
     )
     pull_from_upstream_model3, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=different_release_model,
+        project_event_model=different_release_project_event_model,
         job_type=SyncReleaseJobType.pull_from_upstream,
     )
     pull_from_upstream_model4, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.finished,
-        project_event_model=different_release_model,
+        project_event_model=different_release_project_event_model,
         job_type=SyncReleaseJobType.pull_from_upstream,
     )
 
@@ -1042,26 +1040,26 @@ def multiple_pull_from_upstream_runs(
 
 @pytest.fixture()
 def multiple_propose_downstream_runs_issue_trigger(
-    an_issue_model, different_issue_model
+    an_issue_project_event_model, different_issue_project_event_model
 ):
     propose_downstream_model1, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=an_issue_model,
+        project_event_model=an_issue_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     propose_downstream_model2, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.error,
-        project_event_model=an_issue_model,
+        project_event_model=an_issue_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     propose_downstream_model3, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
-        project_event_model=different_issue_model,
+        project_event_model=different_issue_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
     propose_downstream_model4, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.finished,
-        project_event_model=different_issue_model,
+        project_event_model=different_issue_project_event_model,
         job_type=SyncReleaseJobType.propose_downstream,
     )
 
@@ -2033,10 +2031,8 @@ def koji_build_scratch_end_dict():
 
 @pytest.fixture()
 def few_runs(pr_project_event_model, different_pr_project_event_model):
-    pr_model = pr_project_event_model.get_project_event_object()
-    different_pr_model = different_pr_project_event_model.get_project_event_object()
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_model
+        project_event_model=pr_project_event_model
     )
     build_group = CoprBuildGroupModel.create(run_model_for_pr)
     TFTTestRunGroupModel.create([run_model_for_pr])
@@ -2061,7 +2057,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
         )
 
     _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_model
+        project_event_model=different_pr_project_event_model
     )
     TFTTestRunGroupModel.create([run_model_for_different_pr])
     build_group = CoprBuildGroupModel.create(run_model_for_different_pr)
@@ -2100,18 +2096,13 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
 
 
 @pytest.fixture()
-def runs_without_build(pr_project_event_model, branch_model):
-    pr_model = pr_project_event_model.get_project_event_object()
+def runs_without_build(pr_project_event_model, branch_project_event_model):
     run_model_for_pr_only_test = PipelineModel.create(
-        type=pr_model.project_event_model_type,
-        event_id=pr_model.id,
-        commit_sha=SampleValues.commit_sha,
+        project_event=pr_project_event_model
     )
     TFTTestRunGroupModel.create([run_model_for_pr_only_test])
     run_model_for_branch_only_test = PipelineModel.create(
-        type=branch_model.project_event_model_type,
-        event_id=branch_model.id,
-        commit_sha=SampleValues.commit_sha,
+        project_event=branch_project_event_model
     )
     TFTTestRunGroupModel.create([run_model_for_branch_only_test])
 

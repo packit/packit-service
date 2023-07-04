@@ -14,7 +14,7 @@ from celery import signature
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 from packit_service.models import (
-    AbstractProjectEventDbType,
+    AbstractProjectObjectDbType,
     TFTTestRunTargetModel,
     CoprBuildTargetModel,
     BuildStatus,
@@ -150,11 +150,7 @@ class TestingFarmHandler(
             return target_model.group_of_targets, [target_model]
 
         run_model = (
-            PipelineModel.create(
-                type=self.db_project_event.project_event_model_type,
-                event_id=self.db_project_event.id,
-                commit_sha=self.db_project_event.commit_sha,
-            )
+            PipelineModel.create(project_event=self.db_project_event)
             if self.testing_farm_job_helper.skip_build or not builds
             # All the builds should be in the same copr build group, therefore
             # connected to the same pipeline, just take the first one
@@ -369,7 +365,7 @@ class TestingFarmResultsHandler(
         self.pipeline_id = event.get("pipeline_id")
         self.log_url = event.get("log_url")
         self.summary = event.get("summary")
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
         self.created = event.get("created")
 
     @staticmethod
@@ -377,14 +373,14 @@ class TestingFarmResultsHandler(
         return (IsEventForJob,)
 
     @property
-    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
-        if not self._db_project_event:
+    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        if not self._db_project_object:
             run_model = TFTTestRunTargetModel.get_by_pipeline_id(
                 pipeline_id=self.pipeline_id
             )
             if run_model:
-                self._db_project_event = run_model.get_project_event_object()
-        return self._db_project_event
+                self._db_project_object = run_model.get_project_event_object()
+        return self._db_project_object
 
     def run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")

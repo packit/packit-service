@@ -11,8 +11,8 @@ from ogr.abstract import Comment
 
 from packit_service.models import TestingFarmResult, BuildStatus
 from packit_service.service.db_project_events import (
-    AddIssueDbTrigger,
-    AddPullRequestDbTrigger,
+    AddIssueEventToDb,
+    AddPullRequestEventToDb,
 )
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
@@ -45,7 +45,7 @@ class AbstractCommentEvent(AbstractForgeIndependentEvent):
         return result
 
 
-class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
+class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
     def __init__(
         self,
         pr_id: int,
@@ -119,7 +119,7 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
         return result
 
 
-class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
+class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
     def __init__(
         self,
         issue_id: int,

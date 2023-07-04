@@ -4,9 +4,9 @@ from typing import Dict, Optional
 
 from ogr.abstract import GitProject, Comment
 from packit_service.service.db_project_events import (
-    AddPullRequestDbTrigger,
-    AddBranchPushDbTrigger,
-    AddReleaseDbTrigger,
+    AddPullRequestEventToDb,
+    AddBranchPushEventToDb,
+    AddReleaseEventToDb,
 )
 from packit_service.worker.events.comment import (
     AbstractIssueCommentEvent,
@@ -26,7 +26,7 @@ class AbstractGitlabEvent(AbstractForgeIndependentEvent):
         ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
-class PushGitlabEvent(AddBranchPushDbTrigger, AbstractGitlabEvent):
+class PushGitlabEvent(AddBranchPushEventToDb, AbstractGitlabEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -43,7 +43,7 @@ class PushGitlabEvent(AddBranchPushDbTrigger, AbstractGitlabEvent):
         self.identifier = git_ref
 
 
-class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
+class MergeRequestGitlabEvent(AddPullRequestEventToDb, AbstractGitlabEvent):
     def __init__(
         self,
         action: GitlabEventAction,
@@ -203,7 +203,7 @@ class PipelineGitlabEvent(AbstractGitlabEvent):
         self.merge_request_url = merge_request_url
 
 
-class ReleaseGitlabEvent(AddReleaseDbTrigger, AbstractGitlabEvent):
+class ReleaseGitlabEvent(AddReleaseEventToDb, AbstractGitlabEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -230,7 +230,7 @@ class ReleaseGitlabEvent(AddReleaseDbTrigger, AbstractGitlabEvent):
         return result
 
 
-class TagPushGitlabEvent(AddBranchPushDbTrigger, AbstractGitlabEvent):
+class TagPushGitlabEvent(AddBranchPushEventToDb, AbstractGitlabEvent):
     def __init__(
         self,
         repo_namespace: str,

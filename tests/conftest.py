@@ -149,6 +149,7 @@ def srpm_build_model(
     srpm_build.set_status = mock_set_status
     srpm_build.set_url = mock_set_url
     srpm_build.get_project_event_object = lambda: pr_model
+    srpm_build.should_receive("get_project_event_model").and_return(project_event_model)
 
     run_model = flexmock(
         id=3, job_project_event=project_event_model, srpm_build=srpm_build
@@ -178,19 +179,12 @@ def copr_build_model(
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
 
-    trigger_object_model = (
-        flexmock(
-            Trigger(
-                id=1,
-                project=project_model,
-                job_config_trigger_type=job_config_trigger_type,
-                project_event_model_type=project_event_model_type,
-                **trigger_model_kwargs,
-            )
-        )
-        .should_receive("get_project_event")
-        .and_return(flexmock(commit_sha="0011223344"))
-        .mock()
+    trigger_object_model = Trigger(
+        id=1,
+        project=project_model,
+        job_config_trigger_type=job_config_trigger_type,
+        project_event_model_type=project_event_model_type,
+        **trigger_model_kwargs,
     )
 
     project_event_model = flexmock(
@@ -244,6 +238,7 @@ def copr_build_model(
     copr_build.set_status = mock_set_status
     copr_build._srpm_build_for_mocking = srpm_build
     copr_build.get_project_event_object = lambda: trigger_object_model
+    copr_build.get_project_event_model = lambda: project_event_model
     copr_build.get_srpm_build = lambda: srpm_build
 
     run_model = flexmock(
@@ -303,6 +298,9 @@ def koji_build_pr():
     koji_build_model._srpm_build_for_mocking = srpm_build
     koji_build_model.get_project_event_object = lambda: pr_model
     koji_build_model.get_srpm_build = lambda: srpm_build
+    koji_build_model.should_receive("get_project_event_model").and_return(
+        project_event_model
+    )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=pr_model.project_event_model_type,

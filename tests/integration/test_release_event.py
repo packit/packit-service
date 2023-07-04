@@ -21,6 +21,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED
 from packit_service.models import (
     ProjectEventModelType,
+    ProjectEventModel,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseModel,
@@ -29,7 +30,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_project_events import AddReleaseDbTrigger
+from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -55,13 +56,16 @@ def propose_downstream_model():
         job_config_trigger_type=JobConfigTriggerType.release,
     )
     run_model = flexmock(PipelineModel)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.release, event_id=12, commit_sha="123456"
+    ).and_return(project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="0.3.0",
         namespace="packit-service",
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
         commit_hash="123456",
-    ).and_return(project_event).once()
+    ).and_return(project_event).twice()
     propose_downstream_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
@@ -184,7 +188,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
@@ -314,7 +318,7 @@ def test_dist_git_push_release_handle_multiple_branches(
 
     flexmock(PkgTool).should_receive("clone").and_return(None)
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
@@ -445,7 +449,7 @@ def test_dist_git_push_release_handle_one_failed(
     flexmock(PkgTool).should_receive("clone").and_return(None)
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
@@ -540,7 +544,7 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
         Exception, "Failed"
     ).times(len(fedora_branches))
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
@@ -640,7 +644,7 @@ def test_retry_propose_downstream_task(
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
@@ -745,7 +749,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,

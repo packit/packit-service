@@ -22,6 +22,7 @@ from packit_service.models import (
     PipelineModel,
     VMImageBuildTargetModel,
     ProjectEventModelType,
+    ProjectEventModel,
 )
 from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -74,6 +75,9 @@ def test_vm_image_build(github_vm_image_build_comment):
         ref="123456", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=1, commit_sha="123456"
+    ).and_return(flexmock())
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,

@@ -50,10 +50,10 @@ def fake_package_config_job_config_project_db_trigger():
         repo="knx-stack",
         default_branch="main",
     )
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         id=1,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
         commit_sha="123456",
     )
-    return (package_config, job_config, project, db_project_event)
+    return (package_config, job_config, project, db_project_object)

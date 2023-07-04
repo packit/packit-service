@@ -200,6 +200,7 @@ class AbstractSyncReleaseHandler(
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
+                db_project_object=self.data.db_project_object,
                 db_project_event=self.data.db_project_event,
                 job_config=self.job_config,
                 branches_override=self.data.branches_override,

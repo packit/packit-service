@@ -102,6 +102,7 @@ def build_helper(
     owner=None,
     trigger=None,
     jobs=None,
+    db_project_object=None,
     db_project_event=None,
     selected_job=None,
     project_type: Type[GitProject] = GithubProject,
@@ -154,6 +155,7 @@ def build_helper(
             task_accepted_time=datetime.now(timezone.utc),
             project_url="https://git.instance.io/the/example/namespace/the-example-repo",
         ),
+        db_project_object=db_project_object,
         db_project_event=db_project_event,
         build_targets_override=build_targets_override,
         pushgateway=Pushgateway(),
@@ -169,11 +171,12 @@ def test_copr_build_fails_chroot_update(github_pr_event):
     is correct and not the one about permissions"""
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock(
+        db_project_object=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
         ),
+        db_project_event=flexmock(),
     )
     # enforce that we are reporting on our own Copr project
     helper.job_build.owner = "packit"
@@ -240,18 +243,24 @@ def test_copr_build_fails_chroot_update(github_pr_event):
 def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock(
+        db_project_object=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
-            commit_sha="0000000",
+            commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
         ),
     )
     helper.job_config.srpm_build_deps = srpm_build_deps
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
     ).and_return(
-        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0000000")
+        flexmock(
+            id=2,
+            type=ProjectEventModelType.pull_request,
+            commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        )
     )
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
         account_login="packit-service"
@@ -285,7 +294,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build)
     flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build).times(4)
-    flexmock(PullRequestGithubEvent).should_receive("db_project_event").and_return(
+    flexmock(PullRequestGithubEvent).should_receive("db_project_object").and_return(
         flexmock()
     )
 
@@ -346,11 +355,11 @@ def test_run_copr_build_from_source_script_github_outage_retry(
 ):
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock(
+        db_project_object=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
-            commit_sha="0000000",
+            commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
         ),
         task=CeleryTask(
             flexmock(
@@ -362,9 +371,15 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     )
     helper.job_config.srpm_build_deps = ["make", "findutils"]
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="0000000"
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
     ).and_return(
-        flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="0000000")
+        flexmock(
+            id=2,
+            type=ProjectEventModelType.pull_request,
+            commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        )
     )
     flexmock(GithubProject).should_receive("get_pr").and_raise(exc)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -373,7 +388,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             flexmock(),
         )
     )
-    flexmock(PullRequestGithubEvent).should_receive("db_project_event").and_return(
+    flexmock(PullRequestGithubEvent).should_receive("db_project_object").and_return(
         flexmock()
     )
 
@@ -464,6 +479,7 @@ def test_report_pending_build_and_test_on_build_submission(
         service_config=ServiceConfig.get_service_config(),
         project=project,
         metadata=None,
+        db_project_object=None,
         db_project_event=None,
     )
     helper._srpm_model = flexmock(id=1)
@@ -600,6 +616,7 @@ def test_get_job_config_index(package_config, job_config, result):
             service_config=ServiceConfig.get_service_config(),
             project=None,
             metadata=None,
+            db_project_object=None,
             db_project_event=None,
         ).get_job_config_index()
         == result
@@ -680,7 +697,7 @@ def test_default_copr_project_name_for_monorepos(github_pr_event):
     is correct and not the one about permissions"""
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock(
+        db_project_object=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
@@ -707,7 +724,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     is correct and not the one about permissions"""
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock(
+        db_project_object=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
@@ -876,6 +893,9 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
     package_config = PackageConfig(packages={"package": CommonPackageConfig()})
     package_config.jobs = jobs
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="abcdef"
+    ).and_return(flexmock())
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -902,6 +922,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
                 "event_type": "PullRequestGithubEvent",
                 "actor": "actor",
                 "project_url": "url",
+                "commit_sha": "abcdef",
             },
         )
         == should_pass

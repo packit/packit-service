@@ -129,10 +129,13 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
     git_project.should_receive("can_merge_pr").and_return(can_merge_pr)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         job_config_trigger_type=trigger, name=event["git_ref"], pr_id=1
     )
-    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+    flexmock(EventData).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(flexmock)
 
     if not success:
         flexmock(KojiBuildJobHelper).should_receive("report_status_to_all")
@@ -195,8 +198,11 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
     )
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
-    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+    db_project_object = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
+    flexmock(EventData).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(flexmock())
 
     checker = checker_kls(package_config, job_config, event)
 
@@ -260,8 +266,11 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
     )
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(job_config_trigger_type=trigger, pr_id=1)
-    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+    db_project_object = flexmock(job_config_trigger_type=trigger, pr_id=1)
+    flexmock(EventData).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(flexmock())
 
     checker = checker_kls(package_config, job_config, event)
 
@@ -326,7 +335,7 @@ def test_vm_image_is_copr_build_ok_for_chroot(
         job_config,
         {"event_type": PullRequestCommentGithubEvent.__name__, "commit_sha": "1"},
     )
-    checker.data._db_project_event = flexmock(id=1)
+    checker.data._db_project_object = flexmock(id=1)
 
     if error_msg:
         flexmock(checker).should_receive("report_pre_check_failure").with_args(
@@ -434,11 +443,14 @@ def test_koji_branch_merge_queue():
     git_project.should_receive("can_merge_pr").and_return(True)
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.commit,
         name="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
     )
-    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+    flexmock(EventData).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(flexmock())
 
     checker = IsJobConfigTriggerMatchingKoji(package_config, job_config, event)
 
@@ -491,11 +503,14 @@ def test_tf_comment_identifier(comment, result):
     )
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         pr_id=1,
     )
-    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+    flexmock(EventData).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(flexmock())
 
     checker = IsIdentifierFromCommentMatching(
         package_config=package_config, job_config=job_config, event=event
@@ -551,11 +566,14 @@ def test_tf_comment_labels(comment, result):
     )
     flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
 
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         pr_id=1,
     )
-    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+    flexmock(EventData).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(flexmock())
 
     checker = IsLabelFromCommentMatching(
         package_config=package_config, job_config=job_config, event=event

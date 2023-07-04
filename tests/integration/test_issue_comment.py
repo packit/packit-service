@@ -26,6 +26,7 @@ from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
     IssueModel,
     ProjectEventModelType,
+    ProjectEventModel,
     PipelineModel,
     SyncReleaseModel,
     SyncReleaseStatus,
@@ -189,7 +190,7 @@ def test_issue_comment_propose_downstream_handler(
         )
     )
 
-    flexmock(IssueCommentGitlabEvent).should_receive("db_project_event").and_return(
+    flexmock(IssueCommentGitlabEvent).should_receive("db_project_object").and_return(
         flexmock(
             id=123,
             job_config_trigger_type=JobConfigTriggerType.release,
@@ -201,6 +202,9 @@ def test_issue_comment_propose_downstream_handler(
         job_config_trigger_type=JobConfigTriggerType.release,
         project_event_model_type=ProjectEventModelType.issue,
     )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.issue, event_id=123, commit_sha=None
+    ).and_return(project_event)
     flexmock(IssueModel).should_receive("get_or_create").and_return(project_event)
 
     run_model = flexmock(PipelineModel)
@@ -304,13 +308,13 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
     project.should_receive("get_latest_release").and_return(flexmock(tag_name="123"))
     project.should_receive("get_sha_from_tag").and_return("abcdef")
     project.should_receive("has_write_access").and_return(True)
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.release,
         project_event_model_type=ProjectEventModelType.issue,
     )
-    flexmock(IssueCommentEvent).should_receive("db_project_event").and_return(
-        db_project_event
+    flexmock(IssueCommentEvent).should_receive("db_project_object").and_return(
+        db_project_object
     )
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)

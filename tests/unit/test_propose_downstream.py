@@ -90,7 +90,8 @@ def test_branches(jobs, job_config_trigger_type, branches_override, branches):
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=None),
-        db_project_event=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_project_object=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_project_event=flexmock(),
         branches_override=branches_override,
     )
     assert propose_downstream_helper.branches == branches

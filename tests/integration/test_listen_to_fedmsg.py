@@ -731,7 +731,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         job_config=job_config,
     )
 
-    flexmock(TestingFarmHandler).should_receive("db_project_event").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_project_object").and_return(
         copr_build_pr.get_project_event_object()
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
@@ -1691,7 +1691,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         job_config=job_config,
     )
 
-    flexmock(TestingFarmHandler).should_receive("db_project_event").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_project_object").and_return(
         copr_build_pr.get_project_event_object()
     )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
@@ -1878,7 +1878,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         job_config=job_config,
     )
 
-    flexmock(TestingFarmHandler).should_receive("db_project_event").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_project_object").and_return(
         copr_build_pr.get_project_event_object()
     )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]

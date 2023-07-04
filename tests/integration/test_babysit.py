@@ -123,6 +123,9 @@ def test_check_copr_build_updated(build_status, build_ended_on):
             )
         )
         .mock()
+        .should_receive("get_project_event_model")
+        .and_return(flexmock())
+        .mock()
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "the-owner", "copr_url": "https://dummy.url"})
@@ -204,6 +207,9 @@ def test_check_copr_build_waiting_started():
                 id=123,
             )
         )
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(flexmock())
         .mock()
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -288,6 +294,9 @@ def test_check_copr_build_waiting_already_started():
                 id=123,
             )
         )
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(flexmock())
         .mock()
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(

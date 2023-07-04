@@ -19,7 +19,11 @@ from packit_service.constants import (
     KojiBuildState,
 )
 from packit_service.constants import KojiTaskState
-from packit_service.models import AbstractProjectEventDbType, KojiBuildTargetModel
+from packit_service.models import (
+    AbstractProjectObjectDbType,
+    KojiBuildTargetModel,
+    ProjectEventModel,
+)
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
@@ -125,7 +129,8 @@ class KojiTaskReportHandler(
             event=event,
         )
         self.koji_task_event: KojiTaskEvent = KojiTaskEvent.from_event_dict(event)
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
+        self._db_project_event: Optional[ProjectEventModel] = None
         self._build: Optional[KojiBuildTargetModel] = None
 
     @property
@@ -137,9 +142,15 @@ class KojiTaskReportHandler(
         return self._build
 
     @property
-    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        if not self._db_project_object and self.build:
+            self._db_project_object = self.build.get_project_event_object()
+        return self._db_project_object
+
+    @property
+    def db_project_event(self) -> Optional[ProjectEventModel]:
         if not self._db_project_event and self.build:
-            self._db_project_event = self.build.get_project_event_object()
+            self._db_project_event = self.build.get_project_event_model()
         return self._db_project_event
 
     def run(self):
@@ -177,6 +188,7 @@ class KojiTaskReportHandler(
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
+            db_project_object=self.db_project_object,
             db_project_event=self.db_project_event,
             job_config=self.job_config,
         )
@@ -256,7 +268,7 @@ class KojiBuildReportHandler(
             event=event,
         )
         self.koji_build_event: KojiBuildEvent = KojiBuildEvent.from_event_dict(event)
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
         self._build: Optional[KojiBuildTargetModel] = None
 
     @property
@@ -268,10 +280,10 @@ class KojiBuildReportHandler(
         return self._build
 
     @property
-    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
-        if not self._db_project_event and self.build:
-            self._db_project_event = self.build.get_project_event_object()
-        return self._db_project_event
+    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        if not self._db_project_object and self.build:
+            self._db_project_object = self.build.get_project_event_object()
+        return self._db_project_object
 
     def run(self):
         if not self.build:

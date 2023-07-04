@@ -15,6 +15,7 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     ProjectEventModelType,
+    ProjectEventModel,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseStatus,
@@ -23,7 +24,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_project_events import AddReleaseDbTrigger
+from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -44,6 +45,9 @@ def sync_release_model():
         job_config_trigger_type=JobConfigTriggerType.release,
     )
     run_model = flexmock(PipelineModel)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.release, event_id=12, commit_sha=None
+    ).and_return(project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="7.0.3",
         namespace="packit-service",
@@ -156,7 +160,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,

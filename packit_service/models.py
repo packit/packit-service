@@ -365,7 +365,7 @@ class ProjectAndEventsConnector:
     def get_project_event_model(self) -> Optional["ProjectEventModel"]:
         return self.runs[0].project_event if self.runs else None
 
-    def get_project_event_object(self) -> Optional["AbstractProjectEventDbType"]:
+    def get_project_event_object(self) -> Optional["AbstractProjectObjectDbType"]:
         project_event = self.get_project_event_model()
         return project_event.get_project_event_object() if project_event else None
 
@@ -419,7 +419,7 @@ class GroupAndTargetModelConnector:
     def get_project_event_model(self) -> Optional["ProjectEventModel"]:
         return self.group_of_targets.get_project_event_model()
 
-    def get_project_event_object(self) -> Optional["AbstractProjectEventDbType"]:
+    def get_project_event_object(self) -> Optional["AbstractProjectObjectDbType"]:
         return self.group_of_targets.get_project_event_object()
 
     def get_project(self) -> Optional["GitProjectModel"]:
@@ -1144,7 +1144,7 @@ class ProjectReleaseModel(BuildsAndTestsConnector, Base):
         )
 
 
-AbstractProjectEventDbType = Union[
+AbstractProjectObjectDbType = Union[
     PullRequestModel,
     ProjectReleaseModel,
     GitBranchModel,
@@ -1152,7 +1152,7 @@ AbstractProjectEventDbType = Union[
 ]
 
 MODEL_FOR_PROJECT_EVENT: Dict[
-    ProjectEventModelType, Type[AbstractProjectEventDbType]
+    ProjectEventModelType, Type[AbstractProjectObjectDbType]
 ] = {
     ProjectEventModelType.pull_request: PullRequestModel,
     ProjectEventModelType.branch_push: GitBranchModel,
@@ -1163,10 +1163,13 @@ MODEL_FOR_PROJECT_EVENT: Dict[
 
 class ProjectEventModel(Base):
     """
-    Model representing a project event which triggers some packit task.
+    Model representing a "project event" which triggers some packit task.
+    Like a push into a pull request: the push is a "project event" with a
+    given commit sha into a specific "project object" wich is a pull request.
 
     It connects PipelineModel (and built/test models via that model)
-    with models like IssueModel, PullRequestModel, GitBranchModel or ProjectReleaseModel.
+    with "project objects" models: IssueModel, PullRequestModel,
+    GitBranchModel or ProjectReleaseModel.
 
     * It contains type and id of the other database_model.
       * We know table and id that we need to find in that table.
@@ -1184,23 +1187,97 @@ class ProjectEventModel(Base):
     runs = relationship("PipelineModel", back_populates="project_event")
 
     @classmethod
+    def add_pull_request_event(
+        cls,
+        pr_id: int,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        commit_sha: str,
+    ) -> Tuple[PullRequestModel, "ProjectEventModel"]:
+        pull_request = PullRequestModel.get_or_create(
+            pr_id=pr_id,
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=pull_request.project_event_model_type,
+            event_id=pull_request.id,
+            commit_sha=commit_sha,
+        )
+        return (pull_request, event)
+
+    @classmethod
+    def add_branch_push_event(
+        cls,
+        branch_name: str,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        commit_sha: str,
+    ) -> Tuple[GitBranchModel, "ProjectEventModel"]:
+        branch_push = GitBranchModel.get_or_create(
+            branch_name=branch_name,
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=branch_push.project_event_model_type,
+            event_id=branch_push.id,
+            commit_sha=commit_sha,
+        )
+        return (branch_push, event)
+
+    @classmethod
+    def add_release_event(
+        cls,
+        tag_name: str,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        commit_hash: str,
+    ) -> Tuple[ProjectReleaseModel, "ProjectEventModel"]:
+        release = ProjectReleaseModel.get_or_create(
+            tag_name=tag_name,
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+            commit_hash=commit_hash,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=release.project_event_model_type,
+            event_id=release.id,
+            commit_sha=commit_hash,
+        )
+        return (release, event)
+
+    @classmethod
+    def add_issue_event(
+        cls,
+        issue_id: int,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+    ) -> Tuple[IssueModel, "ProjectEventModel"]:
+        issue = IssueModel.get_or_create(
+            issue_id=issue_id,
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=issue.project_event_model_type,
+            event_id=issue.id,
+            commit_sha=None,
+        )
+        return (issue, event)
+
+    @classmethod
     def get_or_create(
         cls, type: ProjectEventModelType, event_id: int, commit_sha: str
     ) -> "ProjectEventModel":
-        if (
-            type
-            in (
-                ProjectEventModelType.pull_request,
-                ProjectEventModelType.branch_push,
-                ProjectEventModelType.release,
-            )
-            and commit_sha is None
-        ):
-            msg = (
-                f"Do not create a ProjectEventModel of type {type} without commit_sha!"
-            )
-            logger.error(msg)
-            raise PackitException(msg)
         with sa_session_transaction() as session:
             project_event = (
                 session.query(ProjectEventModel)
@@ -1219,7 +1296,7 @@ class ProjectEventModel(Base):
     def get_by_id(cls, id_: int) -> Optional["ProjectEventModel"]:
         return sa_session().query(ProjectEventModel).filter_by(id=id_).first()
 
-    def get_project_event_object(self) -> Optional[AbstractProjectEventDbType]:
+    def get_project_event_object(self) -> Optional[AbstractProjectObjectDbType]:
         return (
             sa_session()
             .query(MODEL_FOR_PROJECT_EVENT[self.type])
@@ -1255,7 +1332,7 @@ class PipelineModel(Base):
     # so it will run when the model is initiated, not when the table is made
     datetime = Column(DateTime, default=datetime.utcnow)
 
-    project_event_id = Column(Integer, ForeignKey("project_events.id"))
+    project_event_id = Column(Integer, ForeignKey("project_events.id"), index=True)
     project_event = relationship("ProjectEventModel", back_populates="runs")
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
@@ -1282,18 +1359,14 @@ class PipelineModel(Base):
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
     @classmethod
-    def create(
-        cls, type: ProjectEventModelType, event_id: int, commit_sha: str
-    ) -> "PipelineModel":
+    def create(cls, project_event: ProjectEventModel) -> "PipelineModel":
         with sa_session_transaction() as session:
             run_model = PipelineModel()
-            run_model.project_event = ProjectEventModel.get_or_create(
-                type=type, event_id=event_id, commit_sha=commit_sha
-            )
+            run_model.project_event = project_event
             session.add(run_model)
             return run_model
 
-    def get_project_event_object(self) -> AbstractProjectEventDbType:
+    def get_project_event_object(self) -> AbstractProjectObjectDbType:
         return self.project_event.get_project_event_object()
 
     def __repr__(self):
@@ -1383,9 +1456,7 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             if run_model.copr_build_group:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    type=run_model.project_event.type,
-                    event_id=run_model.project_event.event_id,
-                    commit_sha=run_model.project_event.commit_sha,
+                    project_event=run_model.project_event
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = build_group
@@ -1716,9 +1787,7 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             if run_model.koji_build_group:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    type=run_model.project_event.type,
-                    event_id=run_model.project_event.event_id,
-                    commit_sha=run_model.project_event.commit_sha,
+                    project_event=run_model.project_event
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.koji_build_group = build_group
@@ -1917,7 +1986,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
     @classmethod
     def create_with_new_run(
         cls,
-        project_event_model: AbstractProjectEventDbType,
+        project_event_model: ProjectEventModel,
         copr_build_id: Optional[str] = None,
         copr_web_url: Optional[str] = None,
     ) -> Tuple["SRPMBuildModel", "PipelineModel"]:
@@ -1953,9 +2022,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
 
             # Create a new run model, reuse project_event_model if it exists:
             new_run_model = PipelineModel.create(
-                type=project_event_model.project_event_model_type,
-                event_id=project_event_model.id,
-                commit_sha=project_event_model.commit_sha,
+                project_event=project_event_model,
             )
             new_run_model.srpm_build = srpm_build
             session.add(new_run_model)
@@ -2201,9 +2268,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 if run_model.test_run_group:
                     # Clone run model
                     new_run_model = PipelineModel.create(
-                        type=run_model.project_event.type,
-                        event_id=run_model.project_event.event_id,
-                        commit_sha=run_model.project_event.commit_sha,
+                        project_event=run_model.project_event
                     )
                     new_run_model.srpm_build = run_model.srpm_build
                     new_run_model.copr_build_group = run_model.copr_build_group
@@ -2470,7 +2535,7 @@ class SyncReleaseModel(ProjectAndEventsConnector, Base):
     def create_with_new_run(
         cls,
         status: SyncReleaseStatus,
-        project_event_model: AbstractProjectEventDbType,
+        project_event_model: ProjectEventModel,
         job_type: SyncReleaseJobType,
     ) -> Tuple["SyncReleaseModel", "PipelineModel"]:
         """
@@ -2498,11 +2563,7 @@ class SyncReleaseModel(ProjectAndEventsConnector, Base):
             session.add(sync_release)
 
             # Create a pipeline, reuse project_event_model if it exists:
-            pipeline = PipelineModel.create(
-                type=project_event_model.project_event_model_type,
-                event_id=project_event_model.id,
-                commit_sha=project_event_model.commit_sha,
-            )
+            pipeline = PipelineModel.create(project_event=project_event_model)
             pipeline.sync_release_run = sync_release
             session.add(pipeline)
 
@@ -2949,9 +3010,7 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
             if run_model.vm_image_build:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    type=run_model.project_event.type,
-                    event_id=run_model.project_event.event_id,
-                    commit_sha=run_model.project_event.commit_sha,
+                    project_event=run_model.project_event
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = run_model.copr_build_group
