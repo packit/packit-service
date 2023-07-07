@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 from http import HTTPStatus
-from json import dumps
 from typing import Any, Dict, Union
 
-from flask import make_response
+from flask.json import jsonify
 
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -23,8 +22,8 @@ from packit_service.models import (
 
 def response_maker(result: Any, status: HTTPStatus = HTTPStatus.OK):
     """response_maker is a wrapper around flask's make_response"""
-    resp = make_response(dumps(result), status.value)
-    resp.headers["Content-Type"] = "application/json"
+    resp = jsonify(result)
+    resp.status_code = status.value
     return resp
 
 

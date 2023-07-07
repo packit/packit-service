@@ -8,11 +8,11 @@ repos:
     hooks:
       - id: black
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.7.0
+    rev: v3.8.0
     hooks:
       - id: pyupgrade
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.9-for-vscode
+    rev: v3.0.0
     hooks:
       - id: prettier
         exclude: tests_openshift/openshift_integration/test_data/
@@ -102,3 +102,10 @@ repos:
         types: [yaml]
         files: /tests_openshift.*\.yaml$
         stages: [manual, push]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.17.0
+    hooks:
+      - id: gitleaks
+        # The hook runs 'gitleaks protect --staged' which parses output of
+        # 'git diff --staged', i.e. finds nothing in pre-push or manual stage.
+        stages: [commit]
