@@ -54,6 +54,8 @@ repos:
             # without disabling namespace packages, mypy throws a bunch of errors like:
             #   error: Module "alembic" has no attribute "context"  [attr-defined]
             --no-namespace-packages,
+            --python-version,
+            "3.9",
           ]
         additional_dependencies:
           [
@@ -107,5 +109,5 @@ repos:
     hooks:
       - id: gitleaks
         # The hook runs 'gitleaks protect --staged' which parses output of
-        # 'git diff --staged', i.e. finds nothing in pre-push or manual stage.
+        # 'git diff --staged', i.e. always passes in pre-push/manual stage.
         stages: [commit]
