@@ -34,6 +34,10 @@
     - name: Install pip deps
       pip:
         name:
+          # The above bodhi-client RPM installs python3-requests-2.25.1 and python3-urllib3-1.26.5
+          # The below sentry_sdk would then install urllib3-2.x because of its urllib3>=1.26.11 requirement
+          # and 'pip check' would then scream that "requests 2.25.1 has requirement urllib3<1.27"
+          - urllib3<1.27
           - sentry-sdk[flask]
           - syslog-rfc5424-formatter
           - celery==5.2.* # RPM not available on c9s

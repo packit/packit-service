@@ -43,6 +43,10 @@
       pip:
         name:
           - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
+          # The above bodhi-client RPM installs python3-requests-2.25.1 and python3-urllib3-1.26.5
+          # The below sentry_sdk would then install urllib3-2.x because of its urllib3>=1.26.11 requirement
+          # and 'pip check' would then scream that "requests 2.25.1 has requirement urllib3<1.27"
+          - urllib3<1.27
           - sentry-sdk
           - syslog-rfc5424-formatter # Logging to Splunk
           - celery==5.2.* # celery-5.3.0b1 doesn't play well with flower
