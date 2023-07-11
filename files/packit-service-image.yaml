@@ -3,7 +3,7 @@
   hosts: all
   tasks:
     - name: Build service and worker images
-      command: "make {{ item }}"
+      ansible.builtin.command: "make {{ item }}"
       args:
         chdir: "{{ zuul.project.src_dir }}"
       become: true

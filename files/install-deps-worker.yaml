@@ -9,7 +9,7 @@
   tasks:
     - import_tasks: tasks/process-source-branch.yaml
     - name: Install all RPM/python packages needed to run packit-service worker
-      dnf:
+      ansible.builtin.dnf:
         name:
           - python3-ipdb # for easy debugging
           - nss_wrapper # openshift anyuid passwd madness
@@ -33,7 +33,7 @@
         state: present
         install_weak_deps: False
     - name: Install pip deps
-      pip:
+      ansible.builtin.pip:
         name:
           - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
           # The above bodhi-client RPM installs python3-requests-2.25.1 and python3-urllib3-1.26.5
@@ -43,12 +43,11 @@
           - sentry-sdk
           - syslog-rfc5424-formatter # Logging to Splunk
           - celery==5.2.* # celery-5.3.0b1 doesn't play well with flower
-        executable: pip3
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
     - name: Install ogr, specfile and packit from copr
-      dnf:
+      ansible.builtin.dnf:
         name:
           - python3-ogr
           - python3-specfile

@@ -89,7 +89,7 @@
         dest: "{{ deployment_dir }}/vars/packit/dev.yml"
 
     - name: Actually deploy
-      command: make deploy
+      ansible.builtin.command: make deploy
       environment:
         DEPLOYMENT: dev
         ANSIBLE_STDOUT_CALLBACK: debug

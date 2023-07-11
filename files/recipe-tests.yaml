@@ -6,13 +6,13 @@
   hosts: all
   tasks:
     - name: Install test RPM dependencies
-      dnf:
+      ansible.builtin.dnf:
         name:
           - tar
           - rsync
         state: present
     - name: Install pip deps
-      pip:
+      ansible.builtin.pip:
         name:
           - flexmock
           - requre
@@ -20,4 +20,3 @@
           - pytest-cov
           - pytest-flask
           - deepdiff
-        executable: pip3

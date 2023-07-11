@@ -26,7 +26,6 @@
 - name: Install packit-service from {{ packit_service_path }}
   ansible.builtin.pip:
     name: "{{ packit_service_path }}"
-    executable: pip3
 - name: Clean all the cache files (especially pip)
   ansible.builtin.file:
     state: absent

@@ -9,7 +9,7 @@
   tasks:
     - import_tasks: tasks/process-source-branch.yaml
     - name: Install all RPM/python packages needed to run packit-service
-      dnf:
+      ansible.builtin.dnf:
         name:
           - python3-ipdb # for easy debugging
           - python3-click
@@ -32,7 +32,7 @@
         state: present
         install_weak_deps: False
     - name: Install pip deps
-      pip:
+      ansible.builtin.pip:
         name:
           # The above bodhi-client RPM installs python3-requests-2.25.1 and python3-urllib3-1.26.5
           # The below sentry_sdk would then install urllib3-2.x because of its urllib3>=1.26.11 requirement
@@ -43,12 +43,11 @@
           - celery==5.2.* # RPM not available on c9s
           - flask-cors # RHBZ#2100076
           - flexmock # because of alembic (d90948124e46_..._.py )
-        executable: pip3
     - name: Check if all pip packages have all dependencies installed
-      command: pip check
+      ansible.builtin.command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
     - name: Install ogr, specfile and packit from copr
-      dnf:
+      ansible.builtin.dnf:
         name:
           - python3-ogr
           - python3-specfile

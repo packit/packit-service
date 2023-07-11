@@ -4,20 +4,20 @@
   hosts: all
   tasks:
     - name: Install podman
-      package:
+      ansible.builtin.package:
         name:
           - podman
         state: present
       become: true
     # Fix the SELinux context for podman
     - name: Create ~/.local/share/
-      file:
+      ansible.builtin.file:
         path: ~/.local/share/
         state: directory
         recurse: yes
         setype: data_home_t
     - name: Run tests within a container
-      command: "make check-in-container"
+      ansible.builtin.command: "make check-in-container"
       args:
         chdir: "{{ zuul.project.src_dir }}"
       environment:
