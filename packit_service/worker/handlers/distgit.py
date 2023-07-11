@@ -4,11 +4,11 @@
 """
 This file defines classes for job handlers specific for distgit
 """
+import abc
 import logging
 import shutil
-import abc
 from datetime import datetime
-from typing import Optional, Tuple, Type, List, Callable
+from typing import Optional, Tuple, Type, List, ClassVar
 
 from celery import Task
 from ogr.abstract import PullRequest, AuthMethod
@@ -171,7 +171,7 @@ class AbstractSyncReleaseHandler(
     helper_kls: type[SyncReleaseHelper]
     sync_release_job_type: SyncReleaseJobType
     job_name_for_reporting: str
-    get_dashboard_url: Callable[[int], str]
+    get_dashboard_url: ClassVar  # static method from Callable[[int], str]
 
     def __init__(
         self,
