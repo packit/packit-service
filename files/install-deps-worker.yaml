@@ -50,7 +50,7 @@
           - urllib3<1.27
           - sentry-sdk
           - syslog-rfc5424-formatter # Logging to Splunk
-          - celery==5.2.* # celery-5.3.0b1 doesn't play well with flower
+          - celery==5.3.* # RHBZ#2032543
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
