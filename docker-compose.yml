@@ -49,7 +49,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: quay.io/sclorg/postgresql-13-c9s
+    image: quay.io/sclorg/postgresql-15-c9s
     environment:
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
