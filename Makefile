@@ -1,4 +1,3 @@
-BASE_IMAGE ?= quay.io/packit/base
 # true|false
 PULL_BASE_IMAGE ?= true
 SERVICE_IMAGE ?= quay.io/packit/packit-service:dev
