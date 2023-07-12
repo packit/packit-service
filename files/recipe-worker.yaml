@@ -11,28 +11,28 @@
     - import_tasks: tasks/common.yaml
     - name: Create /tmp/sandcastle
       # working dir for the upstream git which is mapped to the sandbox pod
-      file:
+      ansible.builtin.file:
         state: directory
         path: /tmp/sandcastle
         mode: 0777
     - name: Copy gitconfig
-      copy:
+      ansible.builtin.copy:
         src: gitconfig
         dest: "{{ home_path }}/.gitconfig"
     - name: Copy run_worker.sh
-      copy:
+      ansible.builtin.copy:
         src: run_worker.sh
         dest: /usr/bin/run_worker.sh
         mode: 0777
     - name: Install scripts
-      copy:
+      ansible.builtin.copy:
         src: "{{ item }}"
         dest: /usr/bin/
         mode: 0777
       with_fileglob:
         - "{{ playbook_dir }}/scripts/*.py"
     - name: Make sure allowlist.py is present
-      file:
+      ansible.builtin.file:
         state: file
         path: "{{ item }}"
       loop:

@@ -9,7 +9,7 @@
     as_root: true # needs to run as root in zuul
   tasks:
     - name: Check deployment
-      command: make check
+      ansible.builtin.command: make check
       environment:
         DEPLOYMENT: dev
         ANSIBLE_STDOUT_CALLBACK: debug

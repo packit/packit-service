@@ -4,11 +4,11 @@
   hosts: all
   tasks:
     - name: Creates zuul secrets directory
-      file:
+      ansible.builtin.file:
         path: "{{ zuul.project.src_dir }}/secrets/packit/dev"
         state: directory
     - name: Run tests which are executed within openshift
-      command: make check-inside-openshift-zuul
+      ansible.builtin.command: make check-inside-openshift-zuul
       args:
         chdir: "{{ zuul.project.src_dir }}"
       become: true
