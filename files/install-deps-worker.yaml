@@ -30,6 +30,14 @@
           - python3-fasjson-client
           - python3-gevent # concurrency pool, see run_worker.sh
           - bodhi-client
+          # sandcastle deps
+          - python3-certifi
+          - python3-charset-normalizer
+          - python3-google-auth
+          - python3-oauthlib
+          - python3-pyyaml
+          - python3-requests-oauthlib
+          - python3-websocket-client
         state: present
         install_weak_deps: False
     - name: Install pip deps
