@@ -40,7 +40,7 @@
           - urllib3<1.27
           - sentry-sdk[flask]
           - syslog-rfc5424-formatter
-          - celery==5.2.* # RPM not available on c9s
+          - celery==5.3.* # RHBZ#2032543
           - flask-cors # RHBZ#2100076
           - flexmock # because of alembic (d90948124e46_..._.py )
     - name: Check if all pip packages have all dependencies installed
