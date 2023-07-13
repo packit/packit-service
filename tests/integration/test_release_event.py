@@ -164,6 +164,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         local_pr_branch_suffix="update-propose_downstream",
         use_downstream_specfile=False,
         sync_default_files=True,
+        add_pr_instructions=True,
     ).and_return(flexmock(url="some_url")).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -286,6 +287,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             local_pr_branch_suffix="update-propose_downstream",
             use_downstream_specfile=False,
             sync_default_files=True,
+            add_pr_instructions=True,
         ).and_return(flexmock(url="some_url")).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -407,6 +409,7 @@ def test_dist_git_push_release_handle_one_failed(
                 local_pr_branch_suffix="update-propose_downstream",
                 use_downstream_specfile=False,
                 sync_default_files=True,
+                add_pr_instructions=True,
             ).and_return(flexmock(url="some_url")).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -424,6 +427,7 @@ def test_dist_git_push_release_handle_one_failed(
                 local_pr_branch_suffix="update-propose_downstream",
                 use_downstream_specfile=False,
                 sync_default_files=True,
+                add_pr_instructions=True,
             ).and_raise(Exception, f"Failed {model.branch}").once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -652,6 +656,7 @@ def test_retry_propose_downstream_task(
         local_pr_branch_suffix="update-propose_downstream",
         use_downstream_specfile=False,
         sync_default_files=True,
+        add_pr_instructions=True,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
@@ -756,6 +761,7 @@ def test_dont_retry_propose_downstream_task(
         local_pr_branch_suffix="update-propose_downstream",
         use_downstream_specfile=False,
         sync_default_files=True,
+        add_pr_instructions=True,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()

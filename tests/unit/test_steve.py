@@ -151,6 +151,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         local_pr_branch_suffix="update-propose_downstream",
         use_downstream_specfile=False,
         sync_default_files=True,
+        add_pr_instructions=True,
     ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 

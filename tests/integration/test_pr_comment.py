@@ -2666,6 +2666,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         local_pr_branch_suffix="update-pull_from_upstream",
         use_downstream_specfile=True,
         sync_default_files=False,
+        add_pr_instructions=True,
     ).and_return(flexmock(url="some_url")).once()
     flexmock(PackitAPI).should_receive("clean")
 

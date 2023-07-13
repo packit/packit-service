@@ -136,6 +136,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         local_pr_branch_suffix="update-pull_from_upstream",
         use_downstream_specfile=True,
         sync_default_files=False,
+        add_pr_instructions=True,
     ).and_return(flexmock(url="some_url")).once()
     flexmock(PackitAPI).should_receive("clean")
 
