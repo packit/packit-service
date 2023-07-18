@@ -79,23 +79,28 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
 
 
 def test_precheck(github_pr_event):
+    db_project_object = flexmock(
+        id=342,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
         event_id=342,
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-    ).and_return(flexmock())
+    ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=342,
         namespace="packit-service",
         repo_name="packit",
         project_url="https://github.com/packit-service/packit",
-    ).and_return(
-        flexmock(
-            id=342,
-            job_config_trigger_type=JobConfigTriggerType.pull_request,
-            project_event_model_type=ProjectEventModelType.pull_request,
-        )
-    )
+    ).and_return(db_project_object)
 
     package_config = PackageConfig(
         jobs=[
@@ -126,23 +131,28 @@ def test_precheck(github_pr_event):
 
 
 def test_precheck_gitlab(gitlab_mr_event):
+    db_project_object = flexmock(
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
         event_id=1,
         commit_sha="1f6a716aa7a618a9ffe56970d77177d99d100022",
-    ).and_return(flexmock())
+    ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=1,
         namespace="testing/packit",
         repo_name="hello-there",
         project_url="https://gitlab.com/testing/packit/hello-there",
-    ).and_return(
-        flexmock(
-            id=1,
-            job_config_trigger_type=JobConfigTriggerType.pull_request,
-            project_event_model_type=ProjectEventModelType.pull_request,
-        )
-    )
+    ).and_return(db_project_object)
     package_config = PackageConfig(
         jobs=[
             JobConfig(
@@ -178,18 +188,25 @@ def test_precheck_gitlab(gitlab_mr_event):
 
 
 def test_precheck_push(github_push_event):
+    db_project_object = flexmock(
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+        name="build-branch",
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=1,
         commit_sha="04885ff850b0fa0e206cd09db73565703d48f99b",
-    ).and_return(flexmock())
+    ).and_return(db_project_event)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        flexmock(
-            id=1,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-            name="build-branch",
-        )
+        db_project_object
     )
     jc = JobConfig(
         type=JobType.copr_build,
@@ -226,18 +243,25 @@ def test_precheck_push(github_push_event):
 
 
 def test_precheck_push_to_a_different_branch(github_push_event):
+    db_project_object = flexmock(
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+        name="branch",
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=1,
         commit_sha="04885ff850b0fa0e206cd09db73565703d48f99b",
-    ).and_return(flexmock())
+    ).and_return(db_project_event)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        flexmock(
-            id=1,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-            name="branch",
-        )
+        db_project_object
     )
 
     package_config = PackageConfig(
@@ -293,30 +317,32 @@ def test_precheck_push_actor_check(github_push_event):
 
 
 def test_precheck_koji_build_non_scratch(github_pr_event):
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=342,
-        namespace="packit-service",
-        repo_name="packit",
-        project_url="https://github.com/packit-service/packit",
-    ).and_return(
-        flexmock(
-            id=342,
-            job_config_trigger_type=JobConfigTriggerType.pull_request,
-            project_event_model_type=ProjectEventModelType.pull_request,
-            commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-        )
+    db_project_object = flexmock(
+        id=342,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
     )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request,
-        event_id=342,
-        commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-    ).and_return(
+    db_project_event = (
         flexmock(
             id=2,
             type=ProjectEventModelType.pull_request,
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
         )
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=342,
+        namespace="packit-service",
+        repo_name="packit",
+        project_url="https://github.com/packit-service/packit",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=342,
+        commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+    ).and_return(db_project_event)
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.neutral,
         description="Non-scratch builds not possible from upstream.",

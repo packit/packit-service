@@ -34,7 +34,6 @@ class BaseJobHelper:
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_object: AbstractProjectObjectDbType,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
         pushgateway: Optional[Pushgateway] = None,
@@ -43,11 +42,14 @@ class BaseJobHelper:
         self.job_config = job_config
         self.package_config = package_config
         self.project: GitProject = project
-        self.db_project_object = db_project_object
         self.db_project_event = db_project_event
         self.metadata: EventData = metadata
         self.run_model: Optional[PipelineModel] = None
         self.pushgateway = pushgateway
+        self.db_project_event = db_project_event
+        self._db_project_object: AbstractProjectObjectDbType = (
+            db_project_event.get_project_event_object() if db_project_event else None
+        )
 
         # lazy properties
         self._api = None
@@ -147,7 +149,9 @@ class BaseJobHelper:
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 packit_user=self.service_config.get_github_account_name(),
-                event_id=self.db_project_event.id if self.db_project_event else None,
+                project_object_id=self._db_project_object.id
+                if self._db_project_object
+                else None,
                 pr_id=self.metadata.pr_id,
             )
         return self._status_reporter

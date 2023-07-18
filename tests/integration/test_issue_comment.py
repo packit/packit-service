@@ -190,28 +190,33 @@ def test_issue_comment_propose_downstream_handler(
         )
     )
 
-    flexmock(IssueCommentGitlabEvent).should_receive("db_project_object").and_return(
-        flexmock(
-            id=123,
-            job_config_trigger_type=JobConfigTriggerType.release,
-            project_event_model_type=ProjectEventModelType.issue,
-        )
-    )
-    project_event = flexmock(
+    db_project_object = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.release,
         project_event_model_type=ProjectEventModelType.issue,
     )
+    flexmock(IssueCommentGitlabEvent).should_receive("db_project_object").and_return(
+        db_project_object
+    )
+    db_project_event = (
+        flexmock(
+            id=123456,
+            project_event_model_type=ProjectEventModelType.issue,
+        )
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.issue, event_id=123, commit_sha=None
-    ).and_return(project_event)
-    flexmock(IssueModel).should_receive("get_or_create").and_return(project_event)
+    ).and_return(db_project_event)
+    flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
 
     run_model = flexmock(PipelineModel)
     propose_downstream_model = flexmock(sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
-        project_event_model=project_event,
+        project_event_model=db_project_event,
         job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).once()
 

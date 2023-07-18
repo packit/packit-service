@@ -25,11 +25,6 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     TestingFarmResult,
 )
-from packit_service.service.db_project_events import (
-    AddBranchPushEventToDb,
-    AddPullRequestEventToDb,
-    AddReleaseEventToDb,
-)
 from packit_service.worker.handlers import ProposeDownstreamHandler
 from packit_service.worker.helpers.build import (
     KojiBuildJobHelper,
@@ -117,28 +112,27 @@ def mock_pr_functionality(request):
         .and_return(flexmock(commit_sha="12345"))
         .mock()
     )
-    project_event = ProjectEventModel(type=JobConfigTriggerType.pull_request, id=123)
-    flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
-        pr_model
-    )
-    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        pr_model
+    project_event = (
+        flexmock(ProjectEventModel(type=JobConfigTriggerType.pull_request, id=123456))
+        .should_receive("get_project_event_object")
+        .and_return(pr_model)
+        .mock()
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        project_event
+    )
     flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
         123456
     ).and_return(project_event)
-    flexmock(project_event).should_receive("get_project_event_object").and_return(
-        pr_model
-    )
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=123,
         namespace="packit",
         repo_name="hello-world",
         project_url="https://github.com/packit/hello-world",
     ).and_return(pr_model)
-    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
-        flexmock(id=123456)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        pr_model
     )
 
 
@@ -165,28 +159,28 @@ def mock_push_functionality(request):
         .and_return(flexmock(commit_sha="12345"))
         .mock()
     )
-    project_event = ProjectEventModel(type=JobConfigTriggerType.commit, id=123)
-    flexmock(AddBranchPushEventToDb).should_receive("db_project_object").and_return(
-        branch_model
+    project_event = (
+        flexmock(ProjectEventModel(type=JobConfigTriggerType.commit, id=123456))
+        .should_receive("get_project_event_object")
+        .and_return(branch_model)
+        .mock()
     )
-    flexmock(GitBranchModel).should_receive("get_by_id").with_args(123).and_return(
-        branch_model
-    )
+
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        project_event
+    )
     flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
         123456
     ).and_return(project_event)
-    flexmock(project_event).should_receive("get_project_event_object").and_return(
-        branch_model
-    )
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="packit",
         repo_name="hello-world",
         project_url="https://github.com/packit/hello-world",
     ).and_return(branch_model)
-    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
-        flexmock(id=123456)
+    flexmock(GitBranchModel).should_receive("get_by_id").with_args(123).and_return(
+        branch_model
     )
 
 
@@ -213,18 +207,20 @@ def mock_release_functionality(request):
         .and_return(flexmock(commit_sha="12345"))
         .mock()
     )
-    project_event = ProjectEventModel(type=JobConfigTriggerType.release, id=123)
-    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
-        release_model
-    )
-    flexmock(ProjectReleaseModel).should_receive("get_by_id").with_args(123).and_return(
-        release_model
+    project_event = (
+        flexmock(ProjectEventModel(type=JobConfigTriggerType.release, id=123456))
+        .should_receive("get_project_event_object")
+        .and_return(release_model)
+        .mock()
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
         123456
     ).and_return(project_event)
-    flexmock(project_event).should_receive("get_project_event_object").and_return(
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        project_event
+    )
+    flexmock(ProjectReleaseModel).should_receive("get_by_id").with_args(123).and_return(
         release_model
     )
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
@@ -234,9 +230,6 @@ def mock_release_functionality(request):
         project_url="https://github.com/packit/hello-world",
         commit_hash="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
     ).and_return(release_model)
-    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
-        flexmock(id=123456)
-    )
 
 
 @pytest.mark.parametrize(

@@ -319,6 +319,84 @@ def koji_build_pr():
     return koji_build_model
 
 
+@pytest.fixture()
+def add_pull_request_event_with_sha_123456():
+    db_project_object = flexmock(
+        project=flexmock(
+            repo_name="repo_name",
+            namespace="the-namespace",
+            project_url="https://github.com/the-namespace/repo_name",
+        ),
+        pr_id=5,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        id=123,
+    )
+    db_project_event = (
+        flexmock(type=ProjectEventModelType.pull_request)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    yield db_project_object, db_project_event
+
+
+@pytest.fixture()
+def add_pull_request_event_with_pr_id_9():
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
+        db_project_object
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(db_project_object)
+    yield db_project_object, db_project_event
+
+
+@pytest.fixture()
+def add_pull_request_event_with_sha_0011223344():
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
+        db_project_object
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(db_project_object)
+    yield db_project_object, db_project_event
+
+
 @pytest.fixture(scope="module")
 def github_release_webhook() -> dict:
     with open(DATA_DIR / "webhooks" / "github" / "release.json") as outfile:

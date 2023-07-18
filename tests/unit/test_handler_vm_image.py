@@ -43,10 +43,12 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
             self.job_config = job_config
             self._project = project
             self.data = flexmock(
-                db_project_object=db_project_object,
                 commit_sha="123456",
                 pr_id="21",
-                db_project_event=flexmock(id=1),
+                db_project_event=flexmock(id=1)
+                .should_receive("get_project_event_object")
+                .and_return(db_project_object)
+                .mock(),
             )
 
     mixin = Test()

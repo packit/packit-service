@@ -39,10 +39,16 @@ def fedora_branches():
 
 @pytest.fixture
 def sync_release_model():
-    project_event = flexmock(
-        project_event_model_type=ProjectEventModelType.release,
+    db_project_object = flexmock(
         id=12,
+        project_event_model_type=ProjectEventModelType.release,
         job_config_trigger_type=JobConfigTriggerType.release,
+    )
+    project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -54,7 +60,7 @@ def sync_release_model():
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
         commit_hash=None,
-    ).and_return(project_event)
+    ).and_return(db_project_object)
     sync_release_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,

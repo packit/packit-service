@@ -930,7 +930,8 @@ class Parser:
             return None
 
         db_project_object = db_project_event.get_project_event_object()
-        logger.info(f"Original project event: {db_project_object}")
+        logger.info(f"Original project event: {db_project_event}")
+        logger.info(f"Original project object: {db_project_object}")
 
         parse_result = Parser.parse_check_name(check_name, db_project_event)
         if parse_result is None:

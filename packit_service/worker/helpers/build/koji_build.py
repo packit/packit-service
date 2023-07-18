@@ -18,7 +18,6 @@ from packit_service.models import (
     BuildStatus,
     KojiBuildGroupModel,
     ProjectEventModel,
-    AbstractProjectObjectDbType,
 )
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
@@ -44,7 +43,6 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_object: AbstractProjectObjectDbType,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
@@ -55,7 +53,6 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_project_object=db_project_object,
             db_project_event=db_project_event,
             job_config=job_config,
             build_targets_override=build_targets_override,

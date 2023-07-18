@@ -30,7 +30,6 @@ from packit_service.models import (
     PullRequestModel,
     filter_most_recent_target_models_by_status,
     BuildStatus,
-    AbstractProjectObjectDbType,
     ProjectEventModel,
 )
 from packit_service.sentry_integration import send_to_sentry
@@ -104,7 +103,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_object: AbstractProjectObjectDbType,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
@@ -116,7 +114,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_project_object=db_project_object,
             db_project_event=db_project_event,
             job_config=job_config,
             build_targets_override=build_targets_override,
@@ -1000,7 +997,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             package_config=None,
             project=None,
             metadata=None,
-            db_project_object=None,
             db_project_event=None,
             job_config=None,
         )

@@ -145,7 +145,7 @@ def test_set_status_gitlab(
 @pytest.mark.parametrize(
     (
         "project,commit_sha,pr_id,pr_object,state,title,summary,"
-        "check_name,url,check_status,check_conclusion,event_id"
+        "check_name,url,check_status,check_conclusion,project_object_id"
     ),
     [
         pytest.param(
@@ -216,7 +216,7 @@ def test_set_status_github_check(
     url,
     check_status,
     check_conclusion,
-    event_id,
+    project_object_id,
 ):
     flexmock(reporting).should_receive("get_random_news_sentence").and_return(
         "Interesting news."
@@ -227,7 +227,7 @@ def test_set_status_github_check(
         project=project,
         commit_sha=commit_sha,
         pr_id=pr_id,
-        event_id=event_id,
+        project_object_id=project_object_id,
         packit_user="packit",
     )
     act_upon = flexmock(GithubProject)
@@ -236,7 +236,7 @@ def test_set_status_github_check(
         name=check_name,
         commit_sha=commit_sha,
         url=url,
-        external_id=str(event_id),
+        external_id=str(project_object_id),
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(
@@ -444,7 +444,7 @@ def test_status_instead_check(
     reporter = StatusReporter.get_instance(
         project=project,
         commit_sha=commit_sha,
-        event_id=event_id,
+        project_object_id=event_id,
         pr_id=pr_id,
         packit_user="packit",
     )

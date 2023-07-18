@@ -142,12 +142,6 @@ class KojiTaskReportHandler(
         return self._build
 
     @property
-    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        if not self._db_project_object and self.build:
-            self._db_project_object = self.build.get_project_event_object()
-        return self._db_project_object
-
-    @property
     def db_project_event(self) -> Optional[ProjectEventModel]:
         if not self._db_project_event and self.build:
             self._db_project_event = self.build.get_project_event_model()
@@ -188,7 +182,6 @@ class KojiTaskReportHandler(
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
-            db_project_object=self.db_project_object,
             db_project_event=self.db_project_event,
             job_config=self.job_config,
         )

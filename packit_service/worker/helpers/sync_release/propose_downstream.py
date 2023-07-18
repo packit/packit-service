@@ -8,7 +8,7 @@ from ogr.abstract import GitProject
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
-from packit_service.models import AbstractProjectObjectDbType, ProjectEventModel
+from packit_service.models import ProjectEventModel
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -26,7 +26,6 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_object: AbstractProjectObjectDbType,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
         branches_override: Optional[Set[str]] = None,
@@ -36,7 +35,6 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_project_object=db_project_object,
             db_project_event=db_project_event,
             job_config=job_config,
             branches_override=branches_override,

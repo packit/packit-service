@@ -32,7 +32,6 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -106,25 +105,31 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     )
 
     run_model = flexmock(PipelineModel)
-    project_event = flexmock(
+    db_project_object = flexmock(
         project_event_model_type=ProjectEventModelType.release,
         id=12,
         job_config_trigger_type=JobConfigTriggerType.release,
     )
+    db_project_event = (
+        flexmock(type=ProjectEventModelType.release, event_id=12, commit_sha="12345")
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.release, event_id=12, commit_sha="12345"
-    ).and_return(project_event)
+    ).and_return(db_project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="1.2.3",
         namespace="the-namespace",
         repo_name="the-repo",
         project_url="https://github.com/the-namespace/the-repo",
         commit_hash="12345",
-    ).and_return(project_event).times(2 if success else 0)
+    ).and_return(db_project_object).times(2 if success else 0)
     propose_downstream_model = flexmock(sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
-        project_event_model=project_event,
+        project_event_model=db_project_event,
         job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
@@ -159,13 +164,6 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
-    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
-        flexmock(
-            job_config_trigger_type=JobConfigTriggerType.release,
-            id=12,
-            project_event_model_type=JobConfigTriggerType.release,
-        )
-    )
     flexmock(Allowlist, check_and_report=True)
     flexmock(Signature).should_receive("apply_async").times(1 if success else 0)
 

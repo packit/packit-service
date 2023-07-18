@@ -13,7 +13,6 @@ from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (
     ProjectEventModel,
-    AbstractProjectObjectDbType,
     CoprBuildTargetModel,
     SRPMBuildModel,
 )
@@ -76,7 +75,6 @@ class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigFromEventMixin):
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_project_object=self.data.db_project_object,
                 db_project_event=self.data.db_project_event,
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,
@@ -281,18 +279,12 @@ class GetSRPMBuild(Protocol):
 
     @property
     @abstractmethod
-    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        ...
-
-    @property
-    @abstractmethod
     def db_project_event(self) -> Optional[ProjectEventModel]:
         ...
 
 
 class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
     _build: Optional[Union[CoprBuildTargetModel, SRPMBuildModel]] = None
-    _db_project_object: Optional[AbstractProjectObjectDbType] = None
     _db_project_event: Optional[ProjectEventModel] = None
 
     @property
@@ -313,20 +305,9 @@ class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
             self._db_project_event = self.build.get_project_event_model()
         return self._db_project_event
 
-    @property
-    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        if not self._db_project_object:
-            self._db_project_object = self.build.get_project_event_object()
-        return self._db_project_object
-
 
 class GetCoprBuild(Protocol):
     build_id: Optional[int] = None
-
-    @property
-    @abstractmethod
-    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        ...
 
     @property
     @abstractmethod
@@ -336,20 +317,7 @@ class GetCoprBuild(Protocol):
 
 class GetCoprBuildMixin(GetCoprBuild, ConfigFromEventMixin):
     _build: Optional[CoprBuildTargetModel] = None
-    _db_project_object: Optional[AbstractProjectObjectDbType] = None
     _db_project_event: Optional[ProjectEventModel] = None
-
-    @property
-    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        if not self._db_project_object:
-            # copr build end
-            if self.build_id:
-                build = CoprBuildTargetModel.get_by_id(self.build_id)
-                self._db_project_object = build.get_project_event_object()
-            # other events
-            else:
-                self._db_project_object = self.data.db_project_object
-        return self._db_project_object
 
     @property
     def db_project_event(self) -> Optional[ProjectEventModel]:
@@ -387,7 +355,6 @@ class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigFromEventMixin):
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_project_object=self.data.db_project_object,
                 db_project_event=self.data.db_project_event,
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,
@@ -422,7 +389,6 @@ class GetCoprBuildJobHelperForIdMixin(
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_project_object=self.db_project_object,
                 db_project_event=self.db_project_event,
                 job_config=self.job_config,
                 pushgateway=self.pushgateway,
@@ -455,7 +421,6 @@ class GetTestingFarmJobHelperMixin(
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_project_object=self.db_project_object,
                 db_project_event=self.db_project_event,
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,

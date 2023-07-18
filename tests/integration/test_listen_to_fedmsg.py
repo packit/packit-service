@@ -43,7 +43,7 @@ from packit_service.service.urls import (
 )
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
-from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
+from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -731,9 +731,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         job_config=job_config,
     )
 
-    flexmock(TestingFarmHandler).should_receive("db_project_object").and_return(
-        copr_build_pr.get_project_event_object()
-    )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
         [copr_build_pr]
     )
@@ -1691,9 +1688,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         job_config=job_config,
     )
 
-    flexmock(TestingFarmHandler).should_receive("db_project_object").and_return(
-        copr_build_pr.get_project_event_object()
-    )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
     run_testing_farm_handler(
         package_config=package_config,
@@ -1878,9 +1872,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         job_config=job_config,
     )
 
-    flexmock(TestingFarmHandler).should_receive("db_project_object").and_return(
-        copr_build_pr.get_project_event_object()
-    )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
     task = run_testing_farm_handler.__wrapped__.__func__
     task(

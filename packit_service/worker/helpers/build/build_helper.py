@@ -24,7 +24,6 @@ from packit_service.models import (
     BuildStatus,
     ProjectReleaseModel,
     GitBranchModel,
-    AbstractProjectObjectDbType,
     ProjectEventModel,
 )
 from packit_service.service.urls import get_srpm_build_info_url
@@ -50,7 +49,6 @@ class BaseBuildJobHelper(BaseJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_object: AbstractProjectObjectDbType,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
@@ -62,7 +60,6 @@ class BaseBuildJobHelper(BaseJobHelper):
             package_config=package_config,
             project=project,
             metadata=metadata,
-            db_project_object=db_project_object,
             db_project_event=db_project_event,
             job_config=job_config,
             pushgateway=pushgateway,
@@ -115,8 +112,8 @@ class BaseBuildJobHelper(BaseJobHelper):
         the target branch of the pull request.
         """
         if (
-            not self.db_project_object
-            or self.db_project_object.job_config_trigger_type != job_config.trigger
+            not self._db_project_object
+            or self._db_project_object.job_config_trigger_type != job_config.trigger
         ):
             return False
 
@@ -124,16 +121,16 @@ class BaseBuildJobHelper(BaseJobHelper):
             configured_branch = job_config.branch or self.project.default_branch
             logger.info(
                 f"Configured branch: {configured_branch}, branch from trigger: "
-                f"{self.db_project_object.name}"  # type: ignore
+                f"{self._db_project_object.name}"  # type: ignore
             )
-            return bool(re.match(configured_branch, self.db_project_object.name))  # type: ignore
+            return bool(re.match(configured_branch, self._db_project_object.name))  # type: ignore
 
         if job_config.trigger == JobConfigTriggerType.pull_request:
             configured_branch = job_config.branch
             if not configured_branch:
                 return True
             target_branch = self.project.get_pr(
-                self.db_project_object.pr_id  # type: ignore
+                self._db_project_object.pr_id  # type: ignore
             ).target_branch
             logger.info(
                 f"Configured branch: {configured_branch}, PR target branch: {target_branch}"
@@ -428,10 +425,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         # tag name in case of release project event)
         identifier = None
 
-        if isinstance(self.db_project_object, ProjectReleaseModel):
-            identifier = self.db_project_object.tag_name
-        elif isinstance(self.db_project_object, GitBranchModel):
-            identifier = self.db_project_object.name
+        if isinstance(self._db_project_object, ProjectReleaseModel):
+            identifier = self._db_project_object.tag_name
+        elif isinstance(self._db_project_object, GitBranchModel):
+            identifier = self._db_project_object.name
 
         return identifier
 
