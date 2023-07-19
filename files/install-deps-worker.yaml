@@ -29,6 +29,7 @@
           - python3-boto3 # AWS (S3)
           - python3-fasjson-client
           - python3-gevent # concurrency pool, see run_worker.sh
+          - python3-eventlet # concurrency pool, see run_worker.sh
           - bodhi-client
           # sandcastle deps
           - python3-certifi
