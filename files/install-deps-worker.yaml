@@ -41,6 +41,14 @@
           - python3-websocket-client
         state: present
         install_weak_deps: False
+    # this can be removed once go-srpm-macros >= 3.2.0 is available in repos
+    # (https://github.com/packit/specfile/issues/254)
+    - name: Install the latest version of go-srpm-macros from CentOS Stream Koji
+      ansible.builtin.dnf:
+        name: https://kojihub.stream.centos.org/kojifiles/packages/go-rpm-macros/3.2.0/1.el9/noarch/go-srpm-macros-3.2.0-1.el9.noarch.rpm
+        state: present
+        disable_gpg_check: True
+        install_weak_deps: False
     - name: Install pip deps
       ansible.builtin.pip:
         name:
