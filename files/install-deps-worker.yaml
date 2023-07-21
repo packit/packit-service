@@ -28,7 +28,7 @@
           - postgresql # pg_dump
           - python3-boto3 # AWS (S3)
           - python3-fasjson-client
-          - python3-gevent # concurrency pool, see run_worker.sh
+          #          - python3-gevent # concurrency pool, see run_worker.sh
           - python3-eventlet # concurrency pool, see run_worker.sh
           - bodhi-client
           # sandcastle deps
@@ -60,6 +60,7 @@
           - sentry-sdk
           - syslog-rfc5424-formatter # Logging to Splunk
           - celery==5.3.* # RHBZ#2032543
+          - gevent # https://github.com/packit/packit-service/issues/2120
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
