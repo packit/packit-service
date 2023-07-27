@@ -259,16 +259,24 @@ class Event:
         self._package_config_searched: bool = False
         self._db_project_event: Optional[AbstractProjectEventDbType] = None
 
+    @staticmethod
+    def make_serializable(d: dict, skip: List) -> dict:
+        """We need a JSON serializable dict (because of redis and celery tasks)
+        This method will copy everything from dict except the specified
+        non serializable keys.
+        """
+        return {k: copy.deepcopy(v) for k, v in d.items() if k not in skip}
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = default_dict or self.__dict__
-        d = copy.deepcopy(d)
         # whole dict has to be JSON serializable because of redis
+        d = self.make_serializable(
+            d, ["_db_project_event", "_project", "_base_project", "_package_config"]
+        )
         d["event_type"] = self.__class__.__name__
 
         # we are trying to be lazy => don't touch database if it is not needed
         d["event_id"] = self._db_project_event.id if self._db_project_event else None
-        # we don't want to save non-serializable object
-        d.pop("_db_project_event")
 
         d["created_at"] = int(d["created_at"].timestamp())
         task_accepted_time = d.get("task_accepted_time")
@@ -285,10 +293,6 @@ class Event:
         if self.branches_override:
             d["branches_override"] = list(self.branches_override)
 
-        # so that it is JSON serializable (because of Celery tasks)
-        d.pop("_project")
-        d.pop("_base_project")
-        d.pop("_package_config")
         return d
 
     def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
