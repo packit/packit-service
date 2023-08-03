@@ -133,10 +133,12 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
 
         return True
 
+    def get_non_serializable_attributes(self):
+        return super().get_non_serializable_attributes() + ["build"]
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
-        result.pop("build")
         return result
 
     def get_copr_build_url(self) -> str:

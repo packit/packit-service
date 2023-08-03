@@ -267,12 +267,18 @@ class Event:
         """
         return {k: copy.deepcopy(v) for k, v in d.items() if k not in skip}
 
+    def get_non_serializable_attributes(self):
+        return [
+            "_db_project_event",
+            "_project",
+            "_base_project",
+            "_package_config",
+        ]
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = default_dict or self.__dict__
         # whole dict has to be JSON serializable because of redis
-        d = self.make_serializable(
-            d, ["_db_project_event", "_project", "_base_project", "_package_config"]
-        )
+        d = self.make_serializable(d, self.get_non_serializable_attributes())
         d["event_type"] = self.__class__.__name__
 
         # we are trying to be lazy => don't touch database if it is not needed
