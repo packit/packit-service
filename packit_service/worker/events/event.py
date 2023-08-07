@@ -291,6 +291,7 @@ class Event:
 
     def get_non_serializable_attributes(self):
         return [
+            "_db_project_object",
             "_db_project_event",
             "_project",
             "_base_project",
