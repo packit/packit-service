@@ -2460,13 +2460,13 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         True
     )
 
+    def _get_project(url, *_, **__):
+        if url == pagure_pr_comment_added["pullrequest"]["project"]["full_url"]:
+            return distgit_project
+        return project
+
     service_config = ServiceConfig().get_service_config()
-    flexmock(service_config).should_receive("get_project").with_args(
-        pagure_pr_comment_added["pullrequest"]["project"]["full_url"]
-    ).and_return(distgit_project)
-    flexmock(service_config).should_receive("get_project").with_args(
-        "https://github.com/packit-service/hello-world"
-    ).and_return(project)
+    flexmock(service_config).should_receive("get_project").replace_with(_get_project)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",

@@ -136,7 +136,8 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         "https://src.fedoraproject.org/rpms/redis"
     ).and_return(distgit_project)
     flexmock(service_config).should_receive("get_project").with_args(
-        "https://github.com/packit-service/hello-world"
+        "https://github.com/packit-service/hello-world",
+        False,
     ).and_return(project)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(

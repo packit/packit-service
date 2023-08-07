@@ -10,6 +10,7 @@ from logging import getLogger
 from typing import Dict, Optional, Type, Union, Set, List
 
 from ogr.abstract import GitProject
+from ogr.parsing import RepoUrl
 
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit_service.config import PackageConfigGetter, ServiceConfig
@@ -189,7 +190,6 @@ class EventData:
             "ReleaseEvent",
             "ReleaseGitlabEvent",
             "CheckRerunReleaseEvent",
-            "NewHotnessUpdateEvent",
         }:
             (
                 self._db_project_object,
@@ -198,6 +198,26 @@ class EventData:
                 tag_name=self.tag_name,
                 namespace=self.project.namespace,
                 repo_name=self.project.repo,
+                project_url=self.project_url,
+                commit_hash=self.commit_sha,
+            )
+        elif self.event_type in {
+            "NewHotnessUpdateEvent",
+        }:
+            if self.project:
+                namespace = self.project.namespace
+                repo_name = self.project.repo
+            else:
+                repo_url = RepoUrl.parse(self.project_url)
+                namespace = repo_url.namespace
+                repo_name = repo_url.repo
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_release_event(
+                tag_name=self.tag_name,
+                namespace=namespace,
+                repo_name=repo_name,
                 project_url=self.project_url,
                 commit_hash=self.commit_sha,
             )
@@ -253,7 +273,8 @@ class EventData:
         if not self.project_url:
             return None
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_project_object.project.project_url
+            url=self.project_url or self.db_project_object.project.project_url,
+            required=self.event_type not in ("NewHotnessUpdateEvent",),
         )
 
 
