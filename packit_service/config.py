@@ -109,6 +109,8 @@ class ServiceConfig(Config):
         comment_command_prefix: str = "/packit",
         redhat_api_refresh_token: str = None,
         package_config_path_override: Optional[str] = None,
+        command_handler_storage_class: Optional[str] = None,
+        appcode: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -172,6 +174,12 @@ class ServiceConfig(Config):
         # Package config path to use, instead of searching for the
         # default names.
         self.package_config_path_override = package_config_path_override
+
+        # Storage class that is used for temporary volumes used by Sandcastle
+        self.command_handler_storage_class = command_handler_storage_class
+
+        # Appcode used in MP+ to differentiate applications
+        self.appcode = appcode
 
     service_config = None
 

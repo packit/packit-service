@@ -81,6 +81,8 @@ class ServiceConfigSchema(UserConfigSchema):
     enabled_projects_for_srpm_in_copr = fields.List(fields.String())
     comment_command_prefix = fields.String()
     package_config_path_override = fields.String()
+    command_handler_storage_class = fields.String(missing="gp2")
+    appcode = fields.String()
 
     @post_load
     def make_instance(self, data, **kwargs):
