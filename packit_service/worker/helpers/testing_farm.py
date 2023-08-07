@@ -356,13 +356,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         payload_["notification"]["webhook"].pop("token")
         return payload_
 
-    def _construct_fmf_payload(self) -> dict:
-        fmf = {
+    def _construct_test_payload(self) -> dict:
+        tmt = {
             "url": self.fmf_url,
             "path": self.fmf_path,
         }
         if self.fmf_ref:
-            fmf["ref"] = self.fmf_ref
+            tmt["ref"] = self.fmf_ref
 
             # We assign a commit hash for merging only if:
             # • there are no custom fmf tests set
@@ -372,12 +372,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 and self.job_config.merge_pr_in_ci
                 and self.target_branch_sha
             ):
-                fmf["merge_sha"] = self.target_branch_sha
+                tmt["merge_sha"] = self.target_branch_sha
 
         if self.tmt_plan:
-            fmf["name"] = self.tmt_plan
+            tmt["name"] = self.tmt_plan
 
-        return fmf
+        return tmt
 
     @classmethod
     def _merge_payload_with_extra_params(cls, payload: Any, params: Any):
@@ -440,7 +440,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             build: The related copr build.
         """
         distro, arch = target.rsplit("-", 1)
-        fmf = self._construct_fmf_payload()
+        tmt = self._construct_test_payload()
 
         if build is not None:
             build_log_url = build.build_logs_url
@@ -516,7 +516,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         payload = {
             "api_key": self.tft_token,
             "test": {
-                "fmf": fmf,
+                "tmt": tmt,
             },
             "environments": [environment],
             "notification": {
@@ -550,8 +550,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def _payload_install_test(self, build_id: int, target: str, compose: str) -> dict:
         """
-        If the project doesn't use fmf, but still wants to run tests in TF.
-        TF provides 'installation test', we request it in ['test']['fmf']['url'].
+        If the project doesn't use tmt, but still wants to run tests in TF.
+        TF provides 'installation test', we request it in ['test']['tmt']['url'].
         We don't specify 'artifacts' as in _payload(), but 'variables'.
         """
         copr_build = CoprBuildTargetModel.get_by_build_id(build_id)
@@ -559,7 +559,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
-                "fmf": {
+                "tmt": {
                     "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
                     "ref": TESTING_FARM_INSTALLABILITY_TEST_REF,
                     "name": "/packit/installation",

@@ -729,7 +729,7 @@ def test_payload(
     if tmt_plan:
         expected_test["name"] = tmt_plan
 
-    assert payload["test"]["fmf"] == expected_test
+    assert payload["test"]["tmt"] == expected_test
 
     expected_environments = [
         {
@@ -1084,19 +1084,19 @@ def test_test_repo(
 
     payload = job_helper._payload(chroot, compose=compose, build=copr_build)
     assert payload.get("test")
-    assert payload["test"].get("fmf")
-    assert payload["test"]["fmf"].get("url") == result_url
-    assert payload["test"]["fmf"].get("ref") == result_ref
-    assert payload["test"]["fmf"].get("path") == result_path
+    assert payload["test"].get("tmt")
+    assert payload["test"]["tmt"].get("url") == result_url
+    assert payload["test"]["tmt"].get("ref") == result_ref
+    assert payload["test"]["tmt"].get("path") == result_path
 
     # if custom fmf tests are not defined or we're not merging, we don't pass the
     # merge SHA
     merge_sha_should_be_none = fmf_url or not merge_pr_in_ci
     assert (
-        merge_sha_should_be_none and payload["test"]["fmf"].get("merge_sha") is None
+        merge_sha_should_be_none and payload["test"]["tmt"].get("merge_sha") is None
     ) or (
         not merge_sha_should_be_none
-        and payload["test"]["fmf"].get("merge_sha") == "abcdefgh"
+        and payload["test"]["tmt"].get("merge_sha") == "abcdefgh"
     )
 
 
