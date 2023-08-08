@@ -17,6 +17,7 @@ from packit_service.worker.checker.copr import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
     IsPackageMatchingJobView,
 )
+from packit_service.worker.checker.distgit import IsUpstreamTagMatchingConfig
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
 )
@@ -589,6 +590,71 @@ def test_tf_comment_labels(comment, result):
 
     checker = IsLabelFromCommentMatching(
         package_config=package_config, job_config=job_config, event=event
+    )
+
+    assert checker.pre_check() == result
+
+
+@pytest.mark.parametrize(
+    "upstream_tag_include, upstream_tag_exclude, result",
+    (
+        pytest.param(
+            None,
+            None,
+            True,
+        ),
+        pytest.param(
+            None,
+            r"^.+\.2\..+",
+            True,
+        ),
+        pytest.param(
+            None,
+            r"^.+\.1\..+",
+            False,
+        ),
+        pytest.param(
+            r"^.+\.2\..+",
+            None,
+            False,
+        ),
+        pytest.param(
+            r"^.+\.1\..+",
+            None,
+            True,
+        ),
+        pytest.param(
+            r"^.+\.1\..+",
+            r"^2\..+",
+            False,
+        ),
+    ),
+)
+def test_sync_release_matching_tag(upstream_tag_include, upstream_tag_exclude, result):
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.pull_from_upstream,
+        trigger=JobConfigTriggerType.release,
+        targets={"fedora-37"},
+        upstream_tag_include=upstream_tag_include,
+        upstream_tag_exclude=upstream_tag_exclude,
+    )
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_event = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.release,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+
+    checker = IsUpstreamTagMatchingConfig(
+        package_config=package_config,
+        job_config=job_config,
+        event={"tag_name": "2.1.1"},
     )
 
     assert checker.pre_check() == result
