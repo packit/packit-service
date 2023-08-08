@@ -376,12 +376,13 @@ class ProjectAndEventsConnector:
     @property
     def commit_sha(self) -> Optional[str]:
         project_event_model = self.get_project_event_model()
-        return project_event_model.commit_sha
+        return project_event_model.commit_sha if project_event_model else None
 
     @commit_sha.setter
     def commit_sha(self, value: str) -> None:
         project_event_model = self.get_project_event_model()
-        project_event_model.commit_sha = value
+        if project_event_model:
+            project_event_model.commit_sha = value
 
     def get_pr_id(self) -> Optional[int]:
         project_event_object = self.get_project_event_object()
