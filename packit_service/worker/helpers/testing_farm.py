@@ -384,7 +384,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         def is_final(v):
             return not isinstance(v, list) and not isinstance(v, dict)
 
-        if type(payload) != type(params):
+        if type(payload) != type(params):  # noqa: E721
             # Incompatible types, no way to merge this
             return
 
