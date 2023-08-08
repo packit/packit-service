@@ -8,9 +8,10 @@ from ogr.services.pagure import PagureProject
 
 from packit_service.models import (
     TestingFarmResult,
-    AbstractProjectEventDbType,
+    AbstractProjectObjectDbType,
     PullRequestModel,
     TFTTestRunTargetModel,
+    ProjectEventModel,
 )
 from packit_service.worker.events.event import AbstractResultEvent
 
@@ -46,12 +47,13 @@ class TestingFarmResultsEvent(AbstractResultEvent):
 
         # Lazy properties
         self._pr_id: Optional[int] = None
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
+        self._db_project_event: Optional[ProjectEventModel] = None
 
     @property
     def pr_id(self) -> Optional[int]:
-        if not self._pr_id and isinstance(self.db_project_event, PullRequestModel):
-            self._pr_id = self.db_project_event.pr_id
+        if not self._pr_id and isinstance(self.db_project_object, PullRequestModel):
+            self._pr_id = self.db_project_object.pr_id
         return self._pr_id
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -60,11 +62,17 @@ class TestingFarmResultsEvent(AbstractResultEvent):
         result["pr_id"] = self.pr_id
         return result
 
-    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+    def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         run_model = TFTTestRunTargetModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id
         )
         return run_model.get_project_event_object() if run_model else None
+
+    def get_db_project_event(self) -> Optional[ProjectEventModel]:
+        run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+            pipeline_id=self.pipeline_id
+        )
+        return run_model.get_project_event_model() if run_model else None
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

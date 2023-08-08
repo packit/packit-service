@@ -8,7 +8,7 @@ from ogr.parsing import RepoUrl
 
 from packit.config import PackageConfig, JobConfigTriggerType
 from packit_service.config import ServiceConfig, PackageConfigGetter
-from packit_service.models import ProjectReleaseModel
+from packit_service.models import ProjectReleaseModel, ProjectEventModel
 from packit_service.worker.events import Event
 from packit_service.worker.events.event import use_for_job_config_trigger
 
@@ -31,6 +31,8 @@ class NewHotnessUpdateEvent(Event):
         self.distgit_project_url = distgit_project_url
 
         self._repo_url: Optional[RepoUrl] = None
+        self._db_project_object: Optional[ProjectReleaseModel]
+        self._db_project_event: Optional[ProjectEventModel]
 
     @property
     def project(self):
@@ -50,26 +52,41 @@ class NewHotnessUpdateEvent(Event):
     def base_project(self):
         return None
 
-    @property
-    def db_project_event(self) -> Optional[ProjectReleaseModel]:
-        if not (
-            self.tag_name
-            and self.repo_name
-            and self.repo_namespace
-            and self.project_url
-        ):
-            logger.info(
-                "Not going to create the DB project event, not valid arguments."
-            )
-            return None
+    def _add_release_and_event(self):
+        if not self._db_project_object or not self._db_project_event:
+            if not (
+                self.tag_name
+                and self.repo_name
+                and self.repo_namespace
+                and self.project_url
+            ):
+                logger.info(
+                    "Not going to create the DB project event, not valid arguments."
+                )
+                return None
 
-        return ProjectReleaseModel.get_or_create(
-            tag_name=self.tag_name,
-            namespace=self.repo_namespace,
-            repo_name=self.repo_name,
-            project_url=self.project_url,
-            commit_hash=None,
-        )
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_release_event(
+                tag_name=self.tag_name,
+                namespace=self.repo_namespace,
+                repo_name=self.repo_name,
+                project_url=self.project_url,
+                commit_hash=None,
+            )
+
+    @property
+    def db_project_object(self) -> Optional[ProjectReleaseModel]:
+        if not self._db_project_object:
+            self._add_release_and_event()
+        return self._db_project_object
+
+    @property
+    def db_project_event(self) -> Optional[ProjectEventModel]:
+        if not self._db_project_event:
+            self._add_release_and_event()
+        return self._db_project_event
 
     @property
     def packages_config(self):

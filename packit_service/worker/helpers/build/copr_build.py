@@ -43,12 +43,12 @@ from packit_service.constants import (
     DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
-    AbstractProjectEventDbType,
     CoprBuildTargetModel,
     CoprBuildGroupModel,
     BuildStatus,
     SRPMBuildModel,
     ProjectEventModelType,
+    ProjectEventModel,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -77,7 +77,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_event: AbstractProjectEventDbType,
+        db_project_event: ProjectEventModel,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
@@ -127,7 +127,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         # More details: https://github.com/packit/packit-service/issues/1044
         ref_identifier = (
             "releases"
-            if self.db_project_event.project_event_model_type
+            if self._db_project_object.project_event_model_type
             == ProjectEventModelType.release
             else self.metadata.identifier
         )
@@ -459,7 +459,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Run copr build using custom source method.
         """
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
-            commit_sha=self.metadata.commit_sha,
             project_event_model=self.db_project_event,
         )
         group = self._get_or_create_build_group()
@@ -514,7 +513,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
             CoprBuildTargetModel.create(
                 build_id=None,
-                commit_sha=self.metadata.commit_sha,
                 project_name=self.job_project,
                 owner=self.job_owner,
                 web_url=None,

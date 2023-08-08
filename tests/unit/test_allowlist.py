@@ -24,9 +24,6 @@ from packit_service.constants import (
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
     AllowlistStatus,
-    PullRequestModel,
-    ProjectEventModel,
-    ProjectEventModelType,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
@@ -591,6 +588,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
     indirect=True,
 )
 def test_check_and_report(
+    add_pull_request_event_with_empty_sha,
     allowlist: Allowlist,
     allowlist_entries,
     events: Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]],
@@ -624,28 +622,18 @@ def test_check_and_report(
     flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
         flexmock(jobs=job_configs, get_package_config_for=lambda job_config: flexmock())
     )
-    flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request,
-            id=123,
-            project_event_model_type=ProjectEventModelType.pull_request,
-        )
-    )
-
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
+    _, _ = add_pull_request_event_with_empty_sha
 
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     for event, is_valid, resolved_through in events:
         flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
         # needs to be included when running only `test_allowlist`
-        # flexmock(event).should_receive("db_project_event").and_return(
+        # flexmock(event).should_receive("db_project_object").and_return(
         #     flexmock(job_config_trigger_type=job_configs[0].trigger).mock()
         # )
         flexmock(EventData).should_receive("from_event_dict").and_return(
-            flexmock(commit_sha="0000000", pr_id="0")
+            flexmock(commit_sha="", pr_id="0")
         )
         actor_namespace = (
             f"{'github.com' if isinstance(event.project, GithubProject) else 'gitlab.com'}"
@@ -783,7 +771,9 @@ def test_check_and_report_actor_denied_issue(allowlist):
     )
 
 
-def test_check_and_report_actor_pull_request(allowlist):
+def test_check_and_report_actor_pull_request(
+    allowlist, add_pull_request_event_with_empty_sha
+):
     event = PullRequestGithubEvent(
         action=PullRequestAction.opened,
         pr_id=0,
@@ -817,21 +807,12 @@ def test_check_and_report_actor_pull_request(allowlist):
     flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
         flexmock(jobs=job_configs, get_package_config_for=lambda job_config: flexmock())
     )
-    flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request,
-            id=123,
-            project_event_model_type=ProjectEventModelType.pull_request,
-        )
-    )
+    _, _ = add_pull_request_event_with_empty_sha
 
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
     flexmock(EventData).should_receive("from_event_dict").and_return(
-        flexmock(commit_sha="0000000", pr_id="0")
+        flexmock(commit_sha="", pr_id="0")
     )
     flexmock(DBAllowlist).should_receive("get_namespace").with_args(
         "github.com/bar"

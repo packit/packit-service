@@ -18,6 +18,7 @@ from packit_service.models import (
     ProjectAuthenticationIssueModel,
     ProjectReleaseModel,
     PullRequestModel,
+    ProjectEventModel,
     SRPMBuildModel,
     SourceGitPRDistGitPRModel,
     TFTTestRunTargetModel,
@@ -55,23 +56,27 @@ def test_create_branch_model(clean_before_and_after, branch_model):
     assert branch_model.project
 
 
-def test_create_pr_trigger_model(clean_before_and_after, pr_trigger_model):
-    assert pr_trigger_model.type == ProjectEventModelType.pull_request
-    pr = pr_trigger_model.get_project_event_object()
+def test_create_pr_project_event_model(clean_before_and_after, pr_project_event_model):
+    assert pr_project_event_model.type == ProjectEventModelType.pull_request
+    pr = pr_project_event_model.get_project_event_object()
     assert isinstance(pr, PullRequestModel)
     assert pr.pr_id == 342
 
 
-def test_create_release_trigger_model(clean_before_and_after, release_trigger_model):
-    assert release_trigger_model.type == ProjectEventModelType.release
-    release = release_trigger_model.get_project_event_object()
-    assert isinstance(release, ProjectReleaseModel)
-    assert release.tag_name == "v1.0.2"
+def test_create_release_project_event_model(
+    clean_before_and_after, release_project_event_model
+):
+    assert release_project_event_model.type == ProjectEventModelType.release
+    release_model = release_project_event_model.get_project_event_object()
+    assert isinstance(release_model, ProjectReleaseModel)
+    assert release_model.tag_name == "v1.0.2"
 
 
-def test_create_branch_trigger_model(clean_before_and_after, branch_trigger_model):
-    assert branch_trigger_model.type == ProjectEventModelType.branch_push
-    branch = branch_trigger_model.get_project_event_object()
+def test_create_branch_trigger_model(
+    clean_before_and_after, branch_project_event_model
+):
+    assert branch_project_event_model.type == ProjectEventModelType.branch_push
+    branch = branch_project_event_model.get_project_event_object()
     assert isinstance(branch, GitBranchModel)
     assert branch.name == "build-branch"
 
@@ -413,16 +418,19 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         repo_name="the-repo-name",
         project_url="https://github.com/the-namespace/the-repo-name",
     )
+    project_event = ProjectEventModel.get_or_create(
+        type=ProjectEventModelType.pull_request, event_id=pr1.id, commit_sha="abcdef"
+    )
     # SRPMBuildModel is (sadly) not shared between Koji and Copr builds.
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr1, commit_sha="687abc76d67d"
+        project_event_model=project_event
     )
     copr_group = CoprBuildGroupModel.create(run_model_for_copr)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr1, commit_sha="687abc76d67d"
+        project_event_model=project_event
     )
     koji_group = KojiBuildGroupModel.create(run_model_for_koji)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
@@ -430,7 +438,6 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
 
     copr_build = CoprBuildTargetModel.create(
         build_id="123456",
-        commit_sha="687abc76d67d",
         project_name="SomeUser-hello-world-9",
         owner="packit",
         web_url="https://copr.something.somewhere/123456",
@@ -440,7 +447,6 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     )
     koji_build = KojiBuildTargetModel.create(
         build_id="987654",
-        commit_sha="687abc76d67d",
         web_url="https://copr.something.somewhere/123456",
         target=SampleValues.target,
         status="pending",
@@ -535,7 +541,6 @@ def test_tmt_test_run_set_web_url(
     group = TFTTestRunGroupModel.create(run_models=[run_model])
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
-        commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
         test_run_group=group,
@@ -562,7 +567,6 @@ def test_tmt_test_get_by_pipeline_id_pr(
     group = TFTTestRunGroupModel.create(run_models=[run_model])
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
-        commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
         test_run_group=group,
@@ -590,7 +594,6 @@ def test_tmt_test_get_by_pipeline_id_branch_push(
     _, tf_group_model, run_model = srpm_build_model_with_new_run_and_tf_for_branch
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
-        commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
         test_run_group=tf_group_model,
@@ -610,7 +613,6 @@ def test_tmt_test_get_by_pipeline_id_release(
     _, tf_group_model, run_model = srpm_build_model_with_new_run_and_tf_for_release
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
-        commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
         test_run_group=tf_group_model,

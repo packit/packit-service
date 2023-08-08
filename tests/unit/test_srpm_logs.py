@@ -19,7 +19,6 @@ from packit.config import (
 )
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
-from packit_service.service.db_project_events import AddPullRequestDbTrigger
 from packit_service.worker.events.github import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -105,17 +104,17 @@ def test_build_srpm_log_format(github_pr_event):
 
         return (None, None)
 
-    project_event = flexmock(
+    db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
-    )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        project_event
     )
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future"],
         scratch=True,
-        db_project_event=project_event,
+        db_project_event=flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock(),
     )
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()

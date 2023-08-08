@@ -11,8 +11,9 @@ from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
     CoprBuildTargetModel,
     ProjectEventModelType,
-    AbstractProjectEventDbType,
+    AbstractProjectObjectDbType,
     SRPMBuildModel,
+    ProjectEventModel,
 )
 from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.worker.events.enums import FedmsgTopic
@@ -66,8 +67,11 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         self.pkg = pkg
         self.timestamp = timestamp
 
-    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+    def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()
+
+    def get_db_project_event(self) -> Optional[ProjectEventModel]:
+        return self.build.get_project_event_model()
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

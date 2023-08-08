@@ -196,15 +196,16 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
 
 
 def test_koji_build_error_msg(distgit_push_packit):
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.commit,
         project_event_model_type=ProjectEventModelType.release,
     )
-    flexmock(PushPagureEvent).should_receive("db_project_event").and_return(
-        db_project_event
+    flexmock(PushPagureEvent).should_receive("db_project_object").and_return(
+        db_project_object
     )
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(distgit_push_packit)

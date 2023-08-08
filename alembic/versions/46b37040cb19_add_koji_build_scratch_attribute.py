@@ -14,7 +14,7 @@ from sqlalchemy import Column, String, DateTime, Integer, JSON, Boolean, Foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from packit_service.models import ProjectAndTriggersConnector
+from packit_service.models import ProjectAndEventsConnector
 
 # revision identifiers, used by Alembic.
 revision = "46b37040cb19"
@@ -38,7 +38,7 @@ class PipelineModel(Base):
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
 
 
-class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
+class KojiBuildTargetModel(ProjectAndEventsConnector, Base):
     __tablename__ = "koji_build_targets"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id

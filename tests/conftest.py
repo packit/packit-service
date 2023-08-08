@@ -109,6 +109,7 @@ def srpm_build_model(
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
         **trigger_model_kwargs,
     )
     project_event_model = flexmock(
@@ -134,7 +135,9 @@ def srpm_build_model(
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=pr_model.project_event_model_type, event_id=pr_model.id
+        type=pr_model.project_event_model_type,
+        event_id=pr_model.id,
+        commit_sha="0011223344",
     ).and_return(project_event_model)
 
     def mock_set_status(status):
@@ -146,6 +149,7 @@ def srpm_build_model(
     srpm_build.set_status = mock_set_status
     srpm_build.set_url = mock_set_url
     srpm_build.get_project_event_object = lambda: pr_model
+    srpm_build.should_receive("get_project_event_model").and_return(project_event_model)
 
     run_model = flexmock(
         id=3, job_project_event=project_event_model, srpm_build=srpm_build
@@ -222,6 +226,7 @@ def copr_build_model(
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=trigger_object_model.project_event_model_type,
         event_id=trigger_object_model.id,
+        commit_sha="0011223344",
     ).and_return(project_event_model)
 
     def mock_set_status(status):
@@ -233,6 +238,7 @@ def copr_build_model(
     copr_build.set_status = mock_set_status
     copr_build._srpm_build_for_mocking = srpm_build
     copr_build.get_project_event_object = lambda: trigger_object_model
+    copr_build.get_project_event_model = lambda: project_event_model
     copr_build.get_srpm_build = lambda: srpm_build
 
     run_model = flexmock(
@@ -268,6 +274,7 @@ def koji_build_pr():
         project=project_model,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
     )
     project_event_model = flexmock(
         id=2,
@@ -291,9 +298,14 @@ def koji_build_pr():
     koji_build_model._srpm_build_for_mocking = srpm_build
     koji_build_model.get_project_event_object = lambda: pr_model
     koji_build_model.get_srpm_build = lambda: srpm_build
+    koji_build_model.should_receive("get_project_event_model").and_return(
+        project_event_model
+    )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=pr_model.project_event_model_type, event_id=pr_model.id
+        type=pr_model.project_event_model_type,
+        event_id=pr_model.id,
+        commit_sha="0011223344",
     ).and_return(project_event_model)
 
     run_model = flexmock(
@@ -305,6 +317,84 @@ def koji_build_pr():
     runs.append(run_model)
 
     return koji_build_model
+
+
+@pytest.fixture()
+def add_pull_request_event_with_sha_123456():
+    db_project_object = flexmock(
+        project=flexmock(
+            repo_name="repo_name",
+            namespace="the-namespace",
+            project_url="https://github.com/the-namespace/repo_name",
+        ),
+        pr_id=5,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        id=123,
+    )
+    db_project_event = (
+        flexmock(type=ProjectEventModelType.pull_request)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    yield db_project_object, db_project_event
+
+
+@pytest.fixture()
+def add_pull_request_event_with_pr_id_9():
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
+        db_project_object
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(db_project_object)
+    yield db_project_object, db_project_event
+
+
+@pytest.fixture()
+def add_pull_request_event_with_sha_0011223344():
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
+        db_project_object
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(db_project_object)
+    yield db_project_object, db_project_event
 
 
 @pytest.fixture(scope="module")

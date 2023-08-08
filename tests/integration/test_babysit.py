@@ -92,7 +92,10 @@ def test_check_copr_build_already_successful():
         (BuildStatus.waiting_for_srpm, None),
     ],
 )
-def test_check_copr_build_updated(build_status, build_ended_on):
+def test_check_copr_build_updated(
+    add_pull_request_event_with_sha_123456, build_status, build_ended_on
+):
+    db_project_object, db_project_event = add_pull_request_event_with_sha_123456
     db_build = (
         flexmock(
             build_id="55",
@@ -102,26 +105,17 @@ def test_check_copr_build_updated(build_status, build_ended_on):
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
             commit_sha="123456",
-            project_event=flexmock(type=ProjectEventModelType.pull_request),
+            project_event=flexmock(),
             srpm_build=flexmock(url=None)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock(),
         )
         .should_receive("get_project_event_object")
-        .and_return(
-            flexmock(
-                project=flexmock(
-                    repo_name="repo_name",
-                    namespace="the-namespace",
-                    project_url="https://github.com/the-namespace/repo_name",
-                ),
-                pr_id=5,
-                job_config_trigger_type=JobConfigTriggerType.pull_request,
-                project_event_model_type=ProjectEventModelType.pull_request,
-                id=123,
-            )
-        )
+        .and_return(db_project_object)
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(db_project_event)
         .mock()
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -173,7 +167,8 @@ def test_check_copr_build_updated(build_status, build_ended_on):
     assert check_copr_build(build_id=1) is bool(build_ended_on)
 
 
-def test_check_copr_build_waiting_started():
+def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456):
+    db_project_object, db_project_event = add_pull_request_event_with_sha_123456
     db_build = (
         flexmock(
             build_id="55",
@@ -191,19 +186,10 @@ def test_check_copr_build_waiting_started():
             .mock(),
         )
         .should_receive("get_project_event_object")
-        .and_return(
-            flexmock(
-                project=flexmock(
-                    repo_name="repo_name",
-                    namespace="the-namespace",
-                    project_url="https://github.com/the-namespace/repo_name",
-                ),
-                pr_id=5,
-                job_config_trigger_type=JobConfigTriggerType.pull_request,
-                project_event_model_type=ProjectEventModelType.pull_request,
-                id=123,
-            )
-        )
+        .and_return(db_project_object)
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(db_project_event)
         .mock()
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -257,7 +243,10 @@ def test_check_copr_build_waiting_started():
     assert not check_copr_build(build_id=1)
 
 
-def test_check_copr_build_waiting_already_started():
+def test_check_copr_build_waiting_already_started(
+    add_pull_request_event_with_sha_123456,
+):
+    db_project_object, db_project_event = add_pull_request_event_with_sha_123456
     db_build = (
         flexmock(
             build_id="55",
@@ -275,19 +264,10 @@ def test_check_copr_build_waiting_already_started():
             .mock(),
         )
         .should_receive("get_project_event_object")
-        .and_return(
-            flexmock(
-                project=flexmock(
-                    repo_name="repo_name",
-                    namespace="the-namespace",
-                    project_url="https://github.com/the-namespace/repo_name",
-                ),
-                pr_id=5,
-                job_config_trigger_type=JobConfigTriggerType.pull_request,
-                project_event_model_type=ProjectEventModelType.pull_request,
-                id=123,
-            )
-        )
+        .and_return(db_project_object)
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(db_project_event)
         .mock()
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(

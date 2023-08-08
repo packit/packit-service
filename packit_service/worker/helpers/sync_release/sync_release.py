@@ -9,7 +9,7 @@ from ogr.abstract import GitProject
 from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit_service.config import ServiceConfig
-from packit_service.models import AbstractProjectEventDbType
+from packit_service.models import ProjectEventModel
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
@@ -27,7 +27,7 @@ class SyncReleaseHelper(BaseJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_event: AbstractProjectEventDbType,
+        db_project_event: ProjectEventModel,
         job_config: JobConfig,
         branches_override: Optional[Set[str]] = None,
     ):
@@ -76,13 +76,13 @@ class SyncReleaseHelper(BaseJobHelper):
         if not self._job:
             for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type) and (
-                    self.db_project_event
+                    self._db_project_object
                     and (
-                        self.db_project_event.job_config_trigger_type == job.trigger
+                        self._db_project_object.job_config_trigger_type == job.trigger
                         # pull-from-upstream can be retriggered by a dist-git PR comment,
                         # in which case the trigger types don't match
                         or job.type == JobType.pull_from_upstream
-                        and self.db_project_event.job_config_trigger_type
+                        and self._db_project_object.job_config_trigger_type
                         == JobConfigTriggerType.pull_request
                         and job.trigger == JobConfigTriggerType.release
                     )

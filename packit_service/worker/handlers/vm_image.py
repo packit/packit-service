@@ -87,13 +87,9 @@ class VMImageBuildHandler(
             repo_url,
         )
 
-        run_model = PipelineModel.create(
-            type=self.data.db_project_event.project_event_model_type,
-            event_id=self.data.db_project_event.id,
-        )
+        run_model = PipelineModel.create(project_event=self.data.db_project_event)
         VMImageBuildTargetModel.create(
             build_id=image_id,
-            commit_sha=self.data.commit_sha,
             project_name=self.project_name,
             owner=self.owner,
             project_url=self.project_url,
@@ -147,7 +143,7 @@ class VMImageBuildResultHandler(
                     details={"msg": "State change already processed"},
                 )
 
-            self.data._db_project_event = model.runs[0].get_project_event_object()
+            self.data._db_project_object = model.runs[0].get_project_event_object()
             self.report_status(status, self.data.event_dict["message"])
             model.set_status(status)
             return TaskResults(

@@ -417,7 +417,7 @@ class GetVMImageDataMixin(Config):
             for copr_build in copr_builds:
                 project_event_object = copr_build.get_project_event_object()
                 # check whether the event trigger matches
-                if project_event_object.id == self.data.db_project_event.id:
+                if project_event_object.id == self.data.db_project_object.id:
                     self._copr_build = copr_build
                     break
         return self._copr_build

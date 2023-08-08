@@ -21,7 +21,7 @@ from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
 
 from packit_service.models import (
-    AbstractProjectEventDbType,
+    AbstractProjectObjectDbType,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.utils import dump_job_config, dump_package_config
@@ -290,7 +290,7 @@ class JobHandler(Handler):
         self.data = EventData.from_event_dict(event)
         self.pushgateway = Pushgateway()
 
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
         self._project: Optional[GitProject] = None
         self._clean_workplace()
 

@@ -5,9 +5,10 @@ from typing import Union, Optional
 from packit_service.models import (
     VMImageBuildTargetModel,
     VMImageBuildStatus,
+    ProjectEventModel,
 )
 from packit_service.worker.events.event import (
-    AbstractProjectEventDbType,
+    AbstractProjectObjectDbType,
     AbstractResultEvent,
 )
 
@@ -34,8 +35,14 @@ class VMImageBuildResultEvent(AbstractResultEvent):
 
         self.topic = "vm-image-build-state-change"
 
-    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+    def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         model = VMImageBuildTargetModel.get_by_build_id(self.build_id)
         for run in model.runs:
             return run.get_project_event_object()
+        return None
+
+    def get_db_project_event(self) -> Optional[ProjectEventModel]:
+        model = VMImageBuildTargetModel.get_by_build_id(self.build_id)
+        for run in model.runs:
+            return run.get_project_event_model()
         return None

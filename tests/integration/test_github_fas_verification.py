@@ -274,6 +274,7 @@ def test_verification_wrong_repository():
     config.deployment = Deployment.prod
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").never()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
@@ -301,6 +302,7 @@ def test_verification_wrong_issue():
     config.deployment = Deployment.prod
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").never()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_latest_release").and_return(None)

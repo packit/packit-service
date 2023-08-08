@@ -14,12 +14,9 @@ from ogr.abstract import GitProject
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
-    AbstractProjectEventDbType,
+    AbstractProjectObjectDbType,
+    ProjectEventModel,
     CoprBuildTargetModel,
-    GitBranchModel,
-    IssueModel,
-    ProjectReleaseModel,
-    PullRequestModel,
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
@@ -98,7 +95,8 @@ class EventData:
 
         # lazy attributes
         self._project = None
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
+        self._db_project_event: Optional[ProjectEventModel] = None
 
     @classmethod
     def from_event_dict(cls, event: dict):
@@ -147,68 +145,90 @@ class EventData:
             self._project = self.get_project()
         return self._project
 
+    def _add_project_object_and_event(self):
+        # TODO, do a better job
+        # Probably, try to recreate original classes.
+        if self.event_type in {
+            "PullRequestGithubEvent",
+            "PullRequestPagureEvent",
+            "MergeRequestGitlabEvent",
+            "PullRequestCommentGithubEvent",
+            "MergeRequestCommentGitlabEvent",
+            "PullRequestCommentPagureEvent",
+            "PullRequestFlagPagureEvent",
+            "CheckRerunPullRequestEvent",
+        }:
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_pull_request_event(
+                pr_id=self.pr_id,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+                commit_sha=self.commit_sha,
+            )
+        elif self.event_type in {
+            "PushGitHubEvent",
+            "PushGitlabEvent",
+            "PushPagureEvent",
+            "CheckRerunCommitEvent",
+        }:
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_branch_push_event(
+                branch_name=self.git_ref,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+                commit_sha=self.commit_sha,
+            )
+
+        elif self.event_type in {
+            "ReleaseEvent",
+            "ReleaseGitlabEvent",
+            "CheckRerunReleaseEvent",
+            "NewHotnessUpdateEvent",
+        }:
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_release_event(
+                tag_name=self.tag_name,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+                commit_hash=self.commit_sha,
+            )
+        elif self.event_type in {
+            "IssueCommentEvent",
+            "IssueCommentGitlabEvent",
+        }:
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_issue_event(
+                issue_id=self.issue_id,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+            )
+        else:
+            logger.warning(
+                "We don't know, what to search in the database for this event data."
+            )
+
     @property
-    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        if not self._db_project_object:
+            self._add_project_object_and_event()
+        return self._db_project_object
+
+    @property
+    def db_project_event(self) -> Optional[ProjectEventModel]:
         if not self._db_project_event:
-            # TODO, do a better job
-            # Probably, try to recreate original classes.
-            if self.event_type in {
-                "PullRequestGithubEvent",
-                "PullRequestPagureEvent",
-                "MergeRequestGitlabEvent",
-                "PullRequestCommentGithubEvent",
-                "MergeRequestCommentGitlabEvent",
-                "PullRequestCommentPagureEvent",
-                "PullRequestFlagPagureEvent",
-                "CheckRerunPullRequestEvent",
-            }:
-                self._db_project_event = PullRequestModel.get_or_create(
-                    pr_id=self.pr_id,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                )
-            elif self.event_type in {
-                "PushGitHubEvent",
-                "PushGitlabEvent",
-                "PushPagureEvent",
-                "CheckRerunCommitEvent",
-            }:
-                self._db_project_event = GitBranchModel.get_or_create(
-                    branch_name=self.git_ref,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                )
-
-            elif self.event_type in {
-                "ReleaseEvent",
-                "ReleaseGitlabEvent",
-                "CheckRerunReleaseEvent",
-                "NewHotnessUpdateEvent",
-            }:
-                self._db_project_event = ProjectReleaseModel.get_or_create(
-                    tag_name=self.tag_name,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                    commit_hash=self.commit_sha,
-                )
-            elif self.event_type in {
-                "IssueCommentEvent",
-                "IssueCommentGitlabEvent",
-            }:
-                self._db_project_event = IssueModel.get_or_create(
-                    issue_id=self.issue_id,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                )
-            else:
-                logger.warning(
-                    "We don't know, what to search in the database for this event data."
-                )
-
+            self._add_project_object_and_event()
         return self._db_project_event
 
     def get_dict(self) -> dict:
@@ -225,6 +245,7 @@ class EventData:
         if self.branches_override:
             d["branches_override"] = list(self.branches_override)
         d.pop("_project", None)
+        d.pop("_db_project_object", None)
         d.pop("_db_project_event", None)
         return d
 
@@ -232,7 +253,7 @@ class EventData:
         if not self.project_url:
             return None
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_project_event.project.project_url
+            url=self.project_url or self.db_project_object.project.project_url
         )
 
 
@@ -257,7 +278,8 @@ class Event:
         self._base_project: Optional[GitProject] = None
         self._package_config: Optional[PackageConfig] = None
         self._package_config_searched: bool = False
-        self._db_project_event: Optional[AbstractProjectEventDbType] = None
+        self._db_project_object: Optional[AbstractProjectObjectDbType] = None
+        self._db_project_event: Optional[ProjectEventModel] = None
 
     @staticmethod
     def make_serializable(d: dict, skip: List) -> dict:
@@ -269,6 +291,7 @@ class Event:
 
     def get_non_serializable_attributes(self):
         return [
+            "_db_project_object",
             "_db_project_event",
             "_project",
             "_base_project",
@@ -282,7 +305,7 @@ class Event:
         d["event_type"] = self.__class__.__name__
 
         # we are trying to be lazy => don't touch database if it is not needed
-        d["event_id"] = self._db_project_event.id if self._db_project_event else None
+        d["event_id"] = self._db_project_object.id if self._db_project_object else None
 
         d["created_at"] = int(d["created_at"].timestamp())
         task_accepted_time = d.get("task_accepted_time")
@@ -290,7 +313,9 @@ class Event:
             int(task_accepted_time.timestamp()) if task_accepted_time else None
         )
         d["project_url"] = d.get("project_url") or (
-            self.db_project_event.project.project_url if self.db_project_event else None
+            self.db_project_object.project.project_url
+            if self.db_project_object
+            else None
         )
         if self.build_targets_override:
             d["build_targets_override"] = list(self.build_targets_override)
@@ -301,13 +326,22 @@ class Event:
 
         return d
 
-    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+    def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        return None
+
+    def get_db_project_event(self) -> Optional[ProjectEventModel]:
         return None
 
     @property
-    def db_project_event(self) -> Optional[AbstractProjectEventDbType]:
+    def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        if not self._db_project_object:
+            self._db_project_object = self.get_db_project_object()
+        return self._db_project_object
+
+    @property
+    def db_project_event(self) -> Optional[ProjectEventModel]:
         if not self._db_project_event:
-            self._db_project_event = self.get_db_trigger()
+            self._db_project_event = self.get_db_project_event()
         return self._db_project_event
 
     @property
@@ -325,12 +359,12 @@ class Event:
         ) in MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE.items():
             if isinstance(self, event_cls):
                 return job_config_trigger_type
-        if not self.db_project_event:
+        if not self.db_project_object:
             logger.warning(
                 f"Event {self} does not have a matching object in the database."
             )
             return None
-        return self.db_project_event.job_config_trigger_type
+        return self.db_project_object.job_config_trigger_type
 
     @property
     def project(self):
@@ -426,7 +460,10 @@ class AbstractForgeIndependentEvent(Event):
             self._package_config_searched = True
         return self._package_config
 
-    def get_db_trigger(self) -> Optional[AbstractProjectEventDbType]:
+    def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
+        raise NotImplementedError()
+
+    def get_db_project_event(self) -> Optional[ProjectEventModel]:
         raise NotImplementedError()
 
     @property
@@ -434,11 +471,11 @@ class AbstractForgeIndependentEvent(Event):
         return self._pr_id
 
     def get_project(self) -> Optional[GitProject]:
-        if not (self.project_url or self.db_project_event):
+        if not (self.project_url or self.db_project_object):
             return None
 
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_project_event.project.project_url
+            url=self.project_url or self.db_project_object.project.project_url
         )
 
     def get_base_project(self) -> Optional[GitProject]:

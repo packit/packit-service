@@ -85,7 +85,7 @@ def test_check_no_pending_vm_image_builds():
     ),
 )
 def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_result):
-    db_project_event = flexmock(
+    db_project_object = flexmock(
         id=1,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         project_event_model_type=ProjectEventModelType.pull_request,
@@ -133,7 +133,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                 runs=[
                     flexmock()
                     .should_receive("get_project_event_object")
-                    .and_return(db_project_event)
+                    .and_return(db_project_object)
                     .mock()
                 ],
             )

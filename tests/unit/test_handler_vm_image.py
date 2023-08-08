@@ -37,13 +37,18 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
                 package_config,
                 job_config,
                 project,
-                db_project_event,
+                db_project_object,
             ) = fake_package_config_job_config_project_db_trigger
             self.package_config = package_config
             self.job_config = job_config
             self._project = project
             self.data = flexmock(
-                db_project_event=db_project_event, commit_sha="123456", pr_id="21"
+                commit_sha="123456",
+                pr_id="21",
+                db_project_event=flexmock(id=1)
+                .should_receive("get_project_event_object")
+                .and_return(db_project_object)
+                .mock(),
             )
 
     mixin = Test()
@@ -112,7 +117,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         package_config,
         job_config,
         project,
-        db_project_event,
+        db_project_object,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildHandler(
         package_config,
@@ -125,10 +130,11 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         },
         None,
     )
-    flexmock(db_project_event).should_receive("__str__").and_return(
-        "db_project_event object"
+    flexmock(db_project_object).should_receive("__str__").and_return(
+        "db_project_object"
     )
-    handler.data._db_project_event = db_project_event
+    handler.data._db_project_event = flexmock()
+    handler.data._db_project_object = db_project_object
     handler._project = project
     handler._packit_api = flexmock(copr_helper=flexmock())
 
@@ -160,7 +166,6 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
     flexmock(VMImageBuildTargetModel).should_receive("create").with_args(
         build_id=None,
-        commit_sha="4321aa",
         project_name="knx-stack",
         owner="mmassari",
         project_url="https://github.com/majamassarini/knx-stack",
@@ -181,7 +186,7 @@ def test_vm_image_build_result_handler_ok(
         package_config,
         job_config,
         project,
-        db_project_event,
+        db_project_object,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildResultHandler(
         package_config,
@@ -204,7 +209,7 @@ def test_vm_image_build_result_handler_ok(
                 runs=[
                     flexmock()
                     .should_receive("get_project_event_object")
-                    .and_return(db_project_event)
+                    .and_return(db_project_object)
                     .mock()
                 ],
             )
@@ -226,7 +231,7 @@ def test_vm_image_build_result_handler_ko(
         package_config,
         job_config,
         project,
-        db_project_event,
+        db_project_object,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildResultHandler(
         package_config,

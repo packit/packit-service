@@ -27,6 +27,7 @@ from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
+    ProjectEventModelType,
     get_submitted_time_from_model,
     get_most_recent_targets,
 )
@@ -784,7 +785,7 @@ class TestEvents:
         flexmock(PullRequestModel).should_receive("get_or_create").and_return(
             flexmock()
         )
-        # assert event_object.db_project_event
+        # assert event_object.db_project_object
         assert isinstance(event_object.project, GitlabProject)
         assert (
             event_object.project.full_repo_name == "redhat/centos-stream/rpms/luksmeta"
@@ -900,7 +901,7 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.db_project_event
+        assert event_object.db_project_object
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
         assert event_object.identifier == identifier
@@ -935,7 +936,7 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.db_project_event
+        assert event_object.db_project_object
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
         assert not event_object.identifier
@@ -1637,13 +1638,18 @@ class TestEvents:
             )
         ).once()
 
+        flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+            type=ProjectEventModelType.release, event_id="123", commit_sha=None
+        ).and_return(flexmock())
         flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
             tag_name=tag_name,
             namespace=repo_namespace,
             repo_name=repo_name,
             project_url=upstream_project_url,
             commit_hash=None,
-        ).and_return(flexmock())
+        ).and_return(
+            flexmock(project_event_model_type=ProjectEventModelType.release, id="123")
+        )
 
         assert isinstance(event_object, NewHotnessUpdateEvent)
         assert isinstance(event_object.project, PagureProject)
@@ -1658,7 +1664,7 @@ class TestEvents:
         assert event_object.packages_config
 
         if create_db_trigger:
-            assert event_object.db_project_event
+            assert event_object.db_project_object
 
     def test_get_submitted_time_from_model(self):
         date = datetime.utcnow()
@@ -1691,129 +1697,209 @@ class TestEvents:
         )
 
     @pytest.mark.parametrize(
-        "check_name, db_project_event, result",
+        "check_name, db_project_object, result",
         [
             pytest.param(
                 "propose-downstream:f35",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("propose-downstream", "f35", None),
                 id="propose_downstream",
             ),
             pytest.param(
                 "propose-downstream:f35:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("propose-downstream", "f35", "first"),
                 id="propose_downstream_identifier",
             ),
             pytest.param(
                 "rpm-build:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.pull_request
+                    )
+                ),
                 ("rpm-build", "fedora-35-x86_64", None),
                 id="rpm_build_pr",
             ),
             pytest.param(
                 "rpm-build:1.0.1:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("rpm-build", "fedora-35-x86_64", None),
                 id="rpm_build_release",
             ),
             pytest.param(
                 "rpm-build:main:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.commit
+                    )
+                ),
                 ("rpm-build", "fedora-35-x86_64", None),
                 id="rpm_build_commit",
             ),
             pytest.param(
                 "rpm-build:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.pull_request
+                    )
+                ),
                 ("rpm-build", "fedora-35-x86_64", "first"),
                 id="rpm_build_pr_identifier",
             ),
             pytest.param(
                 "rpm-build:1.0.1:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("rpm-build", "fedora-35-x86_64", "first"),
                 id="rpm_build_release_identifier",
             ),
             pytest.param(
                 "rpm-build:main:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.commit
+                    )
+                ),
                 ("rpm-build", "fedora-35-x86_64", "first"),
                 id="rpm_build_commit_identifier",
             ),
             pytest.param(
                 "testing-farm:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.pull_request
+                    )
+                ),
                 ("testing-farm", "fedora-35-x86_64", None),
                 id="testing_farm_pr",
             ),
             pytest.param(
                 "testing-farm:1.0.1:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("testing-farm", "fedora-35-x86_64", None),
                 id="testing_farm_release",
             ),
             pytest.param(
                 "testing-farm:main:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.commit
+                    )
+                ),
                 ("testing-farm", "fedora-35-x86_64", None),
                 id="testing_farm_commit",
             ),
             pytest.param(
                 "testing-farm:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.pull_request
+                    )
+                ),
                 ("testing-farm", "fedora-35-x86_64", "first"),
                 id="testing_farm_pr_identifier",
             ),
             pytest.param(
                 "testing-farm:1.0.1:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("testing-farm", "fedora-35-x86_64", "first"),
                 id="testing_farm_release_identifier",
             ),
             pytest.param(
                 "testing-farm:main:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.commit
+                    )
+                ),
                 ("testing-farm", "fedora-35-x86_64", "first"),
                 id="testing_farm_commit_identifier",
             ),
             pytest.param(
                 "koji-build:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.pull_request
+                    )
+                ),
                 ("koji-build", "fedora-35-x86_64", None),
                 id="koji_build_pr",
             ),
             pytest.param(
                 "koji-build:1.0.1:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("koji-build", "fedora-35-x86_64", None),
                 id="koji_build_release",
             ),
             pytest.param(
                 "koji-build:main:fedora-35-x86_64",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.commit
+                    )
+                ),
                 ("koji-build", "fedora-35-x86_64", None),
                 id="koji_build_commit",
             ),
             pytest.param(
                 "koji-build:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.pull_request
+                    )
+                ),
                 ("koji-build", "fedora-35-x86_64", "first"),
                 id="koji_build_pr_identifier",
             ),
             pytest.param(
                 "koji-build:1.0.1:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.release
+                    )
+                ),
                 ("koji-build", "fedora-35-x86_64", "first"),
                 id="koji_build_release_identifier",
             ),
             pytest.param(
                 "koji-build:main:fedora-35-x86_64:first",
-                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                flexmock(
+                    get_project_event_object=flexmock(
+                        job_config_trigger_type=JobConfigTriggerType.commit
+                    )
+                ),
                 ("koji-build", "fedora-35-x86_64", "first"),
                 id="koji_build_commit_identifier",
             ),
         ],
     )
-    def test_parse_check_name(self, check_name, db_project_event, result):
-        assert Parser.parse_check_name(check_name, db_project_event) == result
+    def test_parse_check_name(self, check_name, db_project_object, result):
+        assert Parser.parse_check_name(check_name, db_project_object) == result

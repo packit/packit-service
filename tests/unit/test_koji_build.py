@@ -23,11 +23,8 @@ from packit_service.models import (
     SRPMBuildModel,
     KojiBuildTargetModel,
     KojiBuildGroupModel,
-    ProjectEventModel,
-    ProjectEventModelType,
     BuildStatus,
 )
-from packit_service.service.db_project_events import AddPullRequestDbTrigger
 from packit_service.worker.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -107,23 +104,15 @@ def build_helper(
     return handler
 
 
-def test_koji_build_check_names(github_pr_event):
-    trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=JobConfigTriggerType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        trigger
-    )
+def test_koji_build_check_names(
+    github_pr_event, add_pull_request_event_with_sha_528b80
+):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future"],
         scratch=True,
-        db_project_event=trigger,
+        db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -192,23 +181,15 @@ def test_koji_build_check_names(github_pr_event):
     assert helper.run_koji_build()["success"]
 
 
-def test_koji_build_failed_kerberos(github_pr_event):
-    trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        trigger
-    )
+def test_koji_build_failed_kerberos(
+    github_pr_event, add_pull_request_event_with_sha_528b80
+):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future"],
         scratch=True,
-        db_project_event=trigger,
+        db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -270,23 +251,15 @@ def test_koji_build_failed_kerberos(github_pr_event):
     )
 
 
-def test_koji_build_target_not_supported(github_pr_event):
-    project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        project_event
-    )
+def test_koji_build_target_not_supported(
+    github_pr_event, add_pull_request_event_with_sha_528b80
+):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["nonexisting-target"],
         scratch=True,
-        db_project_event=project_event,
+        db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -342,23 +315,15 @@ def test_koji_build_target_not_supported(github_pr_event):
     )
 
 
-def test_koji_build_with_multiple_targets(github_pr_event):
-    project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        project_event
-    )
+def test_koji_build_with_multiple_targets(
+    github_pr_event, add_pull_request_event_with_sha_528b80
+):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future", "dark-past"],
         scratch=True,
-        db_project_event=project_event,
+        db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -422,23 +387,13 @@ def test_koji_build_with_multiple_targets(github_pr_event):
     assert helper.run_koji_build()["success"]
 
 
-def test_koji_build_failed(github_pr_event):
-    project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        project_event
-    )
+def test_koji_build_failed(github_pr_event, add_pull_request_event_with_sha_528b80):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future"],
         scratch=True,
-        db_project_event=project_event,
+        db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -500,23 +455,15 @@ def test_koji_build_failed(github_pr_event):
     assert result["details"]["errors"]["bright-future"] == "some error"
 
 
-def test_koji_build_failed_srpm(github_pr_event):
-    project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        project_event
-    )
+def test_koji_build_failed_srpm(
+    github_pr_event, add_pull_request_event_with_sha_528b80
+):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future"],
         scratch=True,
-        db_project_event=project_event,
+        db_project_event=db_project_event,
     )
     srpm_build_url = get_srpm_build_info_url(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(
@@ -566,23 +513,15 @@ def test_koji_build_failed_srpm(github_pr_event):
     assert "SRPM build failed" in result["details"]["msg"]
 
 
-def test_koji_build_targets_override(github_pr_event):
-    project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
-        project_event_model_type=ProjectEventModelType.pull_request,
-    )
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123
-    ).and_return(flexmock(id=2, type=ProjectEventModelType.pull_request))
-    flexmock(AddPullRequestDbTrigger).should_receive("db_project_event").and_return(
-        project_event
-    )
+def test_koji_build_targets_override(
+    github_pr_event, add_pull_request_event_with_sha_528b80
+):
+    _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
         event=github_pr_event,
         _targets=["bright-future", "dark-past"],
         scratch=True,
-        db_project_event=project_event,
+        db_project_event=db_project_event,
         build_targets_override={"bright-future"},
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(

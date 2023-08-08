@@ -30,6 +30,7 @@ from packit_service.models import (
     PullRequestModel,
     filter_most_recent_target_models_by_status,
     BuildStatus,
+    ProjectEventModel,
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
@@ -102,7 +103,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_project_event,
+        db_project_event: ProjectEventModel,
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,

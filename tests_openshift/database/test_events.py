@@ -51,14 +51,14 @@ def test_release_event_existing_release(
     assert event_object.commit_sha == "80201a74d96c"
     assert event_object.tag_name == "v1.0.2"
 
-    assert isinstance(event_object.db_project_event, ProjectReleaseModel)
-    assert event_object.db_project_event == release_model
-    assert event_object.db_project_event.tag_name == "v1.0.2"
-    assert event_object.db_project_event.commit_hash == "80201a74d96c"
+    assert isinstance(event_object.db_project_object, ProjectReleaseModel)
+    assert event_object.db_project_object == release_model
+    assert event_object.db_project_object.tag_name == "v1.0.2"
+    assert event_object.db_project_object.commit_hash == "80201a74d96c"
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_release_event_non_existing_release(clean_before_and_after, release_event_dict):
@@ -74,13 +74,13 @@ def test_release_event_non_existing_release(clean_before_and_after, release_even
     assert event_object.commit_sha == "80201a74d96c"
     assert event_object.tag_name == "v1.0.2"
 
-    assert isinstance(event_object.db_project_event, ProjectReleaseModel)
-    assert event_object.db_project_event.tag_name == "v1.0.2"
-    assert event_object.db_project_event.commit_hash == "80201a74d96c"
+    assert isinstance(event_object.db_project_object, ProjectReleaseModel)
+    assert event_object.db_project_object.tag_name == "v1.0.2"
+    assert event_object.db_project_object.commit_hash == "80201a74d96c"
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_push_branch_event_existing_branch(
@@ -93,13 +93,13 @@ def test_push_branch_event_existing_branch(
     assert event_object.git_ref == "build-branch"
     assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
 
-    assert isinstance(event_object.db_project_event, GitBranchModel)
-    assert event_object.db_project_event == branch_model
-    assert event_object.db_project_event.name == "build-branch"
+    assert isinstance(event_object.db_project_object, GitBranchModel)
+    assert event_object.db_project_object == branch_model
+    assert event_object.db_project_object.name == "build-branch"
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_push_branch_event_non_existing_branch(
@@ -112,12 +112,12 @@ def test_push_branch_event_non_existing_branch(
     assert event_object.git_ref == "build-branch"
     assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
 
-    assert isinstance(event_object.db_project_event, GitBranchModel)
-    assert event_object.db_project_event.name == "build-branch"
+    assert isinstance(event_object.db_project_object, GitBranchModel)
+    assert event_object.db_project_object.name == "build-branch"
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
@@ -129,13 +129,13 @@ def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
     assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
     assert event_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event == pr_model
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object == pr_model
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
@@ -146,13 +146,13 @@ def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
     assert event_object.pr_id == 2
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event == mr_model
-    assert event_object.db_project_event.pr_id == 2
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object == mr_model
+    assert event_object.db_project_object.pr_id == 2
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "repo-name"
 
 
 def test_merge_request_comment_event(clean_before_and_after, mr_comment_event_dict):
@@ -165,12 +165,12 @@ def test_merge_request_comment_event(clean_before_and_after, mr_comment_event_di
 
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event.pr_id == 2
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object.pr_id == 2
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "testing-packit"
-    assert event_object.db_project_event.project.repo_name == "hello-there"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "testing-packit"
+    assert event_object.db_project_object.project.repo_name == "hello-there"
 
 
 def test_push_gitlab_event(
@@ -183,13 +183,13 @@ def test_push_gitlab_event(
     assert event_object.git_ref == "build-branch"
     assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
 
-    assert isinstance(event_object.db_project_event, GitBranchModel)
-    assert event_object.db_project_event == branch_model_gitlab
-    assert event_object.db_project_event.name == "build-branch"
+    assert isinstance(event_object.db_project_object, GitBranchModel)
+    assert event_object.db_project_object == branch_model_gitlab
+    assert event_object.db_project_object.name == "build-branch"
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "repo-name"
 
 
 def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
@@ -201,12 +201,12 @@ def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
     assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
     assert event_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_pr_comment_event_existing_pr(
@@ -225,13 +225,13 @@ def test_pr_comment_event_existing_pr(
     )
     assert event_object.commit_sha == "12345"
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event == pr_model
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object == pr_model
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_pr_comment_event_non_existing_pr(
@@ -249,12 +249,12 @@ def test_pr_comment_event_non_existing_pr(
     )
     assert event_object.commit_sha == "12345"
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_testing_farm_response_existing_pr(
@@ -268,13 +268,13 @@ def test_testing_farm_response_existing_pr(
 
     assert event_object.commit_sha == SampleValues.commit_sha
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event == pr_model
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object == pr_model
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_testing_farm_response_non_existing_pr(
@@ -288,12 +288,12 @@ def test_testing_farm_response_non_existing_pr(
 
     assert event_object.commit_sha == SampleValues.different_commit_sha
 
-    assert not event_object.db_project_event
+    assert not event_object.db_project_object
 
 
 def test_testing_farm_response_existing_branch_push(
     clean_before_and_after,
-    branch_model,
+    branch_project_event_model,
     a_new_test_run_branch_push,
     tf_notification,
     tf_result,
@@ -301,18 +301,19 @@ def test_testing_farm_response_existing_branch_push(
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
         SampleValues.pipeline_id
     ).and_return(tf_result)
+    branch_model = branch_project_event_model.get_project_event_object()
     event_object = Parser.parse_event(tf_notification)
     assert isinstance(event_object, TestingFarmResultsEvent)
 
     assert event_object.commit_sha == SampleValues.commit_sha
 
-    assert isinstance(event_object.db_project_event, GitBranchModel)
-    assert event_object.db_project_event == branch_model
-    assert event_object.db_project_event.name == "build-branch"
+    assert isinstance(event_object.db_project_object, GitBranchModel)
+    assert event_object.db_project_object == branch_model
+    assert event_object.db_project_object.name == "build-branch"
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_testing_farm_response_non_existing_branch_push(
@@ -328,7 +329,7 @@ def test_testing_farm_response_non_existing_branch_push(
     # For backwards compatibility, unknown results are treated as pull-requests
     assert event_object.commit_sha == SampleValues.different_commit_sha
 
-    assert not event_object.db_project_event
+    assert not event_object.db_project_object
 
 
 def test_koji_build_scratch_start(
@@ -340,13 +341,13 @@ def test_koji_build_scratch_start(
     assert event_object.build_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.open
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event == pr_model
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object == pr_model
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_koji_build_scratch_end(
@@ -358,23 +359,23 @@ def test_koji_build_scratch_end(
     assert event_object.build_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.closed
 
-    assert isinstance(event_object.db_project_event, PullRequestModel)
-    assert event_object.db_project_event == pr_model
-    assert event_object.db_project_event.pr_id == 342
+    assert isinstance(event_object.db_project_object, PullRequestModel)
+    assert event_object.db_project_object == pr_model
+    assert event_object.db_project_object.pr_id == 342
 
-    assert isinstance(event_object.db_project_event.project, GitProjectModel)
-    assert event_object.db_project_event.project.namespace == "the-namespace"
-    assert event_object.db_project_event.project.repo_name == "the-repo-name"
+    assert isinstance(event_object.db_project_object.project, GitProjectModel)
+    assert event_object.db_project_object.project.namespace == "the-namespace"
+    assert event_object.db_project_object.project.repo_name == "the-repo-name"
 
 
 def test_parse_check_rerun_commit(
     clean_before_and_after,
     branch_model,
-    branch_trigger_model,
+    branch_project_event_model,
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        branch_trigger_model.id
+        branch_project_event_model.id
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
@@ -395,9 +396,14 @@ def test_parse_check_rerun_commit(
 
 
 def test_parse_check_rerun_pull_request(
-    clean_before_and_after, pr_model, pr_trigger_model, check_rerun_event_dict_commit
+    clean_before_and_after,
+    pr_model,
+    pr_project_event_model,
+    check_rerun_event_dict_commit,
 ):
-    check_rerun_event_dict_commit["check_run"]["external_id"] = str(pr_trigger_model.id)
+    check_rerun_event_dict_commit["check_run"]["external_id"] = str(
+        pr_project_event_model.id
+    )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
     assert isinstance(event_object, CheckRerunPullRequestEvent)
@@ -420,11 +426,11 @@ def test_parse_check_rerun_pull_request(
 def test_parse_check_rerun_release(
     clean_before_and_after,
     release_model,
-    release_trigger_model,
+    release_project_event_model,
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        release_trigger_model.id
+        release_project_event_model.id
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 

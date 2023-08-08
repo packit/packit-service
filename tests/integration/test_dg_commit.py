@@ -26,6 +26,7 @@ from packit_service.constants import DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
 from packit_service.models import (
     GitBranchModel,
     GitProjectModel,
+    ProjectEventModel,
     ProjectEventModelType,
 )
 from packit_service.utils import load_job_config, load_package_config
@@ -64,12 +65,21 @@ def test_sync_from_downstream():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         ServiceConfig(
@@ -133,12 +143,21 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         ServiceConfig(
@@ -159,6 +178,7 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
         )
     )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(PackitAPI).should_receive("sync_from_downstream").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
@@ -188,12 +208,21 @@ def test_downstream_koji_build():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
@@ -241,13 +270,23 @@ def test_downstream_koji_build_failure_no_issue():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -297,13 +336,23 @@ def test_downstream_koji_build_failure_issue_created():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -361,13 +410,23 @@ def test_downstream_koji_build_failure_issue_comment():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -440,6 +499,7 @@ def test_downstream_koji_build_no_config():
         )
     )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").times(0)
 
@@ -504,12 +564,21 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
@@ -595,13 +664,23 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+    ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            project_event_model_type=ProjectEventModelType.branch_push,
+        )
+    )
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(PackitAPI).should_receive("build").times(0)
 

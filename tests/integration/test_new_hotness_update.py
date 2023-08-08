@@ -15,6 +15,7 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     ProjectEventModelType,
+    ProjectEventModel,
     PipelineModel,
     ProjectReleaseModel,
     SyncReleaseStatus,
@@ -23,7 +24,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.db_project_events import AddReleaseDbTrigger
+from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -38,19 +39,28 @@ def fedora_branches():
 
 @pytest.fixture
 def sync_release_model():
-    project_event = flexmock(
-        project_event_model_type=ProjectEventModelType.release,
+    db_project_object = flexmock(
         id=12,
+        project_event_model_type=ProjectEventModelType.release,
         job_config_trigger_type=JobConfigTriggerType.release,
     )
+    project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     run_model = flexmock(PipelineModel)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.release, event_id=12, commit_sha=None
+    ).and_return(project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="7.0.3",
         namespace="packit-service",
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
         commit_hash=None,
-    ).and_return(project_event)
+    ).and_return(db_project_object)
     sync_release_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
@@ -156,7 +166,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(AddReleaseDbTrigger).should_receive("db_project_event").and_return(
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
@@ -201,6 +211,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
 
     flexmock(Allowlist, check_and_report=True)
 
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
         "https://src.fedoraproject.org/rpms/redis"
