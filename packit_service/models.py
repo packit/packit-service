@@ -1165,7 +1165,7 @@ class ProjectEventModel(Base):
     """
     Model representing a "project event" which triggers some packit task.
     Like a push into a pull request: the push is a "project event" with a
-    given commit sha into a specific "project object" wich is a pull request.
+    given commit sha into a specific "project object" which is a pull request.
 
     It connects PipelineModel (and built/test models via that model)
     with "project objects" models: IssueModel, PullRequestModel,
