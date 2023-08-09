@@ -43,6 +43,7 @@ from packit_service.worker.checker.distgit import (
     PermissionOnDistgit,
     ValidInformationForPullFromUpstream,
     HasIssueCommenterRetriggeringPermissions,
+    IsUpstreamTagMatchingConfig,
 )
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -82,6 +83,7 @@ from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
     PackitAPIWithUpstreamMixin,
     PackitAPIWithDownstreamMixin,
+    GetSyncReleaseTagMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus, report_in_issue_repository
 from packit_service.worker.result import TaskResults
@@ -166,6 +168,7 @@ class AbstractSyncReleaseHandler(
     RetriableJobHandler,
     ConfigFromUrlMixin,
     LocalProjectMixin,
+    GetSyncReleaseTagMixin,
     PackitAPIWithUpstreamMixin,
 ):
     helper_kls: type[SyncReleaseHelper]
@@ -190,7 +193,6 @@ class AbstractSyncReleaseHandler(
         self._project_url = self.data.project_url
         self._sync_release_run_id = sync_release_run_id
         self.helper: Optional[SyncReleaseHelper] = None
-        self._tag = self.data.tag_name
 
     @property
     def sync_release_helper(self) -> SyncReleaseHelper:
@@ -205,14 +207,6 @@ class AbstractSyncReleaseHandler(
                 branches_override=self.data.branches_override,
             )
         return self.helper
-
-    @property
-    def tag(self) -> Optional[str]:
-        if not self._tag:
-            # there is no tag information when retriggering pull-from-upstream
-            # from dist-git PR
-            self._tag = self.packit_api.up.get_last_tag()
-        return self._tag
 
     def sync_branch(
         self, branch: str, model: SyncReleaseModel
@@ -478,6 +472,10 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
             sync_release_run_id=sync_release_run_id,
         )
 
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (IsUpstreamTagMatchingConfig,)
+
     def _report_errors_for_each_branch(self, message: str) -> None:
         msg_retrigger = MSG_RETRIGGER.format(
             job="update",
@@ -528,7 +526,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (ValidInformationForPullFromUpstream,)
+        return (ValidInformationForPullFromUpstream, IsUpstreamTagMatchingConfig)
 
     def _report_errors_for_each_branch(self, message: str) -> None:
         report_in_issue_repository(

@@ -196,6 +196,19 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
             self._packit_api.clean()
 
 
+class GetSyncReleaseTagMixin(PackitAPIWithUpstreamMixin):
+    _tag: Optional[str] = None
+
+    @property
+    def tag(self) -> Optional[str]:
+        self._tag = self.data.tag_name
+        if not self._tag:
+            # there is no tag information when retriggering pull-from-upstream
+            # from dist-git PR
+            self._tag = self.packit_api.up.get_last_tag()
+        return self._tag
+
+
 class LocalProjectMixin(Config):
     _local_project: Optional[LocalProject] = None
 
