@@ -6,6 +6,9 @@ from typing import Dict, Optional
 
 from ogr.abstract import Comment, GitProject
 from ogr.parsing import RepoUrl
+from packit.config import PackageConfig
+from packit_service.utils import get_packit_commands_from_comment
+from packit_service.config import PackageConfigGetter, ServiceConfig
 
 from packit_service.service.db_project_events import (
     AddBranchPushEventToDb,
@@ -105,6 +108,31 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         )
         logger.debug(f"Base project: {project} owned by {self.base_repo_owner}")
         return project
+
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        comment = self.__dict__["comment"]
+        commands = get_packit_commands_from_comment(
+            comment, ServiceConfig.get_service_config().comment_command_prefix
+        )
+        if commands and commands[0] == "pull-from-upstream":
+            # when retriggering pull-from-upstream from PR comment
+            # take packages config from the downstream default branch
+            logger.debug(
+                f"Getting packages_config:\n"
+                f"\tproject: {self.project}\n"
+                f"\tbase_project: {self.base_project}\n"
+                f"\treference: {self.base_project.default_branch}\n"
+            )
+            packages_config = PackageConfigGetter.get_package_config_from_repo(
+                base_project=self.base_project,
+                project=self.project,
+                reference=self.base_project.default_branch,
+                pr_id=None,
+                fail_when_missing=True,
+            )
+            return packages_config
+        else:
+            return super().get_packages_config()
 
     @property
     def repo_url(self) -> Optional[RepoUrl]:
