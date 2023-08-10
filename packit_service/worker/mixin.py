@@ -76,6 +76,7 @@ class ConfigFromEventMixin(Config):
 class ConfigFromUrlMixin(Config):
     _project: Optional[GitProject] = None
     _service_config: Optional[ServiceConfig] = None
+    _project_required: bool = True
     _project_url: str
     data: EventData
 
@@ -87,8 +88,10 @@ class ConfigFromUrlMixin(Config):
 
     @property
     def project(self) -> Optional[GitProject]:
-        if not self._project and self.data.project_url:
-            self._project = self.service_config.get_project(url=self.project_url)
+        if not self._project and self.project_url:
+            self._project = self.service_config.get_project(
+                url=self.project_url, required=self._project_required
+            )
         return self._project
 
     @property
@@ -215,8 +218,7 @@ class LocalProjectMixin(Config):
     @property
     def local_project(self) -> LocalProject:
         if not self._local_project:
-            self._local_project = LocalProject(
-                git_project=self.project,
+            kwargs = dict(
                 working_dir=self.service_config.command_handler_work_dir,
                 cache=RepositoryCache(
                     cache_path=self.service_config.repository_cache,
@@ -225,6 +227,11 @@ class LocalProjectMixin(Config):
                 if self.service_config.repository_cache
                 else None,
             )
+            if self.project:
+                kwargs["git_project"] = self.project
+            else:
+                kwargs["git_url"] = self.project_url
+            self._local_project = LocalProject(**kwargs)
         return self._local_project
 
 

@@ -520,6 +520,9 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             celery_task=celery_task,
             sync_release_run_id=sync_release_run_id,
         )
+        # allow self.project and upstream git_project to be None
+        self._project_required = False
+        self.packit_api.up._project_required = False
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             # use upstream project URL when retriggering from dist-git PR
             self._project_url = package_config.upstream_project_url
