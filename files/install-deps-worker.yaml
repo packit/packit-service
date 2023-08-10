@@ -39,6 +39,8 @@
           - python3-pyyaml
           - python3-requests-oauthlib
           - python3-websocket-client
+          # for full support of %autorelease and %autochangelog
+          - rpmautospec-rpm-macros
         state: present
         install_weak_deps: False
     - name: Install pip deps
