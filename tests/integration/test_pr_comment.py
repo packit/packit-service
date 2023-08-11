@@ -59,6 +59,7 @@ from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
@@ -2535,6 +2536,9 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
+    flexmock(PullRequestCommentPagureEvent).should_receive(
+        "get_base_project"
+    ).once().and_return(distgit_project)
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
     event_dict, job, job_config, package_config = get_parameters_from_results(
