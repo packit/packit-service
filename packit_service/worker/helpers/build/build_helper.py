@@ -331,7 +331,7 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         return (
             configured_targets & targets_override
-            if targets_override
+            if self.build_targets_override or self.tests_targets_override
             else configured_targets
         )
 
