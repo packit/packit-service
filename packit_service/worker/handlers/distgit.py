@@ -523,9 +523,8 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             # use upstream project URL when retriggering from dist-git PR
             self._project_url = package_config.upstream_project_url
-        # allow self.project and upstream git_project to be None
+        # allow self.project to be None
         self._project_required = False
-        self.packit_api.up._project_required = False
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
@@ -543,6 +542,8 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 
     def run(self) -> TaskResults:
         with ChoosenGithubAuthMethod(self, AuthMethod.token):
+            # allow upstream git_project to be None
+            self.packit_api.up._project_required = False
             return super().run()
 
 
