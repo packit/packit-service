@@ -859,7 +859,7 @@ def test_pr_test_command_handler_retries(
     payload = {
         "api_key": "secret-token",
         "test": {
-            "fmf": {
+            "tmt": {
                 "url": "https://github.com/someone/hello-world",
                 "ref": "0011223344",
                 "merge_sha": "deadbeef",
@@ -1064,7 +1064,7 @@ def test_pr_test_command_handler_skip_build_option(
     payload = {
         "api_key": "secret-token",
         "test": {
-            "fmf": {
+            "tmt": {
                 "url": "https://github.com/someone/hello-world",
                 "ref": "0011223344",
                 "merge_sha": "deadbeef",
@@ -2121,7 +2121,7 @@ def test_pr_test_command_handler_multiple_builds(
     payload = {
         "api_key": "secret-token",
         "test": {
-            "fmf": {
+            "tmt": {
                 "url": "https://github.com/someone/hello-world",
                 "ref": "0011223344",
                 "merge_sha": "deadbeef",
