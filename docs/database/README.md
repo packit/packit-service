@@ -116,6 +116,14 @@ You can also have a look at the [diagram](./diagram.mmd) in the Mermaid format g
 
     make regenerate-db-diagram
 
+### Backups
+
+[Done periodically](https://github.com/packit/packit-service/blob/021e0818ae1ae2ebd9c1622192649dd3b6b1e532/packit_service/celery_config.py#L27),
+stored in AWS S3 (`arr-packit-[prod|stg]` buckets),
+see [this](https://source.redhat.com/departments/it/devit/it-infrastructure/itcloudservices/itpubliccloudpage/cloud/docs/internal/saml_authentication_for_red_hat_it_aws_accounts#commercial)
+and [this](https://source.redhat.com/departments/it/devit/it-infrastructure/itcloudservices/itpubliccloudpage/cloud/docs/consumer/saml_manage_user_access)
+for access.
+
 ### Using live data locally
 
 Here is a list of commands to run if you need a local database with real data from stg or prod:
@@ -123,7 +131,8 @@ Here is a list of commands to run if you need a local database with real data fr
 1. Obtain a DB dump, either:
 
 - `oc rsh $POSTGRES_POD pg_dump packit >dump-$ENV-$DATE.sql` or
-- from backups in [AWS](https://auth.redhat.com/auth/realms/EmployeeIDP/protocol/saml/clients/itaws), `arr-packit-[prod|stg]` S3 bucket
+- from backups in [AWS](https://source.redhat.com/departments/it/devit/it-infrastructure/itcloudservices/itpubliccloudpage/cloud/docs/internal/saml_authentication_for_red_hat_it_aws_accounts#commercial),
+  `arr-packit-[prod|stg]` S3 bucket
 
 2. Load it into your local postgres instance:
 
@@ -132,3 +141,7 @@ Here is a list of commands to run if you need a local database with real data fr
       This is a more reliable option than a direct load from your local filesystem.
    3. Load the dump as a packit user `psql -U packit -d packit < /tmp/dump-$ENV-$DATE.sql`
       It's important to do this as a packit user because that's how worker and service pods connect.
+
+### Deleting old data
+
+See [db-cleanup script](https://github.com/packit/packit-service/blob/main/files/scripts/db-cleanup.py)

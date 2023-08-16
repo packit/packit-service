@@ -36,7 +36,7 @@ services:
     user: "1024"
 
   flower:
-    image: docker.io/mher/flower
+    image: quay.io/packit/flower
     container_name: flower
     ports:
       - 5555:5555
