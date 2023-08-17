@@ -6,6 +6,7 @@ This file defines classes for job handlers specific for distgit
 """
 import abc
 import logging
+import re
 import shutil
 from datetime import datetime
 from typing import Optional, Tuple, Type, List, ClassVar
@@ -43,7 +44,6 @@ from packit_service.worker.checker.distgit import (
     PermissionOnDistgit,
     ValidInformationForPullFromUpstream,
     HasIssueCommenterRetriggeringPermissions,
-    IsUpstreamTagMatchingConfig,
 )
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -360,10 +360,43 @@ class AbstractSyncReleaseHandler(
         # no error occurred
         return None
 
+    def is_upstream_tag_matching_config(self):
+        """
+        Check whether the upstream tag matches the `upstream_tag_include`
+        and `upstream_tag_exclude` from the configuration.
+
+        This check accesses LocalProject, therefore it needs to be run in the
+        long-running worker (and not as a pre-check).
+        """
+        if upstream_tag_include := self.job_config.upstream_tag_include:
+            matching_include_regex = re.match(upstream_tag_include, self.tag)
+            if not matching_include_regex:
+                logger.info(
+                    f"Tag {self.tag} doesn't match the upstream_tag_include {upstream_tag_include} "
+                    f"from the config. Skipping the syncing."
+                )
+                return False
+
+        if upstream_tag_exclude := self.job_config.upstream_tag_exclude:
+            matching_exclude_regex = re.match(upstream_tag_exclude, self.tag)
+            if matching_exclude_regex:
+                logger.info(
+                    f"Tag {self.tag} matches the upstream_tag_exclude {upstream_tag_exclude} "
+                    f"from the config. Skipping the syncing."
+                )
+                return False
+        return True
+
     def run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
+        if not self.is_upstream_tag_matching_config():
+            return TaskResults(
+                success=True,
+                details={"msg": "Upstream tag not matching configuration."},
+            )
+
         errors = {}
         sync_release_run_model = self._get_or_create_sync_release_run()
         branches_to_run = [
@@ -472,10 +505,6 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
             sync_release_run_id=sync_release_run_id,
         )
 
-    @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (IsUpstreamTagMatchingConfig,)
-
     def _report_errors_for_each_branch(self, message: str) -> None:
         msg_retrigger = MSG_RETRIGGER.format(
             job="update",
@@ -528,7 +557,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (ValidInformationForPullFromUpstream, IsUpstreamTagMatchingConfig)
+        return (ValidInformationForPullFromUpstream,)
 
     def _report_errors_for_each_branch(self, message: str) -> None:
         report_in_issue_repository(

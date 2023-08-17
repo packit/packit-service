@@ -8,6 +8,7 @@ from fasjson_client import Client
 
 from ogr.services.github import GithubService
 from packit.api import PackitAPI
+from packit.config import JobType, JobConfigTriggerType
 from packit_service.worker.handlers.distgit import (
     ProposeDownstreamHandler,
     DownstreamKojiBuildHandler,
@@ -16,6 +17,7 @@ from packit_service.worker.handlers.distgit import (
 )
 from packit_service.worker.events.event import EventData
 from packit_service.config import PackageConfigGetter
+from packit_service.worker.mixin import ConfigFromEventMixin
 
 
 def test_create_one_issue_for_pr():
@@ -127,3 +129,69 @@ def test_pull_from_upstream_auth_method():
     flexmock(AbstractSyncReleaseHandler).should_receive("run").once()
     flexmock(GithubService).should_receive("reset_auth_method").once()
     handler.run()
+
+
+@pytest.mark.parametrize(
+    "upstream_tag_include, upstream_tag_exclude, result",
+    (
+        pytest.param(
+            None,
+            None,
+            True,
+        ),
+        pytest.param(
+            None,
+            r"^.+\.2\..+",
+            True,
+        ),
+        pytest.param(
+            None,
+            r"^.+\.1\..+",
+            False,
+        ),
+        pytest.param(
+            r"^.+\.2\..+",
+            None,
+            False,
+        ),
+        pytest.param(
+            r"^.+\.1\..+",
+            None,
+            True,
+        ),
+        pytest.param(
+            r"^.+\.1\..+",
+            r"^2\..+",
+            False,
+        ),
+    ),
+)
+def test_sync_release_matching_tag(upstream_tag_include, upstream_tag_exclude, result):
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.pull_from_upstream,
+        trigger=JobConfigTriggerType.release,
+        targets={"fedora-37"},
+        upstream_tag_include=upstream_tag_include,
+        upstream_tag_exclude=upstream_tag_exclude,
+    )
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_event = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.release,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(db_project_event)
+
+    handler = AbstractSyncReleaseHandler(
+        package_config=package_config,
+        job_config=job_config,
+        event={"tag_name": "2.1.1"},
+        celery_task=flexmock(),
+    )
+
+    assert handler.is_upstream_tag_matching_config() == result

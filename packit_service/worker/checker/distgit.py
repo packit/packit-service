@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import re
 
 from packit.config.aliases import get_branches
 from packit_service.constants import MSG_GET_IN_TOUCH
@@ -17,7 +16,6 @@ from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
-    GetSyncReleaseTagMixin,
 )
 from packit_service.worker.reporting import report_in_issue_repository
 
@@ -199,26 +197,3 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             )
 
         return valid
-
-
-class IsUpstreamTagMatchingConfig(Checker, GetSyncReleaseTagMixin):
-    def pre_check(self) -> bool:
-        if upstream_tag_include := self.job_config.upstream_tag_include:
-            matching_include_regex = re.match(upstream_tag_include, self.tag)
-            if not matching_include_regex:
-                logger.info(
-                    f"Tag {self.tag} doesn't match the upstream_tag_include {upstream_tag_include} "
-                    f"from the config. Skipping the syncing."
-                )
-                return False
-
-        if upstream_tag_exclude := self.job_config.upstream_tag_exclude:
-            matching_exclude_regex = re.match(upstream_tag_exclude, self.tag)
-            if matching_exclude_regex:
-                logger.info(
-                    f"Tag {self.tag} matches the upstream_tag_exclude {upstream_tag_exclude} "
-                    f"from the config. Skipping the syncing."
-                )
-                return False
-
-        return True
