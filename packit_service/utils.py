@@ -70,7 +70,8 @@ def get_package_nvrs(built_packages: List[dict]) -> List[str]:
         if package["arch"] == "src":
             continue
 
-        epoch = f"{package['epoch']}:" if package["epoch"] != 0 else ""
+        epoch = f"{package['epoch']}:" if package["epoch"] else ""
+
         packages.append(
             f"{package['name']}-{epoch}{package['version']}-{package['release']}.{package['arch']}"
         )

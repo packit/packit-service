@@ -325,6 +325,20 @@ def test_distro2compose_for_aarch64(target, compose, use_internal_tf):
             ],
             ["cool-project-0.1.0-2.el8.x86_64"],
         ),
+        (
+            "123456",
+            "centos-stream-x86_64",
+            [
+                {
+                    "arch": "x86_64",
+                    "epoch": None,
+                    "name": "cool-project",
+                    "release": "2.el8",
+                    "version": "0.1.0",
+                },
+            ],
+            ["cool-project-0.1.0-2.el8.x86_64"],
+        ),
     ],
 )
 def test_artifact(
