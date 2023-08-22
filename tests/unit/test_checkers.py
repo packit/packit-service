@@ -595,6 +595,68 @@ def test_tf_comment_labels(comment, result):
     assert checker.pre_check() == result
 
 
+# Test covers the regression from #2155 when labels are specified in the comment
+# for retriggering TF and either:
+# * there are no labels specified in the job config, or
+# * there are multiple test jobs definition from which some don't have any
+#   labels set
+@pytest.mark.parametrize(
+    "comment, result",
+    (
+        pytest.param(
+            "/packit-dev test",
+            True,
+            id="No labels specified, none in config: should pass",
+        ),
+        pytest.param(
+            "/packit-dev test --labels should_fail,should_fail_hard",
+            False,
+            id="Labels specified, none in config: should fail",
+        ),
+    ),
+)
+def test_tf_comment_labels_none_in_config(comment, result):
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        targets={"fedora-37"},
+        skip_build=True,
+        manual_trigger=True,
+        packages={"package": CommonPackageConfig()},
+        labels=None,
+        identifier="my-id-1",
+    )
+
+    event = {
+        "event_type": PullRequestCommentGithubEvent.__name__,
+        "comment": comment,
+    }
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_object = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+
+    checker = IsLabelFromCommentMatching(
+        package_config=package_config, job_config=job_config, event=event
+    )
+
+    assert checker.pre_check() == result
+
+
 @pytest.mark.parametrize(
     "upstream_tag_include, upstream_tag_exclude, result",
     (

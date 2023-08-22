@@ -158,9 +158,12 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
     """
 
     def pre_check(self) -> bool:
-        if not self.testing_farm_job_helper.comment_arguments.labels or any(
-            x in self.testing_farm_job_helper.comment_arguments.labels
-            for x in self.job_config.labels
+        if not self.testing_farm_job_helper.comment_arguments.labels or (
+            self.job_config.labels
+            and any(
+                x in self.testing_farm_job_helper.comment_arguments.labels
+                for x in self.job_config.labels
+            )
         ):
             return True
 
