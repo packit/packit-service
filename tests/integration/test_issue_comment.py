@@ -218,6 +218,7 @@ def test_issue_comment_propose_downstream_handler(
         status=SyncReleaseStatus.running,
         project_event_model=db_project_event,
         job_type=SyncReleaseJobType.propose_downstream,
+        package_name="packit",
     ).and_return(propose_downstream_model, run_model).once()
 
     model = flexmock(status="queued", id=1234, branch="main")

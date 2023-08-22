@@ -77,6 +77,7 @@ def propose_downstream_model():
         status=SyncReleaseStatus.running,
         project_event_model=db_project_event,
         job_type=SyncReleaseJobType.propose_downstream,
+        package_name="hello-world",
     ).and_return(propose_downstream_model, run_model).once()
 
     flexmock(ProposeDownstreamJobHelper).should_receive(

@@ -150,7 +150,10 @@ class TestingFarmHandler(
             return target_model.group_of_targets, [target_model]
 
         run_model = (
-            PipelineModel.create(project_event=self.db_project_event)
+            PipelineModel.create(
+                project_event=self.db_project_event,
+                package_name=self.get_package_name(),
+            )
             if self.testing_farm_job_helper.skip_build or not builds
             # All the builds should be in the same copr build group, therefore
             # connected to the same pipeline, just take the first one

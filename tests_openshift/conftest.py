@@ -74,6 +74,7 @@ class SampleValues:
     pagure_pr_id = 343
     tag_name = "v1.0.2"
     different_tag_name = "v1.2.3"
+    package_name = "a-package-name"
 
     # gitlab
     mr_id = 2
@@ -418,7 +419,8 @@ def srpm_build_model_with_new_run_and_tf_for_pr(srpm_build_model_with_new_run_fo
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_pr(pr_project_event_model):
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
+        package_name=SampleValues.package_name,
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status(BuildStatus.success)

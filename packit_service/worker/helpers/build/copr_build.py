@@ -460,6 +460,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             project_event_model=self.db_project_event,
+            package_name=self.get_package_name(),
         )
         group = self._get_or_create_build_group()
         try:

@@ -28,7 +28,7 @@ def mock_get_aliases():
 
 @pytest.fixture
 def fake_package_config_job_config_project_db_trigger():
-    package_config = flexmock(jobs=[])
+    package_config = flexmock(packages={}, jobs=[])
     job_config = flexmock(
         type=JobType.vm_image_build,
         trigger=JobConfigTriggerType.pull_request,

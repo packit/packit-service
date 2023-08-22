@@ -500,6 +500,7 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             project_event_model=self.db_project_event,
+            package_name=self.get_package_name(),
         )
         self._srpm_model.set_start_time(datetime.datetime.utcnow())
 

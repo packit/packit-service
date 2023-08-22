@@ -118,6 +118,7 @@ def test_check_copr_build_updated(
         .and_return(db_project_event)
         .mock()
     )
+    flexmock(db_build).should_receive("get_package_name").and_return(None)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "the-owner", "copr_url": "https://dummy.url"})
     )
@@ -192,6 +193,7 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
         .and_return(db_project_event)
         .mock()
     )
+    flexmock(db_build).should_receive("get_package_name").and_return(None)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "the-owner", "copr_url": "https://dummy.url"})
     )
@@ -270,6 +272,7 @@ def test_check_copr_build_waiting_already_started(
         .and_return(db_project_event)
         .mock()
     )
+    flexmock(db_build).should_receive("get_package_name").and_return(None)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "the-owner", "copr_url": "https://dummy.url"})
     )

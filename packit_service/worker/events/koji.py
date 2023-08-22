@@ -134,7 +134,9 @@ class KojiBuildEvent(AbstractKojiEvent):
                 commit_sha=self._commit_sha,
             )
             group = KojiBuildGroupModel.create(
-                run_model=PipelineModel.create(project_event=event)
+                run_model=PipelineModel.create(
+                    project_event=event, package_name=self.package_name
+                )
             )
             self._build_model = KojiBuildTargetModel.create(
                 build_id=str(self.build_id),

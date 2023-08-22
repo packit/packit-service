@@ -365,6 +365,9 @@ class ProjectAndEventsConnector:
     def get_project_event_model(self) -> Optional["ProjectEventModel"]:
         return self.runs[0].project_event if self.runs else None
 
+    def get_package_name(self) -> Optional[str]:
+        return self.runs[0].package_name
+
     def get_project_event_object(self) -> Optional["AbstractProjectObjectDbType"]:
         project_event = self.get_project_event_model()
         return project_event.get_project_event_object() if project_event else None
@@ -437,6 +440,9 @@ class GroupAndTargetModelConnector:
 
     def get_release_tag(self) -> Optional[str]:
         return self.group_of_targets.get_release_tag()
+
+    def get_package_name(self) -> Optional[str]:
+        return self.group_of_targets.get_package_name()
 
     @property
     def commit_sha(self) -> str:
@@ -1334,6 +1340,8 @@ class PipelineModel(Base):
     datetime = Column(DateTime, default=datetime.utcnow)
 
     project_event_id = Column(Integer, ForeignKey("project_events.id"), index=True)
+    package_name = Column(String, index=True)
+
     project_event = relationship("ProjectEventModel", back_populates="runs")
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
@@ -1360,10 +1368,18 @@ class PipelineModel(Base):
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
     @classmethod
-    def create(cls, project_event: ProjectEventModel) -> "PipelineModel":
+    def create(
+        cls, project_event: ProjectEventModel, package_name: str = None
+    ) -> "PipelineModel":
+        """Create a pipeline triggered by the given project_event.
+        If project is a monorepo, then specify for which
+        package the pipeline is run. Otherwise the package name
+        can be None.
+        """
         with sa_session_transaction() as session:
             run_model = PipelineModel()
             run_model.project_event = project_event
+            run_model.package_name = package_name
             session.add(run_model)
             return run_model
 
@@ -1457,7 +1473,8 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             if run_model.copr_build_group:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    project_event=run_model.project_event
+                    project_event=run_model.project_event,
+                    package_name=run_model.package_name,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = build_group
@@ -1788,7 +1805,8 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             if run_model.koji_build_group:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    project_event=run_model.project_event
+                    project_event=run_model.project_event,
+                    package_name=run_model.package_name,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.koji_build_group = build_group
@@ -1988,6 +2006,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
     def create_with_new_run(
         cls,
         project_event_model: ProjectEventModel,
+        package_name: Optional[str] = None,
         copr_build_id: Optional[str] = None,
         copr_web_url: Optional[str] = None,
     ) -> Tuple["SRPMBuildModel", "PipelineModel"]:
@@ -2023,7 +2042,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
 
             # Create a new run model, reuse project_event_model if it exists:
             new_run_model = PipelineModel.create(
-                project_event=project_event_model,
+                project_event=project_event_model, package_name=package_name
             )
             new_run_model.srpm_build = srpm_build
             session.add(new_run_model)
@@ -2269,7 +2288,8 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 if run_model.test_run_group:
                     # Clone run model
                     new_run_model = PipelineModel.create(
-                        project_event=run_model.project_event
+                        project_event=run_model.project_event,
+                        package_name=run_model.package_name,
                     )
                     new_run_model.srpm_build = run_model.srpm_build
                     new_run_model.copr_build_group = run_model.copr_build_group
@@ -2538,6 +2558,7 @@ class SyncReleaseModel(ProjectAndEventsConnector, Base):
         status: SyncReleaseStatus,
         project_event_model: ProjectEventModel,
         job_type: SyncReleaseJobType,
+        package_name: Optional[str] = None,
     ) -> Tuple["SyncReleaseModel", "PipelineModel"]:
         """
         Create a new model for SyncRelease and connect it to the PipelineModel.
@@ -2564,7 +2585,9 @@ class SyncReleaseModel(ProjectAndEventsConnector, Base):
             session.add(sync_release)
 
             # Create a pipeline, reuse project_event_model if it exists:
-            pipeline = PipelineModel.create(project_event=project_event_model)
+            pipeline = PipelineModel.create(
+                project_event=project_event_model, package_name=package_name
+            )
             pipeline.sync_release_run = sync_release
             session.add(pipeline)
 
@@ -3011,7 +3034,8 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
             if run_model.vm_image_build:
                 # Clone run model
                 new_run_model = PipelineModel.create(
-                    project_event=run_model.project_event
+                    project_event=run_model.project_event,
+                    package_name=run_model.package_name,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
                 new_run_model.copr_build_group = run_model.copr_build_group
