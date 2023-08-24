@@ -1321,6 +1321,24 @@ def test_build_targets_overrides(
             {"centos-7-ppc64le"},
             id="default_mapping_test_override_different_arch",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                        )
+                    },
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"fedora-rawhide-x86_64"},
+            None,
+            set(),
+            id="build-target-not-in-test",
+        ),
     ],
 )
 def test_tests_targets_overrides(
