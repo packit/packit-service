@@ -87,7 +87,10 @@ class VMImageBuildHandler(
             repo_url,
         )
 
-        run_model = PipelineModel.create(project_event=self.data.db_project_event)
+        run_model = PipelineModel.create(
+            project_event=self.data.db_project_event,
+            package_name=self.get_package_name(),
+        )
         VMImageBuildTargetModel.create(
             build_id=image_id,
             project_name=self.project_name,

@@ -629,12 +629,21 @@ def test_pr_id_property_for_srpm_build(srpm_build_model_with_new_run_for_pr):
     assert isinstance(project_pr, int)
 
 
+def test_package_name_for_srpm_build(srpm_build_model_with_new_run_for_pr):
+    srpm_build, _ = srpm_build_model_with_new_run_for_pr
+    assert srpm_build.get_package_name() == "a-package-name"
+
+
 def test_project_property_for_srpm_build(srpm_build_model_with_new_run_for_pr):
     srpm_build, _ = srpm_build_model_with_new_run_for_pr
     project = srpm_build.get_project()
     assert isinstance(project, GitProjectModel)
     assert project.namespace == "the-namespace"
     assert project.repo_name == "the-repo-name"
+
+
+def test_package_name_for_copr_build(a_copr_build_for_pr):
+    assert a_copr_build_for_pr.get_package_name() == "a-package-name"
 
 
 def test_project_property_for_copr_build(a_copr_build_for_pr):

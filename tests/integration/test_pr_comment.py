@@ -2521,6 +2521,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         status=SyncReleaseStatus.running,
         project_event_model=db_project_event,
         job_type=SyncReleaseJobType.pull_from_upstream,
+        package_name="python-teamcity-messages",
     ).and_return(sync_release_model, run_model).once()
     flexmock(sync_release_model).should_receive("set_status").with_args(
         status=SyncReleaseStatus.finished

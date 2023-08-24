@@ -66,6 +66,7 @@ def sync_release_model():
         status=SyncReleaseStatus.running,
         project_event_model=project_event,
         job_type=SyncReleaseJobType.pull_from_upstream,
+        package_name="redis",
     ).and_return(sync_release_model, run_model).once()
 
     yield sync_release_model
@@ -166,6 +167,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(sync_release_model).should_receive("set_status").with_args(
         status=SyncReleaseStatus.finished
     ).once()
+    sync_release_model.should_receive("get_package_name").and_return(None)
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(

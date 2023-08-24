@@ -42,7 +42,6 @@ class BaseJobHelper:
         self.job_config = job_config
         self.package_config = package_config
         self.project: GitProject = project
-        self.db_project_event = db_project_event
         self.metadata: EventData = metadata
         self.run_model: Optional[PipelineModel] = None
         self.pushgateway = pushgateway
@@ -59,6 +58,17 @@ class BaseJobHelper:
         self._pr_id: Optional[int] = None
         self._is_reporting_allowed: Optional[bool] = None
         self._is_gitlab_instance: Optional[bool] = None
+
+    def get_package_name(self) -> Optional[str]:
+        """If the package_config is just for one package,
+        returns the package name. Otherwise None.
+        Helpers should always have PackageConfigView(s)
+        references which hold just a single package.
+        """
+        if len(self.package_config.packages) == 1:
+            return list(self.package_config.packages.keys())[0]
+        else:
+            return None
 
     @property
     def msg_retrigger(self) -> str:

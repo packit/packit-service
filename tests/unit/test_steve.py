@@ -131,6 +131,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         status=SyncReleaseStatus.running,
         project_event_model=db_project_event,
         job_type=SyncReleaseJobType.propose_downstream,
+        package_name="the-repo",
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
     model = flexmock(status="queued", id=1234, branch="main")

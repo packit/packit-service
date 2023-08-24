@@ -266,6 +266,7 @@ class AbstractSyncReleaseHandler(
             job_type=SyncReleaseJobType.propose_downstream
             if self.job_config.type == JobType.propose_downstream
             else SyncReleaseJobType.pull_from_upstream,
+            package_name=self.get_package_name(),
         )
 
         for branch in self.sync_release_helper.branches:
