@@ -297,6 +297,8 @@ class JobHandler(Handler):
     def get_package_name(self) -> Optional[str]:
         """If the package_config is just for one package,
         returns the package name. Otherwise None.
+        Handlers should always have PackageConfigView(s)
+        references which hold just a single package.
         """
         if len(self.package_config.packages) == 1:
             return list(self.package_config.packages.keys())[0]
