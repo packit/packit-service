@@ -35,6 +35,7 @@ from packit_service.worker.checker.vm_image import (
 )
 from packit_service.worker.events import (
     PullRequestGithubEvent,
+    AbstractCoprBuildEvent,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github import (
@@ -363,13 +364,17 @@ def test_copr_build_is_package_matching_job_view():
         )
     ]
 
+    flexmock(AbstractCoprBuildEvent).should_receive("from_event_dict").and_return(
+        flexmock(build_id=123)
+    )
+
     checker = IsPackageMatchingJobView(
         flexmock(),
         jobs[0],
         {"pkg": "package"},
     )
     checker._build = (
-        flexmock(build_id=123)
+        flexmock()
         .should_receive("get_package_name")
         .and_return("package-b")
         .once()

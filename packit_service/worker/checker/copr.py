@@ -87,7 +87,7 @@ class IsPackageMatchingJobView(Checker, GetCoprSRPMBuildMixin):
             return True
 
         logger.debug(
-            f"The Copr build {self.build.build_id} (pkg={build_for_package}) "
+            f"The Copr build {self.copr_event.build_id} (pkg={build_for_package}) "
             f"does not match the package from the configuration "
             f"({self.job_config.package})."
         )
