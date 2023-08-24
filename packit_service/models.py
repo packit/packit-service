@@ -366,7 +366,7 @@ class ProjectAndEventsConnector:
         return self.runs[0].project_event if self.runs else None
 
     def get_package_name(self) -> Optional[str]:
-        return self.runs[0].package_name
+        return self.runs[0].package_name if self.runs else None
 
     def get_project_event_object(self) -> Optional["AbstractProjectObjectDbType"]:
         project_event = self.get_project_event_model()
