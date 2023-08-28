@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+from datetime import datetime, timezone
 from http import HTTPStatus
 from logging import getLogger
 from typing import Any
@@ -28,6 +29,7 @@ usage_ns = Namespace("usage", description="Data about Packit usage")
 @usage_ns.route("")
 class Usage(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @usage_ns.response(HTTPStatus.BAD_REQUEST, "Timestamps are in wrong format")
     def get(self):
         """
         Show a usage statistics for the service.
@@ -39,8 +41,13 @@ class Usage(Resource):
         """
 
         top = int(request.args.get("top")) if "top" in request.args else None
-        datetime_from = request.args.get("from")
-        datetime_to = request.args.get("to")
+
+        errors, datetime_from, datetime_to = process_timestamps(
+            request.args.get("from"),
+            request.args.get("to"),
+        )
+        if errors:
+            return response_maker({"errors": errors}, status=HTTPStatus.BAD_REQUEST)
 
         result = get_usage_data(datetime_from, datetime_to, top)
 
@@ -53,6 +60,7 @@ class Usage(Resource):
 @usage_ns.param("repo_name", "Repo Name")
 class ProjectUsage(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @usage_ns.response(HTTPStatus.BAD_REQUEST, "Timestamps are in wrong format")
     def get(self, forge, namespace, repo_name):
         """
         Show a usage statistics for a given project.
@@ -61,12 +69,56 @@ class ProjectUsage(Resource):
         (e.g. `api/usage/project/github.com/packit/ogr?from=2022-01-30`).
         """
 
-        datetime_from = request.args.get("from")
-        datetime_to = request.args.get("to")
+        errors, datetime_from, datetime_to = process_timestamps(
+            request.args.get("from"),
+            request.args.get("to"),
+        )
+        if errors:
+            return response_maker({"errors": errors}, status=HTTPStatus.BAD_REQUEST)
+
         project_url = f"https://{forge}/{namespace}/{repo_name}"
         result = get_project_usage_data(project_url, datetime_from, datetime_to)
 
         return response_maker(result)
+
+
+def __parse_timestamp(stamp):
+    try:
+        parsed_stamp = datetime.fromisoformat(stamp)
+        parsed_stamp = parsed_stamp.astimezone(timezone.utc)
+        return (None, parsed_stamp.isoformat())
+    except TypeError:
+        # we have gotten a None which means no start
+        return (None, None)
+    except ValueError:
+        return ("invalid format", None)
+
+
+def process_timestamps(start, end):
+    """
+    Process timestamps passed through the request.
+
+    Args:
+      start: Start of the time period. Can be `None` if no start is
+        specified.
+      end: End of the time period. Can be `None` if no end is specified.
+
+    Returns:
+        Triplet representing (in this order):
+        * List of errors that happened during the parsing of the timestamps.
+        * Start of the time period that can be directly passed to the DB.
+        * End of the time period that can be directly passed to the DB.
+    """
+    (start_error, parsed_start) = __parse_timestamp(start)
+    (end_error, parsed_end) = __parse_timestamp(end)
+
+    errors = []
+    if start_error:
+        errors.append(f"From timestamp: {start_error}")
+    if end_error:
+        errors.append(f"To timestamp: {end_error}")
+
+    return (errors, parsed_start, parsed_end)
 
 
 def get_usage_data(datetime_from=None, datetime_to=None, top=10):
