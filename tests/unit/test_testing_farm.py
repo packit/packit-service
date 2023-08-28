@@ -164,7 +164,7 @@ def test_testing_farm_response(
         )
         .should_receive("get_project_event_model")
         .and_return(
-            flexmock()
+            flexmock(id=123)
             .should_receive("get_project_event_object")
             .and_return(
                 flexmock(

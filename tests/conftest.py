@@ -377,7 +377,7 @@ def add_pull_request_event_with_sha_0011223344():
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock()
+        flexmock(id=123)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()

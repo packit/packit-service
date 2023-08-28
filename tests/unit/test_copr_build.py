@@ -255,7 +255,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     ).and_return(db_project_object)
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock()
+        db_project_event=flexmock(id=123)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock(),
@@ -355,7 +355,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
 ):
     helper = build_helper(
         event=github_pr_event,
-        db_project_event=flexmock()
+        db_project_event=flexmock(id=123)
         .should_receive("get_project_event_object")
         .and_return(
             flexmock(

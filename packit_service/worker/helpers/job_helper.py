@@ -159,8 +159,8 @@ class BaseJobHelper:
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 packit_user=self.service_config.get_github_account_name(),
-                project_object_id=self._db_project_object.id
-                if self._db_project_object
+                project_event_id=self.db_project_event.id
+                if self.db_project_event
                 else None,
                 pr_id=self.metadata.pr_id,
             )

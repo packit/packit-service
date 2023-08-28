@@ -227,7 +227,7 @@ def test_set_status_github_check(
         project=project,
         commit_sha=commit_sha,
         pr_id=pr_id,
-        project_object_id=project_object_id,
+        project_event_id=project_object_id,
         packit_user="packit",
     )
     act_upon = flexmock(GithubProject)
@@ -444,7 +444,7 @@ def test_status_instead_check(
     reporter = StatusReporter.get_instance(
         project=project,
         commit_sha=commit_sha,
-        project_object_id=event_id,
+        project_event_id=event_id,
         pr_id=pr_id,
         packit_user="packit",
     )
