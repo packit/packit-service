@@ -100,7 +100,7 @@ class StatusReporter:
         project: GitProject,
         commit_sha: str,
         packit_user: str,
-        project_object_id: Optional[int] = None,
+        project_event_id: Optional[int] = None,
         pr_id: Optional[int] = None,
     ):
         logger.debug(
@@ -111,7 +111,7 @@ class StatusReporter:
         self._packit_user = packit_user
 
         self.commit_sha: str = commit_sha
-        self.project_object_id: int = project_object_id
+        self.project_event_id: int = project_event_id
         self.pr_id: Optional[int] = pr_id
 
     @classmethod
@@ -120,7 +120,7 @@ class StatusReporter:
         project: GitProject,
         commit_sha: str,
         packit_user: str,
-        project_object_id: Optional[int] = None,
+        project_event_id: Optional[int] = None,
         pr_id: Optional[int] = None,
     ) -> "StatusReporter":
         """
@@ -133,7 +133,7 @@ class StatusReporter:
             reporter = StatusReporterGitlab
         elif isinstance(project, PagureProject):
             reporter = StatusReporterPagure
-        return reporter(project, commit_sha, packit_user, project_object_id, pr_id)
+        return reporter(project, commit_sha, packit_user, project_event_id, pr_id)
 
     @property
     def project_with_commit(self) -> GitProject:
@@ -517,9 +517,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
                 state_to_set if isinstance(state_to_set, GithubCheckRunResult) else None
             )
 
-            external_id = (
-                str(self.project_object_id) if self.project_object_id else None
-            )
+            external_id = str(self.project_event_id) if self.project_event_id else None
 
             self.project_with_commit.create_check_run(
                 name=check_name,
