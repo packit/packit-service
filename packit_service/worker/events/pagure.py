@@ -114,7 +114,11 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         commands = get_packit_commands_from_comment(
             comment, ServiceConfig.get_service_config().comment_command_prefix
         )
-        if commands and commands[0] == "pull-from-upstream":
+        if not commands:
+            return super().get_packages_config()
+        command = commands[0]
+        args = commands[1] if len(commands) > 1 else ""
+        if command == "pull-from-upstream" and "--with-pr-config" not in args:
             # when retriggering pull-from-upstream from PR comment
             # take packages config from the downstream default branch
             logger.debug(
