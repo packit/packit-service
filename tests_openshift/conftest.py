@@ -428,6 +428,24 @@ def srpm_build_model_with_new_run_for_pr(pr_project_event_model):
 
 
 @pytest.fixture()
+def srpm_build_model_with_new_run_for_pr_different_commit(pr_project_event_model):
+    _, event = ProjectEventModel.add_pull_request_event(
+        pr_id=SampleValues.pr_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
+        commit_sha="different-sha",
+    )
+    srpm_model, run_model = SRPMBuildModel.create_with_new_run(
+        project_event_model=event,
+        package_name=SampleValues.package_name,
+    )
+    srpm_model.set_logs(SampleValues.srpm_logs)
+    srpm_model.set_status(BuildStatus.success)
+    yield srpm_model, run_model
+
+
+@pytest.fixture()
 def srpm_build_model_with_new_run_and_tf_for_branch(
     srpm_build_model_with_new_run_for_branch,
 ):
@@ -511,6 +529,28 @@ def different_issue_model(different_issue_project_event_model):
 @pytest.fixture()
 def a_copr_build_for_pr(srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
+    group = CoprBuildGroupModel.create(run_model)
+    copr_build_model = CoprBuildTargetModel.create(
+        build_id=SampleValues.build_id,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        copr_build_group=group,
+    )
+    copr_build_model.set_build_logs_url(
+        "https://copr.somewhere/results/owner/package/target/build.logs"
+    )
+    copr_build_model.set_built_packages(SampleValues.built_packages)
+    yield copr_build_model
+
+
+@pytest.fixture()
+def a_copr_build_for_pr_different_commit(
+    srpm_build_model_with_new_run_for_pr_different_commit,
+):
+    _, run_model = srpm_build_model_with_new_run_for_pr_different_commit
     group = CoprBuildGroupModel.create(run_model)
     copr_build_model = CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,

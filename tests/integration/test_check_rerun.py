@@ -108,8 +108,8 @@ def mock_pr_functionality(request):
 
     pr_model = (
         flexmock(PullRequestModel(pr_id=123))
-        .should_receive("get_project_event")
-        .and_return(flexmock(commit_sha="12345"))
+        .should_receive("get_project_event_models")
+        .and_return([flexmock(commit_sha="12345")])
         .mock()
     )
     project_event = (
@@ -155,8 +155,8 @@ def mock_push_functionality(request):
 
     branch_model = (
         flexmock(GitBranchModel(name="main"))
-        .should_receive("get_project_event")
-        .and_return(flexmock(commit_sha="12345"))
+        .should_receive("get_project_event_models")
+        .and_return([flexmock(commit_sha="12345")])
         .mock()
     )
     project_event = (
@@ -203,8 +203,8 @@ def mock_release_functionality(request):
 
     release_model = (
         flexmock(ProjectReleaseModel(tag_name="0.1.0"))
-        .should_receive("get_project_event")
-        .and_return(flexmock(commit_sha="12345"))
+        .should_receive("get_project_event_models")
+        .and_return([flexmock(commit_sha="12345")])
         .mock()
     )
     project_event = (

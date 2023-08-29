@@ -776,6 +776,16 @@ def test_pr_get_copr_builds(
     assert not different_pr_model.get_copr_builds()
 
 
+def test_pr_multiple_commits_copr_builds(
+    clean_before_and_after, a_copr_build_for_pr, a_copr_build_for_pr_different_commit
+):
+    pr_model = a_copr_build_for_pr_different_commit.get_project_event_object()
+    copr_builds = pr_model.get_copr_builds()
+    assert a_copr_build_for_pr in copr_builds
+    assert a_copr_build_for_pr_different_commit in copr_builds
+    assert len(copr_builds) == 2
+
+
 def test_pr_get_koji_builds(
     clean_before_and_after, a_koji_build_for_pr, different_pr_model
 ):

@@ -44,7 +44,6 @@ from sqlalchemy import (
     Table,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
-from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
@@ -56,7 +55,6 @@ from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
 from packit.config import JobConfigTriggerType
-from packit.exceptions import PackitException
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -288,26 +286,16 @@ class BuildsAndTestsConnector:
     id: int
     project_event_model_type: ProjectEventModelType
 
-    def get_project_event(self) -> "ProjectEventModel":
-        try:
-            project_event = (
-                sa_session()
-                .query(ProjectEventModel)
-                .filter_by(type=self.project_event_model_type, event_id=self.id)
-                .one_or_none()
-            )
-            return project_event
-        except MultipleResultsFound as e:
-            msg = (
-                f"Multiple run models for type {self.project_event_model_type}"
-                f" and id {self.id}."
-            )
-            logger.error(msg)
-            raise PackitException(msg) from e
+    def get_project_event_models(self) -> Iterable["ProjectEventModel"]:
+        return (
+            sa_session()
+            .query(ProjectEventModel)
+            .filter_by(type=self.project_event_model_type, event_id=self.id)
+        )
 
     def get_runs(self) -> List["PipelineModel"]:
-        project_event = self.get_project_event()
-        return project_event.runs if project_event else []
+        project_events = self.get_project_event_models()
+        return [run for project_event in project_events for run in project_event.runs]
 
     def _get_run_item(
         self, model_type: Type["AbstractBuildTestDbType"]
@@ -347,11 +335,6 @@ class BuildsAndTestsConnector:
 
     def get_test_runs(self):
         return self._get_run_item(model_type=TFTTestRunTargetModel)
-
-    @property
-    def commit_sha(self) -> str:
-        project_event = self.get_project_event()
-        return project_event.commit_sha if project_event else None
 
 
 class ProjectAndEventsConnector:
