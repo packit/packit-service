@@ -3,6 +3,7 @@
 
 import logging
 import re
+from re import Pattern
 from typing import Dict, Any, Optional, Set, List, Union, Tuple, Callable
 
 import requests
@@ -614,6 +615,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         except FileNotFoundError:
             return False
 
+    @staticmethod
+    def is_compose_matching(compose_to_check: str, composes: Set[Pattern]) -> bool:
+        """
+        Check whether the compose matches any compose in the list of re-compiled
+        composes.
+        """
+        return any(compose.fullmatch(compose_to_check) for compose in composes)
+
     def distro2compose(self, target: str) -> Optional[str]:
         """
         Create a compose string from distro, e.g. fedora-33 -> Fedora-33
@@ -638,8 +647,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
             return None
 
-        if target in composes:
-            logger.debug(f"Target {target} is directly in the compose list.")
+        compiled_composes = {re.compile(compose) for compose in composes}
+
+        if self.is_compose_matching(target, compiled_composes):
+            logger.debug(
+                f"Target {target} directly matches a compose in the compose list."
+            )
             return target
 
         distro, arch = target.rsplit("-", 1)
@@ -648,8 +661,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         # when that happens and the user precisely specified the compose via target
         # we should just use it instead of continuing below with our logic
         # some of those changes can change the target and result in a failure
-        if distro in composes and arch == "x86_64":
-            logger.debug(f"Distro {distro} is directly in the compose list for x86_64.")
+        if self.is_compose_matching(distro, compiled_composes) and arch == "x86_64":
+            logger.debug(
+                f"Distro {distro} directly matches a compose in the compose list for x86_64."
+            )
             return distro
 
         compose = (
@@ -667,7 +682,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             compose += "-aarch64"
 
         if self.job_config.use_internal_tf:
-            if compose in composes:
+            if self.is_compose_matching(compose, compiled_composes):
                 return compose
 
             if compose == "Fedora-Rawhide":
@@ -693,10 +708,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             elif compose == "Oracle-Linux-8":
                 compose = "Oracle-Linux-8.6"
 
-        if compose not in composes:
+        if not self.is_compose_matching(compose, compiled_composes):
             msg = (
-                f"The compose {compose} (from target {distro}) is not in the list of "
-                f"available composes:\n{composes}. "
+                f"The compose {compose} (from target {distro}) does not match any compose"
+                f" in the list of available composes:\n{composes}. "
             )
             logger.error(msg)
             msg += (

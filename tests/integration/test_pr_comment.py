@@ -1291,8 +1291,8 @@ def test_pr_test_command_handler_compose_not_present(
         "Testing Farm infrastructure.",
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
-        markdown_content="The compose Fedora-Rawhide (from target fedora-rawhide) is not in "
-        "the list of available composes:\n"
+        markdown_content="The compose Fedora-Rawhide (from target fedora-rawhide) does not match "
+        "any compose in the list of available composes:\n"
         "{'some-other-compose'}. Please, check the targets defined in your test job configuration. "
         "If you think your configuration is correct, get "
         "in touch with [us](https://packit.dev/#contact).",
