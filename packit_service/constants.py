@@ -256,3 +256,9 @@ DENIED_MSG = (
     f"You were denied from using Packit Service. If you think this was done by mistake, "
     f"please, [let us know]({CONTACTS_URL})."
 )
+
+# We want to be able to access both
+# upstream and downstream repos through the
+# shared sandcastle dir
+SANDCASTLE_DG_REPO_DIR = "dist-git"
+SANDCASTLE_LOCAL_PROJECT_DIR = "local-project"

@@ -4,6 +4,7 @@
 from abc import abstractmethod
 import logging
 import re
+from pathlib import Path
 from typing import Optional, Protocol, Union, List
 
 from fasjson_client import Client
@@ -27,6 +28,8 @@ from packit_service.worker.helpers.job_helper import BaseJobHelper
 
 from packit_service.constants import (
     FASJSON_URL,
+    SANDCASTLE_LOCAL_PROJECT_DIR,
+    SANDCASTLE_DG_REPO_DIR,
 )
 
 logger = logging.getLogger(__name__)
@@ -191,6 +194,8 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
                 self.service_config,
                 self.job_config,
                 upstream_local_project=self.local_project,
+                dist_git_clone_path=Path(self.service_config.command_handler_work_dir)
+                / SANDCASTLE_DG_REPO_DIR,
             )
         return self._packit_api
 
@@ -219,7 +224,8 @@ class LocalProjectMixin(Config):
     def local_project(self) -> LocalProject:
         if not self._local_project:
             kwargs = dict(
-                working_dir=self.service_config.command_handler_work_dir,
+                working_dir=Path(self.service_config.command_handler_work_dir)
+                / SANDCASTLE_LOCAL_PROJECT_DIR,
                 cache=RepositoryCache(
                     cache_path=self.service_config.repository_cache,
                     add_new=self.service_config.add_repositories_to_repository_cache,
