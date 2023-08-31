@@ -399,8 +399,8 @@ class AbstractSyncReleaseHandler(
             )
         finally:
             # remove temporary dist-git clone after we're done here - context:
-            # 1. the dist-git repo is cloned on worker, not sandbox
-            # 2. it's stored in /tmp, not in the mirrored sandbox PV
+            # 1. the dist-git repo could be cloned on worker, not sandbox
+            # 2. in such case it's stored in /tmp, not in the mirrored sandbox PV
             # 3. it's not being cleaned up and it wastes pod's filesystem space
             shutil.rmtree(self.packit_api.dg.local_project.working_dir)
 

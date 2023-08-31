@@ -332,6 +332,10 @@ def test_dist_git_push_release_handle_multiple_branches(
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
+    from packit_service.worker.handlers.distgit import shutil
+
+    flexmock(shutil).should_receive("rmtree").and_return()
+
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -465,6 +469,10 @@ def test_dist_git_push_release_handle_one_failed(
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
+
+    from packit_service.worker.handlers.distgit import shutil
+
+    flexmock(shutil).should_receive("rmtree").and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
