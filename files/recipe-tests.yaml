@@ -19,4 +19,6 @@
           - pytest
           - pytest-cov
           - pytest-flask
-          - deepdiff
+          # the version lock can be removed once this is resolved:
+          # https://github.com/seperman/deepdiff/issues/416
+          - deepdiff==6.3.1
