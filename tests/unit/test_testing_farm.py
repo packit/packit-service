@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import re
 from datetime import datetime, timezone
 from typing import List
 
@@ -355,6 +356,20 @@ def test_artifact(
         artifact["packages"] = packages_to_send
 
     assert result == artifact
+
+
+@pytest.mark.parametrize(
+    ("compose", "composes", "result"),
+    [
+        ("Fedora-Cloud-Base-39", {re.compile("Fedora-Cloud-Base-.+")}, True),
+        ("Fedora-Cloud-Base-", {re.compile("Fedora-Cloud-Base-.+")}, False),
+        ("debezium-tf1", {re.compile("debezium-tf.*")}, True),
+        ("Fedora 38", {re.compile("Fedora 38")}, True),
+        ("Fedora 3", {re.compile("Fedora 38")}, False),
+    ],
+)
+def test_is_compose_matching(compose, composes, result):
+    assert TFJobHelper.is_compose_matching(compose, composes) is result
 
 
 @pytest.mark.parametrize(
