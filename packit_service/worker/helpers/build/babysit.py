@@ -101,7 +101,6 @@ def check_pending_testing_farm_runs() -> None:
         if result in not_completed:
             logger.debug("Skip updating a pipeline which is not yet completed.")
             continue
-
         event = TestingFarmResultsEvent(
             pipeline_id=details["id"],
             result=result,
@@ -115,31 +114,43 @@ def check_pending_testing_farm_runs() -> None:
             created=created,
             identifier=identifier,
         )
+        try:
+            update_testing_farm_run(event, run)
+        except Exception as ex:
+            logger.debug(
+                f"There was an exception when updating the Testing farm run "
+                f"with pipeline ID {run.pipeline_id}: {ex}"
+            )
 
-        packages_config = event.get_packages_config()
-        if not packages_config:
-            logger.info(f"No config found for {run.pipeline_id}. Skipping.")
-            continue
 
-        job_configs = SteveJobs(event).get_config_for_handler_kls(
-            handler_kls=TestingFarmResultsHandler,
+def update_testing_farm_run(event: TestingFarmResultsEvent, run: TFTTestRunTargetModel):
+    """
+    Updates the state of the Testing Farm run.
+    """
+    packages_config = event.get_packages_config()
+    if not packages_config:
+        logger.info(f"No config found for {run.pipeline_id}. Skipping.")
+        return
+
+    job_configs = SteveJobs(event).get_config_for_handler_kls(
+        handler_kls=TestingFarmResultsHandler,
+    )
+
+    event_dict = event.get_dict()
+    for job_config in job_configs:
+        package_config = (
+            event.packages_config.get_package_config_for(job_config)
+            if event.packages_config
+            else None
         )
-
-        event_dict = event.get_dict()
-        for job_config in job_configs:
-            package_config = (
-                event.packages_config.get_package_config_for(job_config)
-                if event.packages_config
-                else None
-            )
-            handler = TestingFarmResultsHandler(
-                package_config=package_config,
-                job_config=job_config,
-                event=event_dict,
-            )
-            # check for identifiers equality
-            if handler.pre_check(package_config, job_config, event_dict):
-                handler.run_job()
+        handler = TestingFarmResultsHandler(
+            package_config=package_config,
+            job_config=job_config,
+            event=event_dict,
+        )
+        # check for identifiers equality
+        if handler.pre_check(package_config, job_config, event_dict):
+            handler.run_job()
 
 
 def check_pending_copr_builds() -> None:
@@ -228,7 +239,14 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             )
             continue
         chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
-        update_copr_build_state(build, build_copr, chroot_build)
+        try:
+            update_copr_build_state(build, build_copr, chroot_build)
+        except Exception as ex:
+            logger.debug(
+                f"There was an exception when updating the Copr build {build_id} for"
+                f" {build.target}: {ex}"
+            )
+            return False
     # Builds which we ran CoprBuildStartHandler for still need to be monitored.
     return bool(build_copr.ended_on)
 
