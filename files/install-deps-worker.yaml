@@ -32,7 +32,6 @@
           - python3-eventlet # concurrency pool, see run_worker.sh
           - bodhi-client
           # sandcastle deps
-          - python3-certifi
           - python3-charset-normalizer
           - python3-google-auth
           - python3-oauthlib
