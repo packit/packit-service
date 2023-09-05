@@ -53,9 +53,6 @@
           - sentry-sdk
           - syslog-rfc5424-formatter # Logging to Splunk
           - celery==5.3.* # RHBZ#2032543
-          # Mozilla's certificates have been discontinued on C9S, required for Sandcastle
-          # newer version is required because of CVE-2023-37920
-          - certifi==2023.7.22
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
