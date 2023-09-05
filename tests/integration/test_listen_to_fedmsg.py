@@ -605,6 +605,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                         "distro": "fedora-rawhide",
                         "arch": "x86_64",
                         "trigger": "commit",
+                        "initiator": "packit",
                     }
                 },
                 "artifacts": [

@@ -765,7 +765,14 @@ def test_payload(
             "arch": arch,
             "os": {"compose": compose},
             "artifacts": artifacts,
-            "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
+            "tmt": {
+                "context": {
+                    "distro": distro,
+                    "arch": arch,
+                    "trigger": "commit",
+                    "initiator": "packit",
+                }
+            },
             "variables": {
                 "PACKIT_BUILD_LOG_URL": log_url,
                 "PACKIT_COMMIT_SHA": commit_sha,
