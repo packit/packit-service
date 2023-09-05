@@ -126,7 +126,9 @@ class HandlerTaskWithRetry(Task):
 class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
     # hardcode for creating bodhi updates to account for the tagging race condition
     max_retries = 5
-    retry_kwargs = {"max_retries": max_retries}
+    # also disable jitter for the same reason
+    retry_jitter = False
+    retry_kwargs = {"max_retries": max_retries, "retry_jitter": retry_jitter}
 
 
 @celery_app.task(
