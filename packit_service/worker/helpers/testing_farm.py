@@ -503,7 +503,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         environment: Dict[str, Any] = {
             "arch": arch,
             "os": {"compose": compose},
-            "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
+            "tmt": {
+                "context": {
+                    "distro": distro,
+                    "arch": arch,
+                    "trigger": "commit",
+                    "initiator": "packit",
+                }
+            },
             "variables": predefined_environment,
         }
         if artifacts:

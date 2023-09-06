@@ -875,6 +875,7 @@ def test_pr_test_command_handler_retries(
                         "distro": "fedora-rawhide",
                         "arch": "x86_64",
                         "trigger": "commit",
+                        "initiator": "packit",
                     }
                 },
                 "variables": {
@@ -1080,6 +1081,7 @@ def test_pr_test_command_handler_skip_build_option(
                         "distro": "fedora-rawhide",
                         "arch": "x86_64",
                         "trigger": "commit",
+                        "initiator": "packit",
                     }
                 },
                 "variables": {
@@ -2137,6 +2139,7 @@ def test_pr_test_command_handler_multiple_builds(
                         "distro": "fedora-rawhide",
                         "arch": "x86_64",
                         "trigger": "commit",
+                        "initiator": "packit",
                     }
                 },
                 "variables": {
