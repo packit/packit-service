@@ -42,6 +42,9 @@ NEWS_FOOTER = [
     "and be one of the first to know about all the news!",
     "Interested in the Packit team plans and priorities? "
     "Check [our epic board](https://github.com/orgs/packit/projects/7/views/29).",
+    "Do you use `propose_downstream`? We would be happy if you could help"
+    "us with verifying it in staging. "
+    "See [the details](https://packit.dev/posts/verify-sync-release-volunteers)",
 ]
 
 
