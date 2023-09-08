@@ -612,8 +612,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     "Please confirm the request on the "
                     f"[{owner}/{self.job_project} Copr project permissions page]"
                     f"({permissions_url})"
-                    " and retrigger the build by a `/packit build` pull-request comment"
-                    " or click on a `Re-run` button.",
+                    " and retrigger the build by clicking on a `Re-run` button"
+                    " or with a `/packit build` pull-request comment "
+                    "(for builds in pull-requests).",
                 )
             elif GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR in str(ex):
                 markdown_content = CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
