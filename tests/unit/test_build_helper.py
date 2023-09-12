@@ -5,6 +5,10 @@ from pathlib import Path
 import pytest
 from flexmock import flexmock
 
+from packit.config.notifications import (
+    NotificationsConfig,
+    FailureCommentNotificationsConfig,
+)
 from packit.copr_helper import CoprHelper
 from packit.config import (
     CommonPackageConfig,
@@ -23,6 +27,7 @@ from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
 # packit.config.aliases.get_aliases() return value example
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.reporting import StatusReporter, DuplicateCheckMode
 
 ALIASES = {
     "fedora-development": ["fedora-33", "fedora-rawhide"],
@@ -2858,3 +2863,41 @@ def test_local_project_not_called_when_initializing_api():
     flexmock(LocalProject).should_receive("__init__").never()
     assert copr_build_helper.api
     assert copr_build_helper.api.copr_helper
+
+
+def test_notify_about_failure_if_configured():
+    jobs = [
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+            packages={
+                "packages": CommonPackageConfig(
+                    notifications=NotificationsConfig(
+                        failure_comment=FailureCommentNotificationsConfig(
+                            "One of the Copr builds failed for "
+                            "commit {commit_sha}, ping @admin"
+                        )
+                    )
+                )
+            },
+        )
+    ]
+    copr_build_helper = CoprBuildJobHelper(
+        service_config=ServiceConfig.get_service_config(),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
+        job_config=jobs[0],
+        project=flexmock(),
+        metadata=flexmock(pr_id=1, commit_sha="123"),
+        db_project_event=flexmock(id=12, commit_sha="123")
+        .should_receive("get_project_event_object")
+        .and_return(flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request))
+        .mock(),
+    )
+
+    flexmock(StatusReporter).should_receive("comment").with_args(
+        "One of the Copr builds failed for commit 123, ping @admin",
+        duplicate_check=DuplicateCheckMode.check_last_comment,
+    )
+    copr_build_helper.notify_about_failure_if_configured()

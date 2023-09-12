@@ -311,6 +311,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 chroot=self.copr_event.chroot,
             )
             self.measure_time_after_reporting()
+            self.copr_build_helper.notify_about_failure_if_configured()
             self.build.set_status(BuildStatus.failure)
             return TaskResults(success=False, details={"msg": failed_msg})
 
@@ -370,6 +371,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 description=failed_msg,
                 url=url,
             )
+            self.copr_build_helper.notify_about_failure_if_configured()
             self.build.set_status(BuildStatus.failure)
             self.copr_build_helper.monitor_not_submitted_copr_builds(
                 len(self.copr_build_helper.build_targets), "srpm_failure"

@@ -404,6 +404,7 @@ class TestingFarmResultsHandler(
                 success=True, details={"msg": "Testing farm results already processed"}
             )
 
+        failure = False
         if self.result == TestingFarmResult.running:
             status = BaseCommitStatus.running
             summary = self.summary or "Tests are running ..."
@@ -416,6 +417,7 @@ class TestingFarmResultsHandler(
         else:
             status = BaseCommitStatus.failure
             summary = self.summary or "Tests failed ..."
+            failure = True
 
         if self.result == TestingFarmResult.running:
             self.pushgateway.test_runs_started.inc()
@@ -437,6 +439,8 @@ class TestingFarmResultsHandler(
             else self.log_url,
             links_to_external_services={"Testing Farm": self.log_url},
         )
+        if failure:
+            self.testing_farm_job_helper.notify_about_failure_if_configured()
 
         test_run_model.set_status(self.result, created=self.created)
 
