@@ -225,6 +225,8 @@ class KojiTaskReportHandler(
                 url=url,
                 chroot=build.target,
             )
+            if self.koji_task_event.state == KojiTaskState.failed:
+                build_job_helper.notify_about_failure_if_configured()
 
         koji_build_logs = KojiTaskEvent.get_koji_build_logs_url(
             rpm_build_task_id=int(build.build_id),

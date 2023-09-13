@@ -31,7 +31,7 @@ from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -753,4 +753,22 @@ class BaseBuildJobHelper(BaseJobHelper):
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
             update_feedback_time=update_feedback_time,
+        )
+
+    def notify_about_failure_if_configured(self):
+        """
+        If there is a failure_comment_message configured for the job,
+        post a comment and include the configured message. Do not post
+        the comment if the last comment from the Packit user is identical.
+        """
+        if not (
+            configured_message := self.job_config.notifications.failure_comment.message
+        ):
+            return
+
+        formatted_message = configured_message.format(
+            commit_sha=self.db_project_event.commit_sha
+        )
+        self.status_reporter.comment(
+            formatted_message, duplicate_check=DuplicateCheckMode.check_last_comment
         )
