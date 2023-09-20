@@ -12,7 +12,7 @@ from typing import Optional, Type, Union, Dict, Any, Tuple
 from ogr.parsing import parse_git_repo
 from packit.config import JobConfigTriggerType
 
-from packit.constants import PROD_DISTGIT_URL
+from packit.constants import DISTGIT_INSTANCES
 from packit.utils import nested_get
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
@@ -1103,7 +1103,7 @@ class Parser:
             f"rev: {dg_commit}, branch: {dg_branch}"
         )
 
-        dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
+        dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
         dg_project_url = f"{dg_base_url}{dg_repo_namespace}/{dg_repo_name}"
 
         return PushPagureEvent(
@@ -1526,7 +1526,7 @@ class Parser:
         #   for package in event["trigger"]["msg"]["message"]["packages"]
         #   if package["distro"] == "Fedora"][0]
         package_name = event.get("package")
-        dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
+        dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
 
         distgit_project_url = f"{dg_base_url}rpms/{package_name}"
 
