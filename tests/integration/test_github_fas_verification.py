@@ -140,9 +140,7 @@ def test_verification_not_successful():
         "[the field]"
         "(https://accounts.fedoraproject.org/user/my-fas-account/settings/profile/#github) "
         "correctly and that your profile [is not private](https://accounts.fedoraproject.org/"
-        "user/my-fas-account/settings/profile/#is_private) (note there is currently [an issue]"
-        "(https://github.com/fedora-infra/noggin/issues/1202) with the state "
-        "of the checkbox, so please double-check) "
+        "user/my-fas-account/settings/profile/#is_private) "
         "and try again or contact [us](https://packit.dev/#contact)."
     )
     flexmock(issue).should_receive("comment").with_args(msg).once()
