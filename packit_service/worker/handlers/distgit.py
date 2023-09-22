@@ -36,7 +36,11 @@ from packit_service.service.urls import (
     get_propose_downstream_info_url,
     get_pull_from_upstream_info_url,
 )
-from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
+from packit_service.utils import (
+    gather_packit_logs_to_buffer,
+    collect_packit_logs,
+    get_packit_commands_from_comment,
+)
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
     IsProjectOk,
@@ -224,6 +228,7 @@ class AbstractSyncReleaseHandler(
                 use_downstream_specfile=is_pull_from_upstream_job,
                 sync_default_files=not is_pull_from_upstream_job,
                 add_pr_instructions=True,
+                resolved_bugs=self.get_resolved_bugs(),
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
@@ -436,6 +441,9 @@ class AbstractSyncReleaseHandler(
     def _report_errors_for_each_branch(self, message: str):
         raise NotImplementedError("Use subclass.")
 
+    def get_resolved_bugs(self):
+        raise NotImplementedError("Use subclass.")
+
 
 class AbortSyncRelease(Exception):
     """Abort sync-release process"""
@@ -494,6 +502,10 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
             comment_to_existing=body_msg,
         )
 
+    def get_resolved_bugs(self):
+        """No bugs for propose-downsteam"""
+        return []
+
 
 @configured_as(job_type=JobType.pull_from_upstream)
 @run_for_comment(command="pull-from-upstream")
@@ -530,6 +542,32 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (ValidInformationForPullFromUpstream, IsUpstreamTagMatchingConfig)
+
+    def get_resolved_bugs(self) -> List[str]:
+        """
+        If we are reacting to New Hotness, return the corresponding bugzilla ID only.
+        In case of comment, take the argument from comment. The format in the comment
+        should be /packit pull-from-upstream --resolved-bugs rhbz#123,rhbz#124
+        """
+        if self.data.event_type in (NewHotnessUpdateEvent.__name__,):
+            bug_id = self.data.event_dict.get("bug_id")
+            return [f"rhbz#{bug_id}"]
+
+        comment = self.data.event_dict.get("comment")
+        commands = get_packit_commands_from_comment(
+            comment, self.service_config.comment_command_prefix
+        )
+        args = commands[1:] if len(commands) > 1 else ""
+        bugs_keyword = "--resolved-bugs"
+        if bugs_keyword not in args:
+            return []
+
+        bugs = (
+            args[args.index(bugs_keyword) + 1]
+            if args.index(bugs_keyword) < len(args) - 1
+            else None
+        )
+        return bugs.split(",")
 
     def _report_errors_for_each_branch(self, message: str) -> None:
         report_in_issue_repository(
