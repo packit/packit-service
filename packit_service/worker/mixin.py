@@ -232,7 +232,7 @@ class LocalProjectMixin(Config):
                     )
                     if self.service_config.repository_cache
                     else None
-                )
+                ),
             )
             working_dir = Path(
                 Path(self.service_config.command_handler_work_dir)
