@@ -17,6 +17,7 @@ from ogr.services.github.check_run import (
 )
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+from packit.config import JobConfig
 
 from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import (
@@ -569,3 +570,18 @@ def report_in_issue_repository(
         message=message,
         comment_to_existing=comment_to_existing,
     )
+
+
+def update_message_with_configured_failure_comment_message(
+    comment: str, job_config: JobConfig
+) -> str:
+    """
+    If there is the notifications.failure_comment.message present in the configuration,
+    append it to the existing message.
+    """
+    configured_failure_message = (
+        f"\n\n---\n{configured_message}"
+        if (configured_message := job_config.notifications.failure_comment.message)
+        else ""
+    )
+    return f"{comment}{configured_failure_message}"

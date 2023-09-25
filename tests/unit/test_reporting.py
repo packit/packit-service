@@ -14,6 +14,10 @@ from ogr.services.github.check_run import (
 )
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+from packit.config.notifications import (
+    NotificationsConfig,
+    FailureCommentNotificationsConfig,
+)
 from packit_service.worker import reporting
 
 from packit_service.worker.reporting import (
@@ -23,6 +27,7 @@ from packit_service.worker.reporting import (
     StatusReporterGitlab,
     StatusReporterGithubChecks,
     DuplicateCheckMode,
+    update_message_with_configured_failure_comment_message,
 )
 
 create_table_content = StatusReporterGithubChecks._create_table
@@ -634,3 +639,24 @@ def test_comment(pr_id, commit_sha, duplicate_check, existing_comments, should_c
             act_upon.should_receive("commit_comment").never()
 
     reporter.comment(body="foo", duplicate_check=duplicate_check)
+
+
+@pytest.mark.parametrize(
+    "comment,configured_message,result",
+    [
+        ("Some comment", None, "Some comment"),
+        ("Some comment", "hello @admin", "Some comment\n\n---\nhello @admin"),
+    ],
+)
+def test_update_message_with_configured_failure_comment_message(
+    comment, configured_message, result
+):
+    job_config = flexmock(
+        notifications=NotificationsConfig(
+            failure_comment=FailureCommentNotificationsConfig(configured_message)
+        )
+    )
+    assert (
+        update_message_with_configured_failure_comment_message(comment, job_config)
+        == result
+    )

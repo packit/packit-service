@@ -50,7 +50,10 @@ from packit_service.worker.mixin import (
     GetBranchesFromIssueMixin,
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.reporting import report_in_issue_repository
+from packit_service.worker.reporting import (
+    report_in_issue_repository,
+    update_message_with_configured_failure_comment_message,
+)
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -139,6 +142,10 @@ class BodhiUpdateHandler(
         trigger_type_description = self.get_trigger_type_description(koji_build_data)
         body_msg = (
             f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
+        )
+
+        body_msg = update_message_with_configured_failure_comment_message(
+            body_msg, self.job_config
         )
 
         report_in_issue_repository(
