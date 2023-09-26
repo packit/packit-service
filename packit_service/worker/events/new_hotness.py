@@ -20,15 +20,13 @@ logger = getLogger(__name__)
 @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.release)
 class NewHotnessUpdateEvent(Event):
     def __init__(
-        self,
-        package_name: str,
-        version: str,
-        distgit_project_url: str,
+        self, package_name: str, version: str, distgit_project_url: str, bug_id: int
     ):
         super().__init__()
         self.package_name = package_name
         self.version = version
         self.distgit_project_url = distgit_project_url
+        self.bug_id = bug_id
 
         self._repo_url: Optional[RepoUrl] = None
         self._db_project_object: Optional[ProjectReleaseModel]

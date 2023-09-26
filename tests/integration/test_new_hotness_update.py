@@ -149,6 +149,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         use_downstream_specfile=True,
         sync_default_files=False,
         add_pr_instructions=True,
+        resolved_bugs=["rhbz#2106196"],
     ).and_return(flexmock(url="some_url")).once()
     flexmock(PackitAPI).should_receive("clean")
 
