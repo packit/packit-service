@@ -89,7 +89,11 @@ from packit_service.worker.mixin import (
     PackitAPIWithDownstreamMixin,
     GetSyncReleaseTagMixin,
 )
-from packit_service.worker.reporting import BaseCommitStatus, report_in_issue_repository
+from packit_service.worker.reporting import (
+    BaseCommitStatus,
+    report_in_issue_repository,
+    update_message_with_configured_failure_comment_message,
+)
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -494,6 +498,10 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         )
         body_msg = f"{message}{msg_retrigger}\n"
 
+        body_msg = update_message_with_configured_failure_comment_message(
+            body_msg, self.job_config
+        )
+
         PackageConfigGetter.create_issue_if_needed(
             project=self.project,
             title=f"{self.job_name_for_reporting.capitalize()} failed for "
@@ -570,13 +578,22 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         return bugs.split(",")
 
     def _report_errors_for_each_branch(self, message: str) -> None:
+        body_msg = (
+            f"{message}\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you "
+            f"need some help.*\n"
+        )
+        long_message = update_message_with_configured_failure_comment_message(
+            body_msg, self.job_config
+        )
+        short_message = update_message_with_configured_failure_comment_message(
+            message, self.job_config
+        )
         report_in_issue_repository(
             issue_repository=self.job_config.issue_repository,
             service_config=self.service_config,
             title=f"Pull from upstream failed for release {self.tag}",
-            message=message
-            + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
-            comment_to_existing=message,
+            message=long_message,
+            comment_to_existing=short_message,
         )
 
     def run(self) -> TaskResults:
@@ -664,6 +681,9 @@ class AbstractDownstreamKojiBuildHandler(
         trigger_type_description = self.get_trigger_type_description()
         body_msg = (
             f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
+        )
+        body_msg = update_message_with_configured_failure_comment_message(
+            body_msg, self.job_config
         )
 
         report_in_issue_repository(

@@ -1,21 +1,22 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import json
-import pytest
 
-from flexmock import flexmock
+import pytest
 from fasjson_client import Client
+from flexmock import flexmock
 
 from ogr.services.github import GithubService
 from packit.api import PackitAPI
+from packit.config.notifications import NotificationsConfig
+from packit_service.config import PackageConfigGetter
+from packit_service.worker.events.event import EventData
 from packit_service.worker.handlers.distgit import (
     ProposeDownstreamHandler,
     DownstreamKojiBuildHandler,
     AbstractSyncReleaseHandler,
     PullFromUpstreamHandler,
 )
-from packit_service.worker.events.event import EventData
-from packit_service.config import PackageConfigGetter
 
 
 def test_create_one_issue_for_pr():
@@ -48,7 +49,9 @@ def test_create_one_issue_for_pr():
         ]
     )
     flexmock(ProposeDownstreamHandler).should_receive("project").and_return(project)
-    handler = ProposeDownstreamHandler(None, None, {}, flexmock())
+    handler = ProposeDownstreamHandler(
+        None, flexmock(notifications=NotificationsConfig()), {}, flexmock()
+    )
     handler._report_errors_for_each_branch(
         {
             "f34": "Propose downstream failed for release 056",
