@@ -169,7 +169,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
     ServiceConfig().get_service_config().get_project = (
         lambda url, required=True: project
     )
-
+    pr = flexmock(url="some_url").should_receive("comment").mock()
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="0.3.0",
@@ -179,7 +179,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         sync_default_files=True,
         add_pr_instructions=True,
         resolved_bugs=[],
-    ).and_return(flexmock(url="some_url")).once()
+    ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
@@ -289,6 +289,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         flexmock(model).should_receive("set_start_time").once()
         flexmock(model).should_receive("set_finished_time").once()
         flexmock(model).should_receive("set_logs").once()
+        pr = flexmock(url="some_url").should_receive("comment").mock()
         flexmock(PackitAPI).should_receive("sync_release").with_args(
             dist_git_branch=model.branch,
             tag="0.3.0",
@@ -298,7 +299,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             sync_default_files=True,
             add_pr_instructions=True,
             resolved_bugs=[],
-        ).and_return(flexmock(url="some_url")).once()
+        ).and_return(pr).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
             "report_status_for_branch"
@@ -418,6 +419,7 @@ def test_dist_git_push_release_handle_one_failed(
             flexmock(model).should_receive("set_downstream_pr_url").with_args(
                 downstream_pr_url="some_url"
             )
+            pr = flexmock(url="some_url").should_receive("comment").mock()
             flexmock(PackitAPI).should_receive("sync_release").with_args(
                 dist_git_branch=model.branch,
                 tag="0.3.0",
@@ -427,7 +429,7 @@ def test_dist_git_push_release_handle_one_failed(
                 sync_default_files=True,
                 add_pr_instructions=True,
                 resolved_bugs=[],
-            ).and_return(flexmock(url="some_url")).once()
+            ).and_return(pr).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
             ).with_args(

@@ -153,7 +153,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
         status=SyncReleaseStatus.finished
     ).times(1 if success else 0)
-
+    pr = flexmock(url="some_url").should_receive("comment").mock()
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="1.2.3",
@@ -163,7 +163,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         sync_default_files=True,
         add_pr_instructions=True,
         resolved_bugs=[],
-    ).and_return(flexmock(url="some_url")).times(1 if success else 0)
+    ).and_return(pr).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     flexmock(Allowlist, check_and_report=True)

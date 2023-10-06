@@ -2471,7 +2471,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").replace_with(_get_project)
-
+    pr = flexmock(url="some_url").should_receive("comment").mock()
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="7.0.3",
@@ -2481,7 +2481,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         sync_default_files=False,
         add_pr_instructions=True,
         resolved_bugs=["rhbz#123", "rhbz#124"],
-    ).and_return(flexmock(url="some_url")).once()
+    ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
