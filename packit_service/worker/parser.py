@@ -1133,9 +1133,17 @@ class Parser:
             tuple: project_url, ref, result, summary, copr_build_id,
                 copr_chroot, compose, log_url, identifier
         """
-        result: TestingFarmResult = TestingFarmResult(
-            nested_get(event, "result", "overall") or event.get("state") or "unknown"
-        )
+        tf_state = event.get("state")
+        tf_result = nested_get(event, "result", "overall")
+
+        logger.debug(f"TF payload: state = {tf_state}, result['overall'] = {tf_result}")
+
+        # error and complete are the end states
+        if tf_state not in ("complete", "error"):
+            result = TestingFarmResult(tf_state or "unknown")
+        else:
+            result = TestingFarmResult(tf_result or tf_state or "unknown")
+
         summary: str = nested_get(event, "result", "summary") or ""
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
