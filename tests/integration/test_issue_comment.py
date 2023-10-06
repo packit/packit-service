@@ -159,20 +159,19 @@ def test_issue_comment_propose_downstream_handler(
     event_type,
 ):
     project_class, comment_event = mock_comment
-
-    flexmock(PackitAPI).should_receive("sync_release").and_return(
-        PullRequestReadOnly(
-            title="foo",
-            description="bar",
-            target_branch="baz",
-            source_branch="yet",
-            id=1,
-            status=PRStatus.open,
-            url="https://xyz",
-            author="me",
-            created=datetime.now(),
-        )
+    pr = PullRequestReadOnly(
+        title="foo",
+        description="bar",
+        target_branch="baz",
+        source_branch="yet",
+        id=1,
+        status=PRStatus.open,
+        url="https://xyz",
+        author="me",
+        created=datetime.now(),
     )
+    flexmock(pr).should_receive("comment")
+    flexmock(PackitAPI).should_receive("sync_release").and_return(pr)
     flexmock(
         project_class,
         get_files=lambda ref, recursive: [".packit.yaml", "tox.ini"],

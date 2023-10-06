@@ -141,6 +141,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         False,
     ).and_return(project)
 
+    pr = flexmock(url="some_url").should_receive("comment").mock()
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="7.0.3",
@@ -150,7 +151,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         sync_default_files=False,
         add_pr_instructions=True,
         resolved_bugs=["rhbz#2106196"],
-    ).and_return(flexmock(url="some_url")).once()
+    ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(

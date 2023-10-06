@@ -358,6 +358,10 @@ class AbstractSyncReleaseHandler(
             model.set_finished_time(finished_time=datetime.utcnow())
             model.set_logs(collect_packit_logs(buffer=buffer, handler=handler))
 
+        dashboard_url = self.get_dashboard_url(model.id)
+        downstream_pr.comment(
+            f"Logs and details of the syncing: [Packit dashboard]({dashboard_url})"
+        )
         self.sync_release_helper.report_status_for_branch(
             branch=branch,
             description=f"{self.job_name_for_reporting.capitalize()} "
