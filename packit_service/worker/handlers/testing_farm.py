@@ -411,13 +411,13 @@ class TestingFarmResultsHandler(
         elif self.result == TestingFarmResult.passed:
             status = BaseCommitStatus.success
             summary = self.summary or "Tests passed ..."
-        elif self.result == TestingFarmResult.error:
-            status = BaseCommitStatus.error
-            summary = self.summary or "Error ..."
-        else:
+        elif self.result == TestingFarmResult.failed:
             status = BaseCommitStatus.failure
             summary = self.summary or "Tests failed ..."
             failure = True
+        else:
+            status = BaseCommitStatus.error
+            summary = self.summary or "Error ..."
 
         if self.result == TestingFarmResult.running:
             self.pushgateway.test_runs_started.inc()
