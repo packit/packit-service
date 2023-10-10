@@ -19,6 +19,7 @@ from celery.canvas import Signature
 from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
+from packit_service.config import ServiceConfig
 
 from packit_service.models import (
     AbstractProjectObjectDbType,
@@ -264,6 +265,16 @@ class Handler(PackitAPIProtocol, Config):
             checks_pass = checks_pass and checker.pre_check()
 
         return checks_pass
+
+    @staticmethod
+    def get_handler_specific_task_accepted_message(
+        service_config: ServiceConfig,
+    ) -> str:
+        """
+        Get a message specific to a particular handler that will be appended
+        to the 'Task was accepted' message posted once Packit picks up a job.
+        """
+        return ""
 
     def clean(self):
         """clean up the mess once we're done"""

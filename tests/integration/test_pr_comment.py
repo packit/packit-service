@@ -6,25 +6,26 @@ import shutil
 from typing import List
 
 import pytest
+
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
+
+import packit_service.models
+import packit_service.service.urls as urls
 from ogr.abstract import AuthMethod
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
-from packit.copr_helper import CoprHelper
-from packit.distgit import DistGit
-from packit.upstream import Upstream
-
-import packit_service.models
-import packit_service.service.urls as urls
 from packit.api import PackitAPI
 from packit.config import (
     JobConfigTriggerType,
 )
+from packit.copr_helper import CoprHelper
+from packit.distgit import DistGit
 from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject
+from packit.upstream import Upstream
 from packit.utils.koji_helper import KojiHelper
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -56,17 +57,18 @@ from packit_service.utils import (
     load_job_config,
 )
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 from packit_service.worker.reporting import StatusReporter
@@ -76,6 +78,7 @@ from packit_service.worker.tasks import (
     run_retrigger_bodhi_update,
     run_testing_farm_handler,
     run_pull_from_upstream_handler,
+    run_downstream_koji_build,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -2327,6 +2330,67 @@ def test_pr_test_command_handler_multiple_builds(
     )
 
 
+def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
+    pagure_pr_comment_added["pullrequest"]["comments"][0][
+        "comment"
+    ] = "/packit koji-build"
+
+    project_event = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
+        project_event
+    )
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        project_event
+    )
+    pr_mock = (
+        flexmock(target_branch="the_distgit_branch")
+        .should_receive("comment")
+        .with_args(
+            "The task was accepted. You can check the recent Koji build activity of "
+            "`packit` in [the Koji interface]"
+            "(https://koji.fedoraproject.org/koji/userinfo?userID=4641) (we have also "
+            "planned adding support for viewing the builds in [Packit dashboard](), "
+            "see [this issue](https://github.com/packit/dashboard/issues/187))."
+        )
+        .mock()
+    )
+    flexmock(
+        PagureProject,
+        full_repo_name="rpms/jouduv-dort",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/jouduv-dort",
+        default_branch="main",
+        get_pr=lambda id: pr_mock,
+    )
+
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="the_distgit_branch",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    )
+
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    results = run_downstream_koji_build(
+        event=event_dict,
+        package_config=package_config,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
 def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     pagure_pr_comment_added["pullrequest"]["comments"][0][
         "comment"
@@ -2352,13 +2416,23 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         project_event
     )
-
+    pr_mock = (
+        flexmock(target_branch="the_distgit_branch")
+        .should_receive("comment")
+        .with_args(
+            "The task was accepted. You can check the recent Bodhi update activity of `packit` in "
+            "[the Bodhi interface](https://bodhi.fedoraproject.org/users/packit) "
+            "(we have also planned adding support for viewing the updates in [Packit dashboard](), "
+            "see [this issue](https://github.com/packit/dashboard/issues/187))."
+        )
+        .mock()
+    )
     pagure_project = flexmock(
         PagureProject,
         full_repo_name="rpms/jouduv-dort",
         get_web_url=lambda: "https://src.fedoraproject.org/rpms/jouduv-dort",
         default_branch="main",
-        get_pr=lambda id: flexmock(target_branch="the_distgit_branch"),
+        get_pr=lambda id: pr_mock,
     )
 
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").and_return(
@@ -2417,6 +2491,15 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         ", jobs: [{trigger: release, job: pull_from_upstream, metadata: {targets:[]}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
+    pr_mock = (
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            "The task was accepted. You can check the recent runs of pull from upstream jobs in "
+            "[Packit dashboard](/jobs/pull-from-upstreams)"
+        )
+        .mock()
+    )
     distgit_project = flexmock(
         get_files=lambda ref, recursive: [".packit.yaml"],
         get_file_content=lambda path, ref: packit_yaml,
@@ -2426,6 +2509,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         is_private=lambda: False,
         default_branch="main",
         service=flexmock(get_project=lambda **_: None),
+        get_pr=lambda pr_id: pr_mock,
     )
     project = flexmock(
         full_repo_name="packit-service/hello-world",
