@@ -684,10 +684,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
-        if arch == "aarch64":
-            # TF has separate composes for aarch64 architecture
-            compose += "-aarch64"
-
         if self.job_config.use_internal_tf:
             if self.is_compose_matching(compose, compiled_composes):
                 return compose

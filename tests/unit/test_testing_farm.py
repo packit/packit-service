@@ -202,6 +202,7 @@ def test_testing_farm_response(
     "target,compose,use_internal_tf",
     [
         ("fedora-33-x86_64", "Fedora-33", False),
+        ("fedora-33-aarch64", "Fedora-33", False),
         ("fedora-rawhide-x86_64", "Fedora-Rawhide", False),
         ("centos-stream-8-x86_64", "CentOS-Stream-8", False),
         ("centos-stream-x86_64", "CentOS-Stream-8", False),
@@ -254,43 +255,6 @@ def test_distro2compose(target, compose, use_internal_tf):
     endpoint = "composes/redhat" if use_internal_tf else "composes/public"
     job_helper.should_receive("send_testing_farm_request").with_args(
         endpoint=endpoint
-    ).and_return(response).once()
-
-    assert job_helper.distro2compose(target) == compose
-
-
-@pytest.mark.parametrize(
-    "target,compose,use_internal_tf",
-    [
-        ("fedora-33-x86_64", "Fedora-33", False),
-        ("fedora-33-aarch64", "Fedora-33-aarch64", False),
-    ],
-)
-def test_distro2compose_for_aarch64(target, compose, use_internal_tf):
-    job_helper = TFJobHelper(
-        service_config=ServiceConfig.get_service_config(),
-        package_config=flexmock(jobs=[]),
-        project=flexmock(),
-        metadata=flexmock(),
-        db_project_event=flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(flexmock())
-        .mock(),
-        job_config=JobConfig(
-            type=JobType.tests,
-            trigger=JobConfigTriggerType.pull_request,
-            packages={
-                "package": CommonPackageConfig(
-                    use_internal_tf=use_internal_tf,
-                )
-            },
-        ),
-    )
-    job_helper = flexmock(job_helper)
-
-    response = flexmock(status_code=200, json=lambda: {"composes": [{"name": compose}]})
-    job_helper.should_receive("send_testing_farm_request").with_args(
-        endpoint="composes/public"
     ).and_return(response).once()
 
     assert job_helper.distro2compose(target) == compose
