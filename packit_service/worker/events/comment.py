@@ -7,7 +7,7 @@ abstract-comment event classes.
 from logging import getLogger
 from typing import Dict, Optional, Set
 
-from ogr.abstract import Comment
+from ogr.abstract import Comment, PullRequest, Issue
 
 from packit_service.models import TestingFarmResult, BuildStatus
 from packit_service.service.db_project_events import (
@@ -70,6 +70,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         self._comment_object = comment_object
         self._build_targets_override = build_targets_override
         self._tests_targets_override = tests_targets_override
+        self._pull_request_object = None
 
     @property
     def commit_sha(self) -> str:  # type:ignore
@@ -79,11 +80,15 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         return self._commit_sha
 
     @property
+    def pull_request_object(self) -> PullRequest:
+        if not self._pull_request_object:
+            self._pull_request_object = self.project.get_pr(self.pr_id)
+        return self._pull_request_object
+
+    @property
     def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
-            self._comment_object = self.project.get_pr(self.pr_id).get_comment(
-                self.comment_id
-            )
+            self._comment_object = self.pull_request_object.get_comment(self.comment_id)
         return self._comment_object
 
     @property
@@ -116,6 +121,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         result["commit_sha"] = self.commit_sha
         result.pop("_build_targets_override")
         result.pop("_tests_targets_override")
+        result.pop("_pull_request_object")
         return result
 
 
@@ -149,6 +155,7 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         self._tag_name = tag_name
         self._commit_sha: Optional[str] = None
         self._comment_object = comment_object
+        self._issue_object: Optional[Issue] = None
 
     @property
     def tag_name(self):
@@ -166,11 +173,15 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         return self._commit_sha
 
     @property
+    def issue_object(self) -> Optional[Issue]:
+        if not self._issue_object:
+            self._issue_object = self.project.get_issue(self.issue_id)
+        return self._issue_object
+
+    @property
     def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
-            self._comment_object = self.project.get_issue(self.issue_id).get_comment(
-                self.comment_id
-            )
+            self._comment_object = self.issue_object.get_comment(self.comment_id)
         return self._comment_object
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -178,4 +189,5 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         result["tag_name"] = self.tag_name
         result["commit_sha"] = self.commit_sha
         result["issue_id"] = self.issue_id
+        result.pop("_issue_object")
         return result

@@ -7,9 +7,9 @@ We love you, Steve Jobs.
 import logging
 from datetime import datetime
 from functools import cached_property
-from typing import Optional, Union, Callable
-from typing import List, Set, Type, Tuple
 from re import match
+from typing import List, Set, Type, Tuple
+from typing import Optional, Union, Callable
 
 import celery
 
@@ -37,6 +37,7 @@ from packit_service.worker.events import (
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
     AbstractIssueCommentEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.worker.handlers import (
@@ -54,6 +55,15 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     MAP_CHECK_PREFIX_TO_HANDLER,
+)
+from packit_service.worker.handlers.bodhi import (
+    BodhiUpdateHandler,
+    RetriggerBodhiUpdateHandler,
+)
+from packit_service.worker.handlers.distgit import (
+    PullFromUpstreamHandler,
+    DownstreamKojiBuildHandler,
+    RetriggerDownstreamKojiBuildHandler,
 )
 from packit_service.worker.helpers.build import (
     CoprBuildJobHelper,
@@ -295,6 +305,14 @@ class SteveJobs:
                 status has been updated.
         """
         number_of_build_targets = None
+        if isinstance(self.event, AbstractCommentEvent) and handler_kls in (
+            PullFromUpstreamHandler,
+            DownstreamKojiBuildHandler,
+            BodhiUpdateHandler,
+            RetriggerBodhiUpdateHandler,
+            RetriggerDownstreamKojiBuildHandler,
+        ):
+            self.report_task_accepted_for_downstream_retrigger_comments(handler_kls)
         if handler_kls not in (
             CoprBuildHandler,
             KojiBuildHandler,
@@ -878,3 +896,28 @@ class SteveJobs:
         )
 
         return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
+
+    def report_task_accepted_for_downstream_retrigger_comments(
+        self, handler_kls: Type[JobHandler]
+    ):
+        """
+        For dist-git PR comment events/ issue comment events in issue_repository,
+        report that the task was accepted and provide handler specific info.
+        """
+        if not isinstance(
+            self.event, (AbstractIssueCommentEvent, AbstractPRCommentEvent)
+        ):
+            logger.debug(
+                "Not a comment event, not reporting task was accepted via comment."
+            )
+            return
+
+        message = (
+            f"{TASK_ACCEPTED} "
+            f"{handler_kls.get_handler_specific_task_accepted_message(self.service_config)}"
+        )
+
+        if isinstance(self.event, AbstractPRCommentEvent):
+            self.event.pull_request_object.comment(message)
+        if isinstance(self.event, AbstractIssueCommentEvent):
+            self.event.issue_object.comment(message)

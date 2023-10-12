@@ -10,8 +10,9 @@ from typing import Tuple, Type
 
 from celery import Task
 
-from packit.config import JobConfig, JobType, PackageConfig
+from packit.config import JobConfig, JobType, PackageConfig, Deployment
 from packit.exceptions import PackitException
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
     MSG_RETRIGGER,
     MSG_GET_IN_TOUCH,
@@ -121,6 +122,22 @@ class BodhiUpdateHandler(
             koji_build_data: koji build data associated with the
             retriggered Bodhi update
         """
+
+    @staticmethod
+    def get_handler_specific_task_accepted_message(
+        service_config: ServiceConfig,
+    ) -> str:
+        user = (
+            "packit" if service_config.deployment == Deployment.prod else "packit-stg"
+        )
+
+        return (
+            f"You can check the recent Bodhi update activity of `{user}` in "
+            f"[the Bodhi interface](https://bodhi.fedoraproject.org/users/{user}) (we "
+            f"have also planned adding support for viewing the updates"
+            f" in [Packit dashboard]({service_config.dashboard_url}), "
+            f"see [this issue](https://github.com/packit/dashboard/issues/187))."
+        )
 
     def report_in_issue_repository(
         self, koji_build_data: KojiBuildData, error: str

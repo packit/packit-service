@@ -14,11 +14,11 @@ from celery import Task
 from ogr.abstract import PullRequest, AuthMethod
 from ogr.services.github import GithubService
 
-from packit.config import JobConfig, JobType
+from packit.config import JobConfig, JobType, Deployment
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitException, PackitDownloadFailedException
 from packit_service import sentry_integration
-from packit_service.config import PackageConfigGetter
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
     MSG_RETRIGGER,
@@ -555,6 +555,16 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (ValidInformationForPullFromUpstream, IsUpstreamTagMatchingConfig)
 
+    @staticmethod
+    def get_handler_specific_task_accepted_message(
+        service_config: ServiceConfig,
+    ) -> str:
+        dashboard_url = service_config.dashboard_url
+        return (
+            "You can check the recent runs of pull from upstream jobs "
+            f"in [Packit dashboard]({dashboard_url}/jobs/pull-from-upstreams)"
+        )
+
     def get_resolved_bugs(self) -> List[str]:
         """
         If we are reacting to New Hotness, return the corresponding bugzilla ID only.
@@ -733,6 +743,25 @@ class DownstreamKojiBuildHandler(
                 f"by push with sha {self.data.commit_sha}."
             )
         return trigger_type_description
+
+    @staticmethod
+    def get_handler_specific_task_accepted_message(
+        service_config: ServiceConfig,
+    ) -> str:
+        if service_config.deployment == Deployment.prod:
+            user = "packit"
+            user_id = 4641
+        else:
+            user = "packit-stg"
+            user_id = 5279
+
+        return (
+            f"You can check the recent Koji build activity of `{user}` in [the Koji interface]"
+            f"(https://koji.fedoraproject.org/koji/userinfo?userID={user_id}) (we "
+            f"have also planned adding support for viewing the builds in "
+            f"[Packit dashboard]({service_config.dashboard_url}), "
+            f"see [this issue](https://github.com/packit/dashboard/issues/187))."
+        )
 
 
 @configured_as(job_type=JobType.koji_build)
