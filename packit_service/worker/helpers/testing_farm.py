@@ -655,22 +655,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return None
 
         compiled_composes = {re.compile(compose) for compose in composes}
-
-        if self.is_compose_matching(target, compiled_composes):
-            logger.debug(
-                f"Target {target} directly matches a compose in the compose list."
-            )
-            return target
-
         distro, arch = target.rsplit("-", 1)
 
-        # we append -x86_64 to target by default
-        # when that happens and the user precisely specified the compose via target
+        # if the user precisely specified the compose via target
         # we should just use it instead of continuing below with our logic
         # some of those changes can change the target and result in a failure
-        if self.is_compose_matching(distro, compiled_composes) and arch == "x86_64":
+        if self.is_compose_matching(distro, compiled_composes):
             logger.debug(
-                f"Distro {distro} directly matches a compose in the compose list for x86_64."
+                f"Distro {distro} directly matches a compose in the compose list."
             )
             return distro
 
