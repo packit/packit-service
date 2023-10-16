@@ -1126,6 +1126,24 @@ def test_get_request_details():
         (
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
+                status=BuildStatus.failure,
+                group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
+            ),
+            True,
+            False,
+        ),
+        (
+            flexmock(
+                commit_sha="1111111111111111111111111111111111111111",
+                status=BuildStatus.error,
+                group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
+            ),
+            True,
+            False,
+        ),
+        (
+            flexmock(
+                commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.success,
                 group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
             ),

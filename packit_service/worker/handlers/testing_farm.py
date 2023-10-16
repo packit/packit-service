@@ -200,10 +200,9 @@ class TestingFarmHandler(
         ).apply_async()
 
     def run_with_copr_builds(self, targets: List[str], failed: Dict):
-        targets_without_builds = set()
+        targets_without_successful_builds = set()
         targets_with_builds = {}
 
-        copr_build = None
         for target in targets:
             chroot = self.testing_farm_job_helper.test_target2build_target(target)
             if self.build_id:
@@ -213,32 +212,39 @@ class TestingFarmHandler(
                     target=chroot, commit_sha=self.data.commit_sha
                 )
 
-            if copr_build:
+            if copr_build and copr_build.status not in (
+                BuildStatus.failure,
+                BuildStatus.error,
+            ):
                 targets_with_builds[target] = copr_build
             else:
-                targets_without_builds.add(chroot)
+                targets_without_successful_builds.add(chroot)
 
-        # Trigger copr build for targets missing build
-        if targets_without_builds:
+        # Trigger copr build for targets missing successful build
+        if targets_without_successful_builds:
             logger.info(
-                f"Missing Copr build for targets {targets_without_builds} in "
+                f"Missing successful Copr build for targets {targets_without_successful_builds} in "
                 f"{self.testing_farm_job_helper.job_owner}/"
                 f"{self.testing_farm_job_helper.job_project}"
                 f" and commit:{self.data.commit_sha}, running a new Copr build."
             )
 
-            for missing_target in targets_without_builds:
+            for missing_target in targets_without_successful_builds:
                 self.testing_farm_job_helper.report_status_to_tests_for_chroot(
                     state=BaseCommitStatus.pending,
-                    description="Missing Copr build for this target, "
+                    description="Missing successful Copr build for this target, "
                     "running a new Copr build.",
                     url="",
                     chroot=missing_target,
                 )
 
             event_data = self.data.get_dict()
-            event_data["build_targets_override"] = list(targets_without_builds)
-            self.run_copr_build_handler(event_data, len(targets_without_builds))
+            event_data["build_targets_override"] = list(
+                targets_without_successful_builds
+            )
+            self.run_copr_build_handler(
+                event_data, len(targets_without_successful_builds)
+            )
 
         if not targets_with_builds:
             return
@@ -246,19 +252,7 @@ class TestingFarmHandler(
         group, test_runs = self._get_or_create_group(targets_with_builds)
         for test_run in test_runs:
             copr_build = test_run.copr_builds[0]
-            if copr_build.status in (BuildStatus.failure, BuildStatus.error):
-                logger.info(
-                    "The latest build was not successful, not running tests for it."
-                )
-                self.testing_farm_job_helper.report_status_to_tests_for_test_target(
-                    state=BaseCommitStatus.failure,
-                    description="The latest build was not successful, "
-                    "not running tests for it.",
-                    target=test_run.target,
-                    url=get_copr_build_info_url(copr_build.id),
-                )
-                continue
-            elif copr_build.status in (
+            if copr_build.status in (
                 BuildStatus.pending,
                 BuildStatus.waiting_for_srpm,
             ):
