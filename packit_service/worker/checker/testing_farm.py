@@ -122,7 +122,7 @@ class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
                 markdown_content="Make sure you have a `copr_build` job defined "
                 f"with trigger `{self.testing_farm_job_helper.job_config.trigger.value}`.\n\n"
                 f"For more info, please check out "
-                f"[the documentation]({DOCS_TESTING_FARM})",
+                f"[the documentation]({DOCS_TESTING_FARM}).\n\n",
             )
             return False
 
