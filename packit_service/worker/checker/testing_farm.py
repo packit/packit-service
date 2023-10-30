@@ -119,7 +119,9 @@ class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
                 description="Test job requires build job definition in the configuration.",
                 state=BaseCommitStatus.neutral,
                 url="",
-                markdown_content=f"For more info, please check out "
+                markdown_content="Make sure you have a `copr_build` job defined "
+                f"with trigger `{self.testing_farm_job_helper.job_config.trigger.value}`.\n\n"
+                f"For more info, please check out "
                 f"[the documentation]({DOCS_TESTING_FARM})",
             )
             return False

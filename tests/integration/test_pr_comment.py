@@ -219,8 +219,10 @@ def test_pr_comment_build_test_handler(
         description="Test job requires build job definition in the configuration.",
         state=BaseCommitStatus.neutral,
         url="",
-        markdown_content="For more info, please check out "
-        "[the documentation](https://packit.dev/docs/testing-farm)",
+        markdown_content="Make sure you have a `copr_build` job defined "
+        "with trigger `pull_request`.\n\n"
+        "For more info, please check out "
+        "[the documentation](https://packit.dev/docs/configuration/upstream/tests)",
     ).once()
     flexmock(Signature).should_receive("apply_async").never()
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
