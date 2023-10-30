@@ -224,9 +224,8 @@ def test_testing_farm_response(
         ("centos-8-Latest-x86_64", "CentOS-8-latest", True),
         ("centos-8.4-x86_64", "CentOS-8.4", True),
         # If target is present in the available composes, just return it
-        ("RHEL-7.8-ZStream", "RHEL-7.8-ZStream", True),
         ("RHEL-7.8-ZStream-x86_64", "RHEL-7.8-ZStream", True),
-        ("RHEL-7.9-rhui", "RHEL-7.9-rhui", True),
+        ("RHEL-7.9-rhui-x86_64", "RHEL-7.9-rhui", True),
     ],
 )
 def test_distro2compose(target, compose, use_internal_tf):
