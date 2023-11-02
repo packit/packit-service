@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone
 from io import StringIO
 from logging import StreamHandler
+from re import search
 from typing import List, Tuple
 
 from packit.config import JobConfig, PackageConfig
@@ -204,3 +205,20 @@ def get_packit_commands_from_comment(
             return packit_command
 
     return []
+
+
+def get_koji_task_id_and_url_from_stdout(stdout: str):
+    task_id, task_url = None, None
+
+    task_id_match = search(pattern=r"Created task: (\d+)", string=stdout)
+    if task_id_match:
+        task_id = int(task_id_match.group(1))
+
+    task_url_match = search(
+        pattern=r"(https://.+/koji/taskinfo\?taskID=\d+)",
+        string=stdout,
+    )
+    if task_url_match:
+        task_url = task_url_match.group(0)
+
+    return task_id, task_url

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from re import search
 from typing import Dict, Optional, Set, Tuple
 
 from ogr.abstract import GitProject
@@ -19,14 +18,15 @@ from packit_service.models import (
     KojiBuildGroupModel,
     ProjectEventModel,
 )
-from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
+from packit_service.utils import get_koji_task_id_and_url_from_stdout
+from packit_service.worker.events import EventData
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,15 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
     def run_build(
         self, target: Optional[str] = None
     ) -> Tuple[Optional[int], Optional[str]]:
+        """
+        Run the Koji build from upstream.
+
+        Args:
+            target: target to run the build for
+
+        Returns:
+            tuple of task ID and task URL.
+        """
         if not target:
             logger.debug("No targets set for koji build, using rawhide.")
             target = "rawhide"
@@ -211,19 +220,4 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         if not out:
             return None, None
 
-        # packit does not return any info about build.
-        # TODO: move the parsing to packit
-        task_id, task_url = None, None
-
-        task_id_match = search(pattern=r"Created task: (\d+)", string=out)
-        if task_id_match:
-            task_id = int(task_id_match.group(1))
-
-        task_url_match = search(
-            pattern=r"(https://.+/koji/taskinfo\?taskID=\d+)",
-            string=out,
-        )
-        if task_url_match:
-            task_url = task_url_match.group(0)
-
-        return task_id, task_url
+        return get_koji_task_id_and_url_from_stdout(out)
