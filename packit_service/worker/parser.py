@@ -1300,8 +1300,8 @@ class Parser:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.task.state.change":
             return None
 
-        build_id = event.get("id")
-        logger.info(f"Koji event: build_id={build_id}")
+        task_id = event.get("id")
+        logger.info(f"Koji task event: task ID={task_id}")
 
         state = nested_get(event, "info", "state")
 
@@ -1315,19 +1315,18 @@ class Parser:
         start_time = nested_get(event, "info", "start_time")
         completion_time = nested_get(event, "info", "completion_time")
 
-        rpm_build_task_id = None
+        rpm_build_task_ids = {}
         for children in nested_get(event, "info", "children", default=[]):
             if children.get("method") == "buildArch":
-                rpm_build_task_id = children.get("id")
-                break
+                rpm_build_task_ids[children.get("arch")] = children.get("id")
 
         return KojiTaskEvent(
-            build_id=build_id,
+            task_id=task_id,
             state=state_enum,
             old_state=old_state,
             start_time=start_time,
             completion_time=completion_time,
-            rpm_build_task_id=rpm_build_task_id,
+            rpm_build_task_ids=rpm_build_task_ids,
         )
 
     @staticmethod
@@ -1368,8 +1367,14 @@ class Parser:
         package_name, commit_hash = raw_git_ref.split("/")[-1].split(".git#")
         branch_name = fedora_target.removesuffix("-candidate")
 
+        rpm_build_task_ids = {}
+        for children in nested_get(event, "task", "children", default=[]):
+            if children.get("method") == "buildArch":
+                rpm_build_task_ids[children.get("arch")] = children.get("id")
+
         return KojiBuildEvent(
             build_id=build_id,
+            rpm_build_task_ids=rpm_build_task_ids,
             state=new_state,
             package_name=package_name,
             branch_name=branch_name,
@@ -1380,7 +1385,7 @@ class Parser:
             epoch=epoch,
             version=version,
             release=release,
-            rpm_build_task_id=task_id,
+            task_id=task_id,
             web_url=KojiBuildEvent.get_koji_rpm_build_web_url(
                 rpm_build_task_id=task_id,
                 koji_web_url=ServiceConfig.get_service_config().koji_web_url,

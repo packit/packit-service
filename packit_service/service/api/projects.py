@@ -167,7 +167,7 @@ class ProjectsPRs(Resource):
 
             for build in pr.get_koji_builds():
                 build_info = {
-                    "build_id": build.build_id,
+                    "task_id": build.task_id,
                     "chroot": build.target,
                     "status": build.status,
                     "web_url": build.web_url,
@@ -275,7 +275,7 @@ class ProjectBranches(Resource):
 
             for build in branch.get_koji_builds():
                 build_info = {
-                    "build_id": build.build_id,
+                    "task_id": build.task_id,
                     "chroot": build.target,
                     "status": build.status,
                     "web_url": build.web_url,

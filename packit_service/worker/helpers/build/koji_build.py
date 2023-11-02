@@ -133,7 +133,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 continue
 
             koji_build = KojiBuildTargetModel.create(
-                build_id=None,
+                task_id=None,
                 web_url=None,
                 target=target,
                 status="pending",
@@ -141,7 +141,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 koji_build_group=build_group,
             )
             try:
-                build_id, web_url = self.run_build(target=target)
+                task_id, web_url = self.run_build(target=target)
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 # TODO: Where can we show more info about failure?
@@ -156,7 +156,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 errors[target] = str(ex)
                 continue
             else:
-                koji_build.set_build_id(str(build_id))
+                koji_build.set_task_id(str(task_id))
                 koji_build.set_web_url(web_url)
                 url = get_koji_build_info_url(id_=koji_build.id)
                 self.report_status_to_all_for_chroot(

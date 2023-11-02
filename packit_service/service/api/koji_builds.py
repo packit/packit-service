@@ -32,13 +32,13 @@ class KojiBuildsList(Resource):
         for build in KojiBuildTargetModel.get_range(first, last):
             build_dict = {
                 "packit_id": build.id,
-                "build_id": build.build_id,
+                "task_id": build.task_id,
                 "status": build.status,
                 "build_submitted_time": optional_timestamp(build.build_submitted_time),
                 "chroot": build.target,
                 "web_url": build.web_url,
                 # from old data, sometimes build_logs_url is same and sometimes different to web_url
-                "build_logs_url": build.build_logs_url,
+                "build_logs_url": build.build_logs_urls,
                 "pr_id": build.get_pr_id(),
                 "branch_name": build.get_branch_name(),
                 "release": build.get_release_tag(),
@@ -77,7 +77,7 @@ class KojiBuildItem(Resource):
             )
 
         build_dict = {
-            "build_id": build.build_id,
+            "task_id": build.task_id,
             "status": build.status,
             "chroot": build.target,
             "build_start_time": optional_timestamp(build.build_start_time),
@@ -86,7 +86,7 @@ class KojiBuildItem(Resource):
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
-            "build_logs_url": build.build_logs_url,
+            "build_logs_url": build.build_logs_urls,
             "srpm_build_id": build.get_srpm_build().id,
             "run_ids": sorted(run.id for run in build.group_of_targets.runs),
         }

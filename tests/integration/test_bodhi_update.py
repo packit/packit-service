@@ -68,7 +68,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -142,7 +142,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -222,7 +222,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -316,7 +316,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -401,7 +401,7 @@ def test_bodhi_update_build_not_tagged_yet(
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(
         flexmock(
@@ -484,7 +484,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -539,7 +539,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     )
 
     # Database structure
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(
         flexmock(
@@ -600,7 +600,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -655,7 +655,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     ).once()
 
     # Database not touched
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         build_id=1874070
     ).times(0)
 

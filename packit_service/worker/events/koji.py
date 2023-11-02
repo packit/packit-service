@@ -3,21 +3,17 @@
 
 from typing import Union, Optional, Dict
 
-from packit.config import JobConfigTriggerType
-
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
-
+from packit.config import JobConfigTriggerType
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
-    KojiBuildGroupModel,
     PullRequestModel,
     ProjectReleaseModel,
     ProjectEventModel,
     GitBranchModel,
-    PipelineModel,
 )
 from packit_service.worker.events.event import (
     use_for_job_config_trigger,
@@ -27,13 +23,11 @@ from packit_service.worker.events.event import (
 
 class AbstractKojiEvent(AbstractResultEvent):
     def __init__(
-        self,
-        build_id: int,
-        rpm_build_task_id: Optional[int] = None,
+        self, task_id: int, rpm_build_task_ids: Optional[Dict[str, int]] = None
     ):
         super().__init__()
-        self.build_id = build_id
-        self.rpm_build_task_id = rpm_build_task_id
+        self.task_id = task_id
+        self.rpm_build_task_ids = rpm_build_task_ids
 
         # Lazy properties
         self._target: Optional[str] = None
@@ -43,8 +37,8 @@ class AbstractKojiEvent(AbstractResultEvent):
     @property
     def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not self._build_model_searched and not self._build_model:
-            self._build_model = KojiBuildTargetModel.get_by_build_id(
-                build_id=self.build_id
+            self._build_model = KojiBuildTargetModel.get_by_task_id(
+                task_id=self.task_id
             )
             self._build_model_searched = True
         return self._build_model
@@ -72,6 +66,35 @@ class AbstractKojiEvent(AbstractResultEvent):
         """
         return f"{koji_web_url}/koji/taskinfo?taskID={rpm_build_task_id}"
 
+    @staticmethod
+    def get_koji_build_logs_url(
+        rpm_build_task_id: int,
+        koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
+    ) -> str:
+        """
+        Constructs the log URL for the given Koji task.
+        You can redefine the Koji instance using the one defined in the service config.
+        """
+        return (
+            f"{koji_logs_url}//work/tasks/"
+            f"{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
+        )
+
+    def get_koji_build_rpm_tasks_logs_urls(
+        self,
+        koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
+    ) -> Dict[str, str]:
+        """
+        Constructs the log URLs for all RPM subtasks of the Koji task.
+        """
+        return {
+            arch: AbstractKojiEvent.get_koji_build_logs_url(
+                rpm_build_task_id=rpm_build_task_id,
+                koji_logs_url=koji_logs_url,
+            )
+            for arch, rpm_build_task_id in self.rpm_build_task_ids.items()
+        }
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result.pop("_build_model")
@@ -94,20 +117,21 @@ class KojiBuildEvent(AbstractKojiEvent):
         epoch: str,
         version: str,
         release: str,
-        rpm_build_task_id: int,
+        task_id: int,
         web_url: Optional[str] = None,
         old_state: Optional[KojiBuildState] = None,
+        rpm_build_task_ids: Optional[Dict[str, int]] = None,
     ):
-        super().__init__(build_id)
+        super().__init__(task_id=task_id, rpm_build_task_ids=rpm_build_task_ids)
+        self.build_id = build_id
         self.state = state
         self.old_state = old_state
         self.package_name = package_name
-        self.rpm_build_task_id = rpm_build_task_id
+        self.task_id = task_id
         self.epoch = epoch
         self.version = version
         self.release = release
         self.web_url = web_url
-
         self.branch_name = branch_name
         self._commit_sha = commit_sha  # we know  it, no need to get it from db
         self.namespace = namespace
@@ -122,31 +146,6 @@ class KojiBuildEvent(AbstractKojiEvent):
     @property
     def nvr(self) -> str:
         return f"{self.package_name}-{self.version}-{self.release}"
-
-    @property
-    def build_model(self) -> Optional[KojiBuildTargetModel]:
-        if not super().build_model:
-            _, event = ProjectEventModel.add_branch_push_event(
-                branch_name=self.branch_name,
-                repo_name=self.repo_name,
-                namespace=self.namespace,
-                project_url=self.project_url,
-                commit_sha=self._commit_sha,
-            )
-            group = KojiBuildGroupModel.create(
-                run_model=PipelineModel.create(
-                    project_event=event, package_name=self.package_name
-                )
-            )
-            self._build_model = KojiBuildTargetModel.create(
-                build_id=str(self.build_id),
-                web_url=self.web_url,
-                target="noarch",  # TODO: where to get this info from?
-                status=self.state.value,
-                scratch=True,  # used by the event for scratch builds
-                koji_build_group=group,
-            )
-        return self._build_model
 
     @property
     def git_ref(self) -> str:
@@ -171,7 +170,8 @@ class KojiBuildEvent(AbstractKojiEvent):
             old_state=(
                 KojiBuildState(raw_old) if (raw_old := event.get("old_state")) else None
             ),
-            rpm_build_task_id=event.get("rpm_build_task_id"),
+            task_id=event.get("task_id"),
+            rpm_build_task_ids=event.get("rpm_build_task_ids"),
             package_name=event.get("package_name"),
             project_url=event.get("project_url"),
             web_url=event.get("web_url"),
@@ -192,14 +192,14 @@ class KojiTaskEvent(AbstractKojiEvent):
 
     def __init__(
         self,
-        build_id: int,
+        task_id: int,
         state: KojiTaskState,
         old_state: Optional[KojiTaskState] = None,
-        rpm_build_task_id: Optional[int] = None,
+        rpm_build_task_ids: Optional[Dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
-        super().__init__(build_id=build_id, rpm_build_task_id=rpm_build_task_id)
+        super().__init__(task_id=task_id, rpm_build_task_ids=rpm_build_task_ids)
         self.state = state
         self.old_state = old_state
         self.start_time: Optional[Union[int, float, str]] = start_time
@@ -256,14 +256,14 @@ class KojiTaskEvent(AbstractKojiEvent):
     @classmethod
     def from_event_dict(cls, event: dict):
         return KojiTaskEvent(
-            build_id=event.get("build_id"),
+            task_id=event.get("build_id"),
             state=KojiTaskState(event.get("state")) if event.get("state") else None,
             old_state=(
                 KojiTaskState(event.get("old_state"))
                 if event.get("old_state")
                 else None
             ),
-            rpm_build_task_id=event.get("rpm_build_task_id"),
+            rpm_build_task_ids=event.get("rpm_build_task_ids"),
             start_time=event.get("start_time"),
             completion_time=event.get("completion_time"),
         )
@@ -291,18 +291,3 @@ class KojiTaskEvent(AbstractKojiEvent):
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
         return result
-
-    @staticmethod
-    def get_koji_build_logs_url(
-        rpm_build_task_id: int,
-        koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
-    ) -> str:
-        """
-        Constructs the log URL for the given Koji task.
-        You can redefine the Koji instance using the one defined in the service config.
-        TODO: this does not work for non-scratch builds
-        """
-        return (
-            f"{koji_logs_url}//work/tasks/"
-            f"{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
-        )

@@ -147,8 +147,8 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
-        build_id=1864700
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        task_id=80860894
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
@@ -162,8 +162,8 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
         status="BUILDING",
         run_model=run_model_flexmock,
     ).and_return(flexmock(get_project_event_object=lambda: git_branch_model_flexmock))
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
-        build_id=1874074
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        task_id=80860894
     ).and_return(
         flexmock(
             target="noarch",

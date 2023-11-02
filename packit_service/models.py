@@ -1629,7 +1629,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         cls, build_id: Union[str, int]
     ) -> Iterable["CoprBuildTargetModel"]:
         if isinstance(build_id, int):
-            # See the comment in get_by_build_id()
+            # See the comment in get_by_task_id()
             build_id = str(build_id)
         return sa_session().query(CoprBuildTargetModel).filter_by(build_id=build_id)
 
@@ -1805,7 +1805,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     __tablename__ = "koji_build_targets"
     id = Column(Integer, primary_key=True)
-    build_id = Column(String, index=True)  # koji build id
+    task_id = Column(String, index=True)  # ID of the Koji build task
 
     # what's the build status?
     status = Column(String)
@@ -1814,7 +1814,8 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     # URL to koji web ui for the particular build
     web_url = Column(String)
     # url to koji build logs
-    build_logs_url = Column(String)
+    # dictionary with archs and links, e.g. {"x86_64": "my-url"}
+    build_logs_urls = Column(JSON)
     # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
     # so it will run when the koji build is initiated, not when the table is made
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
@@ -1838,9 +1839,9 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             self.status = status
             session.add(self)
 
-    def set_build_logs_url(self, build_logs: str):
+    def set_build_logs_urls(self, build_logs: dict):
         with sa_session_transaction() as session:
-            self.build_logs_url = build_logs
+            self.build_logs_urls = build_logs
             session.add(self)
 
     def set_web_url(self, web_url: str):
@@ -1848,9 +1849,9 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             self.web_url = web_url
             session.add(self)
 
-    def set_build_id(self, build_id: str):
+    def set_task_id(self, task_id: str):
         with sa_session_transaction() as session:
-            self.build_id = build_id
+            self.task_id = task_id
             session.add(self)
 
     def set_build_start_time(self, build_start_time: Optional[DateTime]):
@@ -1899,31 +1900,19 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         )
 
     @classmethod
-    def get_all_by_build_id(
-        cls, build_id: Union[str, int]
-    ) -> Iterable["KojiBuildTargetModel"]:
-        """
-        Returns all builds with that build_id, irrespective of target.
-        """
-        if isinstance(build_id, int):
-            # See the comment in get_by_build_id()
-            build_id = str(build_id)
-        return sa_session().query(KojiBuildTargetModel).filter_by(build_id=build_id)
-
-    @classmethod
-    def get_by_build_id(
-        cls, build_id: Union[str, int], target: Optional[str] = None
+    def get_by_task_id(
+        cls, task_id: Union[str, int], target: Optional[str] = None
     ) -> Optional["KojiBuildTargetModel"]:
         """
         Returns the first build matching the build_id and optionally the target.
         """
-        if isinstance(build_id, int):
+        if isinstance(task_id, int):
             # PG is pesky about this:
             #   LINE 3: WHERE koji_builds.build_id = 1245767 AND koji_builds.target ...
             #   HINT:  No operator matches the given name and argument type(s).
             #   You might need to add explicit type casts.
-            build_id = str(build_id)
-        query = sa_session().query(KojiBuildTargetModel).filter_by(build_id=build_id)
+            task_id = str(task_id)
+        query = sa_session().query(KojiBuildTargetModel).filter_by(task_id=task_id)
         if target:
             query = query.filter_by(target=target)
         return query.first()
@@ -1931,7 +1920,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     @classmethod
     def create(
         cls,
-        build_id: Optional[str],
+        task_id: Optional[str],
         web_url: Optional[str],
         target: str,
         status: str,
@@ -1940,7 +1929,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     ) -> "KojiBuildTargetModel":
         with sa_session_transaction() as session:
             build = cls()
-            build.build_id = build_id
+            build.task_id = task_id
             build.status = status
             build.web_url = web_url
             build.target = target
@@ -1958,7 +1947,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         build_id: str,
         target: str,
     ) -> Optional["KojiBuildTargetModel"]:
-        return cls.get_by_build_id(build_id, target)
+        return cls.get_by_task_id(build_id, target)
 
     def __repr__(self):
         return (
@@ -2911,7 +2900,7 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
     ) -> Iterable["VMImageBuildTargetModel"]:
         """Returns all builds with that build_id, irrespective of target"""
         if isinstance(build_id, int):
-            # See the comment in get_by_build_id()
+            # See the comment in get_by_task_id()
             build_id = str(build_id)
         return sa_session().query(VMImageBuildTargetModel).filter_by(build_id=build_id)
 

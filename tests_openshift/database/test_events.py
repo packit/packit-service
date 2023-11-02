@@ -338,7 +338,7 @@ def test_koji_build_scratch_start(
     event_object = Parser.parse_event(koji_build_scratch_start_dict)
     assert isinstance(event_object, KojiTaskEvent)
 
-    assert event_object.build_id == SampleValues.build_id
+    assert event_object.task_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.open
 
     assert isinstance(event_object.db_project_object, PullRequestModel)
@@ -356,7 +356,7 @@ def test_koji_build_scratch_end(
     event_object = Parser.parse_event(koji_build_scratch_end_dict)
     assert isinstance(event_object, KojiTaskEvent)
 
-    assert event_object.build_id == SampleValues.build_id
+    assert event_object.task_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.closed
 
     assert isinstance(event_object.db_project_object, PullRequestModel)
