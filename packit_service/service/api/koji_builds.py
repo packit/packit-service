@@ -33,6 +33,7 @@ class KojiBuildsList(Resource):
             build_dict = {
                 "packit_id": build.id,
                 "task_id": build.task_id,
+                "scratch": build.scratch,
                 "status": build.status,
                 "build_submitted_time": optional_timestamp(build.build_submitted_time),
                 "chroot": build.target,
@@ -80,6 +81,7 @@ class KojiBuildItem(Resource):
             "task_id": build.task_id,
             "status": build.status,
             "chroot": build.target,
+            "scratch": build.scratch,
             "build_start_time": optional_timestamp(build.build_start_time),
             "build_finished_time": optional_timestamp(build.build_finished_time),
             "build_submitted_time": optional_timestamp(build.build_submitted_time),
