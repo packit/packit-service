@@ -304,14 +304,19 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.copr_event.status != COPR_API_SUCC_STATE:
             failed_msg = "RPMs failed to be built."
+            packit_dashboard_url = get_copr_build_info_url(self.build.id)
             self.copr_build_helper.report_status_to_all_for_chroot(
                 state=BaseCommitStatus.failure,
                 description=failed_msg,
-                url=get_copr_build_info_url(self.build.id),
+                url=packit_dashboard_url,
                 chroot=self.copr_event.chroot,
             )
             self.measure_time_after_reporting()
-            self.copr_build_helper.notify_about_failure_if_configured()
+            self.copr_build_helper.notify_about_failure_if_configured(
+                packit_dashboard_url=packit_dashboard_url,
+                external_dashboard_url=self.build.copr_web_url,
+                logs_url=self.build.build_logs_url,
+            )
             self.build.set_status(BuildStatus.failure)
             return TaskResults(success=False, details={"msg": failed_msg})
 
@@ -371,7 +376,11 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 description=failed_msg,
                 url=url,
             )
-            self.copr_build_helper.notify_about_failure_if_configured()
+            self.copr_build_helper.notify_about_failure_if_configured(
+                packit_dashboard_url=url,
+                external_dashboard_url=self.build.copr_web_url,
+                logs_url=self.build.build_logs_url,
+            )
             self.build.set_status(BuildStatus.failure)
             self.copr_build_helper.monitor_not_submitted_copr_builds(
                 len(self.copr_build_helper.build_targets), "srpm_failure"

@@ -262,3 +262,15 @@ DENIED_MSG = (
 # shared sandcastle dir
 SANDCASTLE_DG_REPO_DIR = "dist-git"
 SANDCASTLE_LOCAL_PROJECT_DIR = "local-project"
+
+FAILURE_COMMENT_MESSAGE_VARIABLES = {
+    # placeholder name in the user customized failure message:
+    # default value for placeholder if not given
+    placeholder: f"{{no entry for {placeholder}}}"
+    for placeholder in (
+        "commit_sha",
+        "packit_dashboard_url",
+        "external_dashboard_url",
+        "logs_url",
+    )
+}

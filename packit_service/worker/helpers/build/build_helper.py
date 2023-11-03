@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import copy
 import datetime
 import logging
 import re
@@ -26,6 +27,7 @@ from packit_service.models import (
     GitBranchModel,
     ProjectEventModel,
 )
+from packit_service.constants import FAILURE_COMMENT_MESSAGE_VARIABLES
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
@@ -755,7 +757,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             update_feedback_time=update_feedback_time,
         )
 
-    def notify_about_failure_if_configured(self):
+    def notify_about_failure_if_configured(self, **kwargs):
         """
         If there is a failure_comment_message configured for the job,
         post a comment and include the configured message. Do not post
@@ -766,9 +768,11 @@ class BaseBuildJobHelper(BaseJobHelper):
         ):
             return
 
-        formatted_message = configured_message.format(
-            commit_sha=self.db_project_event.commit_sha
-        )
+        all_kwargs = copy.copy(FAILURE_COMMENT_MESSAGE_VARIABLES)
+        all_kwargs["commit_sha"] = self.db_project_event.commit_sha
+        all_kwargs.update(kwargs)
+        formatted_message = configured_message.format(**all_kwargs)
+
         self.status_reporter.comment(
             formatted_message, duplicate_check=DuplicateCheckMode.check_last_comment
         )
