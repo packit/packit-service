@@ -1064,6 +1064,9 @@ class TestEvents:
         assert event_object.task_id == 45270170
         assert event_object.state == KojiTaskState.closed
         assert event_object.rpm_build_task_ids == {"noarch": 45270227}
+        assert event_object.get_koji_build_rpm_tasks_logs_urls() == {
+            "noarch": "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log"
+        }
 
         flexmock(GithubProject).should_receive("get_pr").with_args(
             pr_id=123

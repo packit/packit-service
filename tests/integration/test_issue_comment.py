@@ -33,6 +33,8 @@ from packit_service.models import (
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
@@ -322,6 +324,44 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
     flexmock(IssueCommentEvent).should_receive("db_project_object").and_return(
         db_project_object
     )
+
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+
+    flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build_f37 = flexmock(
+        target="f37",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    koji_build_f38 = flexmock(
+        target="f38",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create")
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build_f38, koji_build_f37])
+    )
+
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
@@ -415,13 +455,13 @@ def test_issue_comment_retrigger_koji_build_handler(
         scratch=False,
         nowait=True,
         from_upstream=False,
-    )
+    ).and_return("")
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="f38",
         scratch=False,
         nowait=True,
         from_upstream=False,
-    )
+    ).and_return("")
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
         "local_project"
     ).and_return(flexmock())
@@ -453,7 +493,7 @@ def test_issue_comment_retrigger_koji_build_error_msg(
     packit_api = flexmock(dg=dg)
     packit_api.should_receive("build").with_args(
         dist_git_branch="f38", scratch=False, nowait=True, from_upstream=False
-    ).and_return()
+    ).and_return("")
     packit_api.should_receive("build").with_args(
         dist_git_branch="f37", scratch=False, nowait=True, from_upstream=False
     ).and_raise(PackitException, error_msg)
@@ -480,9 +520,8 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         comment_to_existing=msg,
     ).once()
 
-    with pytest.raises(PackitException):
-        run_retrigger_downstream_koji_build(
-            package_config=package_config,
-            event=event_dict,
-            job_config=job_config,
-        )
+    run_retrigger_downstream_koji_build(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )

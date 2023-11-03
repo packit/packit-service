@@ -350,13 +350,18 @@ def run_sync_from_downstream_handler(
     queue="long-running",
 )
 def run_downstream_koji_build(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    koji_group_model_id: Optional[int] = None,
 ):
     handler = DownstreamKojiBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+        koji_group_model_id=koji_group_model_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -368,13 +373,18 @@ def run_downstream_koji_build(
     queue="long-running",
 )
 def run_retrigger_downstream_koji_build(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    koji_group_model_id: Optional[int] = None,
 ):
     handler = RetriggerDownstreamKojiBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+        koji_group_model_id=koji_group_model_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

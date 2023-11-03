@@ -1874,6 +1874,11 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             self.scratch = value
             session.add(self)
 
+    def set_data(self, data: dict):
+        with sa_session_transaction() as session:
+            self.data = data
+            session.add(self)
+
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         # All SRPMBuild models for all the runs have to be same.
         return (

@@ -8,12 +8,13 @@ import abc
 import logging
 import shutil
 from datetime import datetime
+from os import getenv
 from typing import Optional, Tuple, Type, List, ClassVar
 
 from celery import Task
+
 from ogr.abstract import PullRequest, AuthMethod
 from ogr.services.github import GithubService
-
 from packit.config import JobConfig, JobType, Deployment
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitException, PackitDownloadFailedException
@@ -24,6 +25,7 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
+    DEFAULT_RETRY_BACKOFF,
 )
 from packit_service.models import (
     SyncReleaseTargetStatus,
@@ -31,6 +33,9 @@ from packit_service.models import (
     SyncReleaseModel,
     SyncReleaseStatus,
     SyncReleaseJobType,
+    KojiBuildTargetModel,
+    PipelineModel,
+    KojiBuildGroupModel,
 )
 from packit_service.service.urls import (
     get_propose_downstream_info_url,
@@ -40,6 +45,7 @@ from packit_service.utils import (
     gather_packit_logs_to_buffer,
     collect_packit_logs,
     get_packit_commands_from_comment,
+    get_koji_task_id_and_url_from_stdout,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
@@ -634,6 +640,7 @@ class AbstractDownstreamKojiBuildHandler(
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
+        koji_group_model_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -644,34 +651,94 @@ class AbstractDownstreamKojiBuildHandler(
         self.dg_branch = event.get("git_ref")
         self._pull_request: Optional[PullRequest] = None
         self._packit_api = None
+        self._koji_group_model_id = koji_group_model_id
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnDistgit, HasIssueCommenterRetriggeringPermissions)
+
+    def _get_or_create_koji_group_model(self) -> KojiBuildGroupModel:
+        if self._koji_group_model_id is not None:
+            return KojiBuildGroupModel.get_by_id(self._koji_group_model_id)
+        group = KojiBuildGroupModel.create(
+            run_model=PipelineModel.create(
+                project_event=self.data.db_project_event,
+                package_name=self.get_package_name(),
+            )
+        )
+
+        for branch in self.get_branches():
+            KojiBuildTargetModel.create(
+                task_id=None,
+                web_url=None,
+                target=branch,
+                status="queued",
+                scratch=self.job_config.scratch,
+                koji_build_group=group,
+            )
+
+        return group
 
     @abc.abstractmethod
     def get_branches(self) -> List[str]:
         """Get a list of branch (names) to be built in koji"""
 
     def run(self) -> TaskResults:
-        try:
-            branch = None
-            for branch in self.get_branches():
-                self.packit_api.build(
-                    dist_git_branch=branch,
+        errors = {}
+        group = self._get_or_create_koji_group_model()
+        for koji_build_model in group.grouped_targets:
+            branch = koji_build_model.target
+
+            # skip submitting build for a branch if we already did that (even if it failed)
+            if koji_build_model.status not in ["queued", "pending", "retry"]:
+                logger.debug(
+                    f"Skipping downstream Koji build for branch {branch} "
+                    f"that was already processed."
+                )
+                continue
+
+            logger.debug(f"Running downstream Koji build for {branch}")
+            koji_build_model.set_status("pending")
+
+            try:
+                stdout = self.packit_api.build(
+                    dist_git_branch=koji_build_model.target,
                     scratch=self.job_config.scratch,
                     nowait=True,
                     from_upstream=False,
                 )
-        except PackitException as ex:
-            if self.celery_task and not self.celery_task.is_last_try():
-                logger.debug(
-                    "Celery task will be retried. User will not be notified about the failure."
-                )
-                raise ex
+                task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)
+                koji_build_model.set_task_id(str(task_id))
+                koji_build_model.set_web_url(web_url)
+            except PackitException as ex:
+                if self.celery_task and not self.celery_task.is_last_try():
+                    kargs = self.celery_task.task.request.kwargs.copy()
+                    kargs["koji_group_model_id"] = group.id
+                    for model in group.grouped_targets:
+                        model.set_status("retry")
 
-            self.report_in_issue_repository(branch, ex)
-            raise ex
+                    logger.debug(
+                        "Celery task will be retried. User will not be notified about the failure."
+                    )
+                    retry_backoff = int(
+                        getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF)
+                    )
+                    delay = retry_backoff * 2**self.celery_task.retries
+                    self.celery_task.task.retry(exc=ex, countdown=delay, kwargs=kargs)
+                    return TaskResults(
+                        success=True,
+                        details={
+                            "msg": f"There was an error: {ex}. Task will be retried."
+                        },
+                    )
+                error = str(ex)
+                errors[branch] = error
+                koji_build_model.set_data({"error": error})
+                koji_build_model.set_status("error")
+                continue
+
+        if errors:
+            self.report_in_issue_repository(errors)
 
         return TaskResults(success=True, details={})
 
@@ -679,11 +746,12 @@ class AbstractDownstreamKojiBuildHandler(
     def get_trigger_type_description(self) -> str:
         """Describe the user's action which triggered the Koji build"""
 
-    def report_in_issue_repository(self, branch: str, ex: PackitException) -> None:
+    def report_in_issue_repository(self, errors: dict[str, str]) -> None:
         body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
             object="Koji build", dist_git_url=self.packit_api.dg.local_project.git_url
         )
-        body += f"| `{branch}` | ```{ex}``` |\n"
+        for branch, ex in errors.items():
+            body += f"| `{branch}` | ```{ex}``` |\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
             job="build",
@@ -721,6 +789,22 @@ class DownstreamKojiBuildHandler(
     GetPagurePullRequestMixin,
 ):
     task_name = TaskName.downstream_koji_build
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Task,
+        koji_group_model_id: Optional[int] = None,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+            celery_task=celery_task,
+            koji_group_model_id=koji_group_model_id,
+        )
 
     def get_branches(self) -> List[str]:
         branch = (
@@ -776,6 +860,22 @@ class RetriggerDownstreamKojiBuildHandler(
     GetBranchesFromIssueMixin,
 ):
     task_name = TaskName.retrigger_downstream_koji_build
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Task,
+        koji_group_model_id: Optional[int] = None,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+            celery_task=celery_task,
+            koji_group_model_id=koji_group_model_id,
+        )
 
     def get_branches(self) -> List[str]:
         return self.branches

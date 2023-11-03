@@ -12,7 +12,13 @@ from ogr.services.pagure import PagureProject
 from packit.exceptions import PackitException
 from packit.config import JobConfigTriggerType
 from packit_service.config import PackageConfigGetter
-from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
+from packit_service.models import (
+    GitBranchModel,
+    KojiBuildTargetModel,
+    PipelineModel,
+    ProjectEventModel,
+    KojiBuildGroupModel,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.celery_task import CeleryTask
@@ -71,8 +77,8 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     # Database
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
-        build_id=1874074
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        task_id=80860894
     ).and_return(
         flexmock(
             target="target",
@@ -84,7 +90,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
             ),
         )
         .should_receive("set_build_logs_url")
-        .with_args()
+        .with_args({})
         .and_return()
         .mock()
     ).once()  # only when running a handler
@@ -175,7 +181,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
             ),
         )
         .should_receive("set_build_logs_url")
-        .with_args()
+        .with_args({})
         .and_return()
         .mock()
     ).once()  # only when running a handler
@@ -199,13 +205,41 @@ def test_koji_build_error_msg(distgit_push_packit):
     db_project_object = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.commit,
-        project_event_model_type=ProjectEventModelType.release,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(PushPagureEvent).should_receive("db_project_object").and_return(
         db_project_object
     )
+    flexmock(GitBranchModel).should_receive("get_or_create").and_return(
+        db_project_object
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build = flexmock(
+        target="f36",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build])
+    )
+
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(distgit_push_packit)
@@ -244,9 +278,8 @@ def test_koji_build_error_msg(distgit_push_packit):
         comment_to_existing=msg,
     ).once()
 
-    with pytest.raises(PackitException):
-        run_downstream_koji_build(
-            package_config=package_config,
-            event=event_dict,
-            job_config=job_config,
-        )
+    run_downstream_koji_build(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )

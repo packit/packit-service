@@ -27,6 +27,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     ):
         super().__init__()
         self.task_id = task_id
+        # dictionary with archs and IDs, e.g. {"x86_64": 123}
         self.rpm_build_task_ids = rpm_build_task_ids
 
         # Lazy properties
