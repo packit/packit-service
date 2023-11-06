@@ -423,18 +423,19 @@ class TestingFarmResultsHandler(
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 
         test_run_model.set_web_url(self.log_url)
-
+        url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None
         self.testing_farm_job_helper.report_status_to_tests_for_test_target(
             state=status,
             description=summary,
             target=test_run_model.target,
-            url=get_testing_farm_info_url(test_run_model.id)
-            if test_run_model
-            else self.log_url,
+            url=url if url else self.log_url,
             links_to_external_services={"Testing Farm": self.log_url},
         )
         if failure:
-            self.testing_farm_job_helper.notify_about_failure_if_configured()
+            self.testing_farm_job_helper.notify_about_failure_if_configured(
+                packit_dashboard_url=url,
+                logs_url=self.log_url,
+            )
 
         test_run_model.set_status(self.result, created=self.created)
 

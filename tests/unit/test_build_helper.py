@@ -2865,7 +2865,53 @@ def test_local_project_not_called_when_initializing_api():
     assert copr_build_helper.api.copr_helper
 
 
-def test_notify_about_failure_if_configured():
+@pytest.mark.parametrize(
+    "failure_comment,kwargs,result_comment",
+    [
+        pytest.param(
+            ("One of the Copr builds failed for " "commit {commit_sha}, ping @admin"),
+            {},
+            "One of the Copr builds failed for commit 123, ping @admin",
+            id="only commit_sha",
+        ),
+        pytest.param(
+            (
+                "One of the Copr builds failed for "
+                "commit {commit_sha}, ping @admin, copr build logs {logs_url}"
+            ),
+            {"logs_url": "jghfkgjfd"},
+            "One of the Copr builds failed for commit 123, ping @admin, copr build logs jghfkgjfd",
+            id="commit_sha and logs url",
+        ),
+        pytest.param(
+            (
+                "One of the Copr builds failed for "
+                "commit {commit_sha}, ping @admin, copr build logs {logs_url} "
+                "and {packit_dashboard_url}"
+            ),
+            {},
+            (
+                "One of the Copr builds failed for commit 123, ping @admin, "
+                "copr build logs {no entry for logs_url} and "
+                "{no entry for packit_dashboard_url}"
+            ),
+            id="commit_sha and no logs and packit dashboard url",
+        ),
+        pytest.param(
+            (
+                "One of the Copr builds failed for "
+                "commit {commit_sha}, ping @admin, copr build logs {logs_url}"
+            ),
+            {
+                "logs_url": "jghfkgjfd",
+                "packit_dashboard_url": "jghfkgjfd",
+            },
+            "One of the Copr builds failed for commit 123, ping @admin, copr build logs jghfkgjfd",
+            id="commit_sha, copr build logs url and packit dashboard url",
+        ),
+    ],
+)
+def test_notify_about_failure_if_configured(failure_comment, kwargs, result_comment):
     jobs = [
         JobConfig(
             type=JobType.copr_build,
@@ -2874,8 +2920,7 @@ def test_notify_about_failure_if_configured():
                 "packages": CommonPackageConfig(
                     notifications=NotificationsConfig(
                         failure_comment=FailureCommentNotificationsConfig(
-                            "One of the Copr builds failed for "
-                            "commit {commit_sha}, ping @admin"
+                            failure_comment
                         )
                     )
                 )
@@ -2897,7 +2942,7 @@ def test_notify_about_failure_if_configured():
     )
 
     flexmock(StatusReporter).should_receive("comment").with_args(
-        "One of the Copr builds failed for commit 123, ping @admin",
+        result_comment,
         duplicate_check=DuplicateCheckMode.check_last_comment,
     )
-    copr_build_helper.notify_about_failure_if_configured()
+    copr_build_helper.notify_about_failure_if_configured(**kwargs)

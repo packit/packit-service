@@ -225,19 +225,23 @@ class KojiTaskReportHandler(
                 url=url,
                 chroot=build.target,
             )
-            if self.koji_task_event.state == KojiTaskState.failed:
-                build_job_helper.notify_about_failure_if_configured()
+            koji_build_logs = KojiTaskEvent.get_koji_build_logs_url(
+                rpm_build_task_id=int(build.build_id),
+                koji_logs_url=self.service_config.koji_logs_url,
+            )
+            build.set_build_logs_url(koji_build_logs)
+            koji_rpm_task_web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
+                rpm_build_task_id=int(build.build_id),
+                koji_web_url=self.service_config.koji_web_url,
+            )
+            build.set_web_url(koji_rpm_task_web_url)
 
-        koji_build_logs = KojiTaskEvent.get_koji_build_logs_url(
-            rpm_build_task_id=int(build.build_id),
-            koji_logs_url=self.service_config.koji_logs_url,
-        )
-        build.set_build_logs_url(koji_build_logs)
-        koji_rpm_task_web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
-            rpm_build_task_id=int(build.build_id),
-            koji_web_url=self.service_config.koji_web_url,
-        )
-        build.set_web_url(koji_rpm_task_web_url)
+            if self.koji_task_event.state == KojiTaskState.failed:
+                build_job_helper.notify_about_failure_if_configured(
+                    packit_dashboard_url=url,
+                    external_dashboard_url=koji_rpm_task_web_url,
+                    logs_url=koji_build_logs,
+                )
 
         msg = (
             f"Build on {build.target} in koji changed state "
