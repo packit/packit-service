@@ -89,7 +89,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             ),
         )
-        .should_receive("set_build_logs_url")
+        .should_receive("set_build_logs_urls")
         .with_args({})
         .and_return()
         .mock()
@@ -180,7 +180,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             ),
         )
-        .should_receive("set_build_logs_url")
+        .should_receive("set_build_logs_urls")
         .with_args({})
         .and_return()
         .mock()
@@ -229,7 +229,7 @@ def test_koji_build_error_msg(distgit_push_packit):
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 

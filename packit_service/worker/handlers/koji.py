@@ -333,6 +333,6 @@ class KojiBuildReportHandler(
         koji_build_logs = self.koji_build_event.get_koji_build_rpm_tasks_logs_urls(
             self.service_config.koji_logs_url
         )
-        self.build.set_build_logs_url(koji_build_logs)
+        self.build.set_build_logs_urls(koji_build_logs)
 
         return TaskResults(success=True, details={"msg": msg})

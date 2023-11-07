@@ -213,7 +213,7 @@ def test_koji_build_set_status(clean_before_and_after, a_koji_build_for_pr):
     assert b.status == "awesome"
 
 
-def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build_for_pr):
+def test_koji_build_set_build_logs_urls(clean_before_and_after, a_koji_build_for_pr):
     urls = {
         "x86_64": "https://kojipkgs.fedoraproject.org//"
         "packages/python-ogr/0.11.0/1.fc30/data/logs/noarch/build.log"
