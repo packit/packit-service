@@ -132,7 +132,7 @@ def srpm_build_model(
         set_build_logs_url=lambda x: None,
         url=None,
         build_start_time=None,
-        build_logs_url=None,
+        logs_url=None,
         copr_web_url=None,
     )
 
