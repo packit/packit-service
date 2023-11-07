@@ -167,6 +167,27 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     assert "release" in response_dict
 
 
+def test_detailed_koji_build_info_non_scratch(
+    client, clean_before_and_after, a_koji_build_for_pr_non_scratch
+):
+    response = client.get(
+        url_for(
+            "api.koji-builds_koji_build_item", id=a_koji_build_for_pr_non_scratch.id
+        )
+    )
+    response_dict = response.json
+    assert response_dict["task_id"] == SampleValues.build_id
+    assert response_dict["status"] == SampleValues.status_pending
+    assert response_dict["chroot"] == SampleValues.target
+    assert response_dict["build_submitted_time"] is not None
+    assert "build_start_time" in response_dict
+    assert "build_finished_time" in response_dict
+    assert response_dict["commit_sha"] == SampleValues.commit_sha
+    assert response_dict["web_url"] == SampleValues.koji_web_url
+    assert "build_logs_url" in response_dict
+    assert response_dict["srpm_build_id"] is None
+
+
 def test_detailed_koji_build_info_for_pr(
     client, clean_before_and_after, a_koji_build_for_pr
 ):

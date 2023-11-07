@@ -814,6 +814,25 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
 
 
 @pytest.fixture()
+def a_koji_build_for_pr_non_scratch(branch_project_event_model):
+    group_for_nonscratch_build = KojiBuildGroupModel.create(
+        run_model=PipelineModel.create(project_event=branch_project_event_model)
+    )
+    koji_build_model = KojiBuildTargetModel.create(
+        task_id=SampleValues.build_id,
+        web_url=SampleValues.koji_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        scratch=False,
+        koji_build_group=group_for_nonscratch_build,
+    )
+    koji_build_model.set_build_logs_urls(
+        {"x86_64": "https://koji.somewhere/results/owner/package/target/build.logs"}
+    )
+    yield koji_build_model
+
+
+@pytest.fixture()
 def a_koji_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
     _, run_model = srpm_build_model_with_new_run_for_branch
     group = KojiBuildGroupModel.create(run_model)

@@ -82,6 +82,8 @@ class KojiBuildItem(Resource):
                 status=HTTPStatus.NOT_FOUND,
             )
 
+        srpm_build = build.get_srpm_build()
+
         build_dict = {
             "task_id": build.task_id,
             "status": build.status,
@@ -94,7 +96,7 @@ class KojiBuildItem(Resource):
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
             "build_logs_url": build.build_logs_urls,
-            "srpm_build_id": build.get_srpm_build().id,
+            "srpm_build_id": srpm_build.id if srpm_build else None,
             "run_ids": sorted(run.id for run in build.group_of_targets.runs),
         }
 
