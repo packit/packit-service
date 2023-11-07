@@ -121,8 +121,8 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
 
     assert response_dict[1]["build_submitted_time"] is not None
 
-    assert {response_build["build_id"] for response_build in response_dict} == {
-        build.build_id for build in multiple_koji_builds
+    assert {response_build["task_id"] for response_build in response_dict} == {
+        build.task_id for build in multiple_koji_builds
     }
 
 
@@ -131,7 +131,7 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
         url_for("api.koji-builds_koji_build_item", id=a_koji_build_for_pr.id)
     )
     response_dict = response.json
-    assert response_dict["build_id"] == SampleValues.build_id
+    assert response_dict["task_id"] == SampleValues.build_id
     assert response_dict["status"] == SampleValues.status_pending
     assert response_dict["chroot"] == SampleValues.target
     assert response_dict["build_submitted_time"] is not None

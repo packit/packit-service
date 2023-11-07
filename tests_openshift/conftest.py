@@ -800,15 +800,15 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
     group = KojiBuildGroupModel.create(run_model)
     koji_build_model = KojiBuildTargetModel.create(
-        build_id=SampleValues.build_id,
+        task_id=SampleValues.build_id,
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
         scratch=True,
         koji_build_group=group,
     )
-    koji_build_model.set_build_logs_url(
-        "https://koji.somewhere/results/owner/package/target/build.logs"
+    koji_build_model.set_build_logs_urls(
+        {"x86_64": "https://koji.somewhere/results/owner/package/target/build.logs"}
     )
     yield koji_build_model
 
@@ -819,7 +819,7 @@ def a_koji_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
     group = KojiBuildGroupModel.create(run_model)
 
     yield KojiBuildTargetModel.create(
-        build_id=SampleValues.build_id,
+        task_id=SampleValues.build_id,
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
@@ -834,7 +834,7 @@ def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
     group = KojiBuildGroupModel.create(run_model)
 
     yield KojiBuildTargetModel.create(
-        build_id=SampleValues.build_id,
+        task_id=SampleValues.build_id,
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
@@ -861,7 +861,7 @@ def multiple_koji_builds(pr_project_event_model, different_pr_project_event_mode
     yield [
         # Two builds for same run
         KojiBuildTargetModel.create(
-            build_id=SampleValues.build_id,
+            task_id=SampleValues.build_id,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
             status=SampleValues.status_pending,
@@ -869,7 +869,7 @@ def multiple_koji_builds(pr_project_event_model, different_pr_project_event_mode
             koji_build_group=group_for_pr,
         ),
         KojiBuildTargetModel.create(
-            build_id=SampleValues.different_build_id,
+            task_id=SampleValues.different_build_id,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
@@ -878,7 +878,7 @@ def multiple_koji_builds(pr_project_event_model, different_pr_project_event_mode
         ),
         # Same PR, different run
         KojiBuildTargetModel.create(
-            build_id=SampleValues.different_build_id,
+            task_id=SampleValues.different_build_id,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
@@ -887,7 +887,7 @@ def multiple_koji_builds(pr_project_event_model, different_pr_project_event_mode
         ),
         # Completely different build
         KojiBuildTargetModel.create(
-            build_id=SampleValues.another_different_build_id,
+            task_id=SampleValues.another_different_build_id,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
             status=SampleValues.status_pending,

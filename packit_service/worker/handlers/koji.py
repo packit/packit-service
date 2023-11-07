@@ -136,8 +136,8 @@ class KojiTaskReportHandler(
     @property
     def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
-            self._build = KojiBuildTargetModel.get_by_build_id(
-                build_id=str(self.koji_task_event.build_id)
+            self._build = KojiBuildTargetModel.get_by_task_id(
+                task_id=str(self.koji_task_event.task_id)
             )
         return self._build
 
@@ -148,14 +148,12 @@ class KojiTaskReportHandler(
         return self._db_project_event
 
     def run(self):
-        build = KojiBuildTargetModel.get_by_build_id(
-            build_id=str(self.koji_task_event.build_id)
+        build = KojiBuildTargetModel.get_by_task_id(
+            task_id=str(self.koji_task_event.task_id)
         )
 
         if not build:
-            msg = (
-                f"Koji build {self.koji_task_event.build_id} not found in the database."
-            )
+            msg = f"Koji task {self.koji_task_event.task_id} not found in the database."
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
 
@@ -225,13 +223,13 @@ class KojiTaskReportHandler(
                 url=url,
                 chroot=build.target,
             )
-            koji_build_logs = KojiTaskEvent.get_koji_build_logs_url(
-                rpm_build_task_id=int(build.build_id),
-                koji_logs_url=self.service_config.koji_logs_url,
+            koji_build_logs = self.koji_task_event.get_koji_build_rpm_tasks_logs_urls(
+                self.service_config.koji_logs_url
             )
-            build.set_build_logs_url(koji_build_logs)
+
+            build.set_build_logs_urls(koji_build_logs)
             koji_rpm_task_web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
-                rpm_build_task_id=int(build.build_id),
+                rpm_build_task_id=int(build.task_id),
                 koji_web_url=self.service_config.koji_web_url,
             )
             build.set_web_url(koji_rpm_task_web_url)
@@ -273,8 +271,8 @@ class KojiBuildReportHandler(
     @property
     def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
-            self._build = KojiBuildTargetModel.get_by_build_id(
-                build_id=self.koji_build_event.build_id
+            self._build = KojiBuildTargetModel.get_by_task_id(
+                task_id=self.koji_build_event.task_id
             )
         return self._build
 
@@ -286,12 +284,15 @@ class KojiBuildReportHandler(
 
     def run(self):
         if not self.build:
-            msg = f"Koji build {self.koji_build_event.build_id} not found in the database."
+            msg = (
+                f"Koji build with task ID {self.koji_build_event.task_id} not found in "
+                f"the database."
+            )
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 
         msg = (
-            f"Build on {self.build.target} in koji changed state "
+            f"Build {self.koji_build_event.build_id} on {self.build.target} in koji changed state "
             f"from {self.koji_build_event.old_state} to {self.koji_build_event.state}."
         )
         logger.debug(msg)
@@ -324,10 +325,14 @@ class KojiBuildReportHandler(
         if not self.build.web_url:
             self.build.set_web_url(
                 KojiBuildEvent.get_koji_rpm_build_web_url(
-                    rpm_build_task_id=self.koji_build_event.rpm_build_task_id,
+                    rpm_build_task_id=self.koji_build_event.task_id,
                     koji_web_url=self.service_config.koji_web_url,
                 )
             )
-        # TODO: update logs URL (the access via task number does not work for non-scratch builds)
+
+        koji_build_logs = self.koji_build_event.get_koji_build_rpm_tasks_logs_urls(
+            self.service_config.koji_logs_url
+        )
+        self.build.set_build_logs_url(koji_build_logs)
 
         return TaskResults(success=True, details={"msg": msg})

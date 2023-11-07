@@ -288,7 +288,7 @@ def koji_build_pr():
     srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
     koji_build_model = flexmock(
         id=1,
-        build_id="1",
+        task_id="1",
         commit_sha="0011223344",
         project_name="some-project",
         owner="some-owner",

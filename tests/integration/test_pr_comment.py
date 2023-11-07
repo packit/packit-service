@@ -37,6 +37,8 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     CoprBuildTargetModel,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
     ProjectEventModel,
     ProjectEventModelType,
     PipelineModel,
@@ -2346,6 +2348,46 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         project_event
     )
+    flexmock(PipelineModel).should_receive("create")
+
+    koji_build = flexmock(
+        target="the_distgit_branch",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build])
+    )
+
+    db_project_object = flexmock(
+        id=12,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=12,
+        commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=pagure_pr_comment_added["pullrequest"]["id"],
+        namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
+        repo_name=pagure_pr_comment_added["pullrequest"]["project"]["name"],
+        project_url=pagure_pr_comment_added["pullrequest"]["project"]["full_url"],
+    ).and_return(db_project_object)
+
     pr_mock = (
         flexmock(target_branch="the_distgit_branch")
         .should_receive("comment")
@@ -2375,7 +2417,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         scratch=False,
         nowait=True,
         from_upstream=False,
-    )
+    ).and_return("")
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 

@@ -176,7 +176,7 @@ def test_copr_build_set_build_logs_url(clean_before_and_after, a_copr_build_for_
 
 
 def test_create_koji_build(clean_before_and_after, a_koji_build_for_pr):
-    assert a_koji_build_for_pr.build_id == "123456"
+    assert a_koji_build_for_pr.task_id == "123456"
     assert a_koji_build_for_pr.commit_sha == "80201a74d96c"
     assert a_koji_build_for_pr.web_url == "https://koji.something.somewhere/123456"
     assert a_koji_build_for_pr.get_srpm_build().logs == "some\nboring\nlogs"
@@ -190,13 +190,13 @@ def test_create_koji_build(clean_before_and_after, a_koji_build_for_pr):
 
 def test_get_koji_build(clean_before_and_after, a_koji_build_for_pr):
     assert a_koji_build_for_pr.id
-    b = KojiBuildTargetModel.get_by_build_id(
-        a_koji_build_for_pr.build_id, SampleValues.target
+    b = KojiBuildTargetModel.get_by_task_id(
+        a_koji_build_for_pr.task_id, SampleValues.target
     )
     assert b.id == a_koji_build_for_pr.id
     # let's make sure passing int works as well
-    b = KojiBuildTargetModel.get_by_build_id(
-        int(a_koji_build_for_pr.build_id), SampleValues.target
+    b = KojiBuildTargetModel.get_by_task_id(
+        int(a_koji_build_for_pr.task_id), SampleValues.target
     )
     assert b.id == a_koji_build_for_pr.id
     b2 = KojiBuildTargetModel.get_by_id(b.id)
@@ -207,23 +207,23 @@ def test_koji_build_set_status(clean_before_and_after, a_koji_build_for_pr):
     assert a_koji_build_for_pr.status == "pending"
     a_koji_build_for_pr.set_status("awesome")
     assert a_koji_build_for_pr.status == "awesome"
-    b = KojiBuildTargetModel.get_by_build_id(
-        a_koji_build_for_pr.build_id, SampleValues.target
+    b = KojiBuildTargetModel.get_by_task_id(
+        a_koji_build_for_pr.task_id, SampleValues.target
     )
     assert b.status == "awesome"
 
 
 def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build_for_pr):
-    url = (
-        "https://kojipkgs.fedoraproject.org//"
+    urls = {
+        "x86_64": "https://kojipkgs.fedoraproject.org//"
         "packages/python-ogr/0.11.0/1.fc30/data/logs/noarch/build.log"
+    }
+    a_koji_build_for_pr.set_build_logs_urls(urls)
+    assert a_koji_build_for_pr.build_logs_urls == urls
+    b = KojiBuildTargetModel.get_by_task_id(
+        a_koji_build_for_pr.task_id, SampleValues.target
     )
-    a_koji_build_for_pr.set_build_logs_url(url)
-    assert a_koji_build_for_pr.build_logs_url == url
-    b = KojiBuildTargetModel.get_by_build_id(
-        a_koji_build_for_pr.build_id, SampleValues.target
-    )
-    assert b.build_logs_url == url
+    assert b.build_logs_urls == urls
 
 
 def test_get_or_create_pr(clean_before_and_after):
@@ -446,7 +446,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         copr_build_group=copr_group,
     )
     koji_build = KojiBuildTargetModel.create(
-        build_id="987654",
+        task_id="987654",
         web_url="https://copr.something.somewhere/123456",
         target=SampleValues.target,
         status="pending",

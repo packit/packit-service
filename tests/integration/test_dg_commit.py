@@ -28,6 +28,9 @@ from packit_service.models import (
     GitProjectModel,
     ProjectEventModel,
     ProjectEventModelType,
+    KojiBuildGroupModel,
+    PipelineModel,
+    KojiBuildTargetModel,
 )
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
@@ -208,6 +211,17 @@ def test_downstream_koji_build():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
     ).and_return(flexmock())
@@ -216,12 +230,24 @@ def test_downstream_koji_build():
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(
-        flexmock(
-            id=9,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-        )
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build = flexmock(
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build])
     )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -232,7 +258,7 @@ def test_downstream_koji_build():
         scratch=False,
         nowait=True,
         from_upstream=False,
-    )
+    ).and_return("")
     processing_results = SteveJobs().process_message(distgit_commit_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -270,6 +296,17 @@ def test_downstream_koji_build_failure_no_issue():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
     ).and_return(flexmock())
@@ -278,12 +315,24 @@ def test_downstream_koji_build_failure_no_issue():
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(
-        flexmock(
-            id=9,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-        )
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build = flexmock(
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(id=1, grouped_targets=[koji_build])
     )
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
@@ -336,6 +385,17 @@ def test_downstream_koji_build_failure_issue_created():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
     ).and_return(flexmock())
@@ -344,15 +404,26 @@ def test_downstream_koji_build_failure_issue_created():
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(
-        flexmock(
-            id=9,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-        )
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build = flexmock(
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
     )
 
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build])
+    )
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -373,17 +444,16 @@ def test_downstream_koji_build_failure_issue_created():
         processing_results
     )
     assert json.dumps(event_dict)
-    with pytest.raises(PackitException):
-        DownstreamKojiBuildHandler(
-            package_config=load_package_config(package_config),
-            job_config=load_job_config(job_config),
-            event=event_dict,
-            # Needs to be the last try to inform user
-            celery_task=flexmock(
-                request=flexmock(retries=DEFAULT_RETRY_LIMIT),
-                max_retries=DEFAULT_RETRY_LIMIT,
-            ),
-        ).run_job()
+    DownstreamKojiBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event_dict,
+        # Needs to be the last try to inform user
+        celery_task=flexmock(
+            request=flexmock(retries=DEFAULT_RETRY_LIMIT),
+            max_retries=DEFAULT_RETRY_LIMIT,
+        ),
+    ).run_job()
 
 
 def test_downstream_koji_build_failure_issue_comment():
@@ -410,6 +480,17 @@ def test_downstream_koji_build_failure_issue_comment():
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
     ).and_return(flexmock())
@@ -418,15 +499,27 @@ def test_downstream_koji_build_failure_issue_comment():
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(
-        flexmock(
-            id=9,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-        )
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build = flexmock(
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
     )
 
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build])
+    )
+
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -456,17 +549,16 @@ def test_downstream_koji_build_failure_issue_comment():
         processing_results
     )
     assert json.dumps(event_dict)
-    with pytest.raises(PackitException):
-        DownstreamKojiBuildHandler(
-            package_config=load_package_config(package_config),
-            job_config=load_job_config(job_config),
-            event=event_dict,
-            # Needs to be the last try to inform user
-            celery_task=flexmock(
-                request=flexmock(retries=DEFAULT_RETRY_LIMIT),
-                max_retries=DEFAULT_RETRY_LIMIT,
-            ),
-        ).run_job()
+    DownstreamKojiBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event_dict,
+        # Needs to be the last try to inform user
+        celery_task=flexmock(
+            request=flexmock(retries=DEFAULT_RETRY_LIMIT),
+            max_retries=DEFAULT_RETRY_LIMIT,
+        ),
+    ).run_job()
 
 
 def test_downstream_koji_build_no_config():
@@ -564,6 +656,17 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         ref="abcd", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
     ).and_return(flexmock())
@@ -572,12 +675,24 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         namespace="rpms",
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
-    ).and_return(
-        flexmock(
-            id=9,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            project_event_model_type=ProjectEventModelType.branch_push,
-        )
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+    koji_build = flexmock(
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_url=lambda x: None,
+        set_data=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build])
     )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -594,7 +709,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         scratch=False,
         nowait=True,
         from_upstream=False,
-    ).once()
+    ).once().and_return("")
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
     assert len(processing_results) == 1

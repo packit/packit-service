@@ -2027,7 +2027,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         pc_koji_build_pr
     )
 
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr
     )
     url = get_koji_build_info_url(1)
@@ -2037,7 +2037,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
     koji_build_pr.should_receive("set_build_start_time").once()
     koji_build_pr.should_receive("set_build_finished_time").with_args(None).once()
     koji_build_pr.should_receive("set_status").with_args("running").once()
-    koji_build_pr.should_receive("set_build_logs_url")
+    koji_build_pr.should_receive("set_build_logs_urls")
     koji_build_pr.should_receive("set_web_url")
 
     # check if packit-service set correct PR status
@@ -2069,7 +2069,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
 
 
 def test_koji_build_start_build_not_found(koji_build_scratch_start):
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(None)
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(None)
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").never()
@@ -2092,7 +2092,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         pc_koji_build_pr
     )
 
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr
     )
     url = get_koji_build_info_url(1)
@@ -2102,7 +2102,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     koji_build_pr.should_receive("set_build_start_time").once()
     koji_build_pr.should_receive("set_build_finished_time").once()
     koji_build_pr.should_receive("set_status").with_args("success").once()
-    koji_build_pr.should_receive("set_build_logs_url")
+    koji_build_pr.should_receive("set_build_logs_urls")
     koji_build_pr.should_receive("set_web_url")
 
     # check if packit-service set correct PR status

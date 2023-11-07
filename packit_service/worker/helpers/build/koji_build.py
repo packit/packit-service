@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from re import search
 from typing import Dict, Optional, Set, Tuple
 
 from ogr.abstract import GitProject
@@ -19,14 +18,15 @@ from packit_service.models import (
     KojiBuildGroupModel,
     ProjectEventModel,
 )
-from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
+from packit_service.utils import get_koji_task_id_and_url_from_stdout
+from packit_service.worker.events import EventData
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 continue
 
             koji_build = KojiBuildTargetModel.create(
-                build_id=None,
+                task_id=None,
                 web_url=None,
                 target=target,
                 status="pending",
@@ -141,7 +141,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 koji_build_group=build_group,
             )
             try:
-                build_id, web_url = self.run_build(target=target)
+                task_id, web_url = self.run_build(target=target)
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 # TODO: Where can we show more info about failure?
@@ -156,7 +156,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 errors[target] = str(ex)
                 continue
             else:
-                koji_build.set_build_id(str(build_id))
+                koji_build.set_task_id(str(task_id))
                 koji_build.set_web_url(web_url)
                 url = get_koji_build_info_url(id_=koji_build.id)
                 self.report_status_to_all_for_chroot(
@@ -189,6 +189,15 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
     def run_build(
         self, target: Optional[str] = None
     ) -> Tuple[Optional[int], Optional[str]]:
+        """
+        Run the Koji build from upstream.
+
+        Args:
+            target: target to run the build for
+
+        Returns:
+            tuple of task ID and task URL.
+        """
         if not target:
             logger.debug("No targets set for koji build, using rawhide.")
             target = "rawhide"
@@ -211,19 +220,4 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         if not out:
             return None, None
 
-        # packit does not return any info about build.
-        # TODO: move the parsing to packit
-        task_id, task_url = None, None
-
-        task_id_match = search(pattern=r"Created task: (\d+)", string=out)
-        if task_id_match:
-            task_id = int(task_id_match.group(1))
-
-        task_url_match = search(
-            pattern=r"(https://.+/koji/taskinfo\?taskID=\d+)",
-            string=out,
-        )
-        if task_url_match:
-            task_url = task_url_match.group(0)
-
-        return task_id, task_url
+        return get_koji_task_id_and_url_from_stdout(out)
