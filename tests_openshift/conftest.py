@@ -858,7 +858,20 @@ def multiple_koji_builds(pr_project_event_model, different_pr_project_event_mode
     )
     group_for_a_different_pr = KojiBuildGroupModel.create(run_model_for_a_different_pr)
 
+    group_for_nonscratch_build = KojiBuildGroupModel.create(
+        run_model=PipelineModel.create(project_event=different_pr_project_event_model)
+    )
+
     yield [
+        # Non-scratch build
+        KojiBuildTargetModel.create(
+            task_id="1",
+            web_url=SampleValues.koji_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_pending,
+            scratch=False,
+            koji_build_group=group_for_nonscratch_build,
+        ),
         # Two builds for same run
         KojiBuildTargetModel.create(
             task_id=SampleValues.build_id,

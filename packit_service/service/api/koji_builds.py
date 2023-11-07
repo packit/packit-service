@@ -4,6 +4,7 @@
 from http import HTTPStatus
 from logging import getLogger
 
+from flask import request
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
@@ -25,11 +26,15 @@ class KojiBuildsList(Resource):
     @koji_builds_ns.response(HTTPStatus.PARTIAL_CONTENT, "Koji builds list follows")
     def get(self):
         """List all Koji builds."""
-
+        scratch = (
+            request.args.get("scratch").lower() == "true"
+            if "scratch" in request.args
+            else None
+        )
         first, last = indices()
         result = []
 
-        for build in KojiBuildTargetModel.get_range(first, last):
+        for build in KojiBuildTargetModel.get_range(first, last, scratch):
             build_dict = {
                 "packit_id": build.id,
                 "task_id": build.task_id,

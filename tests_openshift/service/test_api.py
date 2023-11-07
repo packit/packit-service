@@ -110,7 +110,7 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
 def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     response = client.get(url_for("api.koji-builds_koji_builds_list"))
     response_dict = response.json
-    assert len(response_dict) == 4
+    assert len(response_dict) == 5
     assert response_dict[0]["packit_id"] in {build.id for build in multiple_koji_builds}
     assert response_dict[1]["status"] == SampleValues.status_pending
     assert response_dict[1]["web_url"] == SampleValues.koji_web_url
@@ -124,6 +124,22 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     assert {response_build["task_id"] for response_build in response_dict} == {
         build.task_id for build in multiple_koji_builds
     }
+
+
+def test_koji_builds_list_non_scratch(
+    client, clean_before_and_after, multiple_koji_builds
+):
+    response = client.get(
+        url_for("api.koji-builds_koji_builds_list") + "?scratch=false"
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+
+
+def test_koji_builds_list_scratch(client, clean_before_and_after, multiple_koji_builds):
+    response = client.get(url_for("api.koji-builds_koji_builds_list") + "?scratch=true")
+    response_dict = response.json
+    assert len(response_dict) == 4
 
 
 def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_for_pr):
