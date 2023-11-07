@@ -314,7 +314,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             self.measure_time_after_reporting()
             self.copr_build_helper.notify_about_failure_if_configured(
                 packit_dashboard_url=packit_dashboard_url,
-                external_dashboard_url=self.build.copr_web_url,
+                external_dashboard_url=self.build.web_url,
                 logs_url=self.build.build_logs_url,
             )
             self.build.set_status(BuildStatus.failure)
@@ -379,7 +379,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             self.copr_build_helper.notify_about_failure_if_configured(
                 packit_dashboard_url=url,
                 external_dashboard_url=self.build.copr_web_url,
-                logs_url=self.build.build_logs_url,
+                logs_url=self.build.logs_url,
             )
             self.build.set_status(BuildStatus.failure)
             self.copr_build_helper.monitor_not_submitted_copr_builds(
