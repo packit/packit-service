@@ -155,7 +155,7 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
     assert response_dict["web_url"] == SampleValues.koji_web_url
-    assert "build_logs_url" in response_dict
+    assert "build_logs_urls" in response_dict
     assert response_dict["srpm_build_id"] == a_koji_build_for_pr.get_srpm_build().id
 
     # Project info:
@@ -184,7 +184,7 @@ def test_detailed_koji_build_info_non_scratch(
     assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
     assert response_dict["web_url"] == SampleValues.koji_web_url
-    assert "build_logs_url" in response_dict
+    assert "build_logs_urls" in response_dict
     assert response_dict["srpm_build_id"] is None
 
 

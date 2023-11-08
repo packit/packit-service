@@ -44,7 +44,7 @@ class KojiBuildsList(Resource):
                 "chroot": build.target,
                 "web_url": build.web_url,
                 # from old data, sometimes build_logs_url is same and sometimes different to web_url
-                "build_logs_url": build.build_logs_urls,
+                "build_logs_urls": build.build_logs_urls,
                 "pr_id": build.get_pr_id(),
                 "branch_name": build.get_branch_name(),
                 "release": build.get_release_tag(),
@@ -95,7 +95,7 @@ class KojiBuildItem(Resource):
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
-            "build_logs_url": build.build_logs_urls,
+            "build_logs_urls": build.build_logs_urls,
             "srpm_build_id": srpm_build.id if srpm_build else None,
             "run_ids": sorted(run.id for run in build.group_of_targets.runs),
         }
