@@ -305,14 +305,20 @@ class KojiBuildReportHandler(
             KojiBuildState.canceled: BaseCommitStatus.error,
         }.get(self.koji_build_event.state)
 
+        logger.info(f"Build status in DB: {self.build.status}")
         if (
             new_commit_status
             and self.build.status
-            and self.build.status != KojiBuildState.building
+            and self.build.status
+            in (
+                BaseCommitStatus.failure.value,
+                BaseCommitStatus.error.value,
+                BaseCommitStatus.success.value,
+            )
         ):
             logger.warning(
                 f"We should not overwrite the final state {self.build.status} "
-                f"to {self.koji_build_event.state}. "
+                f"to {new_commit_status}. "
                 f"Not updating the status."
             )
         elif new_commit_status:
