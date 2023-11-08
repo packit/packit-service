@@ -257,7 +257,7 @@ class KojiTaskEvent(AbstractKojiEvent):
     @classmethod
     def from_event_dict(cls, event: dict):
         return KojiTaskEvent(
-            task_id=event.get("build_id"),
+            task_id=event.get("task_id"),
             state=KojiTaskState(event.get("state")) if event.get("state") else None,
             old_state=(
                 KojiTaskState(event.get("old_state"))
