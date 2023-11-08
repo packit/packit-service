@@ -1134,6 +1134,9 @@ class TestEvents:
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
 
+        assert event_object.start_time is not None
+        assert event_object.completion_time is None
+
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "rpms/python-ogr"
 
@@ -1171,6 +1174,9 @@ class TestEvents:
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
+
+        assert event_object.start_time is not None
+        assert event_object.completion_time is None
 
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "rpms/python-ogr"
@@ -1210,6 +1216,9 @@ class TestEvents:
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
+
+        assert event_object.start_time is not None
+        assert event_object.completion_time is None
 
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "rpms/python-ogr"
@@ -1288,6 +1297,8 @@ class TestEvents:
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
+        assert event_object.start_time is not None
+        assert event_object.completion_time is not None
 
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "rpms/python-ogr"
@@ -1329,6 +1340,9 @@ class TestEvents:
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
 
+        assert event_object.start_time is not None
+        assert event_object.completion_time is not None
+
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "rpms/python-ogr"
 
@@ -1368,6 +1382,9 @@ class TestEvents:
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
+
+        assert event_object.start_time is not None
+        assert event_object.completion_time is not None
 
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "rpms/python-ogr"

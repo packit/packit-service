@@ -1349,6 +1349,9 @@ class Parser:
             else None
         )
 
+        start_time = event.get("creation_time")
+        completion_time = event.get("completion_time")
+
         version = event.get("version")
         epoch = event.get("epoch")
 
@@ -1391,6 +1394,8 @@ class Parser:
                 koji_web_url=ServiceConfig.get_service_config().koji_web_url,
             ),
             old_state=old_state,
+            start_time=start_time,
+            completion_time=completion_time,
         )
 
     @staticmethod
