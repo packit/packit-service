@@ -2392,11 +2392,11 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         flexmock(target_branch="the_distgit_branch")
         .should_receive("comment")
         .with_args(
-            "The task was accepted. You can check the recent Koji build activity of "
+            "The task was accepted. You can check the recent runs of downstream Koji jobs "
+            "in [Packit dashboard](/jobs/downstream-koji-builds). "
+            "You can also check the recent Koji build activity of "
             "`packit` in [the Koji interface]"
-            "(https://koji.fedoraproject.org/koji/userinfo?userID=4641) (we have also "
-            "planned adding support for viewing the builds in [Packit dashboard](), "
-            "see [this issue](https://github.com/packit/dashboard/issues/187))."
+            "(https://koji.fedoraproject.org/koji/userinfo?userID=4641)."
         )
         .mock()
     )
