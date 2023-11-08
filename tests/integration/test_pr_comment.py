@@ -2356,7 +2356,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 

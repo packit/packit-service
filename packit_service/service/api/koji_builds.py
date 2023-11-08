@@ -4,6 +4,7 @@
 from http import HTTPStatus
 from logging import getLogger
 
+from flask import request
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
@@ -25,11 +26,15 @@ class KojiBuildsList(Resource):
     @koji_builds_ns.response(HTTPStatus.PARTIAL_CONTENT, "Koji builds list follows")
     def get(self):
         """List all Koji builds."""
-
+        scratch = (
+            request.args.get("scratch").lower() == "true"
+            if "scratch" in request.args
+            else None
+        )
         first, last = indices()
         result = []
 
-        for build in KojiBuildTargetModel.get_range(first, last):
+        for build in KojiBuildTargetModel.get_range(first, last, scratch):
             build_dict = {
                 "packit_id": build.id,
                 "task_id": build.task_id,
@@ -39,7 +44,7 @@ class KojiBuildsList(Resource):
                 "chroot": build.target,
                 "web_url": build.web_url,
                 # from old data, sometimes build_logs_url is same and sometimes different to web_url
-                "build_logs_url": build.build_logs_urls,
+                "build_logs_urls": build.build_logs_urls,
                 "pr_id": build.get_pr_id(),
                 "branch_name": build.get_branch_name(),
                 "release": build.get_release_tag(),
@@ -77,6 +82,8 @@ class KojiBuildItem(Resource):
                 status=HTTPStatus.NOT_FOUND,
             )
 
+        srpm_build = build.get_srpm_build()
+
         build_dict = {
             "task_id": build.task_id,
             "status": build.status,
@@ -88,8 +95,8 @@ class KojiBuildItem(Resource):
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
-            "build_logs_url": build.build_logs_urls,
-            "srpm_build_id": build.get_srpm_build().id,
+            "build_logs_urls": build.build_logs_urls,
+            "srpm_build_id": srpm_build.id if srpm_build else None,
             "run_ids": sorted(run.id for run in build.group_of_targets.runs),
         }
 

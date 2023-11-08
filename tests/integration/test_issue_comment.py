@@ -343,7 +343,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 
@@ -353,7 +353,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 

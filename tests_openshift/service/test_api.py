@@ -110,7 +110,7 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
 def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     response = client.get(url_for("api.koji-builds_koji_builds_list"))
     response_dict = response.json
-    assert len(response_dict) == 4
+    assert len(response_dict) == 5
     assert response_dict[0]["packit_id"] in {build.id for build in multiple_koji_builds}
     assert response_dict[1]["status"] == SampleValues.status_pending
     assert response_dict[1]["web_url"] == SampleValues.koji_web_url
@@ -126,6 +126,22 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     }
 
 
+def test_koji_builds_list_non_scratch(
+    client, clean_before_and_after, multiple_koji_builds
+):
+    response = client.get(
+        url_for("api.koji-builds_koji_builds_list") + "?scratch=false"
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+
+
+def test_koji_builds_list_scratch(client, clean_before_and_after, multiple_koji_builds):
+    response = client.get(url_for("api.koji-builds_koji_builds_list") + "?scratch=true")
+    response_dict = response.json
+    assert len(response_dict) == 4
+
+
 def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_for_pr):
     response = client.get(
         url_for("api.koji-builds_koji_build_item", id=a_koji_build_for_pr.id)
@@ -139,7 +155,7 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
     assert response_dict["web_url"] == SampleValues.koji_web_url
-    assert "build_logs_url" in response_dict
+    assert "build_logs_urls" in response_dict
     assert response_dict["srpm_build_id"] == a_koji_build_for_pr.get_srpm_build().id
 
     # Project info:
@@ -149,6 +165,27 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert "branch_name" in response_dict
     assert "release" in response_dict
+
+
+def test_detailed_koji_build_info_non_scratch(
+    client, clean_before_and_after, a_koji_build_for_pr_non_scratch
+):
+    response = client.get(
+        url_for(
+            "api.koji-builds_koji_build_item", id=a_koji_build_for_pr_non_scratch.id
+        )
+    )
+    response_dict = response.json
+    assert response_dict["task_id"] == SampleValues.build_id
+    assert response_dict["status"] == SampleValues.status_pending
+    assert response_dict["chroot"] == SampleValues.target
+    assert response_dict["build_submitted_time"] is not None
+    assert "build_start_time" in response_dict
+    assert "build_finished_time" in response_dict
+    assert response_dict["commit_sha"] == SampleValues.commit_sha
+    assert response_dict["web_url"] == SampleValues.koji_web_url
+    assert "build_logs_urls" in response_dict
+    assert response_dict["srpm_build_id"] is None
 
 
 def test_detailed_koji_build_info_for_pr(

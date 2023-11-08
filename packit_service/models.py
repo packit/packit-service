@@ -1896,13 +1896,19 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         return sa_session().query(KojiBuildTargetModel)
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Iterable["KojiBuildTargetModel"]:
-        return (
+    def get_range(
+        cls, first: int, last: int, scratch: bool = None
+    ) -> Iterable["KojiBuildTargetModel"]:
+        query = (
             sa_session()
             .query(KojiBuildTargetModel)
             .order_by(desc(KojiBuildTargetModel.id))
-            .slice(first, last)
         )
+
+        if scratch is not None:
+            query = query.filter_by(scratch=scratch)
+
+        return query.slice(first, last)
 
     @classmethod
     def get_by_task_id(

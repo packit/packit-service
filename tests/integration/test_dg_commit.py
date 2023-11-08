@@ -241,7 +241,7 @@ def test_downstream_koji_build():
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 
@@ -326,7 +326,7 @@ def test_downstream_koji_build_failure_no_issue():
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 
@@ -415,7 +415,7 @@ def test_downstream_koji_build_failure_issue_created():
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 
@@ -510,7 +510,7 @@ def test_downstream_koji_build_failure_issue_comment():
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 
@@ -686,7 +686,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
-        set_build_logs_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
         set_data=lambda x: None,
     )
 
