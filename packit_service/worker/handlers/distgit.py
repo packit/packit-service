@@ -17,7 +17,11 @@ from ogr.abstract import PullRequest, AuthMethod
 from ogr.services.github import GithubService
 from packit.config import JobConfig, JobType, Deployment
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitException, PackitDownloadFailedException
+from packit.exceptions import (
+    PackitException,
+    PackitDownloadFailedException,
+    ReleaseSkippedPackitException,
+)
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
@@ -349,14 +353,19 @@ class AbstractSyncReleaseHandler(
             logger.debug(f"{self.sync_release_job_type} failed: {ex}")
             # make sure exception message is propagated to the logs
             logging.getLogger("packit").error(str(ex))
+            (state, status) = (
+                (BaseCommitStatus.neutral, SyncReleaseTargetStatus.skipped)
+                if isinstance(ex, ReleaseSkippedPackitException)
+                else (BaseCommitStatus.failure, SyncReleaseTargetStatus.error)
+            )
             # eat the exception and continue with the execution
             self.sync_release_helper.report_status_for_branch(
                 branch=branch,
                 description=f"{self.job_name_for_reporting.capitalize()} failed: {ex}",
-                state=BaseCommitStatus.failure,
+                state=state,
                 url=url,
             )
-            model.set_status(status=SyncReleaseTargetStatus.error)
+            model.set_status(status=status)
             sentry_integration.send_to_sentry(ex)
 
             return str(ex)
