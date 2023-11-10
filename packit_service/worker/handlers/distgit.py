@@ -840,12 +840,13 @@ class DownstreamKojiBuildHandler(
             user = "packit-stg"
             user_id = 5279
 
+        dashboard_url = service_config.dashboard_url
+
         return (
-            f"You can check the recent Koji build activity of `{user}` in [the Koji interface]"
-            f"(https://koji.fedoraproject.org/koji/userinfo?userID={user_id}) (we "
-            f"have also planned adding support for viewing the builds in "
-            f"[Packit dashboard]({service_config.dashboard_url}), "
-            f"see [this issue](https://github.com/packit/dashboard/issues/187))."
+            "You can check the recent runs of downstream Koji jobs "
+            f"in [Packit dashboard]({dashboard_url}/jobs/downstream-koji-builds). "
+            f"You can also check the recent Koji build activity of `{user}` in [the Koji interface]"
+            f"(https://koji.fedoraproject.org/koji/userinfo?userID={user_id})."
         )
 
 

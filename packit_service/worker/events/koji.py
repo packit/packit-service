@@ -23,12 +23,18 @@ from packit_service.worker.events.event import (
 
 class AbstractKojiEvent(AbstractResultEvent):
     def __init__(
-        self, task_id: int, rpm_build_task_ids: Optional[Dict[str, int]] = None
+        self,
+        task_id: int,
+        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        start_time: Optional[Union[int, float, str]] = None,
+        completion_time: Optional[Union[int, float, str]] = None,
     ):
         super().__init__()
         self.task_id = task_id
         # dictionary with archs and IDs, e.g. {"x86_64": 123}
         self.rpm_build_task_ids = rpm_build_task_ids
+        self.start_time: Optional[Union[int, float, str]] = start_time
+        self.completion_time: Optional[Union[int, float, str]] = completion_time
 
         # Lazy properties
         self._target: Optional[str] = None
@@ -122,8 +128,15 @@ class KojiBuildEvent(AbstractKojiEvent):
         web_url: Optional[str] = None,
         old_state: Optional[KojiBuildState] = None,
         rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        start_time: Optional[Union[int, float, str]] = None,
+        completion_time: Optional[Union[int, float, str]] = None,
     ):
-        super().__init__(task_id=task_id, rpm_build_task_ids=rpm_build_task_ids)
+        super().__init__(
+            task_id=task_id,
+            rpm_build_task_ids=rpm_build_task_ids,
+            start_time=start_time,
+            completion_time=completion_time,
+        )
         self.build_id = build_id
         self.state = state
         self.old_state = old_state
@@ -183,6 +196,8 @@ class KojiBuildEvent(AbstractKojiEvent):
             epoch=event.get("epoch"),
             version=event.get("version"),
             release=event.get("release"),
+            start_time=event.get("start_time"),
+            completion_time=event.get("completion_time"),
         )
 
 
@@ -200,11 +215,14 @@ class KojiTaskEvent(AbstractKojiEvent):
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
-        super().__init__(task_id=task_id, rpm_build_task_ids=rpm_build_task_ids)
+        super().__init__(
+            task_id=task_id,
+            rpm_build_task_ids=rpm_build_task_ids,
+            start_time=start_time,
+            completion_time=completion_time,
+        )
         self.state = state
         self.old_state = old_state
-        self.start_time: Optional[Union[int, float, str]] = start_time
-        self.completion_time: Optional[Union[int, float, str]] = completion_time
 
         # Lazy properties
         self._pr_id: Optional[int] = None
@@ -257,7 +275,7 @@ class KojiTaskEvent(AbstractKojiEvent):
     @classmethod
     def from_event_dict(cls, event: dict):
         return KojiTaskEvent(
-            task_id=event.get("build_id"),
+            task_id=event.get("task_id"),
             state=KojiTaskState(event.get("state")) if event.get("state") else None,
             old_state=(
                 KojiTaskState(event.get("old_state"))

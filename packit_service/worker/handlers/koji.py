@@ -297,6 +297,18 @@ class KojiBuildReportHandler(
         )
         logger.debug(msg)
 
+        self.build.set_build_start_time(
+            datetime.fromisoformat(self.koji_build_event.start_time)
+            if self.koji_build_event.start_time
+            else None
+        )
+
+        self.build.set_build_finished_time(
+            datetime.fromisoformat(self.koji_build_event.completion_time)
+            if self.koji_build_event.completion_time
+            else None
+        )
+
         new_commit_status = {
             KojiBuildState.building: BaseCommitStatus.running,
             KojiBuildState.complete: BaseCommitStatus.success,

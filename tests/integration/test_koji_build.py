@@ -89,6 +89,8 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
             ),
             set_status=lambda x: None,
+            set_build_start_time=lambda x: None,
+            set_build_finished_time=lambda x: None,
         )
         .should_receive("set_build_logs_urls")
         .with_args({})
