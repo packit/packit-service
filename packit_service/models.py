@@ -2442,6 +2442,7 @@ class SyncReleaseTargetStatus(str, enum.Enum):
     error = "error"
     retry = "retry"
     submitted = "submitted"
+    skipped = "skipped"
 
 
 class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
