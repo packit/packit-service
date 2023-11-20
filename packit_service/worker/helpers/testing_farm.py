@@ -425,6 +425,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         compose: str,
         artifacts: Optional[List[Dict[str, Union[List[str], str]]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
+        additional_build: Optional["CoprBuildTargetModel"] = None,
     ) -> dict:
         """Prepare a Testing Farm request payload.
 
@@ -443,6 +444,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         distro, arch = target.rsplit("-", 1)
         tmt = self._construct_test_payload()
 
+        packit_copr_projects = []
+
         if build is not None:
             build_log_url = build.build_logs_url
             srpm_build = build.get_srpm_build()
@@ -452,8 +455,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 nvr = f"{nvr_data['name']}-{nvr_data['version']}-{nvr_data['release']}"
             else:
                 nvr = None
+            packit_copr_projects.append(f"{build.owner}/{build.project_name}")
         else:
             build_log_url = nvr = srpm_url = None
+
+        if additional_build is not None:
+            packit_copr_projects.append(
+                f"{additional_build.owner}/{additional_build.project_name}"
+            )
 
         packit_copr_rpms = (
             [
@@ -486,8 +495,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_SOURCE_URL": self.source_project_url,
             "PACKIT_TARGET_URL": self.target_project_url,
             "PACKIT_PR_ID": self.pr_id,
-            "PACKIT_COPR_PROJECT": f"{build.owner}/{build.project_name}"
-            if build
+            "PACKIT_COPR_PROJECT": " ".join(packit_copr_projects)
+            if packit_copr_projects
             else None,
             "PACKIT_COPR_RPMS": " ".join(packit_copr_rpms)
             if packit_copr_rpms
@@ -917,6 +926,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 compose=compose,
                 artifacts=self._get_artifacts(chroot, build, additional_build),
                 build=build,
+                additional_build=additional_build,
             )
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(
