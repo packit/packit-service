@@ -38,7 +38,7 @@ def test_verification_successful():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)
@@ -100,7 +100,7 @@ def test_verification_not_successful():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)
@@ -170,7 +170,7 @@ def test_verification_incorrect_format(comment):
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)
@@ -224,7 +224,7 @@ def test_verification_already_approved():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)
@@ -275,7 +275,7 @@ def test_verification_wrong_repository():
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").never()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)
@@ -303,7 +303,7 @@ def test_verification_wrong_issue():
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(Signature).should_receive("apply_async").never()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)
@@ -331,7 +331,7 @@ def test_verification_not_original_triggerer():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(None)
+    flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(None)

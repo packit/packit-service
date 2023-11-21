@@ -130,7 +130,7 @@ jobs:
         tarball_url="https://foo/bar",
         git_tag=flexmock(GitTag),
     )
-    flexmock(project_class).should_receive("get_latest_release").and_return(gr)
+    flexmock(project_class).should_receive("get_releases").and_return([gr])
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp = flexmock(git_project=flexmock(default_branch="main"))
     lp.working_dir = ""
@@ -313,7 +313,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
         project=PagureProject, fail_when_missing=False
     ).and_return(PackageConfig)
 
-    project.should_receive("get_latest_release").and_return(flexmock(tag_name="123"))
+    project.should_receive("get_releases").and_return([flexmock(tag_name="123")])
     project.should_receive("get_sha_from_tag").and_return("abcdef")
     project.should_receive("has_write_access").and_return(True)
     db_project_object = flexmock(
