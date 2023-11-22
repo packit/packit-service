@@ -563,8 +563,8 @@ class TestEvents:
         assert event_object.project.full_repo_name == "packit-service/packit"
         assert not event_object.base_project
 
-        flexmock(event_object.project).should_receive("get_latest_release").and_return(
-            flexmock(tag_name="0.5.0")
+        flexmock(event_object.project).should_receive("get_releases").and_return(
+            [flexmock(tag_name="0.5.0")]
         )
         flexmock(GithubProject, get_sha_from_tag=lambda tag_name: "123456")
         flexmock(PackageConfigGetter).should_receive(
@@ -588,9 +588,7 @@ class TestEvents:
         assert event_object.project.full_repo_name == "packit-service/packit"
         assert not event_object.base_project
 
-        flexmock(event_object.project).should_receive("get_latest_release").and_return(
-            None
-        )
+        flexmock(event_object.project).should_receive("get_releases").and_return([])
         flexmock(GithubProject).should_receive("get_sha_from_tag").never()
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -625,8 +623,8 @@ class TestEvents:
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
-        flexmock(event_object.project).should_receive("get_latest_release").and_return(
-            flexmock(tag_name="0.5.0")
+        flexmock(event_object.project).should_receive("get_releases").and_return(
+            [flexmock(tag_name="0.5.0")]
         )
         flexmock(event_object.project, get_sha_from_tag=lambda tag_name: "123456")
         flexmock(PackageConfigGetter).should_receive(

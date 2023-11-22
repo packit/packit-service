@@ -161,8 +161,8 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
     def tag_name(self):
         if not self._tag_name:
             self._tag_name = ""
-            if latest_release := self.project.get_latest_release():
-                self._tag_name = latest_release.tag_name
+            if releases := self.project.get_releases():
+                self._tag_name = releases[0].tag_name
         return self._tag_name
 
     @property
