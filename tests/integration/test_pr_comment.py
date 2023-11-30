@@ -2611,6 +2611,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         sync_default_files=False,
         add_pr_instructions=True,
         resolved_bugs=["rhbz#123", "rhbz#124"],
+        release_monitoring_project_id=None,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 

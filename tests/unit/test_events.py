@@ -1672,6 +1672,7 @@ class TestEvents:
         assert isinstance(event_object, NewHotnessUpdateEvent)
         assert isinstance(event_object.project, PagureProject)
         assert event_object.package_name == "redis"
+        assert event_object.release_monitoring_project_id == 4181
         assert event_object.repo_namespace == repo_namespace
         assert event_object.repo_name == repo_name
         assert (

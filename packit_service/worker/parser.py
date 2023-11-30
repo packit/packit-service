@@ -1551,6 +1551,9 @@ class Parser:
         version = nested_get(event, "trigger", "msg", "project", "version")
 
         bug_id = nested_get(event, "bug", "bug_id")
+        release_monitoring_project_id = nested_get(
+            event, "trigger", "msg", "project", "id"
+        )
 
         logger.info(
             f"New hotness update event for package: {package_name}, version: {version},"
@@ -1562,6 +1565,7 @@ class Parser:
             version=version,
             distgit_project_url=distgit_project_url,
             bug_id=bug_id,
+            release_monitoring_project_id=release_monitoring_project_id,
         )
 
     # The .__func__ are needed for Python < 3.10

@@ -243,6 +243,9 @@ class AbstractSyncReleaseHandler(
                 sync_default_files=not is_pull_from_upstream_job,
                 add_pr_instructions=True,
                 resolved_bugs=self.get_resolved_bugs(),
+                release_monitoring_project_id=self.data.event_dict.get(
+                    "release_monitoring_project_id"
+                ),
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
