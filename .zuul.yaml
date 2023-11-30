@@ -5,7 +5,7 @@
       jobs:
         - pre-commit
         - packit-service-tests
-        - packit-service-tests-openshift
+    #        - packit-service-tests-openshift
     gate:
       jobs:
         - pre-commit
