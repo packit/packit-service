@@ -151,6 +151,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         sync_default_files=False,
         add_pr_instructions=True,
         resolved_bugs=["rhbz#2106196"],
+        release_monitoring_project_id=4181,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 

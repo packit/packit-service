@@ -163,6 +163,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         sync_default_files=True,
         add_pr_instructions=True,
         resolved_bugs=[],
+        release_monitoring_project_id=None,
     ).and_return(pr).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
