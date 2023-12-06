@@ -138,6 +138,16 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
 
     def pre_check(self) -> bool:
         if (
+            not self.testing_farm_job_helper.comment_arguments.labels
+            and not self.testing_farm_job_helper.comment_arguments.identifier
+            and (default_identifier := self.job_config.test_command.default_identifier)
+        ):
+            logger.info(
+                f"Using the default identifier for test command: {default_identifier}"
+            )
+            return self.job_config.identifier == default_identifier
+
+        if (
             not self.testing_farm_job_helper.comment_arguments.identifier
             or self.testing_farm_job_helper.comment_arguments.identifier
             == self.job_config.identifier
@@ -160,6 +170,17 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
     """
 
     def pre_check(self) -> bool:
+        if (
+            not self.testing_farm_job_helper.comment_arguments.labels
+            and not self.testing_farm_job_helper.comment_arguments.identifier
+            and (default_labels := self.job_config.test_command.default_labels)
+        ):
+            logger.info(f"Using the default labels for test command: {default_labels}")
+            if not self.job_config.labels:
+                return False
+
+            return any(x in default_labels for x in self.job_config.labels)
+
         if not self.testing_farm_job_helper.comment_arguments.labels or (
             self.job_config.labels
             and any(

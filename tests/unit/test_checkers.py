@@ -11,6 +11,8 @@ from packit.config import (
     JobConfigView,
     JobConfig,
 )
+
+from packit.config.commands import TestCommandConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.copr import (
@@ -507,6 +509,7 @@ def test_tf_comment_identifier(comment, result):
         manual_trigger=True,
         packages={"package": CommonPackageConfig()},
         identifier="my-id-1",
+        test_command=TestCommandConfig(default_labels=None, default_identifier=None),
     )
 
     event = {
@@ -535,6 +538,94 @@ def test_tf_comment_identifier(comment, result):
         package_config=package_config, job_config=job_config, event=event
     )
 
+    assert checker.pre_check() == result
+
+
+@pytest.mark.parametrize(
+    "comment, default_identifier, job_identifier, result",
+    (
+        pytest.param(
+            "/packit-dev test --identifier my-id2",
+            "id1",
+            "id1",
+            False,
+            id="Identifier specified in comment",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            None,
+            "id1",
+            True,
+            id="No identifier specified, no default identifier",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            "id1",
+            "id1",
+            True,
+            id="No identifier specified, default identifier matching",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            "id1",
+            "id2",
+            False,
+            id="No identifier specified, default identifier not matching",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            "id1",
+            None,
+            False,
+            id="No identifier specified, default identifier not matching (job without label)",
+        ),
+    ),
+)
+def test_tf_comment_default_identifier(
+    comment, default_identifier, job_identifier, result
+):
+    """
+    Check that Testing Farm checker for comment attributes works properly.
+    """
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        targets={"fedora-37"},
+        skip_build=True,
+        manual_trigger=True,
+        packages={"package": CommonPackageConfig()},
+        identifier=job_identifier,
+        test_command=TestCommandConfig(
+            default_labels=None, default_identifier=default_identifier
+        ),
+    )
+
+    event = {
+        "event_type": PullRequestCommentGithubEvent.__name__,
+        "comment": comment,
+    }
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_object = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+
+    checker = IsIdentifierFromCommentMatching(
+        package_config=package_config, job_config=job_config, event=event
+    )
     assert checker.pre_check() == result
 
 
@@ -572,6 +663,95 @@ def test_tf_comment_labels(comment, result):
         packages={"package": CommonPackageConfig()},
         identifier="my-id-1",
         labels=["label1", "label3"],
+        test_command=TestCommandConfig(default_labels=None, default_identifier=None),
+    )
+
+    event = {
+        "event_type": PullRequestCommentGithubEvent.__name__,
+        "comment": comment,
+    }
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_object = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+
+    checker = IsLabelFromCommentMatching(
+        package_config=package_config, job_config=job_config, event=event
+    )
+
+    assert checker.pre_check() == result
+
+
+@pytest.mark.parametrize(
+    "comment, default_labels, job_labels, result",
+    (
+        pytest.param(
+            "/packit-dev test --labels label1,label2",
+            ["label3"],
+            ["label3"],
+            False,
+            id="Labels specified in comment",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            None,
+            ["label1"],
+            True,
+            id="No labels specified, no default labels",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            ["label2"],
+            ["label1", "label2"],
+            True,
+            id="No labels specified, default labels matching",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            ["label3"],
+            ["label1", "label2"],
+            False,
+            id="No labels specified, default labels not matching",
+        ),
+        pytest.param(
+            "/packit-dev test",
+            ["label3"],
+            [],
+            False,
+            id="No labels specified, default labels not matching (job without label)",
+        ),
+    ),
+)
+def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
+    """
+    Check that Testing Farm checker for comment attributes works properly.
+    """
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        targets={"fedora-37"},
+        skip_build=True,
+        manual_trigger=True,
+        packages={"package": CommonPackageConfig()},
+        identifier="my-id-1",
+        labels=job_labels,
+        test_command=TestCommandConfig(
+            default_labels=default_labels, default_identifier=None
+        ),
     )
 
     event = {
@@ -634,6 +814,7 @@ def test_tf_comment_labels_none_in_config(comment, result):
         packages={"package": CommonPackageConfig()},
         labels=None,
         identifier="my-id-1",
+        test_command=TestCommandConfig(default_labels=None, default_identifier=None),
     )
 
     event = {
