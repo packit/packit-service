@@ -781,7 +781,6 @@ class GitProjectModel(Base):
                 PipelineModel.project_event_id == ProjectEventModel.id,
             )
             .filter(ProjectEventModel.type == project_event_type)
-            .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
         )
         if datetime_from:
             query = query.filter(PipelineModel.datetime >= datetime_from)
@@ -897,8 +896,6 @@ class GitProjectModel(Base):
             )
             .join(job_result_model, job_result_model.id == pipeline_attribute)
             .filter(ProjectEventModel.type == project_event_type)
-            # We have all the dist git projects in because of how we parse the events.
-            .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
         )
         if datetime_from:
             query = query.filter(PipelineModel.datetime >= datetime_from)
