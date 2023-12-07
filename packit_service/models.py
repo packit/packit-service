@@ -4488,153 +4488,36 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10) -> dict:
     jobs:
       copr_build_targets:
         job_runs: 530955
-        per_event:
-          branch_push:
-            job_runs: 48160
-            top_projects_by_job_runs:
-              https://github.com/osandov/drgn: 5812
-              https://github.com/osbuild/osbuild: 7078
-              https://github.com/osbuild/osbuild-composer: 12847
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 481561
-            top_projects_by_job_runs:
-              https://github.com/osbuild/osbuild: 31108
-              https://github.com/osbuild/osbuild-composer: 93939
-              https://github.com/systemd/systemd: 60158
-          release:
-            job_runs: 1234
-            top_projects_by_job_runs:
-              https://github.com/facebook/folly: 340
-              https://github.com/packit/ogr: 104
-              https://github.com/packit/packit: 174
         top_projects_by_job_runs:
           https://github.com/osbuild/osbuild: 38186
           https://github.com/osbuild/osbuild-composer: 106786
           https://github.com/systemd/systemd: 60158
       koji_build_targets:
         job_runs: 1466
-        per_event:
-          branch_push:
-            job_runs: 56
-            top_projects_by_job_runs:
-              https://github.com/besser82/libxcrypt: 46
-              https://github.com/ostreedev/ostree: 10
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 1410
-            top_projects_by_job_runs:
-              https://github.com/containers/podman: 297
-              https://github.com/packit/ogr: 509
-              https://github.com/rear/rear: 267
-          release:
-            job_runs: 0
-            top_projects_by_job_runs: {}
         top_projects_by_job_runs:
           https://github.com/containers/podman: 297
           https://github.com/packit/ogr: 509
           https://github.com/rear/rear: 267
       srpm_builds:
         job_runs: 103695
-        per_event:
-          branch_push:
-            job_runs: 7084
-            top_projects_by_job_runs:
-              https://github.com/osbuild/osbuild-composer: 646
-              https://github.com/packit/packit: 549
-              https://github.com/rhinstaller/anaconda: 1015
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 96305
-            top_projects_by_job_runs:
-              https://github.com/cockpit-project/cockpit: 6915
-              https://github.com/packit/hello-world: 10401
-              https://github.com/systemd/systemd: 14489
-          release:
-            job_runs: 306
-            top_projects_by_job_runs:
-              https://github.com/facebook/folly: 40
-              https://github.com/packit/ogr: 34
-              https://github.com/packit/packit: 54
         top_projects_by_job_runs:
           https://github.com/cockpit-project/cockpit: 6937
           https://github.com/packit/hello-world: 10409
           https://github.com/systemd/systemd: 14489
       sync_release_runs:
         job_runs: 419
-        per_event:
-          branch_push:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          issue:
-            job_runs: 22
-            top_projects_by_job_runs:
-              https://github.com/martinpitt/python-dbusmock: 3
-              https://github.com/packit/packit: 3
-              https://github.com/packit/specfile: 6
-          pull_request:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          release:
-            job_runs: 397
-            top_projects_by_job_runs:
-              https://github.com/martinpitt/python-dbusmock: 35
-              https://github.com/packit/packit: 35
-              https://github.com/rhinstaller/anaconda: 34
         top_projects_by_job_runs:
           https://github.com/martinpitt/python-dbusmock: 38
           https://github.com/packit/packit: 38
           https://github.com/rhinstaller/anaconda: 34
       tft_test_run_targets:
         job_runs: 150525
-        per_event:
-          branch_push:
-            job_runs: 441
-            top_projects_by_job_runs:
-              https://github.com/oamg/convert2rhel: 209
-              https://github.com/packit-service/packit: 50
-              https://github.com/python-bugzilla/python-bugzilla: 88
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 150026
-            top_projects_by_job_runs:
-              https://github.com/cockpit-project/cockpit: 21157
-              https://github.com/oamg/convert2rhel: 15297
-              https://github.com/teemtee/tmt: 22136
-          release:
-            job_runs: 58
-            top_projects_by_job_runs:
-              https://github.com/fedora-infra/fedora-messaging: 8
-              https://github.com/fedora-iot/zezere: 8
-              https://github.com/psss/tmt: 21
         top_projects_by_job_runs:
           https://github.com/cockpit-project/cockpit: 21157
           https://github.com/oamg/convert2rhel: 15506
           https://github.com/teemtee/tmt: 22136
       vm_image_build_targets:
         job_runs: 2
-        per_event:
-          branch_push:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 2
-            top_projects_by_job_runs:
-              https://github.com/packit/ogr: 2
-          release:
-            job_runs: 0
-            top_projects_by_job_runs: {}
         top_projects_by_job_runs:
           https://github.com/packit/ogr: 2
 
@@ -4666,24 +4549,6 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10) -> dict:
                 top=top,
                 job_result_model=job_model,
             ),
-        }
-        jobs[job_model.__tablename__]["per_event"] = {
-            project_event_type.value: {
-                "job_runs": GitProjectModel.get_job_usage_numbers_count(
-                    datetime_from=datetime_from,
-                    datetime_to=datetime_to,
-                    job_result_model=job_model,
-                    project_event_type=project_event_type,
-                ),
-                "top_projects_by_job_runs": GitProjectModel.get_job_usage_numbers(
-                    datetime_from=datetime_from,
-                    datetime_to=datetime_to,
-                    top=top,
-                    job_result_model=job_model,
-                    project_event_type=project_event_type,
-                ),
-            }
-            for project_event_type in ProjectEventModelType
         }
 
     return {
