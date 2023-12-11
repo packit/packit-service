@@ -925,10 +925,14 @@ def test_precheck_koji_build_push_pr(
     flexmock(PagureProject).should_receive("get_pr_list").and_return(
         [
             flexmock(
+                id=5,
                 author=pr_author,
                 head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
             )
         ]
+    )
+    flexmock(PagureProject).should_receive("get_pr_files_diff").with_args(5).and_return(
+        {"package.spec": []}
     )
     package_config = (
         PackageConfig(

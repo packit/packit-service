@@ -24,6 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
+    def contains_specfile_change(self):
+        """
+        Check whether the dist-git commit contains
+        any specfile change (do the check only for pushes from PRs,
+        with direct pushes we do the filtering in fedmsg).
+        """
+        if not self.pull_request:
+            return True
+
+        pr_id = self.pull_request.id
+        diff = self.project.get_pr_files_diff(pr_id) or {}
+        if not any(change.endswith(".spec") for change in diff):
+            logger.info(f"PR {pr_id} does not contain a specfile change.")
+            return False
+        return True
+
     def pre_check(self) -> bool:
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.data.git_ref not in (
@@ -40,6 +56,16 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                 return False
 
             if self.data.event_dict["committer"] == "pagure":
+                if not self.pull_request:
+                    logger.debug(
+                        "Not able to get the pull request "
+                        "(may not be the head commit of the PR)."
+                    )
+                    return False
+
+                if not self.contains_specfile_change():
+                    return False
+
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")
                 if pr_author not in self.job_config.allowed_pr_authors:
