@@ -1,12 +1,15 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from datetime import datetime, timezone
+from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from logging import getLogger
-from typing import Any
+from typing import Any, Union
 
-from flask import request
+from cachetools.func import ttl_cache
+
+from flask import request, escape
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
@@ -24,6 +27,11 @@ from packit_service.service.api.utils import response_maker
 logger = getLogger("packit_service")
 
 usage_ns = Namespace("usage", description="Data about Packit usage")
+
+_CACHE_MAXSIZE = 100
+
+__now = datetime.now()
+_DATE_IN_THE_PAST = __now.replace(year=__now.year - 100)
 
 
 @usage_ns.route("")
@@ -607,3 +615,205 @@ def get_result_dictionary(
         else None
     )
     return {position_name: position, count_name: top_projects.get(project)}
+
+
+def _get_past_usage_data(usage_from=None, usage_to=None, top=5):
+    # Even though frontend expects only the first N (=5) to be present
+    # in the project lists, we need to get all to calculate the number
+    # of active projects.
+    # (This info will be added to the payload for frontend.)
+    # The original `top` argument will be used later
+    # to get the expected number of projects in the response.
+    top_all_project = 100000
+
+    raw_result = get_usage_data(
+        usage_from=usage_from, usage_to=usage_to, top=top_all_project
+    )
+    return response_maker(
+        {
+            "active_projects": raw_result["active_projects"],
+            "jobs": {
+                job: {
+                    "job_runs": data["job_runs"],
+                    "top_projects_by_job_runs": dict(
+                        list(OrderedDict(data["top_projects_by_job_runs"]).items())[
+                            :top
+                        ]
+                    ),
+                    "active_projects": len(data["top_projects_by_job_runs"]),
+                }
+                for job, data in raw_result["jobs"].items()
+            },
+        }
+    )
+
+
+@usage_ns.route("/past-day")
+class UsagePastDay(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).seconds)
+    def get(self):
+        yesterday_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        return _get_past_usage_data(usage_from=yesterday_date)
+
+
+@usage_ns.route("/past-week")
+class UsagePastWeek(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).seconds)
+    def get(self):
+        past_week_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        return _get_past_usage_data(usage_from=past_week_date)
+
+
+@usage_ns.route("/past-month")
+class UsagePastMonth(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).seconds)
+    def get(self):
+        now = datetime.now()
+        past_month_past_day = now.replace(day=1) - timedelta(days=1)
+        past_month_date = now.replace(
+            year=past_month_past_day.year, month=past_month_past_day.month
+        ).strftime("%Y-%m-%d")
+        return _get_past_usage_data(usage_from=past_month_date)
+
+
+@usage_ns.route("/past-year")
+class UsagePastYear(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).seconds)
+    def get(self):
+        now = datetime.now()
+        past_year_date = now.replace(year=now.year - 1).strftime("%Y-%m-%d")
+        return _get_past_usage_data(usage_from=past_year_date)
+
+
+@usage_ns.route("/total")
+class UsageTotal(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).seconds)
+    def get(self):
+        past_date = _DATE_IN_THE_PAST.strftime("%Y-%m-%d")
+        return _get_past_usage_data(usage_from=past_date)
+
+
+# format the chart needs is a list of {"x": "datetimelegend", "y": value}
+CHART_DATA_TYPE = list[dict[str, Union[str, int]]]
+
+
+@ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).seconds)
+def _get_usage_interval_data(
+    days: int, hours: int, count: int
+) -> dict[str, Union[str, CHART_DATA_TYPE, dict[str, CHART_DATA_TYPE]]]:
+    """
+    :param days: number of days for the interval length
+    :param hours: number of days for the interval length
+    :param count: number of intervals
+    :return: usage data for the COUNT number of intervals
+      (delta is DAYS number of days and HOURS number of hours)
+    """
+    delta = timedelta(days=days, hours=hours)
+
+    current_date = datetime.now()
+    days_legend = []
+    for _ in range(count):
+        days_legend.append(current_date)
+        current_date -= delta
+
+    result_jobs: dict[str, CHART_DATA_TYPE] = {}
+    result_jobs_project_count: dict[str, CHART_DATA_TYPE] = {}
+    result_jobs_project_cumulative_count: dict[str, CHART_DATA_TYPE] = {}
+    result_events: dict[str, CHART_DATA_TYPE] = {}
+    result_active_projects: CHART_DATA_TYPE = []
+    result_active_projects_cumulative: CHART_DATA_TYPE = []
+
+    past_data = get_usage_data(
+        datetime_from=_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
+    )
+    cumulative_projects_past = set(
+        past_data["active_projects"]["top_projects_by_events_handled"].keys()
+    )
+    cumulative_projects = cumulative_projects_past.copy()
+    cumulative_projects_for_jobs_past = {
+        job: set(data["top_projects_by_job_runs"].keys())
+        for job, data in past_data["jobs"].items()
+    }
+    cumulative_projects_for_jobs = cumulative_projects_for_jobs_past.copy()
+
+    for day in reversed(days_legend):
+        day_from = (day - delta).isoformat()
+        day_to = day.isoformat()
+        legend = day.strftime("%H:%M" if (hours and not days) else "%Y-%m-%d")
+
+        interval_result = get_usage_data(
+            datetime_from=day_from, datetime_to=day_to, top=100000
+        )
+
+        for job, data in interval_result["jobs"].items():
+            result_jobs.setdefault(job, [])
+            result_jobs[job].append({"x": legend, "y": data["job_runs"]})
+            result_jobs_project_count.setdefault(job, [])
+            result_jobs_project_count[job].append(
+                {"x": legend, "y": len(data["top_projects_by_job_runs"])}
+            )
+
+            cumulative_projects_for_jobs[job] |= data["top_projects_by_job_runs"].keys()
+            result_jobs_project_cumulative_count.setdefault(job, [])
+            result_jobs_project_cumulative_count[job].append(
+                {"x": legend, "y": len(cumulative_projects_for_jobs[job])}
+            )
+
+        for event, data in interval_result["events"].items():
+            result_events.setdefault(event, [])
+            result_events[event].append({"x": legend, "y": data["events_handled"]})
+
+        result_active_projects.append(
+            {"x": legend, "y": interval_result["active_projects"].get("project_count")}
+        )
+        cumulative_projects |= interval_result["active_projects"][
+            "top_projects_by_events_handled"
+        ].keys()
+        result_active_projects_cumulative.append(
+            {"x": legend, "y": len(cumulative_projects)}
+        )
+
+    onboarded_projects_per_job = {}
+    for job, data in past_data["jobs"].items():
+        onboarded_projects_per_job[job] = list(
+            cumulative_projects_for_jobs[job] - cumulative_projects_for_jobs_past[job]
+        )
+
+    return response_maker(
+        {
+            "jobs": result_jobs,
+            "jobs_project_count": result_jobs_project_count,
+            "jobs_project_cumulative_count": result_jobs_project_cumulative_count,
+            "events": result_events,
+            "from": days_legend[0].isoformat(),
+            "to": days_legend[-1].isoformat(),
+            "active_projects": result_active_projects,
+            "active_projects_cumulative": result_active_projects_cumulative,
+            "onboarded_projects": list(cumulative_projects - cumulative_projects_past),
+            "onboarded_projects_per_job": onboarded_projects_per_job,
+        }
+    )
+
+
+@usage_ns.route("/intervals")
+class UsageIntervals(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    def get(self):
+        """
+        Returns the data for trend charts.
+
+        Use `days` and `hours` parameters to define interval and `count` to set number of intervals.
+
+        Examples:
+        /api/usage/intervals/past?days=7&hours=0&count=52 for the weekly data of the last year
+        /api/usage/intervals?days=0&hours=1&count=24 for the hourly data of the last day
+        """
+        count = int(escape(request.args.get("count", "10")))
+        delta_hours = int(escape(request.args.get("hours", "0")))
+        delta_days = int(escape(request.args.get("days", "0")))
+        return _get_usage_interval_data(hours=delta_hours, days=delta_days, count=count)
