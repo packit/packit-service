@@ -617,7 +617,7 @@ def get_result_dictionary(
     return {position_name: position, count_name: top_projects.get(project)}
 
 
-def _get_past_usage_data(usage_from=None, usage_to=None, top=5):
+def _get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
     # Even though frontend expects only the first N (=5) to be present
     # in the project lists, we need to get all to calculate the number
     # of active projects.
@@ -627,7 +627,7 @@ def _get_past_usage_data(usage_from=None, usage_to=None, top=5):
     top_all_project = 100000
 
     raw_result = get_usage_data(
-        usage_from=usage_from, usage_to=usage_to, top=top_all_project
+        datatime_from=datetime_from, datetime_to=datetime_to, top=top_all_project
     )
     return response_maker(
         {
@@ -654,7 +654,7 @@ class UsagePastDay(Resource):
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).seconds)
     def get(self):
         yesterday_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        return _get_past_usage_data(usage_from=yesterday_date)
+        return _get_past_usage_data(datetime_from=yesterday_date)
 
 
 @usage_ns.route("/past-week")
@@ -663,7 +663,7 @@ class UsagePastWeek(Resource):
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).seconds)
     def get(self):
         past_week_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        return _get_past_usage_data(usage_from=past_week_date)
+        return _get_past_usage_data(datetime_from=past_week_date)
 
 
 @usage_ns.route("/past-month")
@@ -676,7 +676,7 @@ class UsagePastMonth(Resource):
         past_month_date = now.replace(
             year=past_month_past_day.year, month=past_month_past_day.month
         ).strftime("%Y-%m-%d")
-        return _get_past_usage_data(usage_from=past_month_date)
+        return _get_past_usage_data(datetime_from=past_month_date)
 
 
 @usage_ns.route("/past-year")
@@ -686,7 +686,7 @@ class UsagePastYear(Resource):
     def get(self):
         now = datetime.now()
         past_year_date = now.replace(year=now.year - 1).strftime("%Y-%m-%d")
-        return _get_past_usage_data(usage_from=past_year_date)
+        return _get_past_usage_data(datetime_from=past_year_date)
 
 
 @usage_ns.route("/total")
@@ -695,7 +695,7 @@ class UsageTotal(Resource):
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).seconds)
     def get(self):
         past_date = _DATE_IN_THE_PAST.strftime("%Y-%m-%d")
-        return _get_past_usage_data(usage_from=past_date)
+        return _get_past_usage_data(datetime_from=past_date)
 
 
 # format the chart needs is a list of {"x": "datetimelegend", "y": value}
