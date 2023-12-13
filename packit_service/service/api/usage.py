@@ -627,7 +627,7 @@ def _get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
     top_all_project = 100000
 
     raw_result = get_usage_data(
-        datatime_from=datetime_from, datetime_to=datetime_to, top=top_all_project
+        datetime_from=datetime_from, datetime_to=datetime_to, top=top_all_project
     )
     return response_maker(
         {
