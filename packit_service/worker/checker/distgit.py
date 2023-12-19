@@ -4,6 +4,7 @@
 import logging
 import re
 
+from ogr.abstract import PRStatus
 from packit.config.aliases import get_branches
 from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.worker.checker.abstract import Checker, ActorChecker
@@ -32,6 +33,11 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
         """
         if not self.pull_request:
             return True
+
+        logger.debug(f"PR status: {self.pull_request.status}")
+        while self.pull_request.status != PRStatus.merged:
+            # PR is still transitioning to merged state, getting a diff would most likely fail
+            self._pull_request = None
 
         pr_id = self.pull_request.id
         diff = self.project.get_pr_files_diff(pr_id) or {}
