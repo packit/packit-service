@@ -34,7 +34,10 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
             return True
 
         pr_id = self.pull_request.id
-        diff = self.project.get_pr_files_diff(pr_id) or {}
+        logger.debug(f"PR {pr_id} status: {self.pull_request.status}")
+        # Pagure API tends to return ENOPRSTATS error when a pull request is transitioning
+        # from open to merged state, give it some extra time
+        diff = self.project.get_pr_files_diff(pr_id, retries=3, wait_seconds=3) or {}
         if not any(change.endswith(".spec") for change in diff):
             logger.info(f"PR {pr_id} does not contain a specfile change.")
             return False

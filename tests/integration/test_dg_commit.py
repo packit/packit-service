@@ -40,6 +40,8 @@ from packit_service.worker.tasks import (
     run_downstream_koji_build,
     run_sync_from_downstream_handler,
 )
+
+from ogr.abstract import PRStatus
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -928,12 +930,13 @@ def test_precheck_koji_build_push_pr(
                 id=5,
                 author=pr_author,
                 head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
+                status=PRStatus.open,
             )
         ]
     )
-    flexmock(PagureProject).should_receive("get_pr_files_diff").with_args(5).and_return(
-        {"package.spec": []}
-    )
+    flexmock(PagureProject).should_receive("get_pr_files_diff").with_args(
+        5, retries=3, wait_seconds=3
+    ).and_return({"package.spec": []})
     package_config = (
         PackageConfig(
             jobs=jobs,
