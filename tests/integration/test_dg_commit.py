@@ -935,7 +935,7 @@ def test_precheck_koji_build_push_pr(
         ]
     )
     flexmock(PagureProject).should_receive("get_pr_files_diff").with_args(
-        5, retries=3, wait_seconds=3
+        5, retries=int, wait_seconds=int
     ).and_return({"package.spec": []})
     package_config = (
         PackageConfig(
