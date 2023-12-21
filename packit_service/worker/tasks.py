@@ -7,6 +7,7 @@ from os import getenv
 from typing import List, Optional
 
 from celery import Task
+from celery._state import get_current_task
 from celery.signals import after_setup_logger
 from ogr import __version__ as ogr_version
 from sqlalchemy import __version__ as sqlal_version
@@ -90,6 +91,22 @@ def setup_loggers(logger, *args, **kwargs):
     logging.getLogger("sandcastle").setLevel(logging.INFO)
     # easier debugging
     logging.getLogger("packit").setLevel(logging.DEBUG)
+
+    class CustomFormatter(logging.Formatter):
+        def format(self, record):
+            task = get_current_task()
+            if task and task.request:
+                record.__dict__["task_info"] = f" {task.name}[{task.request.id}]"
+            else:
+                record.__dict__["task_info"] = ""
+            return super().format(record)
+
+    # add task name and id to log messages from tasks
+    logger.handlers[0].setFormatter(
+        CustomFormatter(
+            "[%(asctime)s: %(levelname)s/%(processName)s]%(task_info)s %(message)s"
+        )
+    )
 
     syslog_host = getenv("SYSLOG_HOST", "fluentd")
     syslog_port = int(getenv("SYSLOG_PORT", 5140))
