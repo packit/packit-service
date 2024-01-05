@@ -1,11 +1,13 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import logging
 
 from typing import Union, Optional, Dict
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
-from packit.config import JobConfigTriggerType
+from packit.config import JobConfigTriggerType, PackageConfig
+from packit_service.config import PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     AbstractProjectObjectDbType,
@@ -19,6 +21,8 @@ from packit_service.worker.events.event import (
     use_for_job_config_trigger,
     AbstractResultEvent,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractKojiEvent(AbstractResultEvent):
@@ -151,6 +155,23 @@ class KojiBuildEvent(AbstractKojiEvent):
         self.namespace = namespace
         self.repo_name = repo_name
         self.project_url = project_url
+
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        logger.debug(
+            f"Getting packages_config:\n"
+            f"\tproject: {self.project}\n"
+            f"\tdefault_branch: {self.project.default_branch}\n"
+        )
+
+        packages_config = PackageConfigGetter.get_package_config_from_repo(
+            base_project=None,
+            project=self.project,
+            pr_id=None,
+            reference=self.project.default_branch,
+            fail_when_missing=self.fail_when_config_file_missing,
+        )
+
+        return packages_config
 
     @property
     def commit_sha(self) -> Optional[str]:  # type:ignore

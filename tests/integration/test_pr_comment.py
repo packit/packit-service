@@ -2337,6 +2337,28 @@ def test_pr_test_command_handler_multiple_builds(
 
 
 def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
+    packit_yaml = (
+        "{'specfile_path': 'python-teamcity-messages.spec', 'synced_files': [],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'downstream_package_name': 'python-ogr', 'issue_repository': "
+        "'https://github.com/namespace/repo'}"
+    )
+    pagure_project = flexmock(
+        PagureProject,
+        full_repo_name="rpms/packit",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/python-teamcity-messages",
+        default_branch="main",
+    )
+    pagure_project.should_receive("get_files").with_args(
+        ref="main", filter_regex=r".+\.spec$"
+    ).and_return(["python-teamcity-messages.spec"])
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="main"
+    ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="main", recursive=False
+    ).and_return(["python-teamcity-messages.spec", ".packit.yaml"])
+
     pagure_pr_comment_added["pullrequest"]["comments"][0][
         "comment"
     ] = "/packit koji-build"
@@ -2486,13 +2508,13 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     )
 
     pagure_project.should_receive("get_files").with_args(
-        ref="beaf90bcecc51968a46663f8d6f092bfdc92e682", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["jouduv-dort.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="beaf90bcecc51968a46663f8d6f092bfdc92e682"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="beaf90bcecc51968a46663f8d6f092bfdc92e682", recursive=False
+        ref="main", recursive=False
     ).and_return(["jouduv-dort.spec", ".packit.yaml"])
 
     flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(True)

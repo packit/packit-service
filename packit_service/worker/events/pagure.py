@@ -33,6 +33,23 @@ class AbstractPagureEvent(AbstractForgeIndependentEvent):
             str
         ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        logger.debug(
+            f"Getting packages_config:\n"
+            f"\tproject: {self.project}\n"
+            f"\tdefault_branch: {self.project.default_branch}\n"
+        )
+
+        packages_config = PackageConfigGetter.get_package_config_from_repo(
+            base_project=None,
+            project=self.project,
+            pr_id=None,
+            reference=self.project.default_branch,
+            fail_when_missing=self.fail_when_config_file_missing,
+        )
+
+        return packages_config
+
 
 class PushPagureEvent(AddBranchPushEventToDb, AbstractPagureEvent):
     def __init__(
@@ -118,25 +135,39 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
             return super().get_packages_config()
         command = commands[0]
         args = commands[1] if len(commands) > 1 else ""
-        if command == "pull-from-upstream" and "--with-pr-config" not in args:
-            # when retriggering pull-from-upstream from PR comment
-            # take packages config from the downstream default branch
+        if command == "pull-from-upstream" and "--with-pr-config" in args:
+            # take packages config from the corresponding branch
+            # for pull-from-upstream --with-pr-config
             logger.debug(
                 f"Getting packages_config:\n"
                 f"\tproject: {self.project}\n"
                 f"\tbase_project: {self.base_project}\n"
-                f"\treference: {self.base_project.default_branch}\n"
+                f"\treference: {self.commit_sha}\n"
+                f"\tpr_id: {self.pr_id}"
             )
             packages_config = PackageConfigGetter.get_package_config_from_repo(
                 base_project=self.base_project,
                 project=self.project,
-                reference=self.base_project.default_branch,
-                pr_id=None,
-                fail_when_missing=True,
+                reference=self.commit_sha,
+                pr_id=self.pr_id,
+                fail_when_missing=self.fail_when_config_file_missing,
             )
-            return packages_config
+
         else:
-            return super().get_packages_config()
+            logger.debug(
+                f"Getting packages_config:\n"
+                f"\tproject: {self.project}\n"
+                f"\tdefault_branch: {self.base_project.default_branch}\n"
+            )
+            packages_config = PackageConfigGetter.get_package_config_from_repo(
+                base_project=self.base_project,
+                project=self.project,
+                reference=self.project.default_branch,
+                pr_id=None,
+                fail_when_missing=self.fail_when_config_file_missing,
+            )
+
+        return packages_config
 
     @property
     def repo_url(self) -> Optional[RepoUrl]:
