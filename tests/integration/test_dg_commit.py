@@ -61,13 +61,13 @@ def test_sync_from_downstream():
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -139,13 +139,13 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -204,13 +204,13 @@ def test_downstream_koji_build():
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     db_project_object = flexmock(
@@ -289,13 +289,13 @@ def test_downstream_koji_build_failure_no_issue():
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     db_project_object = flexmock(
@@ -378,13 +378,13 @@ def test_downstream_koji_build_failure_issue_created():
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     db_project_object = flexmock(
@@ -473,13 +473,13 @@ def test_downstream_koji_build_failure_issue_comment():
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     db_project_object = flexmock(
@@ -571,10 +571,10 @@ def test_downstream_koji_build_no_config():
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", "Makefile"])
     flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").once()
 
@@ -649,13 +649,13 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     db_project_object = flexmock(
@@ -772,13 +772,13 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="abcd"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="abcd", recursive=False
+        ref="main", recursive=False
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(

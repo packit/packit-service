@@ -56,13 +56,13 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["python-ogr.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da", recursive=False
+        ref="main", recursive=False
     ).and_return(["python-ogr.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
@@ -114,6 +114,28 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
 
 
 def test_koji_build_error_msg(distgit_push_packit):
+    packit_yaml = (
+        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'downstream_package_name': 'python-ogr', 'issue_repository': "
+        "'https://github.com/packit/packit'}"
+    )
+    pagure_project = flexmock(
+        PagureProject,
+        full_repo_name="rpms/packit",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/packit",
+        default_branch="main",
+    )
+    pagure_project.should_receive("get_files").with_args(
+        ref="main", filter_regex=r".+\.spec$"
+    ).and_return(["packit.spec"])
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="main"
+    ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="main", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
+
     db_project_object = flexmock(
         id=123,
         job_config_trigger_type=JobConfigTriggerType.commit,

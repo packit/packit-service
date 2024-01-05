@@ -18,7 +18,10 @@ from packit.local_project import LocalProject
 from packit.pkgtool import PkgTool
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import TASK_ACCEPTED
+from packit_service.constants import (
+    TASK_ACCEPTED,
+    CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+)
 from packit_service.models import (
     ProjectEventModelType,
     ProjectEventModel,
@@ -180,6 +183,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         add_pr_instructions=True,
         resolved_bugs=[],
         release_monitoring_project_id=None,
+        pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -301,6 +305,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             add_pr_instructions=True,
             resolved_bugs=[],
             release_monitoring_project_id=None,
+            pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
         ).and_return(pr).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -432,6 +437,7 @@ def test_dist_git_push_release_handle_one_failed(
                 add_pr_instructions=True,
                 resolved_bugs=[],
                 release_monitoring_project_id=None,
+                pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
             ).and_return(pr).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -452,6 +458,7 @@ def test_dist_git_push_release_handle_one_failed(
                 add_pr_instructions=True,
                 resolved_bugs=[],
                 release_monitoring_project_id=None,
+                pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
             ).and_raise(Exception, f"Failed {model.branch}").once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -691,6 +698,7 @@ def test_retry_propose_downstream_task(
         add_pr_instructions=True,
         resolved_bugs=[],
         release_monitoring_project_id=None,
+        pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
@@ -800,6 +808,7 @@ def test_dont_retry_propose_downstream_task(
         add_pr_instructions=True,
         resolved_bugs=[],
         release_monitoring_project_id=None,
+        pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()

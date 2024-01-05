@@ -274,3 +274,13 @@ FAILURE_COMMENT_MESSAGE_VARIABLES = {
         "logs_url",
     )
 }
+
+CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE = (
+    ":warning: **Changed behaviour of loading the Packit configuration for koji_build "
+    "and bodhi_update jobs**\n\nWe would like to bring to your attention a recent update "
+    "regarding the loading of Packit configuration for `koji_build` and `bodhi_update` jobs. "
+    "Going forward, the configuration for these jobs will be loaded from the default repository"
+    " branch (`rawhide`) instead of the respective branches. This aligns with the behavior "
+    "of the `pull-from-upstream` job. We believe this adjustment will simplify the onboarding "
+    "process and enhance the overall user experience. "
+)

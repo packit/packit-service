@@ -17,6 +17,7 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
+    CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
@@ -137,6 +138,7 @@ class BodhiUpdateHandler(
             f"have also planned adding support for viewing the updates"
             f" in [Packit dashboard]({service_config.dashboard_url}), "
             f"see [this issue](https://github.com/packit/dashboard/issues/187))."
+            f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
 
     def report_in_issue_repository(

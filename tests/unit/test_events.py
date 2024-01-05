@@ -857,8 +857,8 @@ class TestEvents:
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
-            pr_id=36,
-            reference="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+            reference="rawhide",
+            pr_id=None,
             fail_when_missing=False,
         ).and_return(
             flexmock(get_package_config_views=lambda: {})
@@ -1102,10 +1102,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="0eb3e12005cb18f15d3054020f7ac934c01eae08",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1145,10 +1145,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1186,10 +1186,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1228,10 +1228,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="23806a208e32cc937f3a6eb151c62cbbc10d8f96",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="23806a208e32cc937f3a6eb151c62cbbc10d8f96"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1266,10 +1266,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="0eb3e12005cb18f15d3054020f7ac934c01eae08",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1308,10 +1308,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1351,10 +1351,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config
@@ -1394,10 +1394,10 @@ class TestEvents:
         )
         flexmock(PagureProject).should_receive("get_file_content").with_args(
             path=".distro/source-git.yaml",
-            ref="23806a208e32cc937f3a6eb151c62cbbc10d8f96",
+            ref="rawhide",
         ).and_raise(FileNotFoundError, "Not found.")
         flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path=".packit.yaml", ref="23806a208e32cc937f3a6eb151c62cbbc10d8f96"
+            path=".packit.yaml", ref="rawhide"
         ).and_return(packit_yaml)
 
         assert event_object.packages_config

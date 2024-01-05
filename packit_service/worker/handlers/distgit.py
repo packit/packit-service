@@ -30,6 +30,7 @@ from packit_service.constants import (
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     DEFAULT_RETRY_BACKOFF,
+    CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
 )
 from packit_service.models import (
     SyncReleaseTargetStatus,
@@ -246,6 +247,7 @@ class AbstractSyncReleaseHandler(
                 release_monitoring_project_id=self.data.event_dict.get(
                     "release_monitoring_project_id"
                 ),
+                pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
@@ -581,6 +583,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         return (
             "You can check the recent runs of pull from upstream jobs "
             f"in [Packit dashboard]({dashboard_url}/jobs/pull-from-upstreams)"
+            f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
 
     def get_resolved_bugs(self) -> List[str]:
@@ -859,6 +862,7 @@ class DownstreamKojiBuildHandler(
             f"in [Packit dashboard]({dashboard_url}/jobs/downstream-koji-builds). "
             f"You can also check the recent Koji build activity of `{user}` in [the Koji interface]"
             f"(https://koji.fedoraproject.org/koji/userinfo?userID={user_id})."
+            f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
 
 

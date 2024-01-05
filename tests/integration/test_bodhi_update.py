@@ -44,13 +44,13 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -115,13 +115,13 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
@@ -190,13 +190,13 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
@@ -275,13 +275,13 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
@@ -373,13 +373,13 @@ def test_bodhi_update_build_not_tagged_yet(
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -464,13 +464,13 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -519,13 +519,13 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -580,13 +580,13 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -635,13 +635,13 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e", filter_regex=r".+\.spec$"
+        ref="main", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
+        path=".packit.yaml", ref="main"
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e", recursive=False
+        ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)

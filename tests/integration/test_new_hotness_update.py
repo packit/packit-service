@@ -13,6 +13,7 @@ from packit.config.aliases import get_branches
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
+from packit_service.constants import CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE
 from packit_service.models import (
     ProjectEventModelType,
     ProjectEventModel,
@@ -152,6 +153,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         add_pr_instructions=True,
         resolved_bugs=["rhbz#2106196"],
         release_monitoring_project_id=4181,
+        pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
