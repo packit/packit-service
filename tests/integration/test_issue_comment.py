@@ -8,13 +8,13 @@ from datetime import datetime
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
+
 from ogr.abstract import GitTag
 from ogr.abstract import PRStatus
 from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
 from ogr.services.pagure import PagureProject
-
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit.distgit import DistGit
@@ -35,17 +35,19 @@ from packit_service.models import (
     SyncReleaseJobType,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
-from packit_service.worker.helpers.sync_release.propose_downstream import (
-    ProposeDownstreamJobHelper,
-)
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.distgit import (
     RetriggerDownstreamKojiBuildHandler,
+)
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -398,24 +400,75 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         dist_git_branch="f38",
         update_type="enhancement",
         koji_builds=["python-teamcity-messages.fc38"],
-    )
+    ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
         "f38"
     ).and_return("f38-updates-candidate")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
         package="python-teamcity-messages", tag="f38-updates-candidate"
-    ).and_return({"nvr": "python-teamcity-messages.fc38", "build_id": 2, "state": 1})
+    ).and_return(
+        {
+            "nvr": "python-teamcity-messages.fc38",
+            "build_id": 2,
+            "state": 1,
+            "task_id": 123,
+        }
+    )
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f37",
         update_type="enhancement",
         koji_builds=["python-teamcity-messages.fc37"],
-    )
+    ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
         "f37"
     ).and_return("f37-updates-candidate")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
         package="python-teamcity-messages", tag="f37-updates-candidate"
-    ).and_return({"nvr": "python-teamcity-messages.fc37", "build_id": 1, "state": 1})
+    ).and_return(
+        {
+            "nvr": "python-teamcity-messages.fc37",
+            "build_id": 1,
+            "state": 1,
+            "task_id": 123,
+        }
+    )
+
+    run_model_flexmock = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        id=23,
+        grouped_targets=[
+            flexmock(
+                target="f37",
+                koji_nvr="python-teamcity-messages.fc37",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+            ),
+            flexmock(
+                target="f38",
+                koji_nvr="python-teamcity-messages.fc38",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+            ),
+        ],
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="f38",
+        koji_nvr="python-teamcity-messages.fc38",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return().once()
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="f37",
+        koji_nvr="python-teamcity-messages.fc37",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return().once()
 
     results = run_issue_comment_retrigger_bodhi_update(
         package_config=package_config,

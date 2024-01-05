@@ -424,12 +424,19 @@ def run_downstream_koji_build_report(
     base=BodhiHandlerTaskWithRetry,
     queue="long-running",
 )
-def run_bodhi_update(self, event: dict, package_config: dict, job_config: dict):
+def run_bodhi_update(
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    bodhi_update_group_model_id: Optional[int] = None,
+):
     handler = CreateBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+        bodhi_update_group_model_id=bodhi_update_group_model_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -441,13 +448,18 @@ def run_bodhi_update(self, event: dict, package_config: dict, job_config: dict):
     queue="long-running",
 )
 def run_retrigger_bodhi_update(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    bodhi_update_group_model_id: Optional[int] = None,
 ):
     handler = RetriggerBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+        bodhi_update_group_model_id=bodhi_update_group_model_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -459,13 +471,18 @@ def run_retrigger_bodhi_update(
     queue="long-running",
 )
 def run_issue_comment_retrigger_bodhi_update(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    bodhi_update_group_model_id: Optional[int] = None,
 ):
     handler = IssueCommentRetriggerBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+        bodhi_update_group_model_id=bodhi_update_group_model_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

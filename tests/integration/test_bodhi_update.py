@@ -17,7 +17,13 @@ from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.constants import DEFAULT_RETRY_LIMIT
-from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
+from packit_service.models import (
+    GitBranchModel,
+    KojiBuildTargetModel,
+    PipelineModel,
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
+)
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
@@ -61,7 +67,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
-    )
+    ).and_return(("alias", "url"))
 
     # Database structure
     run_model_flexmock = flexmock()
@@ -69,12 +75,33 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        id=23,
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+            )
+        ],
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
+
     flexmock(KojiBuildTargetModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -143,12 +170,31 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        id=12,
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+            )
+        ],
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
     flexmock(KojiBuildTargetModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -199,7 +245,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
@@ -223,12 +269,30 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+            )
+        ]
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
     flexmock(KojiBuildTargetModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -245,17 +309,16 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
-    with pytest.raises(PackitException):
-        CreateBodhiUpdateHandler(
-            package_config=load_package_config(package_config),
-            job_config=load_job_config(job_config),
-            event=event_dict,
-            # Needs to be the last try to inform user
-            celery_task=flexmock(
-                request=flexmock(retries=DEFAULT_RETRY_LIMIT),
-                max_retries=DEFAULT_RETRY_LIMIT,
-            ),
-        ).run_job()
+    CreateBodhiUpdateHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event_dict,
+        # Needs to be the last try to inform user
+        celery_task=flexmock(
+            request=flexmock(retries=DEFAULT_RETRY_LIMIT),
+            max_retries=DEFAULT_RETRY_LIMIT,
+        ),
+    ).run_job()
 
 
 def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
@@ -284,7 +347,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         ref="main", recursive=False
     ).and_return(["packit.spec", ".packit.yaml"])
 
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
@@ -317,12 +380,30 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+            )
+        ]
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
     flexmock(KojiBuildTargetModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -339,19 +420,18 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
-    with pytest.raises(PackitException):
-        CreateBodhiUpdateHandler(
-            package_config=load_package_config(package_config),
-            job_config=load_job_config(job_config),
-            event=event_dict,
-            # Needs to be the last try to inform user
-            celery_task=flexmock(
-                request=flexmock(
-                    retries=BodhiHandlerTaskWithRetry.retry_kwargs["max_retries"]
-                ),
-                max_retries=DEFAULT_RETRY_LIMIT,
+    CreateBodhiUpdateHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event_dict,
+        # Needs to be the last try to inform user
+        celery_task=flexmock(
+            request=flexmock(
+                retries=BodhiHandlerTaskWithRetry.retry_kwargs["max_retries"]
             ),
-        ).run_job()
+            max_retries=DEFAULT_RETRY_LIMIT,
+        ),
+    ).run_job()
 
 
 def test_bodhi_update_build_not_tagged_yet(
@@ -398,16 +478,36 @@ def test_bodhi_update_build_not_tagged_yet(
 
     # Database structure
     run_model_flexmock = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+            )
+        ]
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(
         flexmock(
             get_project_event_object=lambda: flexmock(
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
-            )
+            ),
+            group_of_targets=flexmock(runs=[flexmock()]),
         )
     )
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
@@ -481,11 +581,29 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
 
     # Database structure
     run_model_flexmock = flexmock()
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+            )
+        ]
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
@@ -536,16 +654,36 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+    ).and_return(("alias", "url"))
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target="rawhide",
+                koji_nvr="packit-0.43.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+            )
+        ]
     )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="rawhide",
+        koji_nvr="packit-0.43.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
 
     # Database structure
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(
         flexmock(
             get_project_event_object=lambda: flexmock(
                 id=1, job_config_trigger_type=JobConfigTriggerType.commit
-            )
+            ),
+            group_of_targets=flexmock(runs=[flexmock()]),
         )
     )
 
@@ -601,7 +739,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1864700
+        79721403
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
@@ -652,12 +790,29 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         dist_git_branch="f36",
         update_type="enhancement",
         koji_builds=["python-ogr-0.34.0-1.fc36"],
-    ).once()
+    ).once().and_return(("alias", "url"))
 
-    # Database not touched
-    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        build_id=1874070
-    ).times(0)
+    flexmock(PipelineModel).should_receive("create").and_return(flexmock())
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target="f36",
+                koji_nvr="python-ogr-0.34.0-1.fc36",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+            )
+        ]
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="f36",
+        koji_nvr="python-ogr-0.34.0-1.fc36",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(80860789)
 
     processing_results = SteveJobs().process_message(koji_build_completed_f36)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
