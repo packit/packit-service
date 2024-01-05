@@ -34,6 +34,7 @@ from packit_service.constants import (
     DOCS_HOW_TO_CONFIGURE_URL,
     TASK_ACCEPTED,
     DEFAULT_RETRY_LIMIT,
+    CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -2421,6 +2422,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
             "You can also check the recent Koji build activity of "
             "`packit` in [the Koji interface]"
             "(https://koji.fedoraproject.org/koji/userinfo?userID=4641)."
+            f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
         .mock()
     )
@@ -2492,6 +2494,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
             "[the Bodhi interface](https://bodhi.fedoraproject.org/users/packit) "
             "(we have also planned adding support for viewing the updates in [Packit dashboard](), "
             "see [this issue](https://github.com/packit/dashboard/issues/187))."
+            f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
         .mock()
     )
@@ -2565,6 +2568,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         .with_args(
             "The task was accepted. You can check the recent runs of pull from upstream jobs in "
             "[Packit dashboard](/jobs/pull-from-upstreams)"
+            f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
         .mock()
     )
@@ -2634,6 +2638,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         add_pr_instructions=True,
         resolved_bugs=["rhbz#123", "rhbz#124"],
         release_monitoring_project_id=None,
+        pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
