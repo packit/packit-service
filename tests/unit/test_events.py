@@ -855,7 +855,7 @@ class TestEvents:
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             reference="rawhide",
             pr_id=None,

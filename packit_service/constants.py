@@ -281,6 +281,6 @@ CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE = (
     "regarding the loading of Packit configuration for `koji_build` and `bodhi_update` jobs. "
     "Going forward, the configuration for these jobs will be loaded from the default repository"
     " branch (`rawhide`) instead of the respective branches. This aligns with the behavior "
-    "of the `pull-from-upstream` job. We believe this adjustment will simplify the onboarding "
+    "of the `pull_from_upstream` job. We believe this adjustment will simplify the onboarding "
     "process and enhance the overall user experience. "
 )

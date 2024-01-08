@@ -160,7 +160,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
                 f"\tdefault_branch: {self.base_project.default_branch}\n"
             )
             packages_config = PackageConfigGetter.get_package_config_from_repo(
-                base_project=self.base_project,
+                base_project=None,
                 project=self.project,
                 reference=self.project.default_branch,
                 pr_id=None,
