@@ -1346,6 +1346,10 @@ class PipelineModel(Base):
         Integer, ForeignKey("sync_release_runs.id"), index=True
     )
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
+    bodhi_update_group_id = Column(
+        Integer, ForeignKey("bodhi_update_groups.id"), index=True
+    )
+    bodhi_update_group = relationship("BodhiUpdateGroupModel", back_populates="runs")
 
     @classmethod
     def create(
@@ -1795,6 +1799,104 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 run_model.koji_build_group = build_group
                 session.add(run_model)
             return build_group
+
+
+class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
+    __tablename__ = "bodhi_update_targets"
+    id = Column(Integer, primary_key=True)
+    status = Column(String)
+    target = Column(String)
+    web_url = Column(String)
+    koji_nvr = Column(String)
+    alias = Column(String)
+    data = Column(JSON)
+    bodhi_update_group_id = Column(Integer, ForeignKey("bodhi_update_groups.id"))
+
+    group_of_targets = relationship(
+        "BodhiUpdateGroupModel", back_populates="bodhi_update_targets"
+    )
+
+    def set_status(self, status: str):
+        with sa_session_transaction() as session:
+            self.status = status
+            session.add(self)
+
+    def set_web_url(self, web_url: str):
+        with sa_session_transaction() as session:
+            self.web_url = web_url
+            session.add(self)
+
+    def set_alias(self, alias: str):
+        with sa_session_transaction() as session:
+            self.alias = alias
+            session.add(self)
+
+    def set_data(self, data: dict):
+        with sa_session_transaction() as session:
+            self.data = data
+            session.add(self)
+
+    @classmethod
+    def create(
+        cls,
+        target: str,
+        status: str,
+        koji_nvr: str,
+        bodhi_update_group: "BodhiUpdateGroupModel",
+    ) -> "BodhiUpdateTargetModel":
+        with sa_session_transaction() as session:
+            update = cls()
+            update.status = status
+            update.target = target
+            update.koji_nvr = koji_nvr
+            session.add(update)
+
+            bodhi_update_group.bodhi_update_targets.append(update)
+            session.add(bodhi_update_group)
+
+            return update
+
+
+class BodhiUpdateGroupModel(ProjectAndEventsConnector, GroupModel, Base):
+    __tablename__ = "bodhi_update_groups"
+    id = Column(Integer, primary_key=True)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    runs = relationship("PipelineModel", back_populates="bodhi_update_group")
+    bodhi_update_targets = relationship(
+        "BodhiUpdateTargetModel", back_populates="group_of_targets"
+    )
+
+    @property
+    def grouped_targets(self):
+        return self.bodhi_update_targets
+
+    def __repr__(self) -> str:
+        return (
+            f"BodhiUpdateGroupModel(id={self.id}, submitted_time={self.submitted_time})"
+        )
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["BodhiUpdateGroupModel"]:
+        return sa_session().query(BodhiUpdateGroupModel).filter_by(id=id_).first()
+
+    @classmethod
+    def create(cls, run_model: "PipelineModel") -> "BodhiUpdateGroupModel":
+        with sa_session_transaction() as session:
+            update_group = cls()
+            session.add(update_group)
+            if run_model.bodhi_update_group:
+                # Clone run model
+                new_run_model = PipelineModel.create(
+                    project_event=run_model.project_event,
+                    package_name=run_model.package_name,
+                )
+                new_run_model.bodhi_update_group = update_group
+                session.add(new_run_model)
+            else:
+                run_model.bodhi_update_group = update_group
+                session.add(run_model)
+            return update_group
 
 
 class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):

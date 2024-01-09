@@ -53,6 +53,8 @@ from packit_service.models import (
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
 )
 from packit_service.service.db_project_events import AddPullRequestEventToDb
 from packit_service.utils import (
@@ -2486,6 +2488,48 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         project_event
     )
+    run_model_flexmock = flexmock()
+    db_project_object = flexmock(
+        id=12,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        79721403
+    ).and_return(None)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=12,
+        commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    ).and_return(project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=36,
+        namespace="rpms",
+        repo_name="jouduv-dort",
+        project_url="https://src.fedoraproject.org/rpms/jouduv-dort",
+    ).and_return(db_project_object)
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    group_model = flexmock(
+        id=23,
+        grouped_targets=[
+            flexmock(
+                target="the_distgit_branch",
+                koji_nvr="123",
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+            )
+        ],
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
+        target="the_distgit_branch",
+        koji_nvr="123",
+        status="queued",
+        bodhi_update_group=group_model,
+    ).and_return()
+
     pr_mock = (
         flexmock(target_branch="the_distgit_branch")
         .should_receive("comment")
@@ -2507,7 +2551,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     )
 
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").and_return(
-        {"nvr": "123", "build_id": 321, "state": 0}
+        {"nvr": "123", "build_id": 321, "state": 0, "task_id": 123}
     )
 
     pagure_project.should_receive("get_files").with_args(
@@ -2528,7 +2572,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         dist_git_branch="the_distgit_branch",
         update_type="enhancement",
         koji_builds=["123"],
-    ).once()
+    ).once().and_return(("alias", "url"))
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 

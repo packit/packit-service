@@ -93,6 +93,7 @@ class KojiBuildData:
     build_id: int
     nvr: str
     state: KojiBuildState
+    task_id: int
 
 
 class GetKojiBuildData(Iterator, Protocol):
@@ -125,6 +126,7 @@ class GetKojiBuildData(Iterator, Protocol):
                 build_id=self._build_id,
                 nvr=self._nvr,
                 state=self._state,
+                task_id=self._task_id,
             )
             self._branch_index += 1
             return koji_build_data
@@ -150,6 +152,11 @@ class GetKojiBuildData(Iterator, Protocol):
     def _state(self) -> KojiBuildState:
         ...
 
+    @property
+    @abstractmethod
+    def _task_id(self) -> int:
+        ...
+
 
 class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEvent):
     @property
@@ -167,6 +174,10 @@ class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEven
     @property
     def _state(self) -> KojiBuildState:
         return self.koji_build_event.state
+
+    @property
+    def _task_id(self) -> int:
+        return self.koji_build_event.task_id
 
     @property
     def num_of_branches(self):
@@ -211,6 +222,10 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
     @property
     def _state(self) -> KojiBuildState:
         return KojiBuildState.from_number(self.build["state"])
+
+    @property
+    def _task_id(self) -> int:
+        return self.build["task_id"]
 
 
 class GetKojiBuildDataFromKojiServiceMixin(

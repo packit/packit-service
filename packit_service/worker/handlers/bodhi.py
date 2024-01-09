@@ -4,9 +4,10 @@
 """
 This file defines classes for job handlers related to Bodhi
 """
-import logging
 import abc
-from typing import Tuple, Type
+import logging
+from os import getenv
+from typing import Tuple, Type, Optional
 
 from celery import Task
 
@@ -18,6 +19,13 @@ from packit_service.constants import (
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+    DEFAULT_RETRY_BACKOFF,
+)
+from packit_service.models import (
+    BodhiUpdateGroupModel,
+    PipelineModel,
+    BodhiUpdateTargetModel,
+    KojiBuildTargetModel,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
@@ -45,7 +53,6 @@ from packit_service.worker.handlers.mixin import (
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildEventMixin,
     GetKojiBuildData,
-    KojiBuildData,
 )
 from packit_service.worker.mixin import (
     ConfigFromDistGitUrlMixin,
@@ -72,6 +79,7 @@ class BodhiUpdateHandler(
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
+        bodhi_update_group_model_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -79,36 +87,66 @@ class BodhiUpdateHandler(
             event=event,
             celery_task=celery_task,
         )
+        self._bodhi_update_group_model_id = bodhi_update_group_model_id
 
     def run(self) -> TaskResults:
-        try:
-            koji_build_data = None
-            for koji_build_data in self:
+        group = self._get_or_create_bodhi_update_group_model()
+        errors = {}
+        for target_model in group.grouped_targets:
+            try:
                 logger.debug(
-                    f"Create update for dist-git branch: {koji_build_data.dist_git_branch} "
-                    f"and nvr: {koji_build_data.nvr}."
+                    f"Create update for dist-git branch: {target_model.target} "
+                    f"and nvr: {target_model.koji_nvr}."
                 )
-                self.packit_api.create_update(
-                    dist_git_branch=koji_build_data.dist_git_branch,
+                result = self.packit_api.create_update(
+                    dist_git_branch=target_model.target,
                     update_type="enhancement",
-                    koji_builds=[koji_build_data.nvr],  # it accepts NVRs, not build IDs
+                    koji_builds=[
+                        target_model.koji_nvr
+                    ],  # it accepts NVRs, not build IDs
                 )
-        except PackitException as ex:
-            logger.debug(f"Bodhi update failed to be created: {ex}")
+                if not result:
+                    # update was already created
+                    target_model.set_status("skipped")
+                    continue
 
-            body = f"``` {ex} ```"
-            # Notify user just on the last run.
-            notify = self.celery_task.is_last_try()
+                alias, url = result
+                target_model.set_status("success")
+                target_model.set_alias(alias)
+                target_model.set_web_url(url)
 
-            if notify:
-                self.report_in_issue_repository(
-                    koji_build_data=koji_build_data, error=body
-                )
-            else:
-                logger.debug("User will not be notified about the failure.")
+            except PackitException as ex:
+                logger.debug(f"Bodhi update failed to be created: {ex}")
 
-            # This will cause `autoretry_for` mechanism to re-trigger the celery task.
-            raise ex
+                if self.celery_task and not self.celery_task.is_last_try():
+                    kargs = self.celery_task.task.request.kwargs.copy()
+                    kargs["bodhi_update_group_model_id"] = group.id
+                    for model in group.grouped_targets:
+                        model.set_status("retry")
+
+                    logger.debug(
+                        "Celery task will be retried. User will not be notified about the failure."
+                    )
+                    retry_backoff = int(
+                        getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF)
+                    )
+                    delay = retry_backoff * 2**self.celery_task.retries
+                    self.celery_task.task.retry(exc=ex, countdown=delay, kwargs=kargs)
+                    return TaskResults(
+                        success=True,
+                        details={
+                            "msg": f"There was an error: {ex}. Task will be retried."
+                        },
+                    )
+                else:
+                    error = str(ex)
+                    errors[target_model.target] = error
+
+                    target_model.set_status("error")
+                    target_model.set_data({"error": error})
+
+        if errors:
+            self.report_in_issue_repository(errors=errors)
 
         # `success=True` for all known errors
         # (=The task was correctly processed.)
@@ -116,13 +154,36 @@ class BodhiUpdateHandler(
         return TaskResults(success=True, details={})
 
     @abc.abstractmethod
-    def get_trigger_type_description(self, koji_build_data: KojiBuildData) -> str:
-        """Describe the user's action which triggered the Bodhi update
+    def get_trigger_type_description(self) -> str:
+        """Describe the user's action which triggered the Bodhi update"""
 
-        Args:
-            koji_build_data: koji build data associated with the
-            retriggered Bodhi update
+    def _get_or_create_bodhi_update_group_model(self) -> BodhiUpdateGroupModel:
         """
+        Get or create the group model with target models.
+
+        For retriggering, use this method - create pipeline model with corresponding
+        trigger (issue/dist-git PR comment), for updates triggered by
+        completed Koji build, obtain the pipeline model from Koji build in our DB
+        (subclass method).
+
+        """
+        if self._bodhi_update_group_model_id is not None:
+            return BodhiUpdateGroupModel.get_by_id(self._bodhi_update_group_model_id)
+
+        run_model = PipelineModel.create(
+            self.data.db_project_event, package_name=self.get_package_name()
+        )
+        group = BodhiUpdateGroupModel.create(run_model)
+
+        for koji_build_data in self:
+            BodhiUpdateTargetModel.create(
+                target=koji_build_data.dist_git_branch,
+                koji_nvr=koji_build_data.nvr,
+                status="queued",
+                bodhi_update_group=group,
+            )
+
+        return group
 
     @staticmethod
     def get_handler_specific_task_accepted_message(
@@ -141,16 +202,12 @@ class BodhiUpdateHandler(
             f"\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
 
-    def report_in_issue_repository(
-        self, koji_build_data: KojiBuildData, error: str
-    ) -> None:
+    def report_in_issue_repository(self, errors: dict[str, str]) -> None:
         body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
             object="Bodhi update", dist_git_url=self.packit_api.dg.local_project.git_url
         )
-        if koji_build_data:
-            body += f"| `{koji_build_data.dist_git_branch}` | {error} |\n"
-        else:
-            body += f"| | {error} |\n"
+        for branch, ex in errors.items():
+            body += f"| `{branch}` | ```{ex}``` |\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
             job="update",
@@ -158,9 +215,9 @@ class BodhiUpdateHandler(
             place="issue",
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
-        trigger_type_description = self.get_trigger_type_description(koji_build_data)
         body_msg = (
-            f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
+            f"{body}\n{self.get_trigger_type_description()}\n\n"
+            f"{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
         )
 
         body_msg = update_message_with_configured_failure_comment_message(
@@ -198,11 +255,41 @@ class CreateBodhiUpdateHandler(
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
         return (IsKojiBuildCompleteAndBranchConfiguredCheckEvent,)
 
-    def get_trigger_type_description(self, koji_build_data: KojiBuildData) -> str:
-        return (
-            f"Fedora Bodhi update was triggered by "
-            f"Koji build {koji_build_data.nvr}."
-        )
+    def get_trigger_type_description(self) -> str:
+        for koji_build_data in self:
+            return (
+                f"Fedora Bodhi update was triggered by "
+                f"Koji build {koji_build_data.nvr}."
+            )
+        return ""
+
+    def _get_or_create_bodhi_update_group_model(self) -> BodhiUpdateGroupModel:
+        if self._bodhi_update_group_model_id is not None:
+            return BodhiUpdateGroupModel.get_by_id(self._bodhi_update_group_model_id)
+
+        group = None
+        for koji_build_data in self:
+            koji_build_target = KojiBuildTargetModel.get_by_task_id(
+                koji_build_data.task_id
+            )
+            if koji_build_target:
+                run_model = koji_build_target.group_of_targets.runs[-1]
+            # this should not happen as we react only to Koji builds done by us,
+            # but let's cover the case
+            else:
+                run_model = PipelineModel.create(
+                    self.data.db_project_event, package_name=self.get_package_name()
+                )
+
+            group = BodhiUpdateGroupModel.create(run_model)
+            BodhiUpdateTargetModel.create(
+                target=koji_build_data.dist_git_branch,
+                koji_nvr=koji_build_data.nvr,
+                status="queued",
+                bodhi_update_group=group,
+            )
+
+        return group
 
 
 @configured_as(job_type=JobType.bodhi_update)
@@ -229,7 +316,7 @@ class RetriggerBodhiUpdateHandler(
             IsKojiBuildCompleteAndBranchConfiguredCheckService,
         )
 
-    def get_trigger_type_description(self, _: KojiBuildData) -> str:
+    def get_trigger_type_description(self) -> str:
         return (
             f"Fedora Bodhi update was re-triggered "
             f"by comment in dist-git PR with id {self.data.pr_id}."
@@ -260,7 +347,7 @@ class IssueCommentRetriggerBodhiUpdateHandler(
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
         return (HasIssueCommenterRetriggeringPermissions,)
 
-    def get_trigger_type_description(self, _: KojiBuildData) -> str:
+    def get_trigger_type_description(self) -> str:
         return (
             f"Fedora Bodhi update was re-triggered by "
             f"comment in issue {self.data.issue_id}."
