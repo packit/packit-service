@@ -105,7 +105,7 @@ def test_build_srpm_log_format(github_pr_event):
         return (None, None)
 
     db_project_object = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request, pr_id=123
     )
     helper = build_helper(
         event=github_pr_event,
@@ -117,6 +117,9 @@ def test_build_srpm_log_format(github_pr_event):
         .mock(),
     )
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(target_branch="main")
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     local_project = flexmock()
     local_project.working_dir = ""
