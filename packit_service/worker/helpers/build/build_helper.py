@@ -514,12 +514,28 @@ class BaseBuildJobHelper(BaseJobHelper):
         else:
             update_release = None  # take the value from config (defaults to True)
 
+        # use correct git ref to identify most recent tag
+        if self.job_config.trigger == JobConfigTriggerType.pull_request:
+            merged_ref = self.project.get_pr(
+                self._db_project_object.pr_id
+            ).target_branch
+        elif self.job_config.trigger == JobConfigTriggerType.commit:
+            merged_ref = self._db_project_object.commit_sha
+        elif self.job_config.trigger == JobConfigTriggerType.release:
+            merged_ref = self._db_project_object.tag_name
+        else:
+            logger.warning(
+                f"Unable to determine merged ref for {self.job_config.trigger}"
+            )
+            merged_ref = None
+
         try:
             self._srpm_path = Path(
                 self.api.create_srpm(
                     srpm_dir=self.api.up.local_project.working_dir,
                     update_release=update_release,
                     release_suffix=self.job_config.release_suffix,
+                    merged_ref=merged_ref,
                 )
             )
         except SandcastleTimeoutReached as ex:

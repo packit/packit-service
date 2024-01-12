@@ -91,7 +91,7 @@ def add_pull_request_event_with_empty_sha():
 def add_pull_request_event_with_sha_528b80():
     db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
-        id=123,
+        pr_id=123,
         project_event_model_type=ProjectEventModelType.pull_request,
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
     )
