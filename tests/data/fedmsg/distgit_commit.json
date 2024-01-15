@@ -1,42 +1,11 @@
 {
-  "topic": "org.fedoraproject.prod.git.receive",
-  "commit": {
-    "agent": "rhcontainerbot",
-    "branch": "main",
-    "email": "hello@packit.dev",
-    "message": "buildah-1.12.0-0.73.dev.git1e6a70c\n\n- autobuilt 1e6a70c\n\nSigned-off-by: RH Container Bot <rhcontainerbot@fedoraproject.org>\n",
-    "name": "Packit",
+  "agent": "rhcontainerbot",
+  "branch": "main",
+  "end_commit": "abcd",
+  "total_commits": 1,
+  "repo": {
     "namespace": "rpms",
-    "path": "/srv/git/repositories/rpms/buildah.git",
-    "repo": "buildah",
-    "rev": "abcd",
-    "seen": false,
-    "stats": {
-      "files": {
-        ".gitignore": {
-          "additions": 1,
-          "deletions": 0,
-          "lines": 1
-        },
-        "buildah.spec": {
-          "additions": 5,
-          "deletions": 2,
-          "lines": 7
-        },
-        "sources": {
-          "additions": 1,
-          "deletions": 1,
-          "lines": 2
-        }
-      },
-      "total": {
-        "additions": 7,
-        "deletions": 3,
-        "files": 3,
-        "lines": 10
-      }
-    },
-    "summary": "buildah-1.12.0-0.73.dev.git1e6a70c",
-    "username": "rhcontainerbot"
-  }
+    "name": "buildah"
+  },
+  "topic": "org.fedoraproject.prod.pagure.git.receive"
 }
