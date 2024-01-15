@@ -1,52 +1,11 @@
 {
-  "commit": {
-    "agent": "pagure",
-    "branch": "f36",
-    "email": "hello@packit.dev",
-    "message": "[packit] 0.50.0 upstream release\n\nUpstream tag: 0.50.0\nUpstream commit: c3667a91\n\nSigned-off-by: Packit <hello@packit.dev>\n",
-    "name": "Packit",
+  "agent": "pagure",
+  "branch": "f36",
+  "end_commit": "ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
+  "total_commits": 1,
+  "repo": {
     "namespace": "rpms",
-    "path": "/srv/git/repositories/rpms/packit.git",
-    "repo": "packit",
-    "rev": "ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
-    "seen": false,
-    "stats": {
-      "files": {
-        ".gitignore": {
-          "additions": 1,
-          "deletions": 0,
-          "lines": 1
-        },
-        "README.packit": {
-          "additions": 1,
-          "deletions": 1,
-          "lines": 2
-        },
-        "packit.spec": {
-          "additions": 9,
-          "deletions": 1,
-          "lines": 10
-        },
-        "plans/main.fmf": {
-          "additions": 1,
-          "deletions": 1,
-          "lines": 2
-        },
-        "sources": {
-          "additions": 1,
-          "deletions": 1,
-          "lines": 2
-        }
-      },
-      "total": {
-        "additions": 13,
-        "deletions": 4,
-        "files": 5,
-        "lines": 17
-      }
-    },
-    "summary": "[packit] 0.50.0 upstream release",
-    "username": "pagure"
+    "name": "packit"
   },
-  "topic": "org.fedoraproject.prod.git.receive"
+  "topic": "org.fedoraproject.prod.pagure.git.receive"
 }

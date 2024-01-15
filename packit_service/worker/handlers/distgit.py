@@ -486,7 +486,7 @@ class AbortSyncRelease(Exception):
 @reacts_to(event=AbstractIssueCommentEvent)
 @reacts_to(event=CheckRerunReleaseEvent)
 class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
-    topic = "org.fedoraproject.prod.git.receive"
+    topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.propose_downstream
     helper_kls = ProposeDownstreamJobHelper
     sync_release_job_type = SyncReleaseJobType.propose_downstream
@@ -646,7 +646,7 @@ class AbstractDownstreamKojiBuildHandler(
     This handler can submit a build in Koji from a dist-git.
     """
 
-    topic = "org.fedoraproject.prod.git.receive"
+    topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.downstream_koji_build
 
     def __init__(

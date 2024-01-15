@@ -28,6 +28,6 @@ class IssueCommentAction(Enum):
 
 
 class FedmsgTopic(Enum):
-    dist_git_push = "org.fedoraproject.prod.git.receive"
+    dist_git_push = "org.fedoraproject.prod.pagure.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
     copr_build_started = "org.fedoraproject.prod.copr.build.start"
