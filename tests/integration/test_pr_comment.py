@@ -35,6 +35,8 @@ from packit_service.constants import (
     TASK_ACCEPTED,
     DEFAULT_RETRY_LIMIT,
     CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+    DOCS_VALIDATE_HOOKS,
+    DOCS_VALIDATE_CONFIG,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -1714,7 +1716,9 @@ def test_trigger_packit_command_without_config(
         "For more info, please check out "
         f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
         "or [contact the Packit team]"
-        f"({CONTACTS_URL})."
+        f"({CONTACTS_URL}). You can also use "
+        f"our CLI command [`validate-config`]({DOCS_VALIDATE_CONFIG}) or our "
+        f"[pre-commit hooks]({DOCS_VALIDATE_HOOKS}) for validation of the configuration."
     )
     flexmock(pr).should_receive("comment").with_args(err_msg)
 
