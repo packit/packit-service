@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 from typing import List, NamedTuple, Optional, Set, Union
 
-from ogr.abstract import GitProject, Issue
 from yaml import safe_load
 
+from ogr.abstract import GitProject, Issue
 from packit.config import (
     Config,
     PackageConfig,
@@ -30,6 +30,8 @@ from packit_service.constants import (
     SANDCASTLE_PVC,
     SANDCASTLE_WORK_DIR,
     TESTING_FARM_API_URL,
+    DOCS_VALIDATE_CONFIG,
+    DOCS_VALIDATE_HOOKS,
 )
 
 logger = logging.getLogger(__name__)
@@ -349,7 +351,9 @@ class PackageConfigGetter:
                 "For more info, please check out "
                 f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
                 "or [contact the Packit team]"
-                f"({CONTACTS_URL})."
+                f"({CONTACTS_URL}). You can also use "
+                f"our CLI command [`validate-config`]({DOCS_VALIDATE_CONFIG}) or our "
+                f"[pre-commit hooks]({DOCS_VALIDATE_HOOKS}) for validation of the configuration."
             )
 
             if pr_id:
