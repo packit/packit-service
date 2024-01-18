@@ -257,7 +257,7 @@ class AbstractSyncReleaseHandler(
             # and the error handling code would be never executed
             retries = self.celery_task.retries
             if not self.celery_task.is_last_try():
-                # will retry in: 1m and then again in another 2m
+                # retry after 1 min, 2 mins, 4 mins, 8 mins, 16 mins, 32 mins
                 delay = 60 * 2**retries
                 logger.info(
                     f"Will retry for the {retries + 1}. time in {delay}s \
@@ -268,8 +268,14 @@ class AbstractSyncReleaseHandler(
                 kargs = self.celery_task.task.request.kwargs.copy()
                 kargs["sync_release_run_id"] = model.id
                 # https://docs.celeryq.dev/en/stable/userguide/tasks.html#retrying
+                # https://docs.celeryq.dev/en/stable/reference/celery.app.task.html#celery.app.task.Task.retry
                 self.celery_task.task.retry(
-                    exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
+                    exc=ex,
+                    countdown=delay,
+                    throw=False,
+                    args=(),
+                    kwargs=kargs,
+                    max_retries=6,
                 )
                 raise AbortSyncRelease()
             raise ex
