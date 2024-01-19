@@ -485,6 +485,16 @@ def test_koji_branch_merge_queue():
             id="Matching identifier specified",
         ),
         pytest.param(
+            "/packit-dev test --id my-id-1",
+            True,
+            id="Matching identifier specified",
+        ),
+        pytest.param(
+            "/packit-dev test -i my-id-1",
+            True,
+            id="Matching identifier specified",
+        ),
+        pytest.param(
             "/packit-dev test",
             True,
             id="No identifier specified",

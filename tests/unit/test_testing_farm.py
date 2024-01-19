@@ -1846,6 +1846,18 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             ["label1"],
             "namespace-2/repo-2#36",
         ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --labels label1 --id my-id-2",
+            "my-id-2",
+            ["label1"],
+            "namespace-2/repo-2#36",
+        ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --labels label1 -i my-id-2",
+            "my-id-2",
+            ["label1"],
+            "namespace-2/repo-2#36",
+        ),
     ],
 )
 def test_parse_comment_arguments(

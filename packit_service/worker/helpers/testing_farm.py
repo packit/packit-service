@@ -79,7 +79,7 @@ class CommentArguments:
             self.packit_command = match.group("packit_command")
             logger.debug(f"Parsed packit_command: {self.packit_command}")
 
-        match = re.search(r"--identifier[\s=](?P<identifier>\S+)", comment)
+        match = re.search(r"(--identifier|--id|-i)[\s=](?P<identifier>\S+)", comment)
         if match:
             self.identifier = match.group("identifier")
             logger.debug(f"Parsed test argument -> identifier: {self.identifier}")
