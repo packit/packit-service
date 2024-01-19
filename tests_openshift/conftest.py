@@ -46,6 +46,8 @@ from packit_service.models import (
     SourceGitPRDistGitPRModel,
     BuildStatus,
     SyncReleaseJobType,
+    BodhiUpdateTargetModel,
+    BodhiUpdateGroupModel,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -137,6 +139,14 @@ class SampleValues:
             "version": "0.38.0",
         },
     ]
+
+    # dist-git
+    nvr = "packit-0.43.0-1.fc39"
+    dist_git_branch = "f39"
+    different_nvr = "packit-0.40.0-1.fc38"
+    different_dist_git_branch = "f38"
+    alias = "FEDORA-123"
+    bodhi_url = "https://bodhi.fedoraproject.org/FEDORA-123"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -2295,3 +2305,41 @@ def source_git_dist_git_pr_new_relationship():
     )
 
     yield created
+
+
+@pytest.fixture()
+def bodhi_update_model(branch_project_event_model):
+    group = BodhiUpdateGroupModel.create(
+        run_model=PipelineModel.create(project_event=branch_project_event_model)
+    )
+    model = BodhiUpdateTargetModel.create(
+        target=SampleValues.dist_git_branch,
+        koji_nvr=SampleValues.nvr,
+        status="queued",
+        bodhi_update_group=group,
+    )
+    model.set_alias(SampleValues.alias)
+    model.set_web_url(SampleValues.bodhi_url)
+    model.set_status("error")
+    yield model
+
+
+@pytest.fixture()
+def multiple_bodhi_update_runs(branch_project_event_model):
+    group = BodhiUpdateGroupModel.create(
+        run_model=PipelineModel.create(project_event=branch_project_event_model)
+    )
+    yield [
+        BodhiUpdateTargetModel.create(
+            target=SampleValues.dist_git_branch,
+            koji_nvr=SampleValues.nvr,
+            status="queued",
+            bodhi_update_group=group,
+        ),
+        BodhiUpdateTargetModel.create(
+            target=SampleValues.different_dist_git_branch,
+            koji_nvr=SampleValues.different_nvr,
+            status="queued",
+            bodhi_update_group=group,
+        ),
+    ]

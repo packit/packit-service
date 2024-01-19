@@ -1856,6 +1856,23 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
 
             return update
 
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["BodhiUpdateTargetModel"]:
+        return sa_session().query(BodhiUpdateTargetModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_all(cls) -> Iterable["BodhiUpdateTargetModel"]:
+        return sa_session().query(BodhiUpdateTargetModel)
+
+    @classmethod
+    def get_range(cls, first: int, last: int) -> Iterable["BodhiUpdateTargetModel"]:
+        return (
+            sa_session()
+            .query(BodhiUpdateTargetModel)
+            .order_by(desc(BodhiUpdateTargetModel.id))
+            .slice(first, last)
+        )
+
 
 class BodhiUpdateGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "bodhi_update_groups"

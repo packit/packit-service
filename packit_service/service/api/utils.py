@@ -17,6 +17,7 @@ from packit_service.models import (
     SyncReleaseModel,
     SyncReleaseTargetModel,
     optional_timestamp,
+    BodhiUpdateTargetModel,
 )
 
 
@@ -37,6 +38,7 @@ def get_project_info_from_build(
         TFTTestRunTargetModel,
         TFTTestRunGroupModel,
         SyncReleaseModel,
+        BodhiUpdateTargetModel,
     ]
 ) -> Dict[str, Any]:
     if not (project := build.get_project()):
