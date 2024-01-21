@@ -1809,6 +1809,8 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
     web_url = Column(String)
     koji_nvr = Column(String)
     alias = Column(String)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+    update_creation_time = Column(DateTime)
     data = Column(JSON)
     bodhi_update_group_id = Column(Integer, ForeignKey("bodhi_update_groups.id"))
 
@@ -1834,6 +1836,11 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
     def set_data(self, data: dict):
         with sa_session_transaction() as session:
             self.data = data
+            session.add(self)
+
+    def set_update_creation_time(self, time: datetime):
+        with sa_session_transaction() as session:
+            self.update_creation_time = time
             session.add(self)
 
     @classmethod

@@ -445,6 +445,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
             ),
             flexmock(
                 target="f38",
@@ -453,6 +454,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
             ),
         ],
     )

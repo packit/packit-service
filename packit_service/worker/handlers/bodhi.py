@@ -6,6 +6,7 @@ This file defines classes for job handlers related to Bodhi
 """
 import abc
 import logging
+from datetime import datetime
 from os import getenv
 from typing import Tuple, Type, Optional
 
@@ -114,6 +115,7 @@ class BodhiUpdateHandler(
                 target_model.set_status("success")
                 target_model.set_alias(alias)
                 target_model.set_web_url(url)
+                target_model.set_update_creation_time(datetime.now())
 
             except PackitException as ex:
                 logger.debug(f"Bodhi update failed to be created: {ex}")

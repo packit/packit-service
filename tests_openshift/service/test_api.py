@@ -869,3 +869,4 @@ def test_bodhi_update_info(
     assert response_dict["repo_name"] == SampleValues.repo_name
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["status"] == "error"
+    assert response_dict["submitted_time"] is not None

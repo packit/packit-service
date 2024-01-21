@@ -2523,6 +2523,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
             )
         ],
     )

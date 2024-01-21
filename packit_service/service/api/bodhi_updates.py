@@ -39,6 +39,8 @@ class BodhiUpdatesList(Resource):
                 "pr_id": update.get_pr_id(),
                 "branch_name": update.get_branch_name(),
                 "release": update.get_release_tag(),
+                "submitted_time": optional_timestamp(update.submitted_time),
+                "update_creation_time": optional_timestamp(update.update_creation_time),
             }
 
             if project := update.get_project():
@@ -77,6 +79,8 @@ class BodhiUpdateItem(Resource):
             "web_url": update.web_url,
             "koji_nvr": update.koji_nvr,
             "alias": update.alias,
+            "submitted_time": optional_timestamp(update.submitted_time),
+            "update_creation_time": optional_timestamp(update.update_creation_time),
             "run_ids": sorted(run.id for run in update.group_of_targets.runs),
         }
 
