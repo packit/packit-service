@@ -17,6 +17,8 @@ from packit_service.models import (
     optional_timestamp,
     BuildStatus,
     TFTTestRunGroupModel,
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
@@ -72,6 +74,7 @@ def process_runs(runs):
             "test_run": [],
             "propose_downstream": [],
             "pull_from_upstream": [],
+            "bodhi_update": [],
         }
 
         if srpm_build := SRPMBuildModel.get_by_id(pipeline.srpm_build_id):
@@ -88,6 +91,7 @@ def process_runs(runs):
             ("copr", CoprBuildGroupModel, pipeline.copr_build_group_id),
             ("koji", KojiBuildGroupModel, pipeline.koji_build_group_id),
             ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
+            ("bodhi_update", BodhiUpdateGroupModel, pipeline.bodhi_update_group_id),
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
                 group_row = Model.get_by_id(packit_id)
@@ -104,9 +108,12 @@ def process_runs(runs):
                     if "trigger" not in response_dict:
                         submitted_time = (
                             row.submitted_time
-                            if isinstance(row, TFTTestRunTargetModel)
+                            if isinstance(
+                                row, (TFTTestRunTargetModel, BodhiUpdateTargetModel)
+                            )
                             else row.build_submitted_time
                         )
+
                         response_dict["time_submitted"] = optional_timestamp(
                             submitted_time
                         )
@@ -171,11 +178,12 @@ class Run(Resource):
         result = {
             "run_id": run.id,
             "trigger": get_project_info_from_build(
-                run.srpm_build or run.sync_release_run
+                run.srpm_build or run.sync_release_run or run.bodhi_update_group
             ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_group_id": run.copr_build_group_id,
             "koji_build_group_id": run.koji_build_group_id,
             "test_run_group_id": run.test_run_group_id,
+            "bodhi_update_group_id": run.bodhi_update_group_id,
         }
         return response_maker(result)
