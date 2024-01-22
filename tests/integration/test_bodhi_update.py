@@ -91,6 +91,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
             )
         ],
     )
@@ -664,6 +665,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
             )
         ]
     )
@@ -802,6 +804,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
             )
         ]
     )
