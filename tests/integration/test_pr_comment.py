@@ -2539,14 +2539,15 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         flexmock(target_branch="the_distgit_branch")
         .should_receive("comment")
         .with_args(
-            "The task was accepted. You can check the recent Bodhi update activity of `packit` in "
-            "[the Bodhi interface](https://bodhi.fedoraproject.org/users/packit) "
-            "(we have also planned adding support for viewing the updates in [Packit dashboard](), "
-            "see [this issue](https://github.com/packit/dashboard/issues/187))."
+            "The task was accepted. You can check the recent Bodhi update submissions of Packit "
+            "in [Packit dashboard](/jobs/bodhi-updates). "
+            "You can also check the recent Bodhi update activity of `packit` in "
+            "[the Bodhi interface](https://bodhi.fedoraproject.org/users/packit)."
             f"\n\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
         .mock()
     )
+
     pagure_project = flexmock(
         PagureProject,
         full_repo_name="rpms/jouduv-dort",
