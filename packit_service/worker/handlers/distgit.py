@@ -249,6 +249,7 @@ class AbstractSyncReleaseHandler(
                     "release_monitoring_project_id"
                 ),
                 pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+                sync_acls=True,
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet

@@ -2688,6 +2688,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         resolved_bugs=["rhbz#123", "rhbz#124"],
         release_monitoring_project_id=None,
         pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+        sync_acls=True,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 

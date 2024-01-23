@@ -168,6 +168,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         resolved_bugs=[],
         release_monitoring_project_id=None,
         pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+        sync_acls=True,
     ).and_return(pr).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
