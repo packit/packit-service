@@ -5,12 +5,16 @@ import pytest
 
 from flexmock import flexmock
 
+from ogr import PagureService
+from ogr.abstract import AccessLevel
+from ogr.services.pagure import PagureProject
 from packit.config import (
     CommonPackageConfig,
     JobType,
     JobConfigTriggerType,
     JobConfigView,
     JobConfig,
+    PackageConfig,
 )
 
 from packit.config.commands import TestCommandConfig
@@ -20,7 +24,10 @@ from packit_service.worker.checker.copr import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
     IsPackageMatchingJobView,
 )
-from packit_service.worker.checker.distgit import IsUpstreamTagMatchingConfig
+from packit_service.worker.checker.distgit import (
+    IsUpstreamTagMatchingConfig,
+    PermissionOnDistgit,
+)
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
 )
@@ -937,3 +944,51 @@ def test_sync_release_matching_tag(upstream_tag_include, upstream_tag_exclude, r
     )
 
     assert checker.pre_check() == result
+
+
+@pytest.mark.parametrize(
+    "account, allowed_pr_authors, should_pass",
+    (
+        ("direct-account", ["all_admins", "direct-account"], True),
+        ("admin-1", ["all_admins"], True),
+        ("admin-2", ["all_admins"], False),
+        ("group-account-1", ["all_admins", "@copr"], True),
+        ("group-account-2", ["all_admins", "@copr"], False),
+    ),
+)
+def test_koji_check_allowed_accounts(
+    distgit_push_event,
+    account,
+    allowed_pr_authors,
+    should_pass,
+):
+    jobs = [
+        JobConfig(
+            type=JobType.koji_build,
+            trigger=JobConfigTriggerType.commit,
+            packages={
+                "package": CommonPackageConfig(
+                    dist_git_branches=["f36"],
+                    allowed_pr_authors=allowed_pr_authors,
+                )
+            },
+        ),
+    ]
+
+    package_config = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig()},
+    )
+    job_config = jobs[0]
+
+    flexmock(PagureProject).should_receive("get_users_with_given_access").with_args(
+        [AccessLevel.maintain]
+    ).and_return({"admin-1"})
+    flexmock(PagureService).should_receive("get_group").with_args("copr").and_return(
+        flexmock(members={"group-account-1"})
+    )
+
+    checker = PermissionOnDistgit(
+        package_config, job_config, distgit_push_event.get_dict()
+    )
+    assert checker.check_allowed_accounts(allowed_pr_authors, account) == should_pass

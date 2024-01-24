@@ -289,3 +289,8 @@ CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE = (
     "of the `pull_from_upstream` job. We believe this adjustment will simplify the onboarding "
     "process and enhance the overall user experience. "
 )
+
+
+class KojiAllowedAccountsAlias(Enum):
+    all_admins = "all_admins"
+    all_committers = "all_committers"
