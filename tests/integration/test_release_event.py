@@ -830,7 +830,7 @@ def test_dont_retry_propose_downstream_task(
             git=flexmock(clear_cache=lambda: None),
         )
     )
-    flexmock(Context, retries=2)
+    flexmock(Context, retries=6)
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").never()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()

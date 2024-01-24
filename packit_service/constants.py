@@ -97,6 +97,9 @@ DEFAULT_RETRY_LIMIT_OUTAGE = 5
 # retry in 0-7s, 0-14s, 0-28s, 0-48s, 0-96s
 # because jitter is enabled by default, celery makes these retries random:
 # https://docs.celeryq.dev/en/latest/userguide/tasks.html#Task.retry_jitter
+
+RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR = 6
+
 DEFAULT_RETRY_BACKOFF = 7
 BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES = 1
 BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS = 10

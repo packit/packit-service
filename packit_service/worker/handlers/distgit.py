@@ -31,6 +31,7 @@ from packit_service.constants import (
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     DEFAULT_RETRY_BACKOFF,
     CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+    RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
 )
 from packit_service.models import (
     SyncReleaseTargetStatus,
@@ -256,7 +257,7 @@ class AbstractSyncReleaseHandler(
             # when the task hits max_retries, it raises MaxRetriesExceededError
             # and the error handling code would be never executed
             retries = self.celery_task.retries
-            if not self.celery_task.is_last_try():
+            if retries < RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR:
                 # retry after 1 min, 2 mins, 4 mins, 8 mins, 16 mins, 32 mins
                 delay = 60 * 2**retries
                 logger.info(
@@ -275,7 +276,7 @@ class AbstractSyncReleaseHandler(
                     throw=False,
                     args=(),
                     kwargs=kargs,
-                    max_retries=6,
+                    max_retries=RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
                 )
                 raise AbortSyncRelease()
             raise ex
