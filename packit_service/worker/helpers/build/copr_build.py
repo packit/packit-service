@@ -465,6 +465,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         group = self._get_or_create_build_group()
         try:
             pr_id = self.metadata.pr_id
+
+            # use correct git ref to identify most recent tag
+            if self.job_config.trigger == JobConfigTriggerType.pull_request:
+                merged_ref = self.project.get_pr(pr_id).target_branch
+            elif self.job_config.trigger == JobConfigTriggerType.commit:
+                merged_ref = self.metadata.commit_sha
+            elif self.job_config.trigger == JobConfigTriggerType.release:
+                merged_ref = self.metadata.tag_name
+            else:
+                logger.warning(
+                    f"Unable to determine merged ref for {self.job_config.trigger}"
+                )
+                merged_ref = None
+
             script = create_source_script(
                 url=self.metadata.project_url,
                 ref=self.metadata.git_ref,
@@ -477,6 +491,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 update_release=self.job_config.trigger != JobConfigTriggerType.release,
                 release_suffix=self.job_config.release_suffix,
                 package=self.job_config.package,
+                merged_ref=merged_ref,
             )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
