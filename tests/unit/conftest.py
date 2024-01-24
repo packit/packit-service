@@ -48,6 +48,7 @@ def fake_package_config_job_config_project_db_trigger():
                 specfile_path="knx-stack.spec", copr_chroot="fedora-36-x86_64"
             )
         },
+        package=None,
     )
     project = flexmock(
         namespace="mmassari",

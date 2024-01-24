@@ -31,9 +31,10 @@ from packit_service.worker.checker.vm_image import (
     GetVMImageBuildReporterFromJobHelperMixin,
 )
 from packit_service.worker.mixin import (
-    ConfigFromEventMixin,
-    GetVMImageBuilderMixin,
     PackitAPIWithDownstreamMixin,
+)
+from packit_service.worker.handlers.mixin import (
+    GetVMImageBuilderMixin,
 )
 from packit_service.models import (
     VMImageBuildTargetModel,
@@ -51,7 +52,6 @@ logger = logging.getLogger(__name__)
 @reacts_to(AbstractPRCommentEvent)
 class VMImageBuildHandler(
     RetriableJobHandler,
-    ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
     GetVMImageBuilderMixin,
     GetVMImageBuildReporterFromJobHelperMixin,
@@ -119,7 +119,6 @@ class VMImageBuildHandler(
 @reacts_to(VMImageBuildResultEvent)
 class VMImageBuildResultHandler(
     JobHandler,
-    ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
     GetVMImageBuilderMixin,
     GetVMImageBuildReporterFromJobHelperMixin,

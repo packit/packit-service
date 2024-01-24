@@ -9,12 +9,15 @@ from typing import Optional
 from packit.vm_image_build import ImageBuilder
 from ogr.abstract import GitProject
 from packit_service.config import ServiceConfig
+from packit_service.worker.handlers.mixin import (
+    GetVMImageBuilderMixin,
+    GetCoprBuildJobHelperMixin,
+    GetVMImageDataMixin,
+)
 from packit_service.worker.mixin import (
     GetBranchesFromIssueMixin,
     ConfigFromDistGitUrlMixin,
-    GetVMImageBuilderMixin,
     ConfigFromEventMixin,
-    GetVMImageDataMixin,
 )
 
 from packit_service.worker.events import EventData
@@ -31,7 +34,7 @@ def test_GetVMImageBuilderMixin():
 
 
 def test_GetVMImageDataMixin(fake_package_config_job_config_project_db_trigger):
-    class Test(ConfigFromEventMixin, GetVMImageDataMixin):
+    class Test(ConfigFromEventMixin, GetCoprBuildJobHelperMixin, GetVMImageDataMixin):
         def __init__(self) -> None:
             super().__init__()
             (

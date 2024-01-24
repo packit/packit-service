@@ -36,7 +36,8 @@ from packit_service.worker.events import (
     VMImageBuildResultEvent,
 )
 from packit_service.worker.events.enums import FedmsgTopic
-from packit_service.worker.mixin import ConfigFromUrlMixin, GetVMImageBuilderMixin
+from packit_service.worker.mixin import ConfigFromUrlMixin
+from packit_service.worker.handlers.mixin import GetVMImageBuilderMixin
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,

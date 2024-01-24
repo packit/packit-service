@@ -15,13 +15,10 @@ from ogr.abstract import Issue
 from packit.api import PackitAPI
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
-from packit.config.job_config import JobConfig
-from packit.vm_image_build import ImageBuilder
 
 from ogr.abstract import GitProject, PullRequest, PRStatus
 
 from packit_service.config import ServiceConfig
-from packit_service.models import CoprBuildTargetModel, BuildStatus
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
@@ -326,127 +323,6 @@ class GetBranchesFromIssueMixin(Config, GetBranches):
                 if m := branch_regex.match(line):
                     branches.add(m[1])
         return list(branches)
-
-
-class GetVMImageBuilder(Protocol):
-    @property
-    @abstractmethod
-    def vm_image_builder(self):
-        ...
-
-
-class GetVMImageData(Protocol):
-    @property
-    @abstractmethod
-    def build_id(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def chroot(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def identifier(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def owner(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def project_name(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def image_distribution(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def image_request(self) -> dict:
-        ...
-
-    @property
-    @abstractmethod
-    def image_customizations(self) -> dict:
-        ...
-
-
-class GetVMImageBuilderMixin(Config):
-    _vm_image_builder: Optional[ImageBuilder] = None
-
-    @property
-    def vm_image_builder(self):
-        if not self._vm_image_builder:
-            self._vm_image_builder = ImageBuilder(
-                self.service_config.redhat_api_refresh_token
-            )
-        return self._vm_image_builder
-
-
-class GetVMImageDataMixin(Config):
-    job_config: JobConfig
-    _copr_build: Optional[CoprBuildTargetModel] = None
-
-    @property
-    def chroot(self) -> str:
-        return self.job_config.copr_chroot
-
-    @property
-    def identifier(self) -> str:
-        return self.job_config.identifier
-
-    @property
-    def owner(self) -> str:
-        return self.job_config.owner or (
-            self.copr_build.owner if self.copr_build else None
-        )
-
-    @property
-    def project_name(self) -> str:
-        return self.job_config.project or (
-            self.copr_build.project_name if self.copr_build else None
-        )
-
-    @property
-    def image_name(self) -> str:
-        return f"{self.owner}/" f"{self.project_name}/{self.data.pr_id}"
-
-    @property
-    def image_distribution(self) -> str:
-        return self.job_config.image_distribution
-
-    @property
-    def image_request(self) -> dict:
-        return self.job_config.image_request
-
-    @property
-    def image_customizations(self) -> dict:
-        return self.job_config.image_customizations
-
-    @property
-    def copr_build(self) -> Optional[CoprBuildTargetModel]:
-        if not self._copr_build:
-            copr_builds = CoprBuildTargetModel.get_all_by(
-                project_name=self.job_config.project,
-                commit_sha=self.data.commit_sha,
-                owner=self.job_config.owner,
-                target=self.job_config.copr_chroot,
-                status=BuildStatus.success,
-            )
-
-            for copr_build in copr_builds:
-                project_event_object = copr_build.get_project_event_object()
-                # check whether the event trigger matches
-                if project_event_object.id == self.data.db_project_object.id:
-                    self._copr_build = copr_build
-                    break
-        return self._copr_build
 
 
 class GetReporter(Protocol):

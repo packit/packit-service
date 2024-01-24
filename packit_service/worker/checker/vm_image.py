@@ -9,9 +9,12 @@ from packit_service.models import (
 )
 from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.mixin import (
-    GetVMImageDataMixin,
     ConfigFromEventMixin,
     GetReporterFromJobHelperMixin,
+)
+from packit_service.worker.handlers.mixin import (
+    GetVMImageDataMixin,
+    GetCoprBuildJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -19,7 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 class GetVMImageBuildReporterFromJobHelperMixin(
-    GetReporterFromJobHelperMixin, GetVMImageDataMixin
+    ConfigFromEventMixin,
+    GetCoprBuildJobHelperMixin,
+    GetReporterFromJobHelperMixin,
+    GetVMImageDataMixin,
 ):
     status_name = "vm-image-build"
 
@@ -72,14 +78,12 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
         if self.copr_build:
             return True
 
-        project = (
-            f"project {self.job_config.owner}/{self.job_config.project}, "
-            if self.job_config.owner and self.job_config.project
-            else ""
-        )
+        owner = self.job_config.owner or self.copr_build_helper.job_owner
+        project = self.job_config.project or self.copr_build_helper.default_project_name
+        owner_project = f"project {owner}/{project}, " if owner and project else ""
 
         msg = (
-            f"No successful Copr build found for {project}"
+            f"No successful Copr build found for {owner_project}"
             f"commit {self.data.commit_sha} "
             f"and chroot (target) {self.job_config.copr_chroot}"
         )
@@ -88,9 +92,7 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
         return False
 
 
-class HasAuthorWriteAccess(
-    ActorChecker, ConfigFromEventMixin, GetVMImageBuildReporterFromJobHelperMixin
-):
+class HasAuthorWriteAccess(ActorChecker, GetVMImageBuildReporterFromJobHelperMixin):
     def _pre_check(self) -> bool:
         if not self.project.has_write_access(user=self.actor):
             msg = (
