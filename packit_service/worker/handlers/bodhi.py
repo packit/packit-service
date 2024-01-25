@@ -194,13 +194,11 @@ class BodhiUpdateHandler(
         user = (
             "packit" if service_config.deployment == Deployment.prod else "packit-stg"
         )
-
         return (
-            f"You can check the recent Bodhi update activity of `{user}` in "
-            f"[the Bodhi interface](https://bodhi.fedoraproject.org/users/{user}) (we "
-            f"have also planned adding support for viewing the updates"
-            f" in [Packit dashboard]({service_config.dashboard_url}), "
-            f"see [this issue](https://github.com/packit/dashboard/issues/187))."
+            "You can check the recent Bodhi update submissions of Packit "
+            f"in [Packit dashboard]({service_config.dashboard_url}/jobs/bodhi-updates). "
+            f"You can also check the recent Bodhi update activity of `{user}` in "
+            f"[the Bodhi interface](https://bodhi.fedoraproject.org/users/{user})."
             f"\n\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
 
