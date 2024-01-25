@@ -18,18 +18,23 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
     GetCoprSRPMBuildMixin,
+    ConfigFromEventMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
 
-class IsJobConfigTriggerMatching(Checker, GetCoprBuildJobHelperMixin):
+class IsJobConfigTriggerMatching(
+    Checker, ConfigFromEventMixin, GetCoprBuildJobHelperMixin
+):
     def pre_check(self) -> bool:
         return self.copr_build_helper.is_job_config_trigger_matching(self.job_config)
 
 
-class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
+class IsGitForgeProjectAndEventOk(
+    Checker, ConfigFromEventMixin, GetCoprBuildJobHelperMixin
+):
     def pre_check(
         self,
     ) -> bool:
@@ -102,7 +107,9 @@ class BuildNotAlreadyStarted(Checker, GetCoprSRPMBuildMixin):
         return not bool(build.build_start_time)
 
 
-class CanActorRunTestsJob(ActorChecker, GetCoprBuildJobHelperMixin):
+class CanActorRunTestsJob(
+    ActorChecker, ConfigFromEventMixin, GetCoprBuildJobHelperMixin
+):
     """For external contributors, we need to be more careful when running jobs.
     This is a handler-specific permission check
     for a user who trigger the action on a PR.

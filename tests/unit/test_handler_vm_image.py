@@ -23,14 +23,13 @@ from packit_service.worker.handlers import (
     VMImageBuildHandler,
     VMImageBuildResultHandler,
 )
-from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 
 def test_get_vm_image_build_reporter_from_job_helper_mixin(
     fake_package_config_job_config_project_db_trigger,
 ):
-    class Test(ConfigFromEventMixin, GetVMImageBuildReporterFromJobHelperMixin):
+    class Test(GetVMImageBuildReporterFromJobHelperMixin):
         def __init__(self) -> None:
             super().__init__()
             (

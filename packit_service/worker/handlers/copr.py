@@ -65,6 +65,7 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildEventMixin,
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
+    ConfigFromEventMixin,
 )
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
@@ -90,7 +91,10 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
 class CoprBuildHandler(
-    RetriableJobHandler, PackitAPIWithDownstreamMixin, GetCoprBuildJobHelperMixin
+    RetriableJobHandler,
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
+    GetCoprBuildJobHelperMixin,
 ):
     task_name = TaskName.copr_build
 

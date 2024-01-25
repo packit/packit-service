@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
+
 from flexmock import flexmock
 
 from packit.config import (
@@ -48,6 +49,8 @@ from packit_service.worker.events.gitlab import MergeRequestGitlabEvent, PushGit
 from packit_service.worker.events.pagure import PushPagureEvent
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
+
+from packit.copr_helper import CoprHelper
 
 
 def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
@@ -319,9 +322,9 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
             None,
             None,
             [],
-            "No successful Copr build found for "
+            "No successful Copr build found for project packit/packit-stg-packit-hello-world-None, "
             "commit 1 and chroot (target) fedora-36-x86_64",
-            id="No copr build found, job config without Copr project info",
+            id="No copr build found for default packit repo, job config without Copr project info",
         ),
     ),
 )
@@ -338,6 +341,10 @@ def test_vm_image_is_copr_build_ok_for_chroot(
     job_config.owner = owner
 
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(copr_builds)
+    flexmock(EventData).should_receive("_add_project_object_and_event").and_return()
+    flexmock(CoprHelper).should_receive("copr_client").and_return(
+        flexmock(config=flexmock().should_receive("get").and_return("packit").mock())
+    )
 
     checker = IsCoprBuildForChrootOk(
         package_config,
@@ -345,6 +352,17 @@ def test_vm_image_is_copr_build_ok_for_chroot(
         {"event_type": PullRequestCommentGithubEvent.__name__, "commit_sha": "1"},
     )
     checker.data._db_project_object = flexmock(id=1)
+    checker.data._db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(flexmock(project_event_model_type="pull_request"))
+        .mock()
+    )
+    checker._project = flexmock(
+        service=flexmock(instance_url="packit-stg"),
+        namespace="packit",
+        repo="hello-world",
+    )
 
     if error_msg:
         flexmock(checker).should_receive("report_pre_check_failure").with_args(

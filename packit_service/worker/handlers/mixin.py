@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from packit.exceptions import PackitException
 from packit.config import PackageConfig, JobConfig
 from packit.utils.koji_helper import KojiHelper
+from packit.vm_image_build import ImageBuilder
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
@@ -15,6 +16,7 @@ from packit_service.models import (
     ProjectEventModel,
     CoprBuildTargetModel,
     SRPMBuildModel,
+    BuildStatus,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.copr import AbstractCoprBuildEvent
@@ -359,7 +361,7 @@ class GetCoprBuildJobHelper(Protocol):
         ...
 
 
-class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigFromEventMixin):
+class GetCoprBuildJobHelperMixin(Config, GetCoprBuildJobHelper):
     _copr_build_helper: Optional[CoprBuildJobHelper] = None
 
     @property
@@ -506,3 +508,126 @@ class GetProjectToSyncMixin(ConfigFromEventMixin, GetProjectToSync):
             ):
                 self._project_to_sync = project_to_sync
         return self._project_to_sync
+
+
+class GetVMImageBuilder(Protocol):
+    @property
+    @abstractmethod
+    def vm_image_builder(self):
+        ...
+
+
+class GetVMImageData(Protocol):
+    @property
+    @abstractmethod
+    def build_id(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def chroot(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def identifier(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def owner(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def project_name(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def image_distribution(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def image_request(self) -> dict:
+        ...
+
+    @property
+    @abstractmethod
+    def image_customizations(self) -> dict:
+        ...
+
+
+class GetVMImageBuilderMixin(Config):
+    _vm_image_builder: Optional[ImageBuilder] = None
+
+    @property
+    def vm_image_builder(self):
+        if not self._vm_image_builder:
+            self._vm_image_builder = ImageBuilder(
+                self.service_config.redhat_api_refresh_token
+            )
+        return self._vm_image_builder
+
+
+class GetVMImageDataMixin(Config, GetCoprBuildJobHelper):
+    job_config: JobConfig
+    _copr_build: Optional[CoprBuildTargetModel] = None
+    _copr_build_helper: Optional[CoprBuildJobHelper] = None
+
+    @property
+    def chroot(self) -> str:
+        return self.job_config.copr_chroot
+
+    @property
+    def identifier(self) -> str:
+        return self.job_config.identifier
+
+    @property
+    def owner(self) -> str:
+        return self.job_config.owner or (
+            self.copr_build.owner if self.copr_build else None
+        )
+
+    @property
+    def project_name(self) -> str:
+        return self.job_config.project or (
+            self.copr_build.project_name if self.copr_build else None
+        )
+
+    @property
+    def image_name(self) -> str:
+        return f"{self.owner}/" f"{self.project_name}/{self.data.pr_id}"
+
+    @property
+    def image_distribution(self) -> str:
+        return self.job_config.image_distribution
+
+    @property
+    def image_request(self) -> dict:
+        return self.job_config.image_request
+
+    @property
+    def image_customizations(self) -> dict:
+        return self.job_config.image_customizations
+
+    @property
+    def copr_build(self) -> Optional[CoprBuildTargetModel]:
+        if not self._copr_build:
+            copr_builds = CoprBuildTargetModel.get_all_by(
+                project_name=self.job_config.project
+                or self.copr_build_helper.default_project_name,
+                commit_sha=self.data.commit_sha,
+                owner=self.job_config.owner or self.copr_build_helper.job_owner,
+                target=self.job_config.copr_chroot,
+                status=BuildStatus.success,
+            )
+
+            for copr_build in copr_builds:
+                project_event_object = copr_build.get_project_event_object()
+                # check whether the event trigger matches
+                if project_event_object.id == self.data.db_project_object.id:
+                    self._copr_build = copr_build
+                    break
+        return self._copr_build
