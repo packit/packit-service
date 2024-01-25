@@ -184,6 +184,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         resolved_bugs=[],
         release_monitoring_project_id=None,
         pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+        sync_acls=True,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -306,6 +307,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             resolved_bugs=[],
             release_monitoring_project_id=None,
             pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+            sync_acls=True,
         ).and_return(pr).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -438,6 +440,7 @@ def test_dist_git_push_release_handle_one_failed(
                 resolved_bugs=[],
                 release_monitoring_project_id=None,
                 pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+                sync_acls=True,
             ).and_return(pr).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -459,6 +462,7 @@ def test_dist_git_push_release_handle_one_failed(
                 resolved_bugs=[],
                 release_monitoring_project_id=None,
                 pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+                sync_acls=True,
             ).and_raise(Exception, f"Failed {model.branch}").once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -699,6 +703,7 @@ def test_retry_propose_downstream_task(
         resolved_bugs=[],
         release_monitoring_project_id=None,
         pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+        sync_acls=True,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
@@ -809,6 +814,7 @@ def test_dont_retry_propose_downstream_task(
         resolved_bugs=[],
         release_monitoring_project_id=None,
         pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+        sync_acls=True,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()

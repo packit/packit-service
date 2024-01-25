@@ -154,6 +154,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         resolved_bugs=["rhbz#2106196"],
         release_monitoring_project_id=4181,
         pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
+        sync_acls=True,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
