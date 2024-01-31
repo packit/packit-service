@@ -149,7 +149,11 @@ class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
 
 
 @celery_app.task(
-    name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME, bind=True
+    name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
+    bind=True,
+    # set a lower time limit for process message as for other tasks
+    # https://docs.celeryq.dev/en/stable/reference/celery.app.task.html#celery.app.task.Task.time_limit
+    time_limit=300,
 )
 def process_message(
     self, event: dict, source: Optional[str] = None, event_type: Optional[str] = None
