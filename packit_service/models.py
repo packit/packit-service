@@ -461,9 +461,18 @@ class GitProjectModel(Base):
     project_url = Column(String)
     instance_url = Column(String, nullable=False)
 
+    # we checked that exists at least a bodhi update or a koji build
+    # or a merged packit downstream pull request for it.
+    onboarded = Column(Boolean, default=False)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance_url = urlparse(self.project_url).hostname
+
+    def set_onboarded(self, onboarded: bool):
+        with sa_session_transaction(commit=True) as session:
+            self.onboarded = onboarded
+            session.add(self)
 
     @classmethod
     def get_or_create(
@@ -483,6 +492,13 @@ class GitProjectModel(Base):
                 )
                 session.add(project)
             return project
+
+    @classmethod
+    def get_all(cls) -> Iterable["GitProjectModel"]:
+        """Return projects of given forge"""
+        with sa_session_transaction() as session:
+            query = session.query(GitProjectModel).order_by(GitProjectModel.namespace)
+            return query.all()
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["GitProjectModel"]:
@@ -943,6 +959,23 @@ class GitProjectModel(Base):
         return dict(
             sorted(all_usage_numbers.items(), key=lambda x: x[1], reverse=True)[:top]
         )
+
+    @classmethod
+    def get_known_onboarded_projects(
+        cls,
+    ) -> set["GitProjectModel"]:
+        """
+        List already known onboarded projects.
+        An onboarded project is a project with a bodhi update or a koji build
+        or a merged downstream packit pull request.
+
+        We already checked them.
+        """
+        with sa_session_transaction() as session:
+            query = session.query(GitProjectModel).filter(
+                GitProjectModel.onboarded == True  # noqa
+            )
+            return query.all()
 
     def __repr__(self):
         return (
@@ -1901,6 +1934,33 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
                 .slice(first, last)
             )
 
+    @classmethod
+    def get_all_projects(cls) -> Iterable["GitProjectModel"]:
+        """Get all git projects with a saved successfull bodhi update."""
+        with sa_session_transaction() as session:
+            query = (
+                session.query(ProjectEventModel)
+                .join(
+                    PipelineModel,
+                    PipelineModel.project_event_id == ProjectEventModel.id,
+                )
+                .join(
+                    BodhiUpdateGroupModel,
+                    PipelineModel.bodhi_update_group_id == BodhiUpdateGroupModel.id,
+                )
+                .join(
+                    BodhiUpdateTargetModel,
+                    BodhiUpdateGroupModel.id
+                    == BodhiUpdateTargetModel.bodhi_update_group_id,
+                )
+            ).filter(BodhiUpdateTargetModel.status == "success")
+
+            project_event_branches = [
+                project_event.get_project_event_object() for project_event in query
+            ]
+            projects = [branch.project for branch in project_event_branches]
+            return set(projects)
+
 
 class BodhiUpdateGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "bodhi_update_groups"
@@ -2112,6 +2172,35 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             f"KojiBuildTargetModel(id={self.id}, "
             f"build_submitted_time={self.build_submitted_time})"
         )
+
+    @classmethod
+    def get_all_projects(cls) -> Iterable["GitProjectModel"]:
+        """Get all git projects with a successful downstream koji build."""
+        with sa_session_transaction() as session:
+            query = (
+                session.query(ProjectEventModel)
+                .join(
+                    PipelineModel,
+                    PipelineModel.project_event_id == ProjectEventModel.id,
+                )
+                .join(
+                    KojiBuildGroupModel,
+                    PipelineModel.koji_build_group_id == KojiBuildGroupModel.id,
+                )
+                .join(
+                    KojiBuildTargetModel,
+                    KojiBuildGroupModel.id == KojiBuildTargetModel.koji_build_group_id,
+                )
+                .filter(
+                    KojiBuildTargetModel.scratch == False,  # noqa
+                    KojiBuildTargetModel.status == "success",
+                )
+            )
+            project_event_branches = [
+                project_event.get_project_event_object() for project_event in query
+            ]
+            projects = [branch.project for branch in project_event_branches]
+            return set(projects)
 
 
 class SRPMBuildModel(ProjectAndEventsConnector, Base):
@@ -2654,6 +2743,15 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     def get_by_id(cls, id_: int) -> Optional["SyncReleaseTargetModel"]:
         with sa_session_transaction() as session:
             return session.query(SyncReleaseTargetModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_all_downstream_pr_urls(cls) -> List[str]:
+        """Get all downstream pr urls created by Packit."""
+        with sa_session_transaction() as session:
+            query = session.query(SyncReleaseTargetModel.downstream_pr_url).filter(
+                SyncReleaseTargetModel.status == SyncReleaseTargetStatus.submitted
+            )
+            return [row.downstream_pr_url for row in query]
 
 
 class SyncReleaseStatus(str, enum.Enum):

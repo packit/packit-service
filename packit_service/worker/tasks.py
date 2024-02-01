@@ -4,7 +4,7 @@
 import logging
 import socket
 from os import getenv
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from celery import Task
 from celery._state import get_current_task
@@ -63,6 +63,7 @@ from packit_service.worker.helpers.build.babysit import (
     update_vm_image_build,
     check_pending_vm_image_builds,
 )
+from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
 
@@ -565,3 +566,13 @@ def database_maintenance() -> None:
 @celery_app.task
 def babysit_pending_vm_image_builds() -> None:
     check_pending_vm_image_builds()
+
+
+# Usage / statistics tasks
+
+
+@celery_app.task(
+    name=TaskName.check_onboarded_projects, queue="long-running", rate_limit="1/h"
+)
+def run_check_onboarded_projects(projects=List[Dict]) -> None:
+    check_onboarded_projects(projects)

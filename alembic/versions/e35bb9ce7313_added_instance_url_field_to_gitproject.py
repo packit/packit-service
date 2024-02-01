@@ -5,19 +5,36 @@ Revises: a0e48c400be4
 Create Date: 2020-11-05 11:33:02.769607
 
 """
+from typing import TYPE_CHECKING
+
 from urllib.parse import urlparse
 
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from packit_service.models import GitProjectModel
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+
+# https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
+if TYPE_CHECKING:
+    Base = object
+else:
+    Base = declarative_base()
 
 # revision identifiers, used by Alembic.
 revision = "e35bb9ce7313"
 down_revision = "a0e48c400be4"
 branch_labels = None
 depends_on = None
+
+
+class GitProjectModel(Base):
+    __tablename__ = "git_projects"
+    id = Column(Integer, primary_key=True)
+
+    project_url = Column(String)
+    instance_url = Column(String, nullable=False)
 
 
 def upgrade():

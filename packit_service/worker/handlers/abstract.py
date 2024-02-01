@@ -187,6 +187,7 @@ class TaskName(str, enum.Enum):
     vm_image_build = "task.run_vm_image_build_handler"
     vm_image_build_result = "task.run_vm_image_build_result_handler"
     pull_from_upstream = "pull_from_upstream"
+    check_onboarded_projects = "task.check_onboarded_projects"
 
 
 class Handler(PackitAPIProtocol, Config):
