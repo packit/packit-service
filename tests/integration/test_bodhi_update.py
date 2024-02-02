@@ -31,7 +31,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     run_bodhi_update,
-    BodhiHandlerTaskWithRetry,
+    BodhiTaskWithRetry,
 )
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
@@ -427,9 +427,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         event=event_dict,
         # Needs to be the last try to inform user
         celery_task=flexmock(
-            request=flexmock(
-                retries=BodhiHandlerTaskWithRetry.retry_kwargs["max_retries"]
-            ),
+            request=flexmock(retries=BodhiTaskWithRetry.retry_kwargs["max_retries"]),
             max_retries=DEFAULT_RETRY_LIMIT,
         ),
     ).run_job()

@@ -130,7 +130,7 @@ def setup_loggers(logger, *args, **kwargs):
     log_package_versions(package_versions)
 
 
-class HandlerTaskWithRetry(Task):
+class TaskWithRetry(Task):
     autoretry_for = (Exception,)
     max_retries = int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
     retry_kwargs = {"max_retries": max_retries}
@@ -140,7 +140,7 @@ class HandlerTaskWithRetry(Task):
     acks_late = True
 
 
-class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
+class BodhiTaskWithRetry(TaskWithRetry):
     # hardcode for creating bodhi updates to account for the tagging race condition
     max_retries = 5
     # also disable jitter for the same reason
@@ -149,7 +149,12 @@ class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
 
 
 @celery_app.task(
-    name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME, bind=True
+    name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
+    bind=True,
+    # set a lower time limit for process message as for other tasks
+    # https://docs.celeryq.dev/en/stable/reference/celery.app.task.html#celery.app.task.Task.time_limit
+    time_limit=300,
+    base=TaskWithRetry,
 )
 def process_message(
     self, event: dict, source: Optional[str] = None, event_type: Optional[str] = None
@@ -188,7 +193,7 @@ def babysit_copr_build(self, build_id: int):
 
 
 # tasks for running the handlers
-@celery_app.task(name=TaskName.copr_build_start, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.copr_build_start, base=TaskWithRetry)
 def run_copr_build_start_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildStartHandler(
         package_config=load_package_config(package_config),
@@ -198,7 +203,7 @@ def run_copr_build_start_handler(event: dict, package_config: dict, job_config: 
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.copr_build_end, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.copr_build_end, base=TaskWithRetry)
 def run_copr_build_end_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildEndHandler(
         package_config=load_package_config(package_config),
@@ -209,7 +214,7 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
 
 
 @celery_app.task(
-    bind=True, name=TaskName.copr_build, base=HandlerTaskWithRetry, queue="long-running"
+    bind=True, name=TaskName.copr_build, base=TaskWithRetry, queue="long-running"
 )
 def run_copr_build_handler(
     self,
@@ -228,7 +233,7 @@ def run_copr_build_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.installation, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.installation, base=TaskWithRetry)
 def run_installation_handler(event: dict, package_config: dict, job_config: dict):
     handler = GithubAppInstallationHandler(
         package_config=None, job_config=None, event=event
@@ -236,7 +241,7 @@ def run_installation_handler(event: dict, package_config: dict, job_config: dict
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.github_fas_verification, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.github_fas_verification, base=TaskWithRetry)
 def run_github_fas_verification_handler(
     event: dict, package_config: dict, job_config: dict
 ):
@@ -246,7 +251,7 @@ def run_github_fas_verification_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(bind=True, name=TaskName.testing_farm, base=HandlerTaskWithRetry)
+@celery_app.task(bind=True, name=TaskName.testing_farm, base=TaskWithRetry)
 def run_testing_farm_handler(
     self,
     event: dict,
@@ -266,7 +271,7 @@ def run_testing_farm_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.testing_farm_results, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.testing_farm_results, base=TaskWithRetry)
 def run_testing_farm_results_handler(
     event: dict, package_config: dict, job_config: dict
 ):
@@ -281,7 +286,7 @@ def run_testing_farm_results_handler(
 @celery_app.task(
     bind=True,
     name=TaskName.propose_downstream,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="long-running",
 )
 def run_propose_downstream_handler(
@@ -304,7 +309,7 @@ def run_propose_downstream_handler(
 @celery_app.task(
     bind=True,
     name=TaskName.pull_from_upstream,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="long-running",
 )
 def run_pull_from_upstream_handler(
@@ -325,7 +330,7 @@ def run_pull_from_upstream_handler(
 
 
 @celery_app.task(
-    name=TaskName.upstream_koji_build, base=HandlerTaskWithRetry, queue="long-running"
+    name=TaskName.upstream_koji_build, base=TaskWithRetry, queue="long-running"
 )
 def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildHandler(
@@ -336,7 +341,7 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.upstream_koji_build_report, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.upstream_koji_build_report, base=TaskWithRetry)
 def run_koji_build_report_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiTaskReportHandler(
         package_config=load_package_config(package_config),
@@ -347,7 +352,7 @@ def run_koji_build_report_handler(event: dict, package_config: dict, job_config:
 
 
 @celery_app.task(
-    name=TaskName.sync_from_downstream, base=HandlerTaskWithRetry, queue="long-running"
+    name=TaskName.sync_from_downstream, base=TaskWithRetry, queue="long-running"
 )
 def run_sync_from_downstream_handler(
     event: dict, package_config: dict, job_config: dict
@@ -363,7 +368,7 @@ def run_sync_from_downstream_handler(
 @celery_app.task(
     bind=True,
     name=TaskName.downstream_koji_build,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="long-running",
 )
 def run_downstream_koji_build(
@@ -386,7 +391,7 @@ def run_downstream_koji_build(
 @celery_app.task(
     bind=True,
     name=TaskName.retrigger_downstream_koji_build,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="long-running",
 )
 def run_retrigger_downstream_koji_build(
@@ -406,7 +411,7 @@ def run_retrigger_downstream_koji_build(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.downstream_koji_build_report, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.downstream_koji_build_report, base=TaskWithRetry)
 def run_downstream_koji_build_report(
     event: dict, package_config: dict, job_config: dict
 ):
@@ -421,7 +426,7 @@ def run_downstream_koji_build_report(
 @celery_app.task(
     bind=True,
     name=TaskName.bodhi_update,
-    base=BodhiHandlerTaskWithRetry,
+    base=BodhiTaskWithRetry,
     queue="long-running",
 )
 def run_bodhi_update(
@@ -444,7 +449,7 @@ def run_bodhi_update(
 @celery_app.task(
     bind=True,
     name=TaskName.retrigger_bodhi_update,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="long-running",
 )
 def run_retrigger_bodhi_update(
@@ -467,7 +472,7 @@ def run_retrigger_bodhi_update(
 @celery_app.task(
     bind=True,
     name=TaskName.issue_comment_retrigger_bodhi_update,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="long-running",
 )
 def run_issue_comment_retrigger_bodhi_update(
@@ -490,7 +495,7 @@ def run_issue_comment_retrigger_bodhi_update(
 @celery_app.task(
     bind=True,
     name=TaskName.vm_image_build,
-    base=HandlerTaskWithRetry,
+    base=TaskWithRetry,
     queue="short-running",
 )
 def run_vm_image_build(self, event: dict, package_config: dict, job_config: dict):
@@ -503,7 +508,7 @@ def run_vm_image_build(self, event: dict, package_config: dict, job_config: dict
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.vm_image_build_result, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.vm_image_build_result, base=TaskWithRetry)
 def run_vm_image_build_result(
     self, event: dict, package_config: dict, job_config: dict
 ):
