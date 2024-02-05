@@ -11,7 +11,7 @@ from json import dumps, load
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
-from github import Github
+from github.MainClass import Github
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 

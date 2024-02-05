@@ -7,7 +7,7 @@ import pytest
 from celery.app.task import Context, Task
 from celery.canvas import Signature
 from flexmock import flexmock
-from github import Github
+from github.MainClass import Github
 
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType

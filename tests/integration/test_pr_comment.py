@@ -9,7 +9,7 @@ import pytest
 
 from celery.canvas import Signature
 from flexmock import flexmock
-from github import Github
+from github.MainClass import Github
 
 import packit_service.models
 import packit_service.service.urls as urls

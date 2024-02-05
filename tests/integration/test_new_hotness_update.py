@@ -4,7 +4,7 @@ import shutil
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
-from github import Github
+from github.MainClass import Github
 
 import packit_service.worker.checker.distgit
 from packit.api import PackitAPI
