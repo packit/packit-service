@@ -621,6 +621,92 @@ def get_result_dictionary(
     return {position_name: position, count_name: top_projects.get(project)}
 
 
+@usage_ns.route("/onboarded-projects")
+class Onboarded2024Q1(Resource):
+    @usage_ns.response(
+        HTTPStatus.OK,
+        "Onboarded projects for which exist a Bodhi update or a Koji build or a Packit merged PR.",
+    )
+    @classmethod
+    def calculate(cls):
+        known_onboarded_projects = GitProjectModel.get_known_onboarded_projects()
+
+        bodhi_updates = BodhiUpdateTargetModel.get_all_projects()
+        koji_builds = KojiBuildTargetModel.get_all_projects()
+        onboarded_projects = bodhi_updates.union(koji_builds).union(
+            known_onboarded_projects
+        )
+
+        sync_release_prs_urls = SyncReleaseTargetModel.get_all_downstream_pr_urls()
+        downstream_synced_projects_urls = {
+            pr[0 : pr.rfind("/pull-request")]  # noqa[203] prettier like it this way
+            for pr in sync_release_prs_urls
+        }
+        all_projects = GitProjectModel.get_all()
+        downstream_synced_projects = {
+            project
+            for project in all_projects
+            if project.project_url in downstream_synced_projects_urls
+        }
+        almost_onboarded_projects = downstream_synced_projects.difference(
+            onboarded_projects
+        )
+        recheck_if_onboarded = almost_onboarded_projects.difference(
+            known_onboarded_projects
+        )
+
+        if recheck_if_onboarded:
+            # Run the long running task in Celery.
+            # The task will collect data about merged PR for
+            # every given project. If a Packit merged PR is
+            # found the long running task will save the
+            # onboarded flag in the git projects table.
+            celery_app.send_task(
+                name="task.check_onboarded_projects",
+                kwargs={
+                    "projects": [
+                        {
+                            "id": project.id,
+                            "instance_url": project.instance_url,
+                            "namespace": project.namespace,
+                            "repo_name": project.repo_name,
+                        }
+                        for project in recheck_if_onboarded
+                    ]
+                },
+            )
+
+        onboarded = {
+            project.id: project.project_url
+            for project in onboarded_projects.union(known_onboarded_projects)
+        }
+        almost_onboarded = {
+            project.id: project.project_url
+            for project in recheck_if_onboarded.difference(onboarded_projects)
+        }
+
+        return {"onboarded": onboarded, "almost_onboarded": almost_onboarded}
+
+    @classmethod
+    def get_num_of_onboarded_projects(cls):
+        return len(cls.calculate()["onboarded"])
+
+    def get(self):
+        """
+        Returns a list of onboarded projects for which exist at least a
+        Bodhi update, a downstream Koji build or a merged Packit PR.
+
+        The data for the answer is taken from the database but a long running
+        task is spooned in the mean time, and the new long running task will
+        look for new onboarded packages.
+        If you re-call this endpoint a few minutes later the result may be different.
+
+        Examples:
+        /api/usage/onboarded-projects
+        """
+        return self.calculate()
+
+
 def _get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
     # Even though frontend expects only the first N (=5) to be present
     # in the project lists, we need to get all to calculate the number
@@ -648,6 +734,7 @@ def _get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
                 }
                 for job, data in raw_result["jobs"].items()
             },
+            "onboarded_projects_q1_2024": Onboarded2024Q1.get_num_of_onboarded_projects(),
         }
     )
 
@@ -821,81 +908,3 @@ class UsageIntervals(Resource):
         delta_hours = int(escape(request.args.get("hours", "0")))
         delta_days = int(escape(request.args.get("days", "0")))
         return _get_usage_interval_data(hours=delta_hours, days=delta_days, count=count)
-
-
-@usage_ns.route("/onboarded-projects")
-class Onboarded(Resource):
-    @usage_ns.response(
-        HTTPStatus.OK,
-        "Onboarded projects for which exist a Bodhi update or a Koji build or a Packit merged PR.",
-    )
-    def get(self):
-        """
-        Returns a list of onboarded projects for which exist at least a
-        Bodhi update, a downstream Koji build or a merged Packit PR.
-
-        The data for the answer is taken from the database but a long running
-        task is spooned in the mean time, and the new long running task will
-        look for new onboarded packages.
-        If you re-call this endpoint a few minutes later the result may be different.
-
-        Examples:
-        /api/usage/onboarded-projects
-        """
-        known_onboarded_projects = GitProjectModel.get_known_onboarded_projects()
-
-        bodhi_updates = BodhiUpdateTargetModel.get_all_projects()
-        koji_builds = KojiBuildTargetModel.get_all_projects()
-        onboarded_projects = bodhi_updates.union(koji_builds).union(
-            known_onboarded_projects
-        )
-
-        sync_release_prs_urls = SyncReleaseTargetModel.get_all_downstream_pr_urls()
-        downstream_synced_projects_urls = {
-            pr[0 : pr.rfind("/pull-request")]  # noqa[203] prettier like it this way
-            for pr in sync_release_prs_urls
-        }
-        all_projects = GitProjectModel.get_all()
-        downstream_synced_projects = {
-            project
-            for project in all_projects
-            if project.project_url in downstream_synced_projects_urls
-        }
-        almost_onboarded_projects = downstream_synced_projects.difference(
-            onboarded_projects
-        )
-        recheck_if_onboarded = almost_onboarded_projects.difference(
-            known_onboarded_projects
-        )
-
-        if recheck_if_onboarded:
-            # Run the long running task in Celery.
-            # The task will collect data about merged PR for
-            # every given project. If a Packit merged PR is
-            # found the long running task will save the
-            # onboarded flag in the git projects table.
-            celery_app.send_task(
-                name="task.check_onboarded_projects",
-                kwargs={
-                    "projects": [
-                        {
-                            "id": project.id,
-                            "instance_url": project.instance_url,
-                            "namespace": project.namespace,
-                            "repo_name": project.repo_name,
-                        }
-                        for project in recheck_if_onboarded
-                    ]
-                },
-            )
-
-        onboarded = {
-            project.id: project.project_url
-            for project in onboarded_projects.union(known_onboarded_projects)
-        }
-        almost_onboarded = {
-            project.id: project.project_url
-            for project in recheck_if_onboarded.difference(onboarded_projects)
-        }
-
-        return {"onboarded": onboarded, "almost_onboarded": almost_onboarded}
