@@ -629,7 +629,9 @@ class Onboarded2024Q1(Resource):
     )
     @classmethod
     def calculate(cls):
-        known_onboarded_projects = GitProjectModel.get_known_onboarded_projects()
+        known_onboarded_projects = (
+            GitProjectModel.get_known_onboarded_downstream_projects()
+        )
 
         bodhi_updates = BodhiUpdateTargetModel.get_all_projects()
         koji_builds = KojiBuildTargetModel.get_all_projects()
@@ -637,6 +639,7 @@ class Onboarded2024Q1(Resource):
             known_onboarded_projects
         )
 
+        # find **downstream git projects** with a PR created by Packit
         sync_release_prs_urls = SyncReleaseTargetModel.get_all_downstream_pr_urls()
         downstream_synced_projects_urls = {
             pr[0 : pr.rfind("/pull-request")]  # noqa[203] prettier like it this way
@@ -648,9 +651,15 @@ class Onboarded2024Q1(Resource):
             for project in all_projects
             if project.project_url in downstream_synced_projects_urls
         }
+        # if there exist a downstream Packit PR we are not sure it has been
+        # merged, the project is *almost onboarded* until the PR is merged
+        # (unless we already know it has a koji build or bodhi update, then
+        # we don't need to check for a merged PR - it obviously has one)
         almost_onboarded_projects = downstream_synced_projects.difference(
             onboarded_projects
         )
+        # do not re-check projects we already checked and we know they
+        # have a merged Packit PR
         recheck_if_onboarded = almost_onboarded_projects.difference(
             known_onboarded_projects
         )
@@ -660,7 +669,7 @@ class Onboarded2024Q1(Resource):
             # The task will collect data about merged PR for
             # every given project. If a Packit merged PR is
             # found the long running task will save the
-            # onboarded flag in the git projects table.
+            # onboarded_downstream flag in the git projects table.
             celery_app.send_task(
                 name="task.check_onboarded_projects",
                 kwargs={

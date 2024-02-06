@@ -463,15 +463,15 @@ class GitProjectModel(Base):
 
     # we checked that exists at least a bodhi update or a koji build
     # or a merged packit downstream pull request for it.
-    onboarded = Column(Boolean, default=False)
+    onboarded_downstream = Column(Boolean, default=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance_url = urlparse(self.project_url).hostname
 
-    def set_onboarded(self, onboarded: bool):
+    def set_onboarded_downstream(self, onboarded: bool):
         with sa_session_transaction(commit=True) as session:
-            self.onboarded = onboarded
+            self.onboarded_downstream = onboarded
             session.add(self)
 
     @classmethod
@@ -961,7 +961,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
-    def get_known_onboarded_projects(
+    def get_known_onboarded_downstream_projects(
         cls,
     ) -> set["GitProjectModel"]:
         """
@@ -973,7 +973,7 @@ class GitProjectModel(Base):
         """
         with sa_session_transaction() as session:
             query = session.query(GitProjectModel).filter(
-                GitProjectModel.onboarded == True  # noqa
+                GitProjectModel.onboarded_downstream == True  # noqa
             )
             return query.all()
 

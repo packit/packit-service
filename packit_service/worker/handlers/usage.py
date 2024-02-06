@@ -32,4 +32,4 @@ def check_onboarded_projects(projects: List[Dict]):
 
         if prs_from_packit:
             db_project = GitProjectModel.get_by_id(project["id"])
-            db_project.set_onboarded(True)
+            db_project.set_onboarded_downstream(True)
