@@ -1,8 +1,9 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-import gitlab
+
 import pytest
 from flexmock import flexmock
+from gitlab.exceptions import GitlabError
 from ogr import PagureService
 from ogr.abstract import CommitStatus
 from ogr.exceptions import GithubAPIException, GitlabAPIException
@@ -18,7 +19,6 @@ from packit.config.notifications import (
     NotificationsConfig,
     FailureCommentNotificationsConfig,
 )
-from packit_service.worker import reporting
 
 from packit_service.worker.reporting import (
     StatusReporter,
@@ -29,6 +29,7 @@ from packit_service.worker.reporting import (
     DuplicateCheckMode,
     update_message_with_configured_failure_comment_message,
 )
+from packit_service.worker.reporting.news import News
 
 create_table_content = StatusReporterGithubChecks._create_table
 
@@ -223,9 +224,7 @@ def test_set_status_github_check(
     check_conclusion,
     project_object_id,
 ):
-    flexmock(reporting).should_receive("get_random_news_sentence").and_return(
-        "Interesting news."
-    )
+    flexmock(News).should_receive("get_sentence").and_return("Interesting news.")
 
     project = GithubProject(None, None, None)
     reporter = StatusReporter.get_instance(
@@ -288,7 +287,7 @@ def test_set_status_github_check(
             "https://api.packit.dev/build/112/logs",
             CommitStatus.failure,
             GitlabAPIException,
-            {"__cause__": gitlab.GitlabError(response_code=403)},
+            {"__cause__": GitlabError(response_code=403)},
             StatusReporterGitlab,
             id="branch push",
         ),
@@ -441,9 +440,7 @@ def test_status_instead_check(
     exception_type,
     event_id,
 ):
-    flexmock(reporting).should_receive("get_random_news_sentence").and_return(
-        "Interesting news."
-    )
+    flexmock(News).should_receive("get_sentence").and_return("Interesting news.")
 
     project = GithubProject(None, None, None)
     reporter = StatusReporter.get_instance(
