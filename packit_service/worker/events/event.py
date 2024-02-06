@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from typing import Dict, Optional, Type, Union, Set, List
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PullRequest
 from ogr.parsing import RepoUrl
 
 from packit.config import JobConfigTriggerType, PackageConfig
@@ -461,6 +461,7 @@ class AbstractForgeIndependentEvent(Event):
         self._pr_id = pr_id
         self.fail_when_config_file_missing = False
         self.actor = actor
+        self._pull_request_object = None
 
     @property
     def project(self):
@@ -490,6 +491,12 @@ class AbstractForgeIndependentEvent(Event):
     @property
     def pr_id(self) -> Optional[int]:
         return self._pr_id
+
+    @property
+    def pull_request_object(self) -> Optional[PullRequest]:
+        if not self._pull_request_object and self.pr_id:
+            self._pull_request_object = self.project.get_pr(self.pr_id)
+        return self._pull_request_object
 
     def get_project(self) -> Optional[GitProject]:
         if not (self.project_url or self.db_project_object):
@@ -551,6 +558,11 @@ class AbstractForgeIndependentEvent(Event):
             models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),
             statuses_to_filter_with=statuses_to_filter_with,
         )
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result.pop("_pull_request_object")
+        return result
 
 
 class AbstractResultEvent(AbstractForgeIndependentEvent):

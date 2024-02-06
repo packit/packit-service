@@ -1,7 +1,9 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import pytest
+from flexmock import flexmock
 
-from packit_service.utils import only_once
+from packit_service.utils import only_once, pr_labels_match_configuration
 
 
 def test_only_once():
@@ -74,3 +76,87 @@ def test_only_once_with_args_and_kwargs():
     assert counter == 1
     f("b", "b", three="different")
     assert counter == 1
+
+
+@pytest.mark.parametrize(
+    "absent,present,pr_labels,should_pass",
+    [
+        pytest.param(
+            [],
+            ["my-label"],
+            [],
+            False,
+        ),
+        pytest.param(
+            [],
+            ["my-label"],
+            ["my-label"],
+            True,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            ["my-label"],
+            ["my-label"],
+            True,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            ["my-label"],
+            ["my-label", "skip-ci"],
+            False,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            ["my-label"],
+            ["skip-ci"],
+            False,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            [],
+            ["skip-ci"],
+            False,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            [],
+            [],
+            True,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            ["first", "second"],
+            ["second"],
+            True,
+        ),
+        pytest.param(
+            ["skip-ci"],
+            ["first", "second"],
+            ["third"],
+            False,
+        ),
+        pytest.param(
+            ["skip-ci", "block-ci"],
+            ["first", "second"],
+            ["block-ci"],
+            False,
+        ),
+        pytest.param(
+            [],
+            [],
+            [],
+            True,
+        ),
+        pytest.param(
+            [],
+            [],
+            ["some-label"],
+            True,
+        ),
+    ],
+)
+def test_pr_labels_match(absent, present, pr_labels, should_pass):
+    assert (
+        pr_labels_match_configuration(flexmock(labels=pr_labels, id=1), present, absent)
+        == should_pass
+    )
