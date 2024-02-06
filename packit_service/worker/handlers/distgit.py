@@ -60,6 +60,7 @@ from packit_service.worker.checker.distgit import (
     ValidInformationForPullFromUpstream,
     HasIssueCommenterRetriggeringPermissions,
     IsUpstreamTagMatchingConfig,
+    LabelsOnDistgitPR,
 )
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -678,7 +679,11 @@ class AbstractDownstreamKojiBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (PermissionOnDistgit, HasIssueCommenterRetriggeringPermissions)
+        return (
+            LabelsOnDistgitPR,
+            PermissionOnDistgit,
+            HasIssueCommenterRetriggeringPermissions,
+        )
 
     def _get_or_create_koji_group_model(self) -> KojiBuildGroupModel:
         if self._koji_group_model_id is not None:
