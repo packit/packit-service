@@ -619,6 +619,8 @@ def test_detailed_propose_info_release(
     assert response_dict["status"] == SyncReleaseTargetStatus.submitted
     assert response_dict["branch"] == SampleValues.branch
     assert response_dict["downstream_pr_url"] == SampleValues.downstream_pr_url
+    assert response_dict["downstream_pr_id"] == SampleValues.downstream_pr_id
+    assert response_dict["downstream_pr_project"] == SampleValues.downstream_project_url
     assert response_dict["submitted_time"] is not None
     assert response_dict["finished_time"] is not None
     assert response_dict["logs"] == "random logs"
@@ -644,6 +646,8 @@ def test_detailed_pull_from_upstream_info(
     assert response_dict["status"] == SyncReleaseTargetStatus.submitted
     assert response_dict["branch"] == SampleValues.branch
     assert response_dict["downstream_pr_url"] == SampleValues.downstream_pr_url
+    assert response_dict["downstream_pr_id"] == SampleValues.downstream_pr_id
+    assert response_dict["downstream_pr_project"] == SampleValues.downstream_project_url
     assert response_dict["submitted_time"] is not None
     assert response_dict["finished_time"] is not None
     assert response_dict["logs"] == "random logs"
