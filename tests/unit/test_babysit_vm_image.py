@@ -7,6 +7,7 @@ from requests import HTTPError
 from flexmock import flexmock
 from flexmock import Mock
 from packit.config.job_config import JobConfigTriggerType, JobType
+from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     VMImageBuildTargetModel,
@@ -117,6 +118,12 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                     trigger=JobConfigTriggerType.pull_request,
                     type=JobType.vm_image_build,
                     manual_trigger=False,
+                    require=RequirementsConfig(
+                        LabelRequirementsConfig(
+                            absent=[],
+                            present=[],
+                        )
+                    ),
                 )
             ],
         )

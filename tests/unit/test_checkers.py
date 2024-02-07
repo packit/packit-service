@@ -6,7 +6,7 @@ import pytest
 from flexmock import flexmock
 
 from ogr import PagureService
-from ogr.abstract import AccessLevel
+from ogr.abstract import AccessLevel, PRStatus
 from ogr.services.pagure import PagureProject
 from packit.config import (
     CommonPackageConfig,
@@ -18,6 +18,7 @@ from packit.config import (
 )
 
 from packit.config.commands import TestCommandConfig
+from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.copr import (
@@ -27,6 +28,7 @@ from packit_service.worker.checker.copr import (
 from packit_service.worker.checker.distgit import (
     IsUpstreamTagMatchingConfig,
     PermissionOnDistgit,
+    LabelsOnDistgitPR,
 )
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
@@ -992,3 +994,61 @@ def test_koji_check_allowed_accounts(
         package_config, job_config, distgit_push_event.get_dict()
     )
     assert checker.check_allowed_accounts(allowed_pr_authors, account) == should_pass
+
+
+@pytest.mark.parametrize(
+    "pr_labels,labels_present,labels_absent,should_pass",
+    (
+        ([], [], [], True),
+        (["allowed-1"], [], ["skip-ci"], True),
+        (["allowed-1"], ["allowed-1"], ["skip-ci"], True),
+        (["allowed-1"], ["allowed-1"], ["skip-ci"], True),
+        (["allowed-1", "skip-ci"], ["allowed-1"], ["skip-ci"], False),
+    ),
+)
+def test_labels_on_distgit_pr(
+    distgit_push_event,
+    pr_labels,
+    labels_present,
+    labels_absent,
+    should_pass,
+):
+    jobs = [
+        JobConfig(
+            type=JobType.koji_build,
+            trigger=JobConfigTriggerType.commit,
+            packages={
+                "package": CommonPackageConfig(
+                    dist_git_branches=["f36"],
+                    require=RequirementsConfig(
+                        LabelRequirementsConfig(
+                            absent=labels_absent,
+                            present=labels_present,
+                        )
+                    ),
+                )
+            },
+        ),
+    ]
+
+    package_config = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig()},
+    )
+    job_config = jobs[0]
+
+    flexmock(PagureProject).should_receive("get_pr_list").and_return(
+        [
+            flexmock(
+                id=5,
+                head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
+                status=PRStatus.open,
+                labels=pr_labels,
+            )
+        ]
+    )
+
+    checker = LabelsOnDistgitPR(
+        package_config, job_config, distgit_push_event.get_dict()
+    )
+    assert checker.pre_check() == should_pass

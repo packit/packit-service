@@ -24,7 +24,11 @@ from packit_service.constants import (
     COMMENT_REACTION,
     PACKIT_VERIFY_FAS_COMMAND,
 )
-from packit_service.utils import get_packit_commands_from_comment, elapsed_seconds
+from packit_service.utils import (
+    get_packit_commands_from_comment,
+    elapsed_seconds,
+    pr_labels_match_configuration,
+)
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     Event,
@@ -39,7 +43,10 @@ from packit_service.worker.events.comment import (
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
 )
-from packit_service.worker.events.event import AbstractResultEvent
+from packit_service.worker.events.event import (
+    AbstractResultEvent,
+    AbstractForgeIndependentEvent,
+)
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -664,6 +671,16 @@ class SteveJobs:
                     or any(
                         isinstance(self.event, event_type)
                         for event_type in MANUAL_OR_RESULT_EVENTS
+                    )
+                )
+                and (
+                    job.trigger != JobConfigTriggerType.pull_request
+                    or not (job.require.label.present or job.require.label.absent)
+                    or not isinstance(self.event, AbstractForgeIndependentEvent)
+                    or pr_labels_match_configuration(
+                        pull_request=self.event.pull_request_object,
+                        configured_labels_absent=job.require.label.absent,
+                        configured_labels_present=job.require.label.present,
                     )
                 )
             ):

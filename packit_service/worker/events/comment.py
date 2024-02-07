@@ -7,8 +7,7 @@ abstract-comment event classes.
 from logging import getLogger
 from typing import Dict, Optional, Set
 
-from ogr.abstract import Comment, PullRequest, Issue
-
+from ogr.abstract import Comment, Issue
 from packit_service.models import TestingFarmResult, BuildStatus
 from packit_service.service.db_project_events import (
     AddIssueEventToDb,
@@ -70,7 +69,6 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         self._comment_object = comment_object
         self._build_targets_override = build_targets_override
         self._tests_targets_override = tests_targets_override
-        self._pull_request_object = None
 
     @property
     def commit_sha(self) -> str:  # type:ignore
@@ -78,12 +76,6 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         if not self._commit_sha:
             self._commit_sha = self.project.get_pr(pr_id=self.pr_id).head_commit
         return self._commit_sha
-
-    @property
-    def pull_request_object(self) -> PullRequest:
-        if not self._pull_request_object:
-            self._pull_request_object = self.project.get_pr(self.pr_id)
-        return self._pull_request_object
 
     @property
     def comment_object(self) -> Optional[Comment]:
@@ -121,7 +113,6 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         result["commit_sha"] = self.commit_sha
         result.pop("_build_targets_override")
         result.pop("_tests_targets_override")
-        result.pop("_pull_request_object")
         return result
 
 

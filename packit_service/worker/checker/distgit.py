@@ -7,6 +7,7 @@ import re
 from ogr.abstract import AccessLevel
 from packit.config.aliases import get_branches
 from packit_service.constants import MSG_GET_IN_TOUCH, KojiAllowedAccountsAlias
+from packit_service.utils import pr_labels_match_configuration
 from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -22,6 +23,21 @@ from packit_service.worker.mixin import (
 from packit_service.worker.reporting import report_in_issue_repository
 
 logger = logging.getLogger(__name__)
+
+
+class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
+    def pre_check(self) -> bool:
+        if self.data.event_type not in (PushPagureEvent.__name__,) or not (
+            self.job_config.require.label.present
+            or self.job_config.require.label.absent
+        ):
+            return True
+
+        return pr_labels_match_configuration(
+            self.pull_request,
+            self.job_config.require.label.present,
+            self.job_config.require.label.absent,
+        )
 
 
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
