@@ -113,11 +113,12 @@ class EventData:
         commit_sha = event.get("commit_sha")
         identifier = event.get("identifier")
         issue_id = event.get("issue_id")
+
+        time = event.get("task_accepted_time")
         task_accepted_time = (
-            datetime.fromtimestamp(event.get("task_accepted_time"), timezone.utc)
-            if event.get("task_accepted_time")
-            else None
+            datetime.fromtimestamp(time, timezone.utc) if time else None
         )
+
         build_targets_override = event.get("build_targets_override")
         tests_targets_override = event.get("tests_targets_override")
         branches_override = event.get("branches_override")

@@ -394,6 +394,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Measure the time it took to set the failed status in case of event (e.g. failed SRPM)
         that prevents Copr build to be submitted.
         """
+
+        # NOTE: When there is no ‹task_accepted_time›, we skip the submission to
+        # the metrics, since there is no delay between the submission and
+        # failure. We could probably track those by a separate metric as
+        # suggested by Maja in the PR.
+        if self.metadata.task_accepted_time is None:
+            logger.warning(
+                "No task_accepted_time for failed Copr build with reason: %s", reason
+            )
+            return
+
         time = elapsed_seconds(
             begin=self.metadata.task_accepted_time, end=datetime.now(timezone.utc)
         )
