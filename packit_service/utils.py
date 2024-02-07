@@ -243,7 +243,7 @@ def pr_labels_match_configuration(
         f"(label.present: {configured_labels_present}, label.absent: {configured_labels_absent})"
     )
 
-    pr_labels = pull_request.labels
+    pr_labels = [label.name for label in pull_request.labels]
     logger.info(f"Labels on PR: {pr_labels}")
 
     return (
