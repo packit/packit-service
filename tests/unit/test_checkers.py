@@ -1000,10 +1000,15 @@ def test_koji_check_allowed_accounts(
     "pr_labels,labels_present,labels_absent,should_pass",
     (
         ([], [], [], True),
-        (["allowed-1"], [], ["skip-ci"], True),
-        (["allowed-1"], ["allowed-1"], ["skip-ci"], True),
-        (["allowed-1"], ["allowed-1"], ["skip-ci"], True),
-        (["allowed-1", "skip-ci"], ["allowed-1"], ["skip-ci"], False),
+        ([flexmock(name="allowed-1")], [], ["skip-ci"], True),
+        ([flexmock(name="allowed-1")], ["allowed-1"], ["skip-ci"], True),
+        ([flexmock(name="allowed-1")], ["allowed-1"], ["skip-ci"], True),
+        (
+            [flexmock(name="allowed-1"), flexmock(name="skip-ci")],
+            ["allowed-1"],
+            ["skip-ci"],
+            False,
+        ),
     ),
 )
 def test_labels_on_distgit_pr(

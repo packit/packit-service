@@ -90,31 +90,31 @@ def test_only_once_with_args_and_kwargs():
         pytest.param(
             [],
             ["my-label"],
-            ["my-label"],
+            [flexmock(name="my-label")],
             True,
         ),
         pytest.param(
             ["skip-ci"],
             ["my-label"],
-            ["my-label"],
+            [flexmock(name="my-label")],
             True,
         ),
         pytest.param(
             ["skip-ci"],
             ["my-label"],
-            ["my-label", "skip-ci"],
+            [flexmock(name="my-label"), flexmock(name="skip-ci")],
             False,
         ),
         pytest.param(
             ["skip-ci"],
             ["my-label"],
-            ["skip-ci"],
+            [flexmock(name="skip-ci")],
             False,
         ),
         pytest.param(
             ["skip-ci"],
             [],
-            ["skip-ci"],
+            [flexmock(name="skip-ci")],
             False,
         ),
         pytest.param(
@@ -126,19 +126,19 @@ def test_only_once_with_args_and_kwargs():
         pytest.param(
             ["skip-ci"],
             ["first", "second"],
-            ["second"],
+            [flexmock(name="second")],
             True,
         ),
         pytest.param(
             ["skip-ci"],
             ["first", "second"],
-            ["third"],
+            [flexmock(name="third")],
             False,
         ),
         pytest.param(
             ["skip-ci", "block-ci"],
             ["first", "second"],
-            ["block-ci"],
+            [flexmock(name="block-ci")],
             False,
         ),
         pytest.param(
@@ -150,7 +150,7 @@ def test_only_once_with_args_and_kwargs():
         pytest.param(
             [],
             [],
-            ["some-label"],
+            [flexmock(name="some-label")],
             True,
         ),
     ],
