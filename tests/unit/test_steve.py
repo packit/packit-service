@@ -34,6 +34,7 @@ from packit_service.models import (
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
+    SyncReleasePullRequestModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
@@ -141,8 +142,17 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model).times(1 if success else 0)
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+    ).and_return(object).times(1 if success else 0)
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
+    ).times(1 if success else 0)
+    flexmock(model).should_receive("set_downstream_pr").with_args(
+        downstream_pr=object
     ).times(1 if success else 0)
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.running
@@ -156,7 +166,17 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
         status=SyncReleaseStatus.finished
     ).times(1 if success else 0)
-    pr = flexmock(url="some_url").should_receive("comment").mock()
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr = (
+        flexmock(id=21, url="some_url", target_project=target_project)
+        .should_receive("comment")
+        .mock()
+    )
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="1.2.3",

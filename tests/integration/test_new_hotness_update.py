@@ -24,6 +24,7 @@ from packit_service.models import (
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
+    SyncReleasePullRequestModel,
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
@@ -90,6 +91,12 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model)
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+    ).and_return(object)
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'upstream_project_url': "
@@ -142,7 +149,17 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         False,
     ).and_return(project)
 
-    pr = flexmock(url="some_url").should_receive("comment").mock()
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr = (
+        flexmock(id=21, url="some_url", target_project=target_project)
+        .should_receive("comment")
+        .mock()
+    )
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="7.0.3",
@@ -163,6 +180,9 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
+    )
+    flexmock(model).should_receive("set_downstream_pr").with_args(
+        downstream_pr=object
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted
