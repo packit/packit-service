@@ -2392,6 +2392,7 @@ class TestingFarmResult(str, enum.Enum):
     needs_inspection = "needs_inspection"
     retry = "retry"
     complete = "complete"
+    canceled = "canceled"
 
 
 class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
