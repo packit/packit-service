@@ -6,7 +6,7 @@ from functools import partial
 from typing import Optional, Union, Dict, Callable
 
 from lazy_object_proxy import Proxy
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PullRequest
 from ogr.exceptions import GitlabAPIException
 from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
@@ -58,6 +58,7 @@ class BaseJobHelper:
         self._pr_id: Optional[int] = None
         self._is_reporting_allowed: Optional[bool] = None
         self._is_gitlab_instance: Optional[bool] = None
+        self._pull_request_object: Optional[PullRequest] = None
 
     def get_package_name(self) -> Optional[str]:
         """If the package_config is just for one package,
@@ -104,6 +105,12 @@ class BaseJobHelper:
         if self._pr_id is None:
             self._pr_id = self.metadata.pr_id
         return self._pr_id
+
+    @property
+    def pull_request_object(self) -> Optional[PullRequest]:
+        if not self._pull_request_object and self.pr_id:
+            self._pull_request_object = self.project.get_pr(self.pr_id)
+        return self._pull_request_object
 
     @property
     def is_reporting_allowed(self) -> bool:
