@@ -697,8 +697,8 @@ class Onboarded2024Q1(Resource):
         Returns a list of onboarded projects for which exist at least a
         Bodhi update, a downstream Koji build or a merged Packit PR.
 
-        The data for the answer is taken from the database but a long running
-        task is spooned in the mean time, and the new long running task will
+        The data for the response is taken from the database but a long running
+        task is spawned in the mean time, and the new long running task will
         look for new onboarded packages.
         If you re-call this endpoint a few minutes later the result may be different.
 
