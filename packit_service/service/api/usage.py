@@ -640,17 +640,9 @@ class Onboarded2024Q1(Resource):
         )
 
         # find **downstream git projects** with a PR created by Packit
-        sync_release_prs_urls = SyncReleaseTargetModel.get_all_downstream_pr_urls()
-        downstream_synced_projects_urls = {
-            pr[0 : pr.rfind("/pull-request")]  # noqa[203] prettier like it this way
-            for pr in sync_release_prs_urls
-        }
-        all_projects = GitProjectModel.get_all()
-        downstream_synced_projects = set()
-        for project in all_projects:
-            if project.project_url in downstream_synced_projects_urls:
-                downstream_synced_projects.add(project)
-                downstream_synced_projects_urls.remove(project.project_url)
+        downstream_synced_projects = (
+            SyncReleaseTargetModel.get_all_downstream_projects()
+        )
         # if there exist a downstream Packit PR we are not sure it has been
         # merged, the project is *almost onboarded* until the PR is merged
         # (unless we already know it has a koji build or bodhi update, then
@@ -658,12 +650,6 @@ class Onboarded2024Q1(Resource):
         almost_onboarded_projects = downstream_synced_projects.difference(
             onboarded_projects
         )
-        # if downstream created PRs do not have a related git project
-        # we can not collect data for them.
-        if downstream_synced_projects_urls:
-            logger.error(
-                f"Downstream PR without a downstream git project f{downstream_synced_projects_urls}"
-            )
         # do not re-check projects we already checked and we know they
         # have a merged Packit PR
         recheck_if_onboarded = almost_onboarded_projects.difference(

@@ -2829,13 +2829,25 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
             return session.query(SyncReleaseTargetModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all_downstream_pr_urls(cls) -> List[str]:
-        """Get all downstream pr urls created by Packit."""
+    def get_all_downstream_projects(cls) -> Set["GitProjectModel"]:
+        """Get all downstream projects with a pr created by Packit."""
         with sa_session_transaction() as session:
-            query = session.query(SyncReleaseTargetModel.downstream_pr_url).filter(
-                SyncReleaseTargetModel.status == SyncReleaseTargetStatus.submitted
+            query = (
+                session.query(GitProjectModel, SyncReleaseTargetModel.status)
+                .join(
+                    SyncReleasePullRequestModel,
+                    SyncReleasePullRequestModel.project_id == GitProjectModel.id,
+                )
+                .join(
+                    SyncReleaseTargetModel,
+                    SyncReleaseTargetModel.downstream_pr_id
+                    == SyncReleasePullRequestModel.id,
+                )
+                .filter(
+                    SyncReleaseTargetModel.status == SyncReleaseTargetStatus.submitted
+                )
             )
-            return [row.downstream_pr_url for row in query]
+            return {row[0] for row in query}
 
 
 class SyncReleaseStatus(str, enum.Enum):
