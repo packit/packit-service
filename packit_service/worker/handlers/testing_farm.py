@@ -409,6 +409,9 @@ class TestingFarmResultsHandler(
             status = BaseCommitStatus.failure
             summary = self.summary or "Tests failed ..."
             failure = True
+        elif self.result == TestingFarmResult.canceled:
+            status = BaseCommitStatus.neutral
+            summary = self.summary or "Tests canceled ..."
         else:
             status = BaseCommitStatus.error
             summary = self.summary or "Error ..."
