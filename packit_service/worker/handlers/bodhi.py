@@ -19,7 +19,6 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
-    CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
     DEFAULT_RETRY_BACKOFF,
 )
 from packit_service.models import (
@@ -199,7 +198,6 @@ class BodhiUpdateHandler(
             f"in [Packit dashboard]({service_config.dashboard_url}/jobs/bodhi-updates). "
             f"You can also check the recent Bodhi update activity of `{user}` in "
             f"[the Bodhi interface](https://bodhi.fedoraproject.org/users/{user})."
-            f"\n\n---\n\n{CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE}"
         )
 
     def report_in_issue_repository(self, errors: dict[str, str]) -> None:
