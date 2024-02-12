@@ -5,8 +5,24 @@ Revises: 31111f804dec
 Create Date: 2024-02-07 09:53:51.363885
 
 """
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
+from typing import TYPE_CHECKING
+
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
+if TYPE_CHECKING:
+    Base = object
+else:
+    Base = declarative_base()
 
 
 # revision identifiers, used by Alembic.
@@ -14,6 +30,90 @@ revision = "7d2b9fb924fa"
 down_revision = "31111f804dec"
 branch_labels = None
 depends_on = None
+
+
+class SyncReleaseTargetModel(Base):
+    __tablename__ = "sync_release_run_targets"
+    id = Column(Integer, primary_key=True)
+    downstream_pr_url = Column(String)
+    downstream_pr_id = Column(Integer, ForeignKey("sync_release_pull_request.id"))
+
+    pull_request = relationship(
+        "SyncReleasePullRequestModel", back_populates="sync_release_targets"
+    )
+
+
+class GitProjectModel(Base):
+    __tablename__ = "git_projects"
+    id = Column(Integer, primary_key=True)
+    namespace = Column(String, index=True)
+    repo_name = Column(String, index=True)
+    sync_release_pull_requests = relationship(
+        "SyncReleasePullRequestModel", back_populates="project"
+    )
+    project_url = Column(String)
+    instance_url = Column(String, nullable=False)
+
+    @classmethod
+    def get_or_create(
+        cls, namespace: str, repo_name: str, project_url: str, session: sa.orm.Session
+    ) -> "GitProjectModel":
+        project = (
+            session.query(GitProjectModel)
+            .filter_by(
+                namespace=namespace, repo_name=repo_name, project_url=project_url
+            )
+            .first()
+        )
+        if not project:
+            project = cls()
+            project.repo_name = repo_name
+            project.namespace = namespace
+            project.project_url = project_url
+            project.instance_url = "https://src.fedoraproject.org/"
+            session.add(project)
+        return project
+
+
+class SyncReleasePullRequestModel(Base):
+    __tablename__ = "sync_release_pull_request"
+
+    id = Column(Integer, primary_key=True)
+    pr_id = Column(Integer, index=True)
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
+    project = relationship(
+        "GitProjectModel", back_populates="sync_release_pull_requests"
+    )
+    sync_release_targets = relationship(
+        "SyncReleaseTargetModel", back_populates="pull_request"
+    )
+
+    @classmethod
+    def get_or_create(
+        cls,
+        pr_id: int,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        session: sa.orm.Session,
+    ) -> "SyncReleasePullRequestModel":
+        project = GitProjectModel.get_or_create(
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+            session=session,
+        )
+        pr = (
+            session.query(SyncReleasePullRequestModel)
+            .filter_by(pr_id=pr_id, project_id=project.id)
+            .first()
+        )
+        if not pr:
+            pr = SyncReleasePullRequestModel()
+            pr.pr_id = pr_id
+            pr.project_id = project.id
+            session.add(pr)
+        return pr
 
 
 def upgrade():
@@ -52,7 +152,30 @@ def upgrade():
         ["downstream_pr_id"],
         ["id"],
     )
+
     # ### end Alembic commands ###
+    bind = op.get_bind()
+    session = sa.orm.Session(bind=bind)
+
+    # Create Packit downstream pull request models
+    # and missing git projects.
+
+    # Split the groups back, this may not fully produce the same thing.
+    for sync_release in session.query(SyncReleaseTargetModel):
+        if sync_release.downstream_pr_url and not sync_release.pull_request:
+            url = sync_release.downstream_pr_url
+            # noqa[203]: prettier like it this way
+            project_url = url[0 : (url.rfind("/pull-request/"))]  # noqa[203]
+            pr_id = int(url[(url.rfind("/pull-request/") + 14) :])  # noqa[203]
+            namespace = "rpms"
+            repo = url[
+                (url.rfind("rpms/") + 5) : url.rfind("/pull-request")  # noqa[203]
+            ]
+            pull_request = SyncReleasePullRequestModel.get_or_create(
+                pr_id, namespace, repo, project_url, session
+            )
+            sync_release.pull_request = pull_request
+            session.add(pull_request)
 
 
 def downgrade():
