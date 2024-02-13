@@ -60,6 +60,8 @@ def get_sync_release_target_info(sync_release_model: SyncReleaseTargetModel):
         "status": sync_release_model.status,
         "branch": sync_release_model.branch,
         "downstream_pr_url": sync_release_model.downstream_pr_url,
+        "downstream_pr_id": sync_release_model.pull_request.pr_id,
+        "downstream_pr_project": sync_release_model.pull_request.project.project_url,
         "submitted_time": optional_timestamp(sync_release_model.submitted_time),
         "start_time": optional_timestamp(sync_release_model.start_time),
         "finished_time": optional_timestamp(sync_release_model.finished_time),

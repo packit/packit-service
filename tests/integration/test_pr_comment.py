@@ -57,6 +57,7 @@ from packit_service.models import (
     SyncReleaseJobType,
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
+    SyncReleasePullRequestModel,
 )
 from packit_service.service.db_project_events import AddPullRequestEventToDb
 from packit_service.utils import (
@@ -2605,6 +2606,12 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model)
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+    ).and_return(object)
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'upstream_project_url': "
@@ -2677,7 +2684,17 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").replace_with(_get_project)
-    pr = flexmock(url="some_url").should_receive("comment").mock()
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr = (
+        flexmock(id=21, url="some_url", target_project=target_project)
+        .should_receive("comment")
+        .mock()
+    )
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
         tag="7.0.3",
@@ -2698,6 +2715,9 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr").with_args(
+        downstream_pr=object
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted

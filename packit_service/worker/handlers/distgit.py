@@ -34,6 +34,7 @@ from packit_service.constants import (
     RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
 )
 from packit_service.models import (
+    SyncReleasePullRequestModel,
     SyncReleaseTargetStatus,
     SyncReleaseTargetModel,
     SyncReleaseModel,
@@ -361,6 +362,14 @@ class AbstractSyncReleaseHandler(
             )
             logger.debug("Downstream PR created successfully.")
             model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
+            downstream_pr_project = downstream_pr.target_project
+            sync_release_pull_request = SyncReleasePullRequestModel.get_or_create(
+                pr_id=downstream_pr.id,
+                namespace=downstream_pr_project.namespace,
+                repo_name=downstream_pr_project.repo,
+                project_url=downstream_pr_project.get_web_url(),
+            )
+            model.set_downstream_pr(downstream_pr=sync_release_pull_request)
         except AbortSyncRelease:
             raise
         except Exception as ex:

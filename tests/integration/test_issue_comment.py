@@ -37,6 +37,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
+    SyncReleasePullRequestModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
@@ -174,6 +175,13 @@ def test_issue_comment_propose_downstream_handler(
         author="me",
         created=datetime.now(),
     )
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr._target_project = target_project
     flexmock(pr).should_receive("comment")
     flexmock(PackitAPI).should_receive("sync_release").and_return(pr)
     flexmock(
@@ -223,7 +231,12 @@ def test_issue_comment_propose_downstream_handler(
         job_type=SyncReleaseJobType.propose_downstream,
         package_name="packit",
     ).and_return(propose_downstream_model, run_model).once()
-
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=1,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+    ).and_return(object)
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
@@ -233,6 +246,9 @@ def test_issue_comment_propose_downstream_handler(
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="https://xyz"
+    )
+    flexmock(model).should_receive("set_downstream_pr").with_args(
+        downstream_pr=object
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted

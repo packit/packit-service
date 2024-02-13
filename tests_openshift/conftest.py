@@ -48,6 +48,7 @@ from packit_service.models import (
     SyncReleaseJobType,
     BodhiUpdateTargetModel,
     BodhiUpdateGroupModel,
+    SyncReleasePullRequestModel,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -77,6 +78,10 @@ class SampleValues:
     tag_name = "v1.0.2"
     different_tag_name = "v1.2.3"
     package_name = "a-package-name"
+    downstream_pr_id = 34
+    downstream_namespace = "the-namespace"
+    downstream_repo = "the-repo-name"
+    downstream_project_url = "https://src.fedoraproject.org/the-namespace/the-repo-name"
 
     # gitlab
     mr_id = 2
@@ -186,6 +191,7 @@ def clean_db():
         session.query(SRPMBuildModel).delete()
         session.query(SyncReleaseTargetModel).delete()
         session.query(SyncReleaseModel).delete()
+        session.query(SyncReleasePullRequestModel).delete()
 
         session.query(GitBranchModel).delete()
         session.query(ProjectReleaseModel).delete()
@@ -338,7 +344,14 @@ def pull_from_upstream_target_model(release_project_event_model):
     target_model = SyncReleaseTargetModel.create(
         status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
     )
+    sync_release_pull_request_model = SyncReleasePullRequestModel.get_or_create(
+        SampleValues.downstream_pr_id,
+        SampleValues.downstream_namespace,
+        SampleValues.downstream_repo,
+        SampleValues.downstream_project_url,
+    )
     target_model.set_downstream_pr_url(downstream_pr_url=SampleValues.downstream_pr_url)
+    target_model.set_downstream_pr(sync_release_pull_request_model)
     target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
     target_model.set_logs(logs="random logs")
 
@@ -361,9 +374,16 @@ def propose_model_submitted():
     propose_downstream_target = SyncReleaseTargetModel.create(
         status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
     )
+    sync_release_pull_request_model = SyncReleasePullRequestModel.get_or_create(
+        SampleValues.downstream_pr_id,
+        SampleValues.downstream_namespace,
+        SampleValues.downstream_repo,
+        SampleValues.downstream_project_url,
+    )
     propose_downstream_target.set_downstream_pr_url(
         downstream_pr_url=SampleValues.downstream_pr_url
     )
+    propose_downstream_target.set_downstream_pr(sync_release_pull_request_model)
     propose_downstream_target.set_finished_time(
         finished_time=datetime.datetime.utcnow()
     )

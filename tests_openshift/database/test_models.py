@@ -1030,3 +1030,9 @@ def test_get_by_dist_git_id(
     assert SourceGitPRDistGitPRModel.get_by_dist_git_id(
         source_git_dist_git_pr_new_relationship.dist_git_pull_request_id
     )
+
+
+def test_get_all_downstream_projects(clean_before_and_after, propose_model_submitted):
+    projects = SyncReleaseTargetModel.get_all_downstream_projects()
+    assert len(projects) == 1
+    assert projects.pop().project_url == SampleValues.downstream_project_url
