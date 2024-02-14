@@ -61,7 +61,10 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
-from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
+from packit_service.worker.events.new_hotness import (
+    AnityaVersionUpdateEvent,
+    NewHotnessUpdateEvent,
+)
 from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
@@ -1570,6 +1573,37 @@ class Parser:
             release_monitoring_project_id=release_monitoring_project_id,
         )
 
+    @staticmethod
+    def parse_anitya_version_update_event(event) -> Optional[AnityaVersionUpdateEvent]:
+        if "anitya.project.version.update.v2" not in event.get("topic", ""):
+            return None
+
+        # FIXME: Handle Fedora too in case we want to support multiple releases
+        # such as for Go.
+        package_name = next(
+            package["package_name"]
+            for package in event["message"]["packages"]
+            if package["distro"] == "CentOS"
+        )
+        distgit_project_url = DISTGIT_INSTANCES["centpkg"].distgit_project_url(
+            package_name
+        )
+
+        # ‹upstream_versions› contain the new releases
+        versions = nested_get(event, "message", "upstream_versions")
+
+        release_monitoring_project_id = nested_get(event, "message", "project", "id")
+
+        logger.info(
+            f"Anitya version update event for package: {package_name}, versions: {versions}"
+        )
+        return AnityaVersionUpdateEvent(
+            package_name=package_name,
+            versions=versions,
+            distgit_project_url=distgit_project_url,
+            release_monitoring_project_id=release_monitoring_project_id,
+        )
+
     # The .__func__ are needed for Python < 3.10
     MAPPING = {
         "github": {
@@ -1599,6 +1633,9 @@ class Parser:
             "buildsys.task.state.change": parse_koji_task_event.__func__,  # type: ignore
             "buildsys.build.state.change": parse_koji_build_event.__func__,  # type: ignore
             "hotness.update.bug.file": parse_new_hotness_update_event.__func__,  # type: ignore
+            "org.release-monitoring.prod.anitya.project.version.update.v2": (
+                parse_anitya_version_update_event.__func__  # type: ignore
+            ),
         },
         "testing-farm": {
             "results": parse_testing_farm_results_event.__func__,  # type: ignore
