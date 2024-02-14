@@ -111,11 +111,16 @@ class ProjectsForge(Resource):
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 class ProjectsNamespace(Resource):
+    @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.OK.value, "Projects details follow")
     def get(self, forge, namespace):
         """List of projects of given forge and namespace"""
         result = []
-        for project in GitProjectModel.get_by_forge_namespace(forge, namespace):
+        first, last = indices()
+
+        for project in GitProjectModel.get_by_forge_namespace(
+            first, last, forge, namespace
+        ):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,
@@ -126,7 +131,13 @@ class ProjectsNamespace(Resource):
                 "issues_handled": len(project.issues),
             }
             result.append(project_info)
-        return response_maker(result)
+
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
+        )
+        resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
+        return resp
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/prs")
@@ -207,19 +218,28 @@ class ProjectsPRs(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectIssues(Resource):
+    @ns.expect(pagination_arguments)
     @ns.response(
         HTTPStatus.OK.value, "OK, project issues handled by Packit Service follow"
     )
     def get(self, forge, namespace, repo_name):
         """Project issues"""
-        return response_maker(
-            [
-                issue.issue_id
-                for issue in GitProjectModel.get_project_issues(
-                    forge, namespace, repo_name
-                )
-            ]
+        first, last = indices()
+
+        issues = [
+            issue.issue_id
+            for issue in GitProjectModel.get_project_issues(
+                first, last, forge, namespace, repo_name
+            )
+        ]
+
+        resp = response_maker(
+            issues,
+            status=HTTPStatus.PARTIAL_CONTENT if issues else HTTPStatus.OK,
         )
+
+        resp.headers["Content-Range"] = f"git-project-issues {first + 1}-{last}/*"
+        return resp
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/releases")
@@ -227,21 +247,31 @@ class ProjectIssues(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectReleases(Resource):
+    @ns.expect(pagination_arguments)
     @ns.response(
         HTTPStatus.OK.value, "OK, project releases handled by Packit Service follow"
     )
     def get(self, forge, namespace, repo_name):
         """Project releases"""
         result = []
+        first, last = indices()
+
         for release in GitProjectModel.get_project_releases(
-            forge, namespace, repo_name
+            first, last, forge, namespace, repo_name
         ):
             release_info = {
                 "tag_name": release.tag_name,
                 "commit_hash": release.commit_hash,
             }
             result.append(release_info)
-        return response_maker(result)
+
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
+        )
+
+        resp.headers["Content-Range"] = f"git-project-releases {first + 1}-{last}/*"
+        return resp
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/branches")
@@ -249,13 +279,18 @@ class ProjectReleases(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectBranches(Resource):
+    @ns.expect(pagination_arguments)
     @ns.response(
         HTTPStatus.OK.value, "OK, project branches handled by Packit Service follow"
     )
     def get(self, forge, namespace, repo_name):
         """Project branches"""
         result = []
-        for branch in GitProjectModel.get_project_branches(forge, namespace, repo_name):
+        first, last = indices()
+
+        for branch in GitProjectModel.get_project_branches(
+            first, last, forge, namespace, repo_name
+        ):
             branch_info = {
                 "branch": branch.name,
                 "builds": [],
@@ -300,4 +335,10 @@ class ProjectBranches(Resource):
                 branch_info["tests"].append(test_info)
             result.append(branch_info)
 
-        return response_maker(result)
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
+        )
+
+        resp.headers["Content-Range"] = f"git-project-branches {first + 1}-{last}/*"
+        return resp
