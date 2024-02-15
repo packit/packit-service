@@ -134,7 +134,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         if not commands:
             return super().get_packages_config()
         command = commands[0]
-        args = commands[1] if len(commands) > 1 else ""
+        args = commands[1:] if len(commands) > 1 else []
         if command == "pull-from-upstream" and "--with-pr-config" in args:
             # take packages config from the corresponding branch
             # for pull-from-upstream --with-pr-config

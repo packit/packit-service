@@ -200,8 +200,8 @@ def get_packit_commands_from_comment(
     comment_lines = comment_parts.split("\n")
 
     for line in filter(None, map(str.strip, comment_lines)):
-        (packit_mark, *packit_command) = line.split(maxsplit=3)
-        # packit_command[0] has the first cmd and [1] has the second, if needed.
+        (packit_mark, *packit_command) = line.split()
+        # packit_command[0] has the cmd and other list items are the arguments
         if packit_mark == packit_comment_command_prefix and packit_command:
             return packit_command
 
