@@ -60,7 +60,7 @@ from packit_service.constants import ALLOWLIST_CONSTANTS
 logger = logging.getLogger(__name__)
 
 _CACHE_MAXSIZE = 100
-_CACHE_TTL = timedelta(hours=1).seconds
+_CACHE_TTL = timedelta(hours=1).total_seconds()
 
 
 def get_pg_url() -> str:
