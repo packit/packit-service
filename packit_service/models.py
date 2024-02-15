@@ -532,12 +532,14 @@ class GitProjectModel(Base):
 
     @classmethod
     def get_by_forge_namespace(
-        cls, forge: str, namespace: str
+        cls, first: int, last: int, forge: str, namespace: str
     ) -> Iterable["GitProjectModel"]:
         """Return projects of given forge and namespace"""
         with sa_session_transaction() as session:
-            return session.query(GitProjectModel).filter_by(
-                instance_url=forge, namespace=namespace
+            return (
+                session.query(GitProjectModel)
+                .filter_by(instance_url=forge, namespace=namespace)
+                .slice(first, last)
             )
 
     @classmethod
@@ -571,7 +573,7 @@ class GitProjectModel(Base):
 
     @classmethod
     def get_project_issues(
-        cls, forge: str, namespace: str, repo_name: str
+        cls, first: int, last: int, forge: str, namespace: str, repo_name: str
     ) -> Iterable["IssueModel"]:
         with sa_session_transaction() as session:
             return (
@@ -582,11 +584,12 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
+                .slice(first, last)
             )
 
     @classmethod
     def get_project_branches(
-        cls, forge: str, namespace: str, repo_name: str
+        cls, first: int, last: int, forge: str, namespace: str, repo_name: str
     ) -> Iterable["GitBranchModel"]:
         with sa_session_transaction() as session:
             return (
@@ -597,11 +600,12 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
+                .slice(first, last)
             )
 
     @classmethod
     def get_project_releases(
-        cls, forge: str, namespace: str, repo_name: str
+        cls, first: int, last: int, forge: str, namespace: str, repo_name: str
     ) -> Iterable["ProjectReleaseModel"]:
         with sa_session_transaction() as session:
             return (
@@ -612,6 +616,7 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
+                .slice(first, last)
             )
 
     # ACTIVE PROJECTS
