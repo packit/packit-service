@@ -4,7 +4,7 @@
 import logging
 import socket
 from os import getenv
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 from celery import Task
 from celery._state import get_current_task
@@ -22,7 +22,11 @@ from packit_service.constants import (
     DEFAULT_RETRY_BACKOFF,
     CELERY_DEFAULT_MAIN_TASK_NAME,
 )
-from packit_service.models import VMImageBuildTargetModel
+from packit_service.models import (
+    VMImageBuildTargetModel,
+    GitProjectModel,
+    SyncReleaseTargetModel,
+)
 from packit_service.utils import (
     load_job_config,
     load_package_config,
@@ -571,8 +575,11 @@ def babysit_pending_vm_image_builds() -> None:
 # Usage / statistics tasks
 
 
-@celery_app.task(
-    name=TaskName.check_onboarded_projects, queue="long-running", rate_limit="1/h"
-)
-def run_check_onboarded_projects(projects=List[Dict]) -> None:
-    check_onboarded_projects(projects)
+@celery_app.task
+def run_check_onboarded_projects() -> None:
+    known_onboarded_projects = GitProjectModel.get_known_onboarded_downstream_projects()
+    downstream_synced_projects = SyncReleaseTargetModel.get_all_downstream_projects()
+    almost_onboarded_projects = downstream_synced_projects.difference(
+        known_onboarded_projects
+    )
+    check_onboarded_projects(almost_onboarded_projects)

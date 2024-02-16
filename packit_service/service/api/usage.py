@@ -26,7 +26,6 @@ from packit_service.models import (
     SyncReleaseTargetModel,
 )
 from packit_service.service.api.utils import response_maker
-from packit_service.celerizer import celery_app
 
 logger = getLogger("packit_service")
 
@@ -655,27 +654,6 @@ class Onboarded2024Q1(Resource):
         recheck_if_onboarded = almost_onboarded_projects.difference(
             known_onboarded_projects
         )
-
-        if recheck_if_onboarded:
-            # Run the long running task in Celery.
-            # The task will collect data about merged PR for
-            # every given project. If a Packit merged PR is
-            # found the long running task will save the
-            # onboarded_downstream flag in the git projects table.
-            celery_app.send_task(
-                name="task.check_onboarded_projects",
-                kwargs={
-                    "projects": [
-                        {
-                            "id": project.id,
-                            "instance_url": project.instance_url,
-                            "namespace": project.namespace,
-                            "repo_name": project.repo_name,
-                        }
-                        for project in recheck_if_onboarded
-                    ]
-                },
-            )
 
         onboarded = {
             project.id: project.project_url
