@@ -29,6 +29,11 @@ beat_schedule = {
         "schedule": crontab(minute=0, hour=1),  # nightly at 1AM
         "options": {"queue": "long-running"},
     },
+    "check-onboarded-projects": {
+        "task": "packit_service.worker.tasks.run_check_onboarded_projects",
+        "schedule": crontab(minute=0, hour=2),  # nightly at 2AM
+        "options": {"queue": "long-running"},
+    },
 }
 
 # http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application
