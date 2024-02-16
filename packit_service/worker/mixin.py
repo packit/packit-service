@@ -254,7 +254,7 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
 
     @property
     def pull_request(self):
-        if not self._pull_request and self.data.event_dict["committer"] == "pagure":
+        if not self._pull_request:
             logger.debug(
                 f"Getting pull request with head commit {self.data.commit_sha}"
                 f"for repo {self.project.namespace}/{self.project.repo}"

@@ -41,25 +41,6 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 
 
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
-    def contains_specfile_change(self):
-        """
-        Check whether the dist-git commit contains
-        any specfile change (do the check only for pushes from PRs,
-        with direct pushes we do the filtering in fedmsg).
-        """
-        if not self.pull_request:
-            return True
-
-        pr_id = self.pull_request.id
-        logger.debug(f"PR {pr_id} status: {self.pull_request.status}")
-        # Pagure API tends to return ENOPRSTATS error when a pull request is transitioning
-        # from open to merged state, give it some extra time
-        diff = self.project.get_pr_files_diff(pr_id, retries=7, wait_seconds=7) or {}
-        if not any(change.endswith(".spec") for change in diff):
-            logger.info(f"PR {pr_id} does not contain a specfile change.")
-            return False
-        return True
-
     @staticmethod
     def is_koji_allowed_accounts_alias(value: str) -> bool:
         return any(value == alias.value for alias in KojiAllowedAccountsAlias)
@@ -139,17 +120,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                 )
                 return False
 
-            if self.data.event_dict["committer"] == "pagure":
-                if not self.pull_request:
-                    logger.debug(
-                        "Not able to get the pull request "
-                        "(may not be the head commit of the PR)."
-                    )
-                    return False
-
-                if not self.contains_specfile_change():
-                    return False
-
+            if self.pull_request:
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")
                 if not self.check_allowed_accounts(
@@ -162,6 +133,9 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     )
                     return False
             else:
+                logger.debug(
+                    "Not able to get the pull request, we are handling direct push."
+                )
                 committer = self.data.event_dict["committer"]
                 logger.debug(f"Committer: {committer}")
                 if not self.check_allowed_accounts(

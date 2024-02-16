@@ -1078,25 +1078,25 @@ class Parser:
     def parse_pagure_push_event(event) -> Optional[PushPagureEvent]:
         """this corresponds to dist-git event when someone pushes new commits"""
         topic = event.get("topic")
-        if topic != "org.fedoraproject.prod.git.receive":
+        if topic != "org.fedoraproject.prod.pagure.git.receive":
             return None
 
         logger.info(f"Dist-git commit event, topic: {topic}")
 
-        dg_repo_namespace = nested_get(event, "commit", "namespace")
-        dg_repo_name = nested_get(event, "commit", "repo")
+        dg_repo_namespace = nested_get(event, "repo", "namespace")
+        dg_repo_name = nested_get(event, "repo", "name")
 
         if not (dg_repo_namespace and dg_repo_name):
             logger.warning("No full name of the repository.")
             return None
 
-        dg_branch = nested_get(event, "commit", "branch")
-        dg_commit = nested_get(event, "commit", "rev")
+        dg_branch = nested_get(event, "branch")
+        dg_commit = nested_get(event, "end_commit")
         if not (dg_branch and dg_commit):
             logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
-        username = nested_get(event, "commit", "username")
+        username = nested_get(event, "agent")
 
         logger.info(
             f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
@@ -1591,7 +1591,7 @@ class Parser:
             "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore # noqa: E501
-            "git.receive": parse_pagure_push_event.__func__,  # type: ignore
+            "pagure.git.receive": parse_pagure_push_event.__func__,  # type: ignore
             "copr.build.start": parse_copr_event.__func__,  # type: ignore
             "copr.build.end": parse_copr_event.__func__,  # type: ignore
             "buildsys.task.state.change": parse_koji_task_event.__func__,  # type: ignore
