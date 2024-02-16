@@ -1454,11 +1454,6 @@ class TestEvents:
         assert event_object.git_ref == "main"
         assert event_object.project_url == "https://src.fedoraproject.org/rpms/buildah"
 
-    def test_distgit_pagure_push_packit(self, distgit_push_packit):
-        event_object = Parser.parse_event(distgit_push_packit)
-        assert isinstance(event_object, PushPagureEvent)
-        assert event_object.committer == "pagure"
-
     def test_json_testing_farm_notification(
         self, testing_farm_notification, testing_farm_results
     ):
