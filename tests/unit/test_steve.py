@@ -22,7 +22,6 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     TASK_ACCEPTED,
-    CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
 )
 from packit_service.models import (
     ProjectEventModelType,
@@ -187,7 +186,6 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         add_pr_instructions=True,
         resolved_bugs=[],
         release_monitoring_project_id=None,
-        pr_description_footer=CHANGED_LOADING_BEHAVIOUR_IN_DISTGIT_MESSAGE,
         sync_acls=True,
     ).and_return(pr).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
