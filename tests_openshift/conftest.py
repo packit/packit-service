@@ -360,6 +360,24 @@ def pull_from_upstream_target_model(release_project_event_model):
 
 
 @pytest.fixture()
+def pull_from_upstream_target_model_without_pr_model(release_project_event_model):
+    pull_from_upstream_model, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
+        project_event_model=release_project_event_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+
+    target_model = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+    )
+    target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
+    target_model.set_logs(logs="random logs")
+
+    pull_from_upstream_model.sync_release_targets.append(target_model)
+    yield target_model
+
+
+@pytest.fixture()
 def propose_downstream_model_issue(an_issue_project_event_model):
     propose_downstream_model, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
