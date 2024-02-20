@@ -672,6 +672,21 @@ def test_detailed_propose_info_issue(
     assert response_dict["issue_id"] == SampleValues.issue_id
 
 
+def test_detailed_pull_from_upstream_without_pr_model(
+    client, clean_before_and_after, pull_from_upstream_target_model_without_pr_model
+):
+    response = client.get(
+        url_for(
+            "api.pull-from-upstream_pull_result",
+            id=pull_from_upstream_target_model_without_pr_model.id,
+        )
+    )
+    response_dict = response.json
+
+    assert response_dict["downstream_pr_project"] is None
+    assert response_dict["downstream_pr_id"] is None
+
+
 @pytest.mark.parametrize(
     "key_to_check",
     [

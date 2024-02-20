@@ -56,12 +56,13 @@ def get_project_info_from_build(
 
 
 def get_sync_release_target_info(sync_release_model: SyncReleaseTargetModel):
+    pr_model = sync_release_model.pull_request
     job_result_dict = {
         "status": sync_release_model.status,
         "branch": sync_release_model.branch,
         "downstream_pr_url": sync_release_model.downstream_pr_url,
-        "downstream_pr_id": sync_release_model.pull_request.pr_id,
-        "downstream_pr_project": sync_release_model.pull_request.project.project_url,
+        "downstream_pr_id": pr_model.pr_id if pr_model else None,
+        "downstream_pr_project": pr_model.project.project_url if pr_model else None,
         "submitted_time": optional_timestamp(sync_release_model.submitted_time),
         "start_time": optional_timestamp(sync_release_model.start_time),
         "finished_time": optional_timestamp(sync_release_model.finished_time),
