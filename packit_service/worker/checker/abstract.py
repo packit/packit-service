@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 import logging
 from abc import abstractmethod
 from typing import Optional

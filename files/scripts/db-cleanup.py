@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 import argparse
 from sqlalchemy import create_engine, func, select, delete, distinct, union
 from packit_service.models import (
