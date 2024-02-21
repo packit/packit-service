@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 """
 CLI script to interact with our allowlist.
 """
