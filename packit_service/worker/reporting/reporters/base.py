@@ -160,6 +160,7 @@ class StatusReporter:
             BaseCommitStatus.success,
             BaseCommitStatus.error,
             BaseCommitStatus.failure,
+            BaseCommitStatus.neutral,
         }
 
     def _add_commit_comment_with_status(
