@@ -199,14 +199,9 @@ class BaseJobHelper:
                 " For more details see our [guide](https://packit.dev/docs/guide#gitlab)."
             )
 
-            final_commit_states = (
-                BaseCommitStatus.success,
-                BaseCommitStatus.failure,
-                BaseCommitStatus.error,
-            )
             # We are only commenting final states to avoid multiple comments for a build
             # Ignoring all other states eg. pending, running
-            if state not in final_commit_states:
+            if not StatusReporter.is_final_state(state):
                 return
 
         self.status_reporter.report(
