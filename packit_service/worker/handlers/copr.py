@@ -175,10 +175,21 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             return TaskResults(success=False, details={"msg": msg})
 
         if self.build.build_start_time is not None:
-            logger.debug(
+            msg = (
                 f"Copr build start for {self.copr_event.build_id} is already"
                 f" processed."
             )
+            logger.debug(msg)
+            return TaskResults(success=True, details={"msg": msg})
+
+        if BuildStatus.is_final_state(self.build.status):
+            msg = (
+                "Copr build start is being processed, but the DB build "
+                "is already in the final state, setting only start time."
+            )
+            logger.debug(msg)
+            self.set_start_time()
+            return TaskResults(success=True, details={"msg": msg})
 
         self.set_logs_url()
 
