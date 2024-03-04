@@ -2231,6 +2231,60 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     )
 
 
+def test_copr_build_start_already_ended(copr_build_start, pc_build_pr, copr_build_pr):
+    copr_build_pr.status = BuildStatus.failure
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
+    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+        pc_build_pr
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
+    )
+    flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
+        EXPECTED_BUILD_CHECK_NAME
+    )
+
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
+    url = get_copr_build_info_url(1)
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
+
+    copr_build_pr.should_receive("set_start_time").once()
+    copr_build_pr.should_call("set_status").with_args(BuildStatus.pending).never()
+    copr_build_pr.should_receive("get_package_name").and_return(None)
+
+    # check that the outdated status was not reported
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="RPM build is in progress...",
+        url=url,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
+        markdown_content=None,
+        links_to_external_services=None,
+        update_feedback_time=object,
+    ).never()
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    processing_results = SteveJobs().process_message(copr_build_start)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    run_copr_build_start_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
 def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
