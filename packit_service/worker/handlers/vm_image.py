@@ -105,6 +105,7 @@ class VMImageBuildHandler(
             "task.babysit_vm_image_build",
             args=(image_id,),
             countdown=10,  # do the first check in 10s
+            queue="long-running",
         )
 
         self.report_status(VMImageBuildStatus.pending, "")
