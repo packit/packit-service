@@ -16,7 +16,7 @@
       ansible.builtin.pip:
         name:
           - requre
-          - pytest
+          - pytest==8.0.2
           - pytest-cov
           - pytest-flask
           - deepdiff
