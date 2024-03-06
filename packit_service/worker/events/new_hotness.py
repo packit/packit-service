@@ -180,7 +180,9 @@ class NewHotnessUpdateEvent(AnityaUpdateEvent):
         return self._version
 
 
-@use_for_job_config_trigger(trigger_type=JobConfigTriggerType.release)
+# TODO: Uncomment once it is possible to deduce the version for the sync-release
+# action.
+# @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.release)
 class AnityaVersionUpdateEvent(AnityaUpdateEvent):
     def __init__(
         self,
