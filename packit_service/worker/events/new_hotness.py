@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from abc import abstractmethod
+from functools import cached_property
 from logging import getLogger
 from typing import Optional, Dict
 
@@ -42,11 +43,9 @@ class AnityaUpdateEvent(Event):
     def version(self) -> str:
         ...
 
-    @property
+    @cached_property
     def project(self) -> Optional[GitProject]:
-        if not self._project:
-            self._project = self.get_project()
-        return self._project
+        return self.get_project()
 
     def get_project(self) -> Optional[GitProject]:
         if not self.distgit_project_url:
@@ -122,11 +121,9 @@ class AnityaUpdateEvent(Event):
             self.packages_config.upstream_project_url if self.packages_config else None
         )
 
-    @property
+    @cached_property
     def repo_url(self) -> Optional[RepoUrl]:
-        if not self._repo_url:
-            self._repo_url = RepoUrl.parse(self.project_url)
-        return self._repo_url
+        return RepoUrl.parse(self.project_url)
 
     @property
     def repo_namespace(self) -> Optional[str]:
@@ -151,7 +148,8 @@ class AnityaUpdateEvent(Event):
         d["repo_namespace"] = self.repo_namespace
         d["version"] = self.version
         result = super().get_dict(d)
-        result.pop("_repo_url")
+        result.pop("project")
+        result.pop("repo_url")
         return result
 
 
