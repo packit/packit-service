@@ -33,6 +33,7 @@ from packit_service.worker.checker.bodhi import (
     HasIssueCommenterRetriggeringPermissions,
     IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
+    IsKojiBuildOwnerMatchingConfiguration,
 )
 from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
@@ -251,7 +252,10 @@ class CreateBodhiUpdateHandler(
         and configured branches.
         """
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
-        return (IsKojiBuildCompleteAndBranchConfiguredCheckEvent,)
+        return (
+            IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
+            IsKojiBuildOwnerMatchingConfiguration,
+        )
 
     def get_trigger_type_description(self) -> str:
         for koji_build_data in self:

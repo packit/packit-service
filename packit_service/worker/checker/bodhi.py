@@ -69,6 +69,23 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
         return True
 
 
+class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
+    def pre_check(self) -> bool:
+        """Check if the build submitter matches the configuration"""
+
+        if self.data.event_type in (KojiBuildEvent.__name__,):
+            if (owner := self.koji_build_event.owner) not in (
+                configured_builders := self.job_config.allowed_builders
+            ):
+                logger.info(
+                    f"Owner of the build ({owner}) does not match the"
+                    f"configuration: {configured_builders}"
+                )
+                return False
+
+        return True
+
+
 class IsKojiBuildCompleteAndBranchConfiguredCheckEvent(
     IsKojiBuildCompleteAndBranchConfigured,
     GetKojiBuildEventMixin,
