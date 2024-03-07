@@ -5,14 +5,17 @@ import json
 import pytest
 from flexmock import flexmock
 
-from ogr.services.pagure import PagureProject
+from ogr.services.pagure import GitlabProject, PagureProject
 from packit_service.config import PackageConfigGetter
 from packit_service.models import (
     ProjectEventModel,
     ProjectReleaseModel,
     ProjectEventModelType,
 )
-from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
+from packit_service.worker.events.new_hotness import (
+    AnityaVersionUpdateEvent,
+    NewHotnessUpdateEvent,
+)
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
@@ -20,6 +23,12 @@ from tests.spellbook import DATA_DIR
 @pytest.fixture()
 def new_hotness_update():
     with open(DATA_DIR / "fedmsg" / "new_hotness_update.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def anitya_version_update():
+    with open(DATA_DIR / "fedmsg" / "anitya_version_update.json") as outfile:
         return json.load(outfile)
 
 
@@ -123,3 +132,41 @@ def test_parse_new_hotness_update(
 
     if create_db_trigger:
         assert event_object.db_project_object
+
+
+# [NOTE] doesn't exist in CentOS… I've added CentOS entry to the event payload
+# and also faked the potential package config with the “would be” data
+def test_parse_anitya_version_update(anitya_version_update):
+    event = Parser.parse_event(anitya_version_update)
+
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo"
+    ).with_args(
+        base_project=None,
+        project=event.project,
+        pr_id=None,
+        reference=None,
+        fail_when_missing=False,
+    ).and_return(
+        flexmock(
+            upstream_project_url="https://github.com/vemel/mypy_boto3",
+            upstream_tag_template="{version}",
+            get_packages_config=lambda: flexmock(),
+        )
+    ).once()
+
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.release, event_id="123", commit_sha=None
+    ).and_return(flexmock())
+
+    assert isinstance(event, AnityaVersionUpdateEvent)
+    assert isinstance(event.project, GitlabProject)
+    assert event.package_name == "python3-mypy-boto3"
+    assert event.release_monitoring_project_id == 40221
+    assert event.repo_namespace == "vemel"
+    assert event.repo_name == "mypy_boto3"
+    assert (
+        event.distgit_project_url
+        == "https://gitlab.com/redhat/centos-stream/rpms/python3-mypy-boto3"
+    )
+    assert event._version == ["1.33.0", "1.33.1"]
