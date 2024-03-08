@@ -1204,6 +1204,7 @@ class TestEvents:
         assert event_object.state == KojiBuildState.building
         assert not event_object.old_state
         assert event_object.task_id == 80860791
+        assert event_object.owner == "packit"
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "23806a208e32cc937f3a6eb151c62cbbc10d8f96"
         assert event_object.branch_name == "epel8"
@@ -1284,6 +1285,7 @@ class TestEvents:
         assert event_object.state == KojiBuildState.complete
         assert event_object.old_state == KojiBuildState.building
         assert event_object.task_id == 80860894
+        assert event_object.owner == "packit"
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "e029dd5250dde9a37a2cdddb6d822d973b09e5da"
         assert event_object.branch_name == "rawhide"
@@ -1326,6 +1328,7 @@ class TestEvents:
         assert event_object.state == KojiBuildState.complete
         assert event_object.old_state == KojiBuildState.building
         assert event_object.task_id == 80860789
+        assert event_object.owner == "packit"
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
         assert event_object.branch_name == "f36"
@@ -1370,6 +1373,7 @@ class TestEvents:
         assert event_object.old_state == KojiBuildState.building
         assert event_object.task_id == 80860791
         assert event_object.package_name == "python-ogr"
+        assert event_object.owner == "packit"
         assert event_object.commit_sha == "23806a208e32cc937f3a6eb151c62cbbc10d8f96"
         assert event_object.branch_name == "epel8"
         assert event_object.git_ref == "epel8"

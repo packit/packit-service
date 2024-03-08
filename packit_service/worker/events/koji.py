@@ -129,6 +129,7 @@ class KojiBuildEvent(AbstractKojiEvent):
         version: str,
         release: str,
         task_id: int,
+        owner: str,
         web_url: Optional[str] = None,
         old_state: Optional[KojiBuildState] = None,
         rpm_build_task_ids: Optional[Dict[str, int]] = None,
@@ -155,6 +156,7 @@ class KojiBuildEvent(AbstractKojiEvent):
         self.namespace = namespace
         self.repo_name = repo_name
         self.project_url = project_url
+        self.owner = owner
 
     def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(
@@ -219,6 +221,7 @@ class KojiBuildEvent(AbstractKojiEvent):
             release=event.get("release"),
             start_time=event.get("start_time"),
             completion_time=event.get("completion_time"),
+            owner=event.get("owner"),
         )
 
 

@@ -1336,7 +1336,8 @@ class Parser:
 
         build_id = event.get("build_id")
         task_id = event.get("task_id")
-        logger.info(f"Koji event: build_id={build_id} task_id={task_id}")
+        owner = event.get("owner")
+        logger.info(f"Koji event: build_id={build_id} task_id={task_id} owner={owner}")
 
         new_state = (
             KojiBuildState.from_number(raw_new)
@@ -1396,6 +1397,7 @@ class Parser:
             old_state=old_state,
             start_time=start_time,
             completion_time=completion_time,
+            owner=owner,
         )
 
     @staticmethod

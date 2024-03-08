@@ -21,6 +21,7 @@ from packit.config.commands import TestCommandConfig
 from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
+from packit_service.worker.checker.bodhi import IsKojiBuildOwnerMatchingConfiguration
 from packit_service.worker.checker.copr import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
     IsPackageMatchingJobView,
@@ -1055,5 +1056,45 @@ def test_labels_on_distgit_pr(
 
     checker = LabelsOnDistgitPR(
         package_config, job_config, distgit_push_event.get_dict()
+    )
+    assert checker.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "allowed_builders,owner,should_pass",
+    (
+        (["packit"], "packit", True),
+        (["packit"], "another-account", False),
+        (["packit", "another-account"], "another-account", True),
+        (["packit", "another-account"], "packit", True),
+    ),
+)
+def test_allowed_builders_for_bodhi(
+    koji_build_completed_event,
+    allowed_builders,
+    owner,
+    should_pass,
+):
+    koji_build_completed_event.owner = owner
+    jobs = [
+        JobConfig(
+            type=JobType.bodhi_update,
+            trigger=JobConfigTriggerType.commit,
+            packages={
+                "package": CommonPackageConfig(
+                    dist_git_branches=["f36"], allowed_builders=allowed_builders
+                )
+            },
+        ),
+    ]
+
+    package_config = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig()},
+    )
+    job_config = jobs[0]
+
+    checker = IsKojiBuildOwnerMatchingConfiguration(
+        package_config, job_config, koji_build_completed_event.get_dict()
     )
     assert checker.pre_check() == should_pass

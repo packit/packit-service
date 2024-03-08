@@ -26,6 +26,7 @@ from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     PushPagureEvent,
 )
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.parser import Parser
 from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
 from deepdiff import DeepDiff
@@ -523,6 +524,11 @@ def koji_build_completed_old_format():
 def koji_build_completed_rawhide():
     with open(DATA_DIR / "fedmsg" / "koji_build_completed_rawhide.json") as outfile:
         return load_the_message_from_file(outfile)
+
+
+@pytest.fixture()
+def koji_build_completed_event(koji_build_completed_rawhide) -> KojiBuildEvent:
+    return Parser.parse_koji_build_event(koji_build_completed_rawhide)
 
 
 @pytest.fixture()
