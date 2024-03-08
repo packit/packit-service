@@ -766,7 +766,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             "task.babysit_copr_build",
             args=(build_id,),
             countdown=120,  # do the first check in 120s
-            queue="long-running",
         )
 
     def _visualize_chroots_diff(
