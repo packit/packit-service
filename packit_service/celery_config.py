@@ -8,10 +8,10 @@ import packit_service.constants
 task_default_queue = packit_service.constants.CELERY_TASK_DEFAULT_QUEUE
 
 
-task_routes = [
-    ("task.babysit_vm_image_build", {"queue": "short-running"}),
-    ("task.babysit_copr_build", {"queue": "short-running"}),
-]
+task_routes = {
+    "task.babysit_vm_image_build": "long-running",
+    "task.babysit_copr_build": "long-running",
+}
 
 # https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html
 beat_schedule = {
