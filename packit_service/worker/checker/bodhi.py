@@ -11,6 +11,7 @@ from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
+from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,
@@ -74,11 +75,16 @@ class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
         """Check if the build submitter matches the configuration"""
 
         if self.data.event_type in (KojiBuildEvent.__name__,):
-            if (owner := self.koji_build_event.owner) not in (
-                configured_builders := self.job_config.allowed_builders
-            ):
+            owner = self.koji_build_event.owner
+            configured_builders = self.job_config.allowed_builders
+
+            if not DistgitAccountsChecker(
+                self.project,
+                accounts_list=configured_builders,
+                account_to_check=owner,
+            ).check_allowed_accounts():
                 logger.info(
-                    f"Owner of the build ({owner}) does not match the"
+                    f"Owner of the build ({owner}) does not match the "
                     f"configuration: {configured_builders}"
                 )
                 return False

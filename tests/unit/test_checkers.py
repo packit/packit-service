@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-
 from flexmock import flexmock
 
 from ogr import PagureService
@@ -1079,3 +1078,35 @@ def test_allowed_builders_for_bodhi(
         package_config, job_config, koji_build_completed_event.get_dict()
     )
     assert checker.pre_check() == should_pass
+
+
+def test_allowed_builders_for_bodhi_alias(
+    koji_build_completed_event,
+):
+    koji_build_completed_event.owner = "owner"
+    jobs = [
+        JobConfig(
+            type=JobType.bodhi_update,
+            trigger=JobConfigTriggerType.commit,
+            packages={
+                "package": CommonPackageConfig(
+                    dist_git_branches=["f36"], allowed_builders=["all_admins"]
+                )
+            },
+        ),
+    ]
+
+    flexmock(PagureProject).should_receive("get_users_with_given_access").and_return(
+        ["owner"]
+    )
+
+    package_config = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig()},
+    )
+    job_config = jobs[0]
+
+    checker = IsKojiBuildOwnerMatchingConfiguration(
+        package_config, job_config, koji_build_completed_event.get_dict()
+    )
+    assert checker.pre_check()
