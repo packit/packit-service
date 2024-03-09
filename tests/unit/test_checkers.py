@@ -16,9 +16,9 @@ from packit.config import (
     JobConfig,
     PackageConfig,
 )
-
 from packit.config.commands import TestCommandConfig
 from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
+from packit.copr_helper import CoprHelper
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.bodhi import IsKojiBuildOwnerMatchingConfiguration
@@ -28,9 +28,9 @@ from packit_service.worker.checker.copr import (
 )
 from packit_service.worker.checker.distgit import (
     IsUpstreamTagMatchingConfig,
-    PermissionOnDistgit,
     LabelsOnDistgitPR,
 )
+from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingKoji,
 )
@@ -59,8 +59,6 @@ from packit_service.worker.events.gitlab import MergeRequestGitlabEvent, PushGit
 from packit_service.worker.events.pagure import PushPagureEvent
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
-
-from packit.copr_helper import CoprHelper
 
 
 def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
@@ -965,25 +963,6 @@ def test_koji_check_allowed_accounts(
     allowed_pr_authors,
     should_pass,
 ):
-    jobs = [
-        JobConfig(
-            type=JobType.koji_build,
-            trigger=JobConfigTriggerType.commit,
-            packages={
-                "package": CommonPackageConfig(
-                    dist_git_branches=["f36"],
-                    allowed_pr_authors=allowed_pr_authors,
-                )
-            },
-        ),
-    ]
-
-    package_config = PackageConfig(
-        jobs=jobs,
-        packages={"package": CommonPackageConfig()},
-    )
-    job_config = jobs[0]
-
     flexmock(PagureProject).should_receive("get_users_with_given_access").with_args(
         [AccessLevel.maintain]
     ).and_return({"admin-1"})
@@ -991,10 +970,12 @@ def test_koji_check_allowed_accounts(
         flexmock(members={"group-account-1"})
     )
 
-    checker = PermissionOnDistgit(
-        package_config, job_config, distgit_push_event.get_dict()
+    assert (
+        DistgitAccountsChecker(
+            distgit_push_event.project, allowed_pr_authors, account
+        ).check_allowed_accounts()
+        == should_pass
     )
-    assert checker.check_allowed_accounts(allowed_pr_authors, account) == should_pass
 
 
 @pytest.mark.parametrize(
