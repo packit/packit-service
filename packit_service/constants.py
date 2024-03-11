@@ -279,8 +279,3 @@ FAILURE_COMMENT_MESSAGE_VARIABLES = {
         "logs_url",
     )
 }
-
-
-class KojiAllowedAccountsAlias(Enum):
-    all_admins = "all_admins"
-    all_committers = "all_committers"

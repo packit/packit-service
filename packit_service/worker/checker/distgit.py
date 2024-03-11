@@ -4,11 +4,11 @@
 import logging
 import re
 
-from ogr.abstract import AccessLevel
 from packit.config.aliases import get_branches
-from packit_service.constants import MSG_GET_IN_TOUCH, KojiAllowedAccountsAlias
+from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.utils import pr_labels_match_configuration
 from packit_service.worker.checker.abstract import Checker, ActorChecker
+from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
     PushPagureEvent,
     IssueCommentEvent,
@@ -41,70 +41,6 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 
 
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
-    @staticmethod
-    def is_koji_allowed_accounts_alias(value: str) -> bool:
-        return any(value == alias.value for alias in KojiAllowedAccountsAlias)
-
-    def check_allowed_accounts(
-        self, accounts_list: list[str], account_to_check: str
-    ) -> bool:
-        """
-        Check whether the account_to_check matches one of the values in accounts_list
-        (considering the groups and aliases).
-        """
-        logger.info(f"Checking {account_to_check} in list of accounts: {accounts_list}")
-
-        direct_account_names = [
-            value
-            for value in accounts_list
-            if not self.is_koji_allowed_accounts_alias(value)
-            and not value.startswith("@")
-        ]
-
-        # check the direct account names to prevent unneeded API interactions
-        if account_to_check in direct_account_names:
-            return True
-
-        all_accounts = set()
-
-        for value in accounts_list:
-            if self.is_koji_allowed_accounts_alias(value):
-                all_accounts.update(self.expand_maintainer_alias(value))
-            elif value.startswith("@"):
-                try:
-                    # remove @
-                    group_name = value[1:]
-                    group = self.project.service.get_group(group_name)
-                    all_accounts.update(group.members)
-                except Exception as ex:
-                    logger.debug(
-                        f"Exception while getting the members of group {value}: {ex!r}"
-                    )
-                    continue
-            else:
-                all_accounts.add(value)
-
-        logger.debug(f"Expanded accounts list: {all_accounts}")
-        return account_to_check in all_accounts
-
-    def expand_maintainer_alias(self, alias: str) -> set[str]:
-        """
-        Expand the 'all_admins' and 'all_committers' aliases to users.
-        """
-        # see AccessLevel mapping
-        # https://github.com/packit/ogr/blob/d183a6c6459231c2a60bacd6b827502c92a130ef/ogr/abstract.py#L1079
-        # all_admins -> Pagure "admin" and "maintainer" access
-        # all_committers -> on top of that "commit" access
-        access_levels = [AccessLevel.maintain]
-
-        if alias == KojiAllowedAccountsAlias.all_committers.value:
-            access_levels.extend([AccessLevel.admin, AccessLevel.push])
-
-        accounts = self.project.get_users_with_given_access(access_levels)
-
-        logger.debug(f"Expanded {alias}: {accounts}")
-        return accounts
-
     def pre_check(self) -> bool:
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.data.git_ref not in (
@@ -123,9 +59,11 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
             if self.pull_request:
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")
-                if not self.check_allowed_accounts(
-                    self.job_config.allowed_pr_authors, pr_author
-                ):
+                if not DistgitAccountsChecker(
+                    self.project,
+                    accounts_list=self.job_config.allowed_pr_authors,
+                    account_to_check=pr_author,
+                ).check_allowed_accounts():
                     logger.info(
                         f"Push event {self.data.identifier} with corresponding PR created by"
                         f" {pr_author} that is not allowed in project "
@@ -138,9 +76,11 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                 )
                 committer = self.data.event_dict["committer"]
                 logger.debug(f"Committer: {committer}")
-                if not self.check_allowed_accounts(
-                    self.job_config.allowed_committers, committer
-                ):
+                if not DistgitAccountsChecker(
+                    self.project,
+                    accounts_list=self.job_config.allowed_committers,
+                    account_to_check=committer,
+                ).check_allowed_accounts():
                     logger.info(
                         f"Push event {self.data.identifier} done by "
                         f"{committer} that is not allowed in project "
