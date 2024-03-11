@@ -1,16 +1,16 @@
-name: Request for onboarding
-description: Ask Packit team to onboard my package(s)
+name: Request for Fedora automation onboarding
+description: Ask Packit team to onboard my package(s) for Fedora automation
 labels: onboarding
 body:
   - type: markdown
     attributes:
       value: |
         Hello!
-        Don't have time to set up Packit? Or, do you want to see what it would look like on your package?
+        Don't have time to set up Packit for your Fedora package? Or, do you want to see what it would look like on your package?
 
         Fill out the following form and Packit team members will try to prepare a configuration file for you.
 
-        We will try our best and send the configuration file in the form of a pull request so you can see how it works.
+        We will try our best and send the configuration file in the form of a dist-git pull request so you can see how it works.
         If needed, we will tweak the configuration together with you to best meet your needs.
 
   - type: textarea
@@ -18,25 +18,12 @@ body:
     attributes:
       label: What we are onboarding?
       description: |
-        Provide a list of packages or projects you want to have onboarded.
+        Provide a list of packages you want to have onboarded.
         We will start with the first package and once you accept the solution for that one
         we will continue with other packages.
       value: |
         *
         *
-    validations:
-      required: true
-
-  - type: dropdown
-    id: category
-    attributes:
-      label: What do you want for you packages?
-      multiple: true
-      options:
-        - I want Fedora release automation and will have a priority in this onboarding.
-        - I need upstream Copr builds.
-        - I need Testing Farm tests.
-        - I need something else and will describe that in the following field.
     validations:
       required: true
 
