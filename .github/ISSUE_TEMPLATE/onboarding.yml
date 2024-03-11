@@ -1,0 +1,61 @@
+name: Request for onboarding
+description: Ask Packit team to onboard my package(s)
+labels: onboarding
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hello!
+        Don't have time to set up Packit? Or, do you want to see what it would look like on your package?
+
+        Fill out the following form and Packit team members will try to prepare a configuration file for you.
+
+        We will try our best and send the configuration file in the form of a pull request so you can see how it works.
+        If needed, we will tweak the configuration together with you to best meet your needs.
+
+  - type: textarea
+    id: projects
+    attributes:
+      label: What we are onboarding?
+      description: |
+        Provide a list of packages or projects you want to have onboarded.
+        We will start with the first package and once you accept the solution for that one
+        we will continue with other packages.
+      value: |
+        *
+        *
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: What do you want for you packages?
+      multiple: true
+      options:
+        - I want Fedora release automation and will have a priority in this onboarding.
+        - I need upstream Copr builds.
+        - I need Testing Farm tests.
+        - I need something else and will describe that in the following field.
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Do you have more details?
+      description: |
+        Anything we need to know or should be aware of?
+
+  - type: markdown
+    attributes:
+      value: |
+        And that's it.
+
+        We will let you know here (in the issue created from this form) if we have something for you.
+        We might also need to get some additional info from you so keep an eye on it.
+
+        But don't expect miracles -- this is not automated (yet..;) and a human person needs to take a look at your project.
+        Also, we might find a bug or a missing feature during the onboarding so it might take us some time to finish.
+
+        See you soon!
