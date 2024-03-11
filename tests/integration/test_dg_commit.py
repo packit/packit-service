@@ -989,6 +989,7 @@ def test_precheck_koji_build_push_pr(
                 author=pr_author,
                 head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
                 status=PRStatus.open,
+                target_branch="f36",
             )
         ]
     )
