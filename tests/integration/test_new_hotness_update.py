@@ -99,7 +99,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
-    ).and_return(object)
+    ).and_return(flexmock(sync_release_targets=[flexmock()]))
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'upstream_project_url': "
@@ -160,7 +160,12 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         .mock()
     )
     pr = (
-        flexmock(id=21, url="some_url", target_project=target_project)
+        flexmock(
+            id=21,
+            url="some_url",
+            target_project=target_project,
+            description="some-title",
+        )
         .should_receive("comment")
         .mock()
     )
