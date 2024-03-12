@@ -259,13 +259,15 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
                 f"Getting pull request with head commit {self.data.commit_sha}"
                 f"for repo {self.project.namespace}/{self.project.repo}"
             )
-            prs = [
+            # We are interested just in merge commits.
+            commit_merge_prs = [
                 pr
                 for pr in self.project.get_pr_list(status=PRStatus.all)
                 if pr.head_commit == self.data.commit_sha
+                and pr.target_branch == self.data.git_ref
             ]
-            if prs:
-                self._pull_request = prs[0]
+            if commit_merge_prs:
+                self._pull_request = commit_merge_prs[0]
         return self._pull_request
 
     def get_pr_author(self):

@@ -1030,6 +1030,7 @@ def test_labels_on_distgit_pr(
                 head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
                 status=PRStatus.open,
                 labels=pr_labels,
+                target_branch="f36",
             )
         ]
     )
