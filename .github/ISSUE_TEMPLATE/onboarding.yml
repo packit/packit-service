@@ -1,5 +1,6 @@
 name: Request for Fedora automation onboarding
 description: Ask Packit team to onboard my package(s) for Fedora automation
+title: Onboard [my package]
 labels: onboarding
 body:
   - type: markdown
@@ -13,11 +14,8 @@ body:
         We will try our best and send the configuration file in the form of a dist-git pull request so you can see how it works.
         If needed, we will tweak the configuration together with you to best meet your needs.
 
-        **Curious what you can expect from Packit?** When there is a new upstream version,
-        Packit opens a **dist-git pull-request** with the specfile changes.
-        Once you review the changes and merge the pull-request, Packit automatically triggers a **Koji build**
-        and if it succeeds, Packit creates a **Bodhi update**.
-        Want to know more about it? Check our [onboarding guide](https://packit.dev/docs/fedora-releases-guide/dist-git-onboarding).
+        **Curious what you can expect from Packit?**
+        When there is a new upstream version, Packit opens a **dist-git pull-request** with the specfile changes. Once you review the changes and merge the pull-request, Packit automatically triggers a **Koji build** and if it succeeds, Packit creates a **Bodhi update**. Want to know more about it? Check our [onboarding guide](https://packit.dev/docs/fedora-releases-guide/dist-git-onboarding).
 
   - type: textarea
     id: projects
