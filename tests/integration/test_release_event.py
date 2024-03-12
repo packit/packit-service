@@ -54,7 +54,12 @@ def fedora_branches():
 
 
 @pytest.fixture
-def propose_downstream_model():
+def sync_release_pr_model():
+    return flexmock(sync_release_targets=[flexmock(), flexmock()])
+
+
+@pytest.fixture
+def propose_downstream_model(sync_release_pr_model):
     db_project_object = flexmock(
         id=12,
         project_event_model_type=ProjectEventModelType.release,
@@ -89,7 +94,7 @@ def propose_downstream_model():
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
-    ).and_return(object)
+    ).and_return(sync_release_pr_model)
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
         "report_status_to_all"
@@ -141,7 +146,9 @@ def propose_downstream_target_models(fedora_branches):
     yield models
 
 
-def test_dist_git_push_release_handle(github_release_webhook, propose_downstream_model):
+def test_dist_git_push_release_handle(
+    github_release_webhook, propose_downstream_model, sync_release_pr_model
+):
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
@@ -151,7 +158,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
-    ).and_return(object)
+    ).and_return(sync_release_pr_model)
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -224,7 +231,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         downstream_pr_url="some_url"
     )
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object
+        downstream_pr=sync_release_pr_model
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted
@@ -278,6 +285,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     fedora_branches,
     propose_downstream_model,
     propose_downstream_target_models,
+    sync_release_pr_model,
 ):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -323,7 +331,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             downstream_pr_url="some_url"
         )
         flexmock(model).should_receive("set_downstream_pr").with_args(
-            downstream_pr=object
+            downstream_pr=sync_release_pr_model
         ).once()
         flexmock(model).should_receive("set_status").with_args(
             status=SyncReleaseTargetStatus.submitted
@@ -414,6 +422,7 @@ def test_dist_git_push_release_handle_one_failed(
     fedora_branches,
     propose_downstream_model,
     propose_downstream_target_models,
+    sync_release_pr_model,
 ):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -478,7 +487,7 @@ def test_dist_git_push_release_handle_one_failed(
                 downstream_pr_url="some_url"
             )
             flexmock(model).should_receive("set_downstream_pr").with_args(
-                downstream_pr=object
+                downstream_pr=sync_release_pr_model
             )
             target_project = (
                 flexmock(namespace="downstream-namespace", repo="downstream-repo")

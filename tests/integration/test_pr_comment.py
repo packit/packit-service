@@ -2587,7 +2587,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     pagure_pr_comment_added["pullrequest"]["comments"][0][
         "comment"
     ] = "/packit pull-from-upstream --with-pr-config --resolved-bugs rhbz#123,rhbz#124"
-
+    sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
@@ -2597,7 +2597,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
-    ).and_return(object)
+    ).and_return(sync_release_pr_model)
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'upstream_project_url': "
@@ -2705,7 +2705,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         downstream_pr_url="some_url"
     ).once()
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object
+        downstream_pr=sync_release_pr_model
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted
