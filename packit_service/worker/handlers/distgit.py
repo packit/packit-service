@@ -395,8 +395,8 @@ class AbstractSyncReleaseHandler(
             model.set_logs(collect_packit_logs(buffer=buffer, handler=handler))
 
         dashboard_url = self.get_dashboard_url(model.id)
-        downstream_pr.comment(
-            f"Logs and details of the syncing: [Packit dashboard]({dashboard_url})"
+        self.report_dashboard_url(
+            sync_release_pull_request, downstream_pr, dashboard_url
         )
         self.sync_release_helper.report_status_for_branch(
             branch=branch,
@@ -487,6 +487,20 @@ class AbstractSyncReleaseHandler(
 
     def get_resolved_bugs(self):
         raise NotImplementedError("Use subclass.")
+
+    @staticmethod
+    def report_dashboard_url(
+        sync_release_pull_request: SyncReleasePullRequestModel,
+        downstream_pr: PullRequest,
+        dashboard_url: str,
+    ):
+        msg = f"Logs and details of the syncing: [Packit dashboard]({dashboard_url})"
+        # this is a retrigger
+        if len(sync_release_pull_request.sync_release_targets) > 1:
+            downstream_pr.comment(msg)
+        else:
+            original_description = downstream_pr.description
+            downstream_pr.description = original_description + "\n---\n" + msg
 
 
 class AbortSyncRelease(Exception):
