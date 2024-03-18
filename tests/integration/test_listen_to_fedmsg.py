@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+import copy
 from datetime import datetime
 
 import pytest
@@ -1018,7 +1019,16 @@ def test_copr_build_end_testing_farm_different_pr_branch(copr_build_end, copr_bu
     )
 
 
-def test_copr_build_end_testing_farm_manual_trigger(copr_build_end, copr_build_pr):
+@pytest.mark.parametrize(
+    "build_status,report_manual_triggered_times",
+    (
+        (BuildStatus.success, 0),
+        (BuildStatus.failure, 0),
+    ),
+)
+def test_copr_build_end_testing_farm_manual_trigger(
+    copr_build_end, copr_build_pr, build_status, report_manual_triggered_times
+):
     ServiceConfig.get_service_config().testing_farm_api_url = (
         "https://api.dev.testing-farm.io/v0.1/"
     )
@@ -1090,32 +1100,43 @@ def test_copr_build_end_testing_farm_manual_trigger(copr_build_end, copr_build_p
         copr_build_pr
     )
     flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(copr_build_pr)
-    copr_build_pr.should_call("set_status").with_args(BuildStatus.success).once()
+    copr_build_pr.should_call("set_status").with_args(build_status).once()
     copr_build_pr.should_receive("set_end_time").once()
     copr_build_pr.should_receive("get_package_name").and_return(None)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
     url = get_copr_build_info_url(1)
-    flexmock(StatusReporter).should_receive("report").with_args(
-        state=BaseCommitStatus.success,
-        description="RPMs were built successfully.",
-        url=url,
-        check_names=EXPECTED_BUILD_CHECK_NAME,
-        markdown_content=None,
-        links_to_external_services=None,
-        update_feedback_time=object,
-    ).once()
+    if build_status == BuildStatus.success:
+        flexmock(StatusReporter).should_receive("report").with_args(
+            state=BaseCommitStatus.success,
+            description="RPMs were built successfully.",
+            url=url,
+            check_names=EXPECTED_BUILD_CHECK_NAME,
+            markdown_content=None,
+            links_to_external_services=None,
+            update_feedback_time=object,
+        ).once()
+    else:
+        flexmock(StatusReporter).should_receive("report").with_args(
+            description="RPMs failed to be built.",
+            state=BaseCommitStatus.failure,
+            url=url,
+            check_names=EXPECTED_BUILD_CHECK_NAME,
+            markdown_content=None,
+            links_to_external_services=None,
+            update_feedback_time=object,
+        ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=BaseCommitStatus.pending,
-        description="RPMs were built successfully.",
+        state=BaseCommitStatus.failure,
+        description="RPMs failed to be built.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
-    ).once()
+    ).times(report_manual_triggered_times)
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/foo/bar"
@@ -1136,8 +1157,9 @@ def test_copr_build_end_testing_farm_manual_trigger(copr_build_end, copr_build_p
     )
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
-
-    processing_results = SteveJobs().process_message(copr_build_end)
+    copr_event = copy.deepcopy(copr_build_end)
+    copr_event["status"] = 1 if build_status == BuildStatus.success else 0
+    processing_results = SteveJobs().process_message(copr_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
