@@ -650,7 +650,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         update_feedback_time: Callable = None,
     ) -> None:
         for test_job in self.job_tests_all:
-            if test_job.skip_build:
+            if test_job.skip_build or test_job.manual_trigger:
                 continue
             check_names = self.test_check_names_for_test_job(test_job)
             self._report(
@@ -696,8 +696,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         update_feedback_time: Callable = None,
     ) -> None:
         for test_job in self.job_tests_all:
-            if not test_job.skip_build and chroot in self.build_targets_for_test_job(
-                test_job
+            if (
+                not test_job.skip_build
+                and not test_job.manual_trigger
+                and chroot in self.build_targets_for_test_job(test_job)
             ):
                 test_targets = self.build_target2test_targets_for_test_job(
                     chroot, test_job
