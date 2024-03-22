@@ -1894,3 +1894,97 @@ def test_parse_comment_arguments(
     assert helper.comment_arguments.pr_argument == expected_pr_arg
     assert helper.comment_arguments.identifier == expected_identifier
     assert helper.comment_arguments.labels == expected_labels
+
+
+@pytest.mark.parametrize(
+    "comment,job_identifier,job_labels,manual_trigger,show_status_check_times",
+    [
+        (
+            "/packit-dev test --identifier my-id-1 --labels label1,label2",
+            "my-id-1",
+            [],
+            True,
+            1,
+        ),
+        (
+            "/packit-dev test --identifier my-id-1 --labels label1,label2",
+            "my-id-2",
+            [
+                "label1",
+            ],
+            True,
+            1,
+        ),
+        (
+            "/packit-dev test --identifier my-id-2 --labels label1,label2",
+            "my-id-1",
+            [
+                "label3",
+            ],
+            True,
+            0,
+        ),
+        (
+            "/packit-dev test",
+            "my-id-2",
+            [
+                "label1",
+            ],
+            True,
+            0,
+        ),
+        (
+            "/packit-dev test --identifier my-id-1 --labels label1,label2",
+            "my-id-1",
+            [],
+            False,
+            1,
+        ),
+        (
+            "/packit-dev test --identifier my-id-1 --labels label1,label2",
+            "my-id-2",
+            [
+                "label1",
+            ],
+            False,
+            1,
+        ),
+    ],
+)
+def test_manually_triggered_tests_statuses_report(
+    comment: str,
+    job_identifier: str,
+    job_labels: List[str],
+    manual_trigger,
+    show_status_check_times,
+):
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        manual_trigger=manual_trigger,
+        labels=job_labels,
+        packages={
+            "package": CommonPackageConfig(
+                identifier=job_identifier,
+                _targets=["test-target", "another-test-target"],
+            )
+        },
+    )
+    metadata = flexmock(event_dict={"comment": comment})
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_project_event=flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request))
+        .mock(),
+        job_config=job_config,
+    )
+
+    flexmock(helper).should_receive("_report").times(show_status_check_times)
+    helper.report_status_to_tests("a description", "a new status")
