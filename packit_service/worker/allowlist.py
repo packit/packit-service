@@ -407,11 +407,13 @@ class Allowlist:
                 issue_url = self.get_approval_issue(namespace=project.namespace)
                 url = issue_url or DOCS_APPROVAL_URL
                 markdown_content = NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION.format(
-                    instructions=NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
-                        issue_url=issue_url
+                    instructions=(
+                        NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
+                            issue_url=issue_url
+                        )
+                        if issue_url
+                        else ""
                     )
-                    if issue_url
-                    else ""
                 )
             job_helper.report_status_to_configured_job(
                 description=short_msg,

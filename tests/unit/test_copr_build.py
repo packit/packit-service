@@ -440,9 +440,9 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         flexmock(CeleryTask).should_receive("retry").with_args(
             ex=exc,
             delay=delay,
-            max_retries=DEFAULT_RETRY_LIMIT_OUTAGE
-            if exc.__class__ is OgrNetworkError
-            else None,
+            max_retries=(
+                DEFAULT_RETRY_LIMIT_OUTAGE if exc.__class__ is OgrNetworkError else None
+            ),
         ).once()
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.pending,
