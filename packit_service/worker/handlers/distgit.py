@@ -107,6 +107,7 @@ from packit_service.worker.reporting import (
     report_in_issue_repository,
     update_message_with_configured_failure_comment_message,
 )
+from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -250,6 +251,7 @@ class AbstractSyncReleaseHandler(
                     "release_monitoring_project_id"
                 ),
                 sync_acls=True,
+                pr_description_footer=DistgitAnnouncement.get_announcement(),
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
@@ -599,6 +601,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         return (
             "You can check the recent runs of pull from upstream jobs "
             f"in [Packit dashboard]({dashboard_url}/jobs/pull-from-upstreams)"
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
 
     def get_resolved_bugs(self) -> List[str]:
@@ -881,6 +884,7 @@ class DownstreamKojiBuildHandler(
             f"in [Packit dashboard]({dashboard_url}/jobs/downstream-koji-builds). "
             f"You can also check the recent Koji build activity of `{user}` in [the Koji interface]"
             f"(https://koji.fedoraproject.org/koji/userinfo?userID={user_id})."
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
 
 

@@ -43,6 +43,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -187,6 +188,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         resolved_bugs=[],
         release_monitoring_project_id=None,
         sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
     ).and_return(pr).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 

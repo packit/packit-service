@@ -42,6 +42,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
@@ -209,6 +210,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         resolved_bugs=[],
         release_monitoring_project_id=None,
         sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -347,6 +349,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             resolved_bugs=[],
             release_monitoring_project_id=None,
             sync_acls=True,
+            pr_description_footer=DistgitAnnouncement.get_announcement(),
         ).and_return(pr).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -492,6 +495,7 @@ def test_dist_git_push_release_handle_one_failed(
                 resolved_bugs=[],
                 release_monitoring_project_id=None,
                 sync_acls=True,
+                pr_description_footer=DistgitAnnouncement.get_announcement(),
             ).and_return(pr).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -513,6 +517,7 @@ def test_dist_git_push_release_handle_one_failed(
                 resolved_bugs=[],
                 release_monitoring_project_id=None,
                 sync_acls=True,
+                pr_description_footer=DistgitAnnouncement.get_announcement(),
             ).and_raise(Exception, f"Failed {model.branch}").once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -753,6 +758,7 @@ def test_retry_propose_downstream_task(
         resolved_bugs=[],
         release_monitoring_project_id=None,
         sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
@@ -863,6 +869,7 @@ def test_dont_retry_propose_downstream_task(
         resolved_bugs=[],
         release_monitoring_project_id=None,
         sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
