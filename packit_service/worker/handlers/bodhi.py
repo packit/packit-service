@@ -64,6 +64,7 @@ from packit_service.worker.reporting import (
     report_in_issue_repository,
     update_message_with_configured_failure_comment_message,
 )
+from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -199,6 +200,7 @@ class BodhiUpdateHandler(
             f"in [Packit dashboard]({service_config.dashboard_url}/jobs/bodhi-updates). "
             f"You can also check the recent Bodhi update activity of `{user}` in "
             f"[the Bodhi interface](https://bodhi.fedoraproject.org/users/{user})."
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
 
     def report_in_issue_repository(self, errors: dict[str, str]) -> None:

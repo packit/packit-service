@@ -32,6 +32,7 @@ from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.tasks import run_pull_from_upstream_handler
 from tests.spellbook import get_parameters_from_results, first_dict_value
 
@@ -173,6 +174,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         resolved_bugs=["rhbz#2106196"],
         release_monitoring_project_id=4181,
         sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 

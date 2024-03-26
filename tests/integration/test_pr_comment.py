@@ -79,6 +79,7 @@ from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_koji_build_handler,
@@ -2428,6 +2429,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
             "You can also check the recent Koji build activity of "
             "`packit` in [the Koji interface]"
             "(https://koji.fedoraproject.org/koji/userinfo?userID=4641)."
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
         .mock()
     )
@@ -2542,6 +2544,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
             "in [Packit dashboard](/jobs/bodhi-updates). "
             "You can also check the recent Bodhi update activity of `packit` in "
             "[the Bodhi interface](https://bodhi.fedoraproject.org/users/packit)."
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
         .mock()
     )
@@ -2622,6 +2625,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         .with_args(
             "The task was accepted. You can check the recent runs of pull from upstream jobs in "
             "[Packit dashboard](/jobs/pull-from-upstreams)"
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
         .mock()
     )
@@ -2702,6 +2706,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         resolved_bugs=["rhbz#123", "rhbz#124"],
         release_monitoring_project_id=None,
         sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
