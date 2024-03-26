@@ -8,6 +8,8 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
+from packit.config.commands import TestCommandConfig
+
 import packit_service.models
 import packit_service.service.urls as urls
 from packit.config import (
@@ -1897,13 +1899,14 @@ def test_parse_comment_arguments(
 
 
 @pytest.mark.parametrize(
-    "comment,job_identifier,job_labels,manual_trigger,show_status_check_times",
+    "comment,job_identifier,job_labels,manual_trigger,test_command,show_status_check_times",
     [
         (
             "/packit-dev test --identifier my-id-1 --labels label1,label2",
             "my-id-1",
             [],
             True,
+            None,
             1,
         ),
         (
@@ -1913,6 +1916,7 @@ def test_parse_comment_arguments(
                 "label1",
             ],
             True,
+            None,
             1,
         ),
         (
@@ -1922,7 +1926,18 @@ def test_parse_comment_arguments(
                 "label3",
             ],
             True,
+            None,
             0,
+        ),
+        (
+            "/packit-dev test --identifier my-id-2 --labels label1,label2",
+            "my-id-1",
+            [
+                "label3",
+            ],
+            False,
+            None,
+            1,
         ),
         (
             "/packit-dev test",
@@ -1931,13 +1946,25 @@ def test_parse_comment_arguments(
                 "label1",
             ],
             True,
+            None,
             0,
+        ),
+        (
+            "/packit-dev test",
+            "my-id-2",
+            [
+                "label1",
+            ],
+            False,
+            None,
+            1,
         ),
         (
             "/packit-dev test --identifier my-id-1 --labels label1,label2",
             "my-id-1",
             [],
             False,
+            None,
             1,
         ),
         (
@@ -1947,6 +1974,27 @@ def test_parse_comment_arguments(
                 "label1",
             ],
             False,
+            None,
+            1,
+        ),
+        (
+            "/packit-dev test",
+            "my-id-2",
+            [
+                "label1",
+            ],
+            True,
+            TestCommandConfig(default_labels=["label5", "label1"]),
+            1,
+        ),
+        (
+            "/packit-dev test",
+            "my-id-2",
+            [
+                "label1",
+            ],
+            True,
+            TestCommandConfig(default_identifier="my-id-2"),
             1,
         ),
     ],
@@ -1956,6 +2004,7 @@ def test_manually_triggered_tests_statuses_report(
     job_identifier: str,
     job_labels: List[str],
     manual_trigger,
+    test_command,
     show_status_check_times,
 ):
     job_config = JobConfig(
@@ -1965,6 +2014,7 @@ def test_manually_triggered_tests_statuses_report(
         labels=job_labels,
         packages={
             "package": CommonPackageConfig(
+                test_command=test_command,
                 identifier=job_identifier,
                 _targets=["test-target", "another-test-target"],
             )

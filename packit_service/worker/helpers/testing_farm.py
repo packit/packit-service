@@ -1303,20 +1303,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         Is this job meant to be triggered manually
         and is it being triggered by a matching
           /packit test --labels label
-        command?
+        command or has it one of the default_labels?
         """
-        if (
-            self.job_config.manual_trigger
-            and self.job_config.labels
-            and self.comment_arguments.labels
-        ):
-            return (
-                True
-                if set(self.job_config.labels).intersection(
-                    set(self.comment_arguments.labels)
+        if self.job_config.manual_trigger:
+            if self.job_config.labels and self.comment_arguments.labels:
+                return bool(
+                    set(self.job_config.labels).intersection(
+                        set(self.comment_arguments.labels)
+                    )
                 )
-                else False
-            )
+            if self.job_config.test_command.default_labels:
+                return bool(
+                    set(self.job_config.labels).intersection(
+                        set(self.job_config.test_command.default_labels)
+                    )
+                )
         return False
 
     def is_manual_job_being_triggered_by_identifier(self) -> bool:
@@ -1324,14 +1325,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         Is this job meant to be triggered manually
         and is it being triggered by a matching
           /packit test --identifier job-identifier
-        command?
+        command or is it the default_identifier?
         """
-        if (
-            self.job_config.manual_trigger
-            and self.job_config.identifier
-            and self.comment_arguments.identifier
-        ):
-            return self.job_config.identifier == self.comment_arguments.identifier
+        if self.job_config.manual_trigger:
+            if self.job_config.identifier and self.comment_arguments.identifier:
+                return self.job_config.identifier == self.comment_arguments.identifier
+            if self.job_config.test_command.default_identifier:
+                return (
+                    self.job_config.identifier
+                    == self.job_config.test_command.default_identifier
+                )
         return False
 
     @property
