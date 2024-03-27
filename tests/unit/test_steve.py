@@ -142,17 +142,18 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model).times(1 if success else 0)
+    sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
         pr_id=21,
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
-    ).and_return(object).times(1 if success else 0)
+    ).and_return(sync_release_pr_model).times(1 if success else 0)
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
     ).times(1 if success else 0)
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object
+        downstream_pr=sync_release_pr_model
     ).times(1 if success else 0)
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.running
