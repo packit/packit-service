@@ -320,6 +320,83 @@ def test_pr_comment_build_build_and_test_handler(
     assert "already handled" in first_dict_value(results["job"])["details"]["msg"]
 
 
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                },
+                {
+                    "trigger": "pull_request",
+                    "job": "tests",
+                    "manual_trigger": True,
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                },
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_pr_comment_build_build_and_test_handler_manual_test_reporting(
+    mock_pr_comment_functionality, pr_build_comment_event
+):
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(set())
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+        markdown_content=None,
+        links_to_external_services=None,
+        update_feedback_time=object,
+    ).once()
+    # check that we are not reporting task accepted if manual_trigger is enabled for tests
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+        markdown_content=None,
+        links_to_external_services=None,
+        update_feedback_time=object,
+    ).never()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
+    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").times(4).and_return()
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    processing_results = SteveJobs().process_message(pr_build_comment_event)
+    assert len(processing_results) == 2
+
+    copr_build_job = [
+        item for item in processing_results if item["details"]["job"] == "copr_build"
+    ]
+    assert copr_build_job
+
+    test_job = [
+        item for item in processing_results if item["details"]["job"] == "tests"
+    ]
+    assert test_job
+
+    event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
+    assert json.dumps(event_dict)
+    results = run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
+
+
 def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     packit_yaml = str(
         {
