@@ -1278,6 +1278,91 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
     tf_handler.run()
 
 
+def test_trigger_build_manual_tests_dont_report():
+    copr_build = flexmock(
+        id=1,
+        commit_sha="1111111111111111111111111111111111111111",
+        status=BuildStatus.pending,
+        group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
+    )
+    valid_commit_sha = "1111111111111111111111111111111111111111"
+
+    package_config = PackageConfig(packages={"package": CommonPackageConfig()})
+    job_config = JobConfig(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        manual_trigger=True,
+        packages={
+            "package": CommonPackageConfig(
+                spec_source_id=1,
+            )
+        },
+    )
+    job_config._files_to_sync_used = False
+    package_config.jobs = [job_config]
+    package_config.spec_source_id = 1
+
+    event = {
+        "event_type": "CoprBuildEndEvent",
+        "commit_sha": valid_commit_sha,
+        "targets_override": ["target-x86_64"],
+    }
+
+    flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
+
+    targets = {"target-x86_64", "another-target-x86_64"}
+    tests = []
+    for target in targets:
+        tests.append(
+            flexmock(
+                copr_builds=[
+                    flexmock(
+                        id=1,
+                        status=copr_build.status if copr_build else BuildStatus.pending,
+                    )
+                ],
+                target=target,
+                status=TestingFarmResult.new,
+            )
+        )
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
+        *tests
+    ).one_by_one()
+    flexmock(PipelineModel).should_receive("create").and_return(flexmock())
+    flexmock(TFTTestRunGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=tests)
+    )
+
+    for target in targets:
+        flexmock(TFJobHelper).should_receive(
+            "report_status_to_tests_for_test_target"
+        ).with_args(
+            state=BaseCommitStatus.neutral,
+            description="The latest build has not finished yet. "
+            "Please retrigger the tests once it has finished.",
+            target=target,
+            url="https://dashboard.localhost/results/copr-builds/1",
+        )
+
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(targets)
+
+    tf_handler = TestingFarmHandler(
+        package_config,
+        job_config,
+        event,
+        celery_task=flexmock(request=flexmock(retries=0)),
+    )
+    flexmock(tf_handler).should_receive("project").and_return(
+        flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock()
+    )
+    tf_handler._db_project_object = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        id=11,
+    )
+    tf_handler.run()
+
+
 @pytest.mark.parametrize(
     ("job_fmf_url", "pr_id", "fmf_url"),
     [
