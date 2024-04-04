@@ -8,8 +8,6 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
-from packit.config.commands import TestCommandConfig
-
 import packit_service.models
 import packit_service.service.urls as urls
 from packit.config import (
@@ -96,6 +94,7 @@ def test_testing_farm_response(
             ),
             JobConfig(
                 type=JobType.tests,
+                manual_trigger=True,
                 trigger=JobConfigTriggerType.pull_request,
                 packages={
                     "package": CommonPackageConfig(
@@ -108,7 +107,9 @@ def test_testing_farm_response(
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(package_config)
-    config = flexmock(command_handler_work_dir=flexmock())
+    config = flexmock(
+        command_handler_work_dir=flexmock(), comment_command_prefix="/packit"
+    )
     flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
     flexmock(TFResultsEvent).should_receive("db_project_object").and_return(None)
     config.should_receive("get_project").with_args(
@@ -139,6 +140,7 @@ def test_testing_farm_response(
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
+            manual_trigger=True,
             packages={
                 "package": CommonPackageConfig(
                     identifier=None,
@@ -1896,145 +1898,3 @@ def test_parse_comment_arguments(
     assert helper.comment_arguments.pr_argument == expected_pr_arg
     assert helper.comment_arguments.identifier == expected_identifier
     assert helper.comment_arguments.labels == expected_labels
-
-
-@pytest.mark.parametrize(
-    "comment,job_identifier,job_labels,manual_trigger,test_command,show_status_check_times",
-    [
-        (
-            "/packit-dev test --identifier my-id-1 --labels label1,label2",
-            "my-id-1",
-            [],
-            True,
-            None,
-            1,
-        ),
-        (
-            "/packit-dev test --identifier my-id-1 --labels label1,label2",
-            "my-id-2",
-            [
-                "label1",
-            ],
-            True,
-            None,
-            1,
-        ),
-        (
-            "/packit-dev test --identifier my-id-2 --labels label1,label2",
-            "my-id-1",
-            [
-                "label3",
-            ],
-            True,
-            None,
-            0,
-        ),
-        (
-            "/packit-dev test --identifier my-id-2 --labels label1,label2",
-            "my-id-1",
-            [
-                "label3",
-            ],
-            False,
-            None,
-            1,
-        ),
-        (
-            "/packit-dev test",
-            "my-id-2",
-            [
-                "label1",
-            ],
-            True,
-            None,
-            0,
-        ),
-        (
-            "/packit-dev test",
-            "my-id-2",
-            [
-                "label1",
-            ],
-            False,
-            None,
-            1,
-        ),
-        (
-            "/packit-dev test --identifier my-id-1 --labels label1,label2",
-            "my-id-1",
-            [],
-            False,
-            None,
-            1,
-        ),
-        (
-            "/packit-dev test --identifier my-id-1 --labels label1,label2",
-            "my-id-2",
-            [
-                "label1",
-            ],
-            False,
-            None,
-            1,
-        ),
-        (
-            "/packit-dev test",
-            "my-id-2",
-            [
-                "label1",
-            ],
-            True,
-            TestCommandConfig(default_labels=["label5", "label1"]),
-            1,
-        ),
-        (
-            "/packit-dev test",
-            "my-id-2",
-            [
-                "label1",
-            ],
-            True,
-            TestCommandConfig(default_identifier="my-id-2"),
-            1,
-        ),
-    ],
-)
-def test_manually_triggered_tests_statuses_report(
-    comment: str,
-    job_identifier: str,
-    job_labels: List[str],
-    manual_trigger,
-    test_command,
-    show_status_check_times,
-):
-    job_config = JobConfig(
-        trigger=JobConfigTriggerType.pull_request,
-        type=JobType.tests,
-        manual_trigger=manual_trigger,
-        labels=job_labels,
-        packages={
-            "package": CommonPackageConfig(
-                test_command=test_command,
-                identifier=job_identifier,
-                _targets=["test-target", "another-test-target"],
-            )
-        },
-    )
-    metadata = flexmock(event_dict={"comment": comment})
-
-    git_project = flexmock()
-
-    helper = TFJobHelper(
-        service_config=flexmock(comment_command_prefix="/packit-dev"),
-        package_config=flexmock(jobs=[]),
-        project=git_project,
-        metadata=metadata,
-        db_project_event=flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request))
-        .mock(),
-        job_config=job_config,
-    )
-
-    flexmock(helper).should_receive("_report").times(show_status_check_times)
-    helper.report_status_to_tests("a description", "a new status")

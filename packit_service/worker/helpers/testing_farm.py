@@ -1298,45 +1298,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         return self.test_target2build_target_for_test_job(test_target, self.job_config)
 
-    def is_manual_job_being_triggered_by_label(self) -> bool:
-        """
-        Is this job meant to be triggered manually
-        and is it being triggered by a matching
-          /packit test --labels label
-        command or has it one of the default_labels?
-        """
-        if self.job_config.manual_trigger:
-            if self.job_config.labels and self.comment_arguments.labels:
-                return bool(
-                    set(self.job_config.labels).intersection(
-                        set(self.comment_arguments.labels)
-                    )
-                )
-            if self.job_config.test_command.default_labels:
-                return bool(
-                    set(self.job_config.labels).intersection(
-                        set(self.job_config.test_command.default_labels)
-                    )
-                )
-        return False
-
-    def is_manual_job_being_triggered_by_identifier(self) -> bool:
-        """
-        Is this job meant to be triggered manually
-        and is it being triggered by a matching
-          /packit test --identifier job-identifier
-        command or is it the default_identifier?
-        """
-        if self.job_config.manual_trigger:
-            if self.job_config.identifier and self.comment_arguments.identifier:
-                return self.job_config.identifier == self.comment_arguments.identifier
-            if self.job_config.test_command.default_identifier:
-                return (
-                    self.job_config.identifier
-                    == self.job_config.test_command.default_identifier
-                )
-        return False
-
     @property
     def build_targets_for_tests(self) -> Set[str]:
         """
@@ -1355,12 +1316,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         links_to_external_services: Optional[Dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
-        if self.job_config.manual_trigger and not (
-            self.is_manual_job_being_triggered_by_label()
-            or self.is_manual_job_being_triggered_by_identifier()
-        ):
-            return
-
         if chroot in self.build_targets_for_tests:
             test_targets = self.build_target2test_targets_for_test_job(
                 chroot, self.job_config
@@ -1386,12 +1341,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         links_to_external_services: Optional[Dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
-        if self.job_config.manual_trigger and not (
-            self.is_manual_job_being_triggered_by_label()
-            or self.is_manual_job_being_triggered_by_identifier()
-        ):
-            return
-
         if target in self.tests_targets:
             self._report(
                 description=description,
@@ -1412,12 +1361,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         links_to_external_services: Optional[Dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
-        if self.job_config.manual_trigger and not (
-            self.is_manual_job_being_triggered_by_label()
-            or self.is_manual_job_being_triggered_by_identifier()
-        ):
-            return
-
         self._report(
             description=description,
             state=state,
@@ -1437,6 +1380,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         links_to_external_services: Optional[Dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ):
+        if self.job_config.manual_trigger and self.build_required():
+            logger.debug("Skipping the reporting.")
+            return
+
         self.report_status_to_tests(
             description=description,
             state=state,
