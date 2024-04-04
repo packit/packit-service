@@ -230,10 +230,18 @@ class TestingFarmHandler(
             )
 
             for missing_target in targets_without_successful_builds:
+                description = (
+                    "Missing successful Copr build for this target, "
+                    "running a new Copr build. "
+                )
+                if self.job_config.manual_trigger:
+                    state = BaseCommitStatus.neutral
+                    description += "Please retrigger the tests once it has finished."
+                else:
+                    state = BaseCommitStatus.pending
                 self.testing_farm_job_helper.report_status_to_tests_for_chroot(
-                    state=BaseCommitStatus.pending,
-                    description="Missing successful Copr build for this target, "
-                    "running a new Copr build.",
+                    state=state,
+                    description=description,
                     url="",
                     chroot=missing_target,
                 )
@@ -256,18 +264,25 @@ class TestingFarmHandler(
                 BuildStatus.pending,
                 BuildStatus.waiting_for_srpm,
             ):
-                logger.info(
-                    "The latest build has not finished yet, "
-                    "waiting until it finishes before running tests for it."
-                )
-                if not self.job_config.manual_trigger:
-                    self.testing_farm_job_helper.report_status_to_tests_for_test_target(
-                        state=BaseCommitStatus.pending,
-                        description="The latest build has not finished yet, "
-                        "waiting until it finishes before running tests for it.",
-                        target=test_run.target,
-                        url=get_copr_build_info_url(copr_build.id),
+                logger.info("The latest build has not finished yet.")
+                if self.job_config.manual_trigger:
+                    state = BaseCommitStatus.neutral
+                    description = (
+                        "The latest build has not finished yet. "
+                        "Please retrigger the tests once it has finished."
                     )
+                else:
+                    state = BaseCommitStatus.pending
+                    description = (
+                        "The latest build has not finished yet, "
+                        "waiting until it finishes before running tests for it."
+                    )
+                self.testing_farm_job_helper.report_status_to_tests_for_test_target(
+                    state=state,
+                    description=description,
+                    target=test_run.target,
+                    url=get_copr_build_info_url(copr_build.id),
+                )
                 continue
 
             # Only retry what's needed
