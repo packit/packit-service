@@ -575,11 +575,16 @@ class SteveJobs:
         in our service configuration.
 
         Returns:
-            `True`, if the project is public or enabled in our service config,
+            `True`, if the project is public or enabled in our service config
+            or the check is skipped,
             `False` otherwise.
         """
+        # do the check only for events triggering the pipeline
+        if isinstance(self.event, AbstractResultEvent):
+            logger.debug("Skipping private repository check for this type of event.")
+
         # CoprBuildEvent.get_project returns None when the build id is not known
-        if not self.event.project:
+        elif not self.event.project:
             logger.warning(
                 "Cannot obtain project from this event! "
                 "Skipping private repository check!"
