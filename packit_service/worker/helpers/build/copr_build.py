@@ -580,7 +580,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Return:
             tuple of build ID and web url
         """
-        owner = self.create_copr_project_if_not_exists()
+        owner = self.create_or_update_copr_project()
         try:
             buildopts = (
                 {
@@ -813,7 +813,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             msg += chroots_diff
         self.status_reporter.comment(body=msg)
 
-    def create_copr_project_if_not_exists(self) -> str:
+    def create_or_update_copr_project(self) -> str:
         """
         Create project in Copr.
 
@@ -828,7 +828,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         try:
             overwrite_booleans = owner == self.service_config.fas_user
-            self.api.copr_helper.create_copr_project_if_not_exists(
+            self.api.copr_helper.create_or_update_copr_project(
                 project=self.job_project,
                 chroots=list(self.build_targets_all),
                 owner=owner,

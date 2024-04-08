@@ -184,7 +184,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"f31", "f32"}
     )
-    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
+    flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_raise(
         PackitCoprSettingsException,
         "Copr project update failed.",
         fields_to_change={
@@ -222,7 +222,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
         status_reporter
     )
     with pytest.raises(PackitCoprSettingsException):
-        helper.create_copr_project_if_not_exists()
+        helper.create_or_update_copr_project()
 
 
 @pytest.mark.parametrize(
@@ -299,7 +299,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     )
 
     # copr build
-    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+    flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_return(
         None
     )
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
@@ -398,7 +398,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     )
 
     # copr build
-    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+    flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_return(
         None
     )
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
@@ -649,7 +649,7 @@ def test_submit_copr_build(
     buildopts,
 ):
     helper = build_helper(event=github_pr_event)
-    flexmock(helper).should_receive("create_copr_project_if_not_exists").and_return("")
+    flexmock(helper).should_receive("create_or_update_copr_project").and_return("")
     flexmock(helper).should_receive("is_custom_copr_project_defined").and_return(
         is_custom_copr_project
     )
@@ -750,7 +750,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"f31", "f32"}
     )
-    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
+    flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_raise(
         PackitCoprProjectException(
             "Cannot create a new Copr project (owner=packit-stg project="
             "packit-specfile-91-fedora+epel chroots=['fedora-rawhide-x86_64', "
@@ -787,7 +787,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
         status_reporter
     )
     with pytest.raises(PackitCoprProjectException):
-        helper.create_copr_project_if_not_exists()
+        helper.create_or_update_copr_project()
 
 
 @pytest.mark.parametrize(
