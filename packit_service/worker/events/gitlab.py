@@ -86,7 +86,9 @@ class MergeRequestGitlabEvent(AddPullRequestEventToDb, AbstractGitlabEvent):
         self.description = description
         self.url = url
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -132,7 +134,9 @@ class MergeRequestCommentGitlabEvent(AbstractPRCommentEvent, AbstractGitlabEvent
         self.actor = actor
         self.identifier = str(object_iid)
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -173,7 +177,9 @@ class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
         self.action = action
         self.actor = actor
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -224,7 +230,9 @@ class ReleaseGitlabEvent(AddReleaseEventToDb, AbstractGitlabEvent):
     def commit_sha(self):
         return self._commit_sha
 
-    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["commit_sha"] = self.commit_sha
         return result

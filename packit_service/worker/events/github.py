@@ -62,7 +62,9 @@ class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
             self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
         return self._commit_sha
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["commit_sha"] = self.commit_sha
         return result
@@ -111,7 +113,9 @@ class PullRequestGithubEvent(AddPullRequestEventToDb, AbstractGithubEvent):
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -155,7 +159,9 @@ class PullRequestCommentGithubEvent(AbstractPRCommentEvent, AbstractGithubEvent)
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -200,7 +206,9 @@ class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
         self.target_repo = target_repo
         self.identifier = str(issue_id)
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -390,7 +398,9 @@ class InstallationEvent(Event):
             sender_login=event.get("sender_login"),
         )
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["status"] = result["status"].value
         return result

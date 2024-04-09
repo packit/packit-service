@@ -67,7 +67,10 @@ def propose_downstream_model():
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release, event_id=12, commit_sha="123456"
+        type=ProjectEventModelType.release,
+        event_id=12,
+        commit_sha="123456",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="0.3.0",

@@ -419,7 +419,10 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         project_url="https://github.com/the-namespace/the-repo-name",
     )
     project_event = ProjectEventModel.get_or_create(
-        type=ProjectEventModelType.pull_request, event_id=pr1.id, commit_sha="abcdef"
+        type=ProjectEventModelType.pull_request,
+        event_id=pr1.id,
+        commit_sha="abcdef",
+        packages_config=dict,
     )
     # SRPMBuildModel is (sadly) not shared between Koji and Copr builds.
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(

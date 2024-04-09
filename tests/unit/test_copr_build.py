@@ -32,7 +32,7 @@ from packit.exceptions import (
     PackitCoprSettingsException,
     PackitCoprProjectException,
 )
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_LIMIT_OUTAGE,
@@ -49,6 +49,7 @@ from packit_service.models import (
     PullRequestModel,
     BuildStatus,
 )
+from packit_service.utils import dump_package_config
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
 from packit_service.worker.events import (
@@ -242,6 +243,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
     ],
 )
 def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         id=123,
@@ -252,6 +254,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
         type=ProjectEventModelType.pull_request,
         event_id=123,
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        packages_config=dict,
     ).and_return(db_project_object)
     helper = build_helper(
         event=github_pr_event,
@@ -379,6 +382,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         type=ProjectEventModelType.pull_request,
         event_id=123,
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        packages_config=dict,
     ).and_return(
         flexmock(
             id=2,
@@ -914,7 +918,10 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="abcdef"
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="abcdef",
+        packages_config=dict,
     ).and_return(
         flexmock()
         .should_receive("get_project_event_object")
@@ -944,6 +951,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
                 "actor": "actor",
                 "project_url": "url",
                 "commit_sha": "abcdef",
+                "packages_config": dump_package_config(package_config),
             },
         )
         == should_pass

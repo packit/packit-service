@@ -219,7 +219,10 @@ def test_issue_comment_propose_downstream_handler(
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.issue, event_id=123, commit_sha=None
+        type=ProjectEventModelType.issue,
+        event_id=123,
+        commit_sha=None,
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
 

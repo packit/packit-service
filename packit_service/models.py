@@ -369,6 +369,11 @@ class ProjectAndEventsConnector:
         if project_event_model:
             project_event_model.commit_sha = value
 
+    @property
+    def packages_config(self) -> Optional[dict]:
+        project_event_model = self.get_project_event_model()
+        return project_event_model.packages_config if project_event_model else None
+
     def get_pr_id(self) -> Optional[int]:
         project_event_object = self.get_project_event_object()
         if isinstance(project_event_object, PullRequestModel):
@@ -433,6 +438,10 @@ class GroupAndTargetModelConnector:
     @commit_sha.setter
     def commit_sha(self, value: str):
         self.group_of_targets.commit_sha = value
+
+    @property
+    def packages_config(self) -> Optional[dict]:
+        return self.group_of_targets.packages_config
 
 
 class GroupModel:
@@ -1289,6 +1298,7 @@ class ProjectEventModel(Base):
     type = Column(Enum(ProjectEventModelType))
     event_id = Column(Integer, index=True)
     commit_sha = Column(String, index=True)
+    packages_config = Column(JSON)
 
     runs = relationship("PipelineModel", back_populates="project_event")
 
@@ -1300,6 +1310,7 @@ class ProjectEventModel(Base):
         repo_name: str,
         project_url: str,
         commit_sha: str,
+        packages_config: Optional[dict] = None,
     ) -> Tuple[PullRequestModel, "ProjectEventModel"]:
         pull_request = PullRequestModel.get_or_create(
             pr_id=pr_id,
@@ -1311,6 +1322,7 @@ class ProjectEventModel(Base):
             type=pull_request.project_event_model_type,
             event_id=pull_request.id,
             commit_sha=commit_sha,
+            packages_config=packages_config,
         )
         return (pull_request, event)
 
@@ -1322,6 +1334,7 @@ class ProjectEventModel(Base):
         repo_name: str,
         project_url: str,
         commit_sha: str,
+        packages_config: Optional[dict] = None,
     ) -> Tuple[GitBranchModel, "ProjectEventModel"]:
         branch_push = GitBranchModel.get_or_create(
             branch_name=branch_name,
@@ -1333,6 +1346,7 @@ class ProjectEventModel(Base):
             type=branch_push.project_event_model_type,
             event_id=branch_push.id,
             commit_sha=commit_sha,
+            packages_config=packages_config,
         )
         return (branch_push, event)
 
@@ -1344,6 +1358,7 @@ class ProjectEventModel(Base):
         repo_name: str,
         project_url: str,
         commit_hash: str,
+        packages_config: Optional[dict] = None,
     ) -> Tuple[ProjectReleaseModel, "ProjectEventModel"]:
         release = ProjectReleaseModel.get_or_create(
             tag_name=tag_name,
@@ -1356,6 +1371,7 @@ class ProjectEventModel(Base):
             type=release.project_event_model_type,
             event_id=release.id,
             commit_sha=commit_hash,
+            packages_config=packages_config,
         )
         return (release, event)
 
@@ -1366,6 +1382,7 @@ class ProjectEventModel(Base):
         namespace: str,
         repo_name: str,
         project_url: str,
+        packages_config: Optional[dict] = None,
     ) -> Tuple[IssueModel, "ProjectEventModel"]:
         issue = IssueModel.get_or_create(
             issue_id=issue_id,
@@ -1377,12 +1394,17 @@ class ProjectEventModel(Base):
             type=issue.project_event_model_type,
             event_id=issue.id,
             commit_sha=None,
+            packages_config=packages_config,
         )
         return (issue, event)
 
     @classmethod
     def get_or_create(
-        cls, type: ProjectEventModelType, event_id: int, commit_sha: str
+        cls,
+        type: ProjectEventModelType,
+        event_id: int,
+        commit_sha: str,
+        packages_config: Optional[dict] = None,
     ) -> "ProjectEventModel":
         with sa_session_transaction(commit=True) as session:
             project_event = (
@@ -1396,6 +1418,11 @@ class ProjectEventModel(Base):
                 project_event.event_id = event_id
                 project_event.commit_sha = commit_sha
                 session.add(project_event)
+
+            if packages_config and not project_event.packages_config:
+                project_event.packages_config = packages_config
+                session.add(project_event)
+
             return project_event
 
     @classmethod

@@ -182,7 +182,10 @@ def mock_pr_comment_functionality(request):
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="12345",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -442,7 +445,10 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(Allowlist, check_and_report=True)
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="12345",
+        packages_config=dict,
     ).and_return(project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -1846,7 +1852,10 @@ def test_retest_failed(
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="12345",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -2489,6 +2498,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         type=ProjectEventModelType.pull_request,
         event_id=12,
         commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=pagure_pr_comment_added["pullrequest"]["id"],
@@ -2583,6 +2593,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         type=ProjectEventModelType.pull_request,
         event_id=12,
         commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+        packages_config=dict,
     ).and_return(project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=36,
@@ -2819,6 +2830,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         type=ProjectEventModelType.pull_request,
         event_id=12,
         commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=pagure_pr_comment_added["pullrequest"]["id"],

@@ -29,6 +29,7 @@ from packit_service.models import (
     TestingFarmResult,
 )
 from packit_service.models import TestingFarmResult as TFResult
+from packit_service.utils import dump_package_config
 
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
@@ -123,32 +124,7 @@ def test_testing_farm_response(
     )
     config.should_receive("get_github_account_name").and_return("packit-as-a-service")
     created_dt = datetime.now(timezone.utc)
-    event_dict = TFResultsEvent(
-        pipeline_id="id",
-        result=tests_result,
-        compose=flexmock(),
-        summary=tests_summary,
-        log_url="some url",
-        copr_build_id=flexmock(),
-        copr_chroot="fedora-rawhide-x86_64",
-        commit_sha=flexmock(),
-        project_url="https://github.com/packit/ogr",
-        created=created_dt,
-    ).get_dict()
-    test_farm_handler = TFResultsHandler(
-        package_config=package_config,
-        job_config=JobConfig(
-            type=JobType.tests,
-            trigger=JobConfigTriggerType.pull_request,
-            manual_trigger=True,
-            packages={
-                "package": CommonPackageConfig(
-                    identifier=None,
-                )
-            },
-        ),
-        event=event_dict,
-    )
+
     flexmock(StatusReporter).should_receive("report").with_args(
         description=status_message,
         state=status_status,
@@ -166,6 +142,7 @@ def test_testing_farm_response(
             submitted_time=datetime.now(),
             target="fedora-rawhide-x86_64",
             status=None,
+            packages_config={},
         )
         .should_receive("get_project_event_model")
         .and_return(
@@ -198,6 +175,33 @@ def test_testing_farm_response(
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+
+    event_dict = TFResultsEvent(
+        pipeline_id="id",
+        result=tests_result,
+        compose=flexmock(),
+        summary=tests_summary,
+        log_url="some url",
+        copr_build_id=flexmock(),
+        copr_chroot="fedora-rawhide-x86_64",
+        commit_sha=flexmock(),
+        project_url="https://github.com/packit/ogr",
+        created=created_dt,
+    ).get_dict()
+    test_farm_handler = TFResultsHandler(
+        package_config=package_config,
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            manual_trigger=True,
+            packages={
+                "package": CommonPackageConfig(
+                    identifier=None,
+                )
+            },
+        ),
+        event=event_dict,
+    )
 
     test_farm_handler.run()
 
@@ -1851,7 +1855,10 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="abcdef"
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="abcdef",
+        packages_config=dict,
     ).and_return(
         flexmock()
         .should_receive("get_project_event_object")
@@ -1870,7 +1877,13 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
     if not should_pass:
         flexmock(TFJobHelper).should_receive("report_status_to_tests").once()
 
-    event.update({"actor": "actor", "project_url": "url"})
+    event.update(
+        {
+            "actor": "actor",
+            "project_url": "url",
+            "packages_config": dump_package_config(package_config),
+        }
+    )
 
     assert TestingFarmHandler.pre_check(package_config, jobs[0], event) == should_pass
 

@@ -14,7 +14,7 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import (
     GitBranchModel,
@@ -79,6 +79,7 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
 
 
 def test_precheck(github_pr_event):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     db_project_object = flexmock(
         id=342,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -94,6 +95,7 @@ def test_precheck(github_pr_event):
         type=ProjectEventModelType.pull_request,
         event_id=342,
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        packages_config=None,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=342,
@@ -131,6 +133,7 @@ def test_precheck(github_pr_event):
 
 
 def test_precheck_gitlab(gitlab_mr_event):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     db_project_object = flexmock(
         id=1,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -146,6 +149,7 @@ def test_precheck_gitlab(gitlab_mr_event):
         type=ProjectEventModelType.pull_request,
         event_id=1,
         commit_sha="1f6a716aa7a618a9ffe56970d77177d99d100022",
+        packages_config=None,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=1,
@@ -188,6 +192,7 @@ def test_precheck_gitlab(gitlab_mr_event):
 
 
 def test_precheck_push(github_push_event):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     db_project_object = flexmock(
         id=1,
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -204,6 +209,7 @@ def test_precheck_push(github_push_event):
         type=ProjectEventModelType.branch_push,
         event_id=1,
         commit_sha="04885ff850b0fa0e206cd09db73565703d48f99b",
+        packages_config=None,
     ).and_return(db_project_event)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         db_project_object
@@ -243,6 +249,7 @@ def test_precheck_push(github_push_event):
 
 
 def test_precheck_push_to_a_different_branch(github_push_event):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     db_project_object = flexmock(
         id=1,
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -259,6 +266,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         type=ProjectEventModelType.branch_push,
         event_id=1,
         commit_sha="04885ff850b0fa0e206cd09db73565703d48f99b",
+        packages_config=None,
     ).and_return(db_project_event)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         db_project_object
@@ -292,6 +300,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
 
 
 def test_precheck_push_actor_check(github_push_event):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
     )
@@ -317,6 +326,7 @@ def test_precheck_push_actor_check(github_push_event):
 
 
 def test_precheck_koji_build_non_scratch(github_pr_event):
+    flexmock(PackageConfigGetter).should_receive("get_package_config_from_repo")
     db_project_object = flexmock(
         id=342,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -342,6 +352,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         type=ProjectEventModelType.pull_request,
         event_id=342,
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        packages_config=None,
     ).and_return(db_project_event)
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.neutral,

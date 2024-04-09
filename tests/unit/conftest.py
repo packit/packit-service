@@ -83,7 +83,10 @@ def add_pull_request_event_with_empty_sha():
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha=""
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="",
+        packages_config=dict,
     ).and_return(db_project_event)
     yield db_project_object, db_project_event
 

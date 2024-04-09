@@ -7,6 +7,7 @@ This file contains helper classes for events.
 from typing import Optional, Dict
 
 from ogr.abstract import GitProject
+from packit.config import PackageConfig
 from packit_service.models import (
     GitBranchModel,
     IssueModel,
@@ -14,6 +15,7 @@ from packit_service.models import (
     PullRequestModel,
     ProjectEventModel,
 )
+from packit_service.utils import dump_package_config
 
 
 class AddReleaseEventToDb:
@@ -21,6 +23,7 @@ class AddReleaseEventToDb:
     repo_namespace: str
     repo_name: str
     project_url: str
+    packages_config: PackageConfig
     _release: ProjectReleaseModel = None
     _event: ProjectEventModel = None
 
@@ -32,6 +35,7 @@ class AddReleaseEventToDb:
                 repo_name=self.repo_name,
                 project_url=self.project_url,
                 commit_hash=self.commit_sha,
+                packages_config=dump_package_config(self.packages_config),
             )
         return self._release, self._event
 
@@ -52,7 +56,9 @@ class AddReleaseEventToDb:
         (_, event) = self._add_release_and_event()
         return event
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()  # type: ignore
         result.pop("_release", None)
         result.pop("_event", None)
@@ -65,6 +71,7 @@ class AddBranchPushEventToDb:
     repo_name: str
     project_url: str
     commit_sha: str
+    packages_config: PackageConfig
     _branch: GitBranchModel = None
     _event: ProjectEventModel = None
 
@@ -76,6 +83,7 @@ class AddBranchPushEventToDb:
                 repo_name=self.repo_name,
                 project_url=self.project_url,
                 commit_sha=self.commit_sha,
+                packages_config=dump_package_config(self.packages_config),
             )
         return self._branch, self._event
 
@@ -89,7 +97,9 @@ class AddBranchPushEventToDb:
         (_, event) = self._add_branch_and_event()
         return event
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()  # type: ignore
         result.pop("_branch", None)
         result.pop("_event", None)
@@ -112,6 +122,7 @@ class AddPullRequestEventToDb:
                 repo_name=self.project.repo,
                 project_url=self.project_url,
                 commit_sha=self.commit_sha,
+                packages_config=dump_package_config(self.packages_config),
             )
         return self._pull_request, self._event
 
@@ -125,7 +136,9 @@ class AddPullRequestEventToDb:
         (_, event) = self._add_pull_request_and_event()
         return event
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()  # type: ignore
         result.pop("_pull_request", None)
         result.pop("_event", None)
@@ -138,6 +151,7 @@ class AddIssueEventToDb:
     repo_name: str
     project_url: str
     commit_sha: str
+    packages_config: PackageConfig
     _issue: IssueModel = None
     _event: ProjectEventModel = None
 
@@ -148,6 +162,7 @@ class AddIssueEventToDb:
                 namespace=self.repo_namespace,
                 repo_name=self.repo_name,
                 project_url=self.project_url,
+                packages_config=dump_package_config(self.packages_config),
             )
         return self._issue, self._event
 
@@ -161,7 +176,9 @@ class AddIssueEventToDb:
         (_, event) = self._add_issue_and_event()
         return event
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()  # type: ignore
         result.pop("_issue", None)
         result.pop("_event", None)

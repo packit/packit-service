@@ -17,6 +17,7 @@ from packit_service.models import (
     ProjectEventModel,
     GitBranchModel,
 )
+from packit_service.utils import load_package_config
 from packit_service.worker.events.event import (
     use_for_job_config_trigger,
     AbstractResultEvent,
@@ -106,7 +107,9 @@ class AbstractKojiEvent(AbstractResultEvent):
             for arch, rpm_build_task_id in self.rpm_build_task_ids.items()
         }
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result.pop("_build_model")
         result.pop("_build_model_searched")
@@ -192,7 +195,9 @@ class KojiBuildEvent(AbstractKojiEvent):
     def identifier(self) -> str:
         return self.branch_name
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
         result["old_state"] = result["old_state"].value if self.old_state else None
@@ -325,7 +330,14 @@ class KojiTaskEvent(AbstractKojiEvent):
                 return None  # With Github app, we cannot work with fork repo
         return self.project
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        if self.build_model and self.build_model.packages_config:
+            return load_package_config(self.build_model.packages_config)
+        return super().get_packages_config()
+
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
         result["old_state"] = result["old_state"].value

@@ -21,6 +21,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
+from packit_service.utils import dump_package_config
 
 logger = getLogger(__name__)
 
@@ -148,6 +149,7 @@ class EventData:
         return self._project
 
     def _add_project_object_and_event(self):
+        packages_config = self.event_dict.get("packages_config")
         # TODO, do a better job
         # Probably, try to recreate original classes.
         if self.event_type in {
@@ -169,6 +171,7 @@ class EventData:
                 repo_name=self.project.repo,
                 project_url=self.project_url,
                 commit_sha=self.commit_sha,
+                packages_config=packages_config,
             )
         elif self.event_type in {
             "PushGitHubEvent",
@@ -185,6 +188,7 @@ class EventData:
                 repo_name=self.project.repo,
                 project_url=self.project_url,
                 commit_sha=self.commit_sha,
+                packages_config=packages_config,
             )
 
         elif self.event_type in {
@@ -201,6 +205,7 @@ class EventData:
                 repo_name=self.project.repo,
                 project_url=self.project_url,
                 commit_hash=self.commit_sha,
+                packages_config=packages_config,
             )
         elif self.event_type in {
             "NewHotnessUpdateEvent",
@@ -221,6 +226,7 @@ class EventData:
                 repo_name=repo_name,
                 project_url=self.project_url,
                 commit_hash=self.commit_sha,
+                packages_config=packages_config,
             )
         elif self.event_type in {
             "IssueCommentEvent",
@@ -234,6 +240,7 @@ class EventData:
                 namespace=self.project.namespace,
                 repo_name=self.project.repo,
                 project_url=self.project_url,
+                packages_config=packages_config,
             )
         else:
             logger.warning(
@@ -320,14 +327,22 @@ class Event:
             "_package_config",
         ]
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         d = default_dict or self.__dict__
         # whole dict has to be JSON serializable because of redis
         d = self.make_serializable(d, self.get_non_serializable_attributes())
         d["event_type"] = self.__class__.__name__
+        d["packages_config"] = dump_package_config(self.packages_config)
 
-        # we are trying to be lazy => don't touch database if it is not needed
-        d["event_id"] = self._db_project_object.id if self._db_project_object else None
+        if store_event:
+            db_project_object = self.db_project_object
+        else:
+            # we are trying to be lazy => don't touch database if it is not needed
+            db_project_object = self._db_project_object
+
+        d["event_id"] = db_project_object.id if db_project_object else None
 
         d["created_at"] = int(d["created_at"].timestamp())
         task_accepted_time = d.get("task_accepted_time")
@@ -560,7 +575,9 @@ class AbstractForgeIndependentEvent(Event):
             statuses_to_filter_with=statuses_to_filter_with,
         )
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result.pop("_pull_request_object")
         return result

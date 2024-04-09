@@ -360,7 +360,7 @@ class JobHandler(Handler):
                     else None
                 ),
                 "job_config": dump_job_config(job),
-                "event": event.get_dict(),
+                "event": event.get_dict(store_event=True),
             },
         )
 

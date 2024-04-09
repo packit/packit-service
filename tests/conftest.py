@@ -141,6 +141,7 @@ def srpm_build_model(
         type=pr_model.project_event_model_type,
         event_id=pr_model.id,
         commit_sha="0011223344",
+        packages_config=dict,
     ).and_return(project_event_model)
 
     def mock_set_status(status):
@@ -230,6 +231,7 @@ def copr_build_model(
         type=trigger_object_model.project_event_model_type,
         event_id=trigger_object_model.id,
         commit_sha="0011223344",
+        packages_config=dict,
     ).and_return(project_event_model)
 
     def mock_set_status(status):
@@ -309,6 +311,7 @@ def koji_build_pr():
         type=pr_model.project_event_model_type,
         event_id=pr_model.id,
         commit_sha="0011223344",
+        packages_config="dict",
     ).and_return(project_event_model)
 
     run_model = flexmock(
@@ -361,7 +364,10 @@ def add_pull_request_event_with_pr_id_9():
         db_project_object
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="12345",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -389,7 +395,10 @@ def add_pull_request_event_with_sha_0011223344():
         db_project_object
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="0011223344",
+        packages_config=dict,
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,

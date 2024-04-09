@@ -71,7 +71,10 @@ def test_sync_from_downstream():
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -149,7 +152,10 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -225,7 +231,10 @@ def test_downstream_koji_build():
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -320,7 +329,10 @@ def test_downstream_koji_build_failure_no_issue():
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -419,7 +431,10 @@ def test_downstream_koji_build_failure_issue_created():
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -524,7 +539,10 @@ def test_downstream_koji_build_failure_issue_comment():
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -720,7 +738,10 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -832,7 +853,10 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
     ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.branch_push, event_id=9, commit_sha="abcd"
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",

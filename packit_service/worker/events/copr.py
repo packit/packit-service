@@ -6,6 +6,7 @@ from typing import Optional, Dict, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
+from packit.config import PackageConfig
 
 from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
@@ -15,6 +16,7 @@ from packit_service.models import (
     SRPMBuildModel,
     ProjectEventModel,
 )
+from packit_service.utils import load_package_config
 from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.worker.events.enums import FedmsgTopic
 
@@ -72,6 +74,11 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
 
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
         return self.build.get_project_event_model()
+
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        if self.build.packages_config:
+            return load_package_config(self.build.packages_config)
+        return super().get_packages_config()
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
@@ -140,7 +147,9 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
     def get_non_serializable_attributes(self):
         return super().get_non_serializable_attributes() + ["build"]
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
         return result

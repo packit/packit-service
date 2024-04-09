@@ -38,7 +38,9 @@ class AbstractCommentEvent(AbstractForgeIndependentEvent):
     def comment_object(self) -> Optional[Comment]:
         raise NotImplementedError("Use subclass instead.")
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result.pop("_comment_object")
         return result
@@ -108,7 +110,9 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
             )
         return self._tests_targets_override
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["commit_sha"] = self.commit_sha
         result.pop("_build_targets_override")
@@ -175,7 +179,9 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
             self._comment_object = self.issue_object.get_comment(self.comment_id)
         return self._comment_object
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["tag_name"] = self.tag_name
         result["commit_sha"] = self.commit_sha

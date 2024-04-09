@@ -5,6 +5,7 @@ from typing import Optional, Dict
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
+from packit.config import PackageConfig
 
 from packit_service.models import (
     TestingFarmResult,
@@ -13,6 +14,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     ProjectEventModel,
 )
+from packit_service.utils import load_package_config
 from packit_service.worker.events.event import AbstractResultEvent
 
 
@@ -56,11 +58,17 @@ class TestingFarmResultsEvent(AbstractResultEvent):
             self._pr_id = self.db_project_object.pr_id
         return self._pr_id
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(
+        self, default_dict: Optional[Dict] = None, store_event: bool = False
+    ) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
         result["pr_id"] = self.pr_id
         return result
+
+    @property
+    def tf_run_model(self):
+        return TFTTestRunTargetModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         run_model = TFTTestRunTargetModel.get_by_pipeline_id(
@@ -73,6 +81,11 @@ class TestingFarmResultsEvent(AbstractResultEvent):
             pipeline_id=self.pipeline_id
         )
         return run_model.get_project_event_model() if run_model else None
+
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        if self.tf_run_model and self.tf_run_model.packages_config:
+            return load_package_config(self.tf_run_model.packages_config)
+        return super().get_packages_config()
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

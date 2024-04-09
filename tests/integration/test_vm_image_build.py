@@ -3,18 +3,12 @@
 
 import json
 
-from flexmock import flexmock
-
 from celery import Celery
 from celery.canvas import Signature
+from flexmock import flexmock
 
 from ogr.services.github import GithubProject
-
-from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.tasks import (
-    run_vm_image_build,
-)
+from packit.copr_helper import CoprHelper
 from packit_service.models import (
     PullRequestModel,
     JobConfigTriggerType,
@@ -25,9 +19,13 @@ from packit_service.models import (
     ProjectEventModel,
 )
 from packit_service.worker.allowlist import Allowlist
-from tests.spellbook import first_dict_value, get_parameters_from_results
 from packit_service.worker.handlers.vm_image import VMImageBuildHandler
-from packit.copr_helper import CoprHelper
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.tasks import (
+    run_vm_image_build,
+)
+from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
 def test_vm_image_build(github_vm_image_build_comment):
@@ -76,7 +74,10 @@ def test_vm_image_build(github_vm_image_build_comment):
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=1, commit_sha="123456"
+        type=ProjectEventModelType.pull_request,
+        event_id=1,
+        commit_sha="123456",
+        packages_config=dict,
     ).and_return(flexmock())
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(

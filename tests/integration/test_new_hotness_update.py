@@ -57,7 +57,10 @@ def sync_release_model():
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release, event_id=12, commit_sha=None
+        type=ProjectEventModelType.release,
+        event_id=12,
+        commit_sha=None,
+        packages_config=dict,
     ).and_return(project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="7.0.3",
