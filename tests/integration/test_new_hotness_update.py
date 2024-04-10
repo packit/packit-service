@@ -175,6 +175,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         release_monitoring_project_id=4181,
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 

@@ -211,6 +211,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         release_monitoring_project_id=None,
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -350,6 +351,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             release_monitoring_project_id=None,
             sync_acls=True,
             pr_description_footer=DistgitAnnouncement.get_announcement(),
+            add_new_sources=True,
         ).and_return(pr).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -496,6 +498,7 @@ def test_dist_git_push_release_handle_one_failed(
                 release_monitoring_project_id=None,
                 sync_acls=True,
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
+                add_new_sources=True,
             ).and_return(pr).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -518,6 +521,7 @@ def test_dist_git_push_release_handle_one_failed(
                 release_monitoring_project_id=None,
                 sync_acls=True,
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
+                add_new_sources=True,
             ).and_raise(Exception, f"Failed {model.branch}").once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch"
@@ -759,6 +763,7 @@ def test_retry_propose_downstream_task(
         release_monitoring_project_id=None,
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
@@ -870,6 +875,7 @@ def test_dont_retry_propose_downstream_task(
         release_monitoring_project_id=None,
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
