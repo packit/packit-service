@@ -11,7 +11,6 @@ from typing import Dict, Optional, Type, Union, Set, List
 
 from ogr.abstract import GitProject, PullRequest
 from ogr.parsing import RepoUrl
-
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
@@ -311,6 +310,24 @@ class Event:
         """
         return {k: copy.deepcopy(v) for k, v in d.items() if k not in skip}
 
+    def store_packages_config(self):
+        """
+        For events starting pipeline for Koji/Copr builds/tests, we
+        want to store the packages config to limit
+        getting it via API (reduce API calls).
+        """
+        if not self.db_project_event:
+            return
+
+        package_config_dict = (
+            self.packages_config.get_raw_dict_with_defaults()
+            if self.packages_config
+            else None
+        )
+        if package_config_dict:
+            logger.debug("Storing packages config in DB.")
+            self.db_project_event.set_packages_config(package_config_dict)
+
     def get_non_serializable_attributes(self):
         return [
             "_db_project_object",
@@ -572,4 +589,10 @@ class AbstractResultEvent(AbstractForgeIndependentEvent):
     allow Steve properly filter jobs with manual trigger.
     """
 
-    pass
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        if self.db_project_event and (
+            db_config := self.db_project_event.packages_config
+        ):
+            logger.debug("Getting packages config from DB.")
+            return PackageConfig.get_from_dict_without_setting_defaults(db_config)
+        return super().get_packages_config()

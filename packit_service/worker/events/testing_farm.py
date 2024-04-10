@@ -5,7 +5,6 @@ from typing import Optional, Dict
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
-
 from packit_service.models import (
     TestingFarmResult,
     AbstractProjectObjectDbType,

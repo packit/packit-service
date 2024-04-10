@@ -180,6 +180,8 @@ def mock_pr_comment_functionality(request):
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
+        .should_receive("set_packages_config")
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
@@ -433,6 +435,8 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         flexmock()
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
+        .mock()
+        .should_receive("set_packages_config")
         .mock()
     )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
@@ -1843,6 +1847,8 @@ def test_retest_failed(
         flexmock()
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
+        .mock()
+        .should_receive("set_packages_config")
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(

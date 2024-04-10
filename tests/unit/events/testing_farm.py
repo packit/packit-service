@@ -75,6 +75,10 @@ def test_parse_testing_farm_notification(
         .and_return(flexmock(pr_id=10))
         .once()
         .mock()
+        .should_receive("get_project_event_model")
+        .and_return(flexmock(pr_id=10, packages_config={"specfile_path": "path.spec"}))
+        .once()
+        .mock()
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
@@ -91,6 +95,7 @@ def test_parse_testing_farm_notification(
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit/packit"
     assert event_object.identifier == identifier
+    assert event_object.packages_config
 
 
 def test_parse_testing_farm_notification_error(

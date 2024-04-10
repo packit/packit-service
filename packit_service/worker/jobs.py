@@ -509,6 +509,13 @@ class SteveJobs:
                     job_config=job_config,
                     update_feedback_time=lambda t: statuses_check_feedback.append(t),
                 )
+                if handler_kls in (
+                    CoprBuildHandler,
+                    TestingFarmHandler,
+                    KojiBuildHandler,
+                ):
+                    self.event.store_packages_config()
+
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
                 )

@@ -356,6 +356,8 @@ def add_pull_request_event_with_pr_id_9():
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
+        .should_receive("set_packages_config")
+        .mock()
     )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
         db_project_object
@@ -383,6 +385,8 @@ def add_pull_request_event_with_sha_0011223344():
         flexmock(id=123)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
+        .mock()
+        .should_receive("set_packages_config")
         .mock()
     )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
