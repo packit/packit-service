@@ -1404,6 +1404,21 @@ class ProjectEventModel(Base):
         with sa_session_transaction() as session:
             return session.query(ProjectEventModel).filter_by(id=id_).first()
 
+    @classmethod
+    def get_older_than_with_packages_config(
+        cls, delta: timedelta
+    ) -> Iterable["ProjectEventModel"]:
+        """Return project events with all runs older than delta that store packages config."""
+        delta_ago = datetime.now(timezone.utc) - delta
+        with sa_session_transaction() as session:
+            return (
+                session.query(ProjectEventModel)
+                .filter(ProjectEventModel.packages_config.isnot(None))
+                .filter(
+                    ~ProjectEventModel.runs.any(PipelineModel.datetime >= delta_ago)
+                )
+            )
+
     def set_packages_config(self, packages_config: dict):
         with sa_session_transaction(commit=True) as session:
             self.packages_config = packages_config

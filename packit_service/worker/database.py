@@ -12,8 +12,11 @@ from boto3 import client as boto3_client
 from botocore.exceptions import ClientError
 
 from packit.utils.commands import run_command
-from packit_service.constants import SRPMBUILDS_OUTDATED_AFTER_DAYS
-from packit_service.models import get_pg_url, SRPMBuildModel
+from packit_service.constants import (
+    SRPMBUILDS_OUTDATED_AFTER_DAYS,
+    PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS,
+)
+from packit_service.models import get_pg_url, SRPMBuildModel, ProjectEventModel
 
 logger = getLogger(__name__)
 
@@ -34,6 +37,21 @@ def discard_old_srpm_build_logs():
         )
         build.set_logs(None)
         build.set_url(None)
+
+
+def discard_old_package_configs():
+    """Called periodically (see celery_config.py) to discard package configs of old events."""
+    logger.info("About to discard old package configs.")
+    outdated_after_days = getenv(
+        "PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS", PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS
+    )
+    ago = timedelta(days=int(outdated_after_days))
+    for event in ProjectEventModel.get_older_than_with_packages_config(ago):
+        logger.debug(
+            f"ProjectEventModel {event.id} has all runs older than '{ago}'. "
+            "Discarding package config."
+        )
+        event.set_packages_config(None)
 
 
 def gzip_file(file: Path) -> Path:

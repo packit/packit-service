@@ -1036,3 +1036,32 @@ def test_get_all_downstream_projects(clean_before_and_after, propose_model_submi
     projects = SyncReleaseTargetModel.get_all_downstream_projects()
     assert len(projects) == 1
     assert projects.pop().project_url == SampleValues.downstream_project_url
+
+
+def test_project_event_get_older_than_with_packages_config(
+    clean_before_and_after, branch_project_event_model
+):
+    branch_project_event_model.set_packages_config({"key": "value"})
+    run1 = PipelineModel.create(project_event=branch_project_event_model)
+    run1.datetime = datetime(2024, 4, 8, 12, 0, 0)
+
+    assert (
+        len(
+            list(
+                ProjectEventModel.get_older_than_with_packages_config(timedelta(days=1))
+            )
+        )
+        == 1
+    )
+
+    # default datetime = now
+    PipelineModel.create(project_event=branch_project_event_model)
+
+    assert (
+        len(
+            list(
+                ProjectEventModel.get_older_than_with_packages_config(timedelta(days=1))
+            )
+        )
+        == 0
+    )
