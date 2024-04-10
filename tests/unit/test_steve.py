@@ -189,6 +189,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         release_monitoring_project_id=None,
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
     ).and_return(pr).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 

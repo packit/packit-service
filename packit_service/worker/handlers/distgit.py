@@ -252,6 +252,8 @@ class AbstractSyncReleaseHandler(
                 ),
                 sync_acls=True,
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
+                # [TODO] Remove for CentOS support once it gets refined
+                add_new_sources=self.package_config.pkg_tool in (None, "fedpkg"),
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
