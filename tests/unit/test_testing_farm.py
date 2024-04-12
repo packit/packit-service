@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from typing import List
 
 import pytest
-from celery.canvas import Signature
 from flexmock import flexmock
 
 import packit_service.models
@@ -1123,34 +1122,14 @@ def test_get_request_details():
 
 
 @pytest.mark.parametrize(
-    ("copr_build", "run_new_build", "wait_for_build"),
+    ("copr_build", "wait_for_build"),
     [
-        (None, True, False),
-        (
-            flexmock(
-                commit_sha="1111111111111111111111111111111111111111",
-                status=BuildStatus.failure,
-                group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
-            ),
-            True,
-            False,
-        ),
-        (
-            flexmock(
-                commit_sha="1111111111111111111111111111111111111111",
-                status=BuildStatus.error,
-                group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
-            ),
-            True,
-            False,
-        ),
         (
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.success,
                 group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
             ),
-            False,
             False,
         ),
         (
@@ -1160,7 +1139,6 @@ def test_get_request_details():
                 status=BuildStatus.pending,
                 group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
             ),
-            False,
             True,
         ),
         (
@@ -1187,11 +1165,10 @@ def test_get_request_details():
                 ),
             ),
             False,
-            False,
         ),
     ],
 )
-def test_trigger_build(copr_build, run_new_build, wait_for_build):
+def test_trigger_build(copr_build, wait_for_build):
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
     package_config = PackageConfig(packages={"package": CommonPackageConfig()})
@@ -1216,11 +1193,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
 
     flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
 
-    if run_new_build:
-        flexmock(TFJobHelper, job_owner="owner", job_project="project")
-        flexmock(TFJobHelper).should_receive("report_status_to_tests_for_chroot")
-        flexmock(Signature).should_receive("apply_async").once()
-    elif copr_build and copr_build.status == BuildStatus.success:
+    if copr_build and copr_build.status == BuildStatus.success:
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
             TaskResults(success=True, details={})
         ).twice()
