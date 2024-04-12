@@ -1258,6 +1258,57 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return result
 
+    def get_targets_with_builds(
+        self, build_id: Optional[int] = None
+    ) -> tuple[dict, set]:
+        chroots_without_successful_builds = set()
+        targets_with_builds = {}
+
+        for target in self.tests_targets:
+            chroot = self.test_target2build_target(target)
+            if build_id:
+                copr_build = CoprBuildTargetModel.get_by_id(build_id)
+            else:
+                copr_build = self.get_latest_copr_build(
+                    target=chroot, commit_sha=self.metadata.commit_sha
+                )
+
+            if copr_build and copr_build.status not in (
+                BuildStatus.failure,
+                BuildStatus.error,
+            ):
+                targets_with_builds[target] = copr_build
+            else:
+                chroots_without_successful_builds.add(chroot)
+
+        return targets_with_builds, chroots_without_successful_builds
+
+    def report_missing_builds(self, targets_without_successful_builds):
+        if targets_without_successful_builds:
+            logger.info(
+                f"Missing successful Copr build for targets {targets_without_successful_builds} in "
+                f"{self.job_owner}/"
+                f"{self.job_project}"
+                f" and commit:{self.metadata.commit_sha}, a new Copr build will be run."
+            )
+
+        for missing_target in targets_without_successful_builds:
+            description = (
+                "Missing successful Copr build for this target, "
+                "running a new Copr build. "
+            )
+            if self.job_config.manual_trigger:
+                state = BaseCommitStatus.neutral
+                description += "Please retrigger the tests once it has finished."
+            else:
+                state = BaseCommitStatus.pending
+            self.report_status_to_tests_for_chroot(
+                state=state,
+                description=description,
+                url="",
+                chroot=missing_target,
+            )
+
     @property
     def configured_tests_targets(self) -> Set[str]:
         """

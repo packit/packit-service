@@ -668,7 +668,7 @@ def test_pr_test_command_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target"}
     )
     run = flexmock(test_run_group=None)
@@ -756,7 +756,7 @@ def test_pr_test_command_handler_identifiers(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target"}
     )
     run = flexmock(test_run_group=None)
@@ -1614,7 +1614,7 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
         job for job in package_config["jobs"] if job["job"] == "copr_build"
     ][0]
 
-    flexmock(packit_service.worker.handlers.testing_farm).should_receive(
+    flexmock(packit_service.worker.handlers.abstract).should_receive(
         "dump_job_config"
     ).with_args(job_config=load_job_config(build_job_config)).once()
 

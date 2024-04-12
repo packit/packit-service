@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, List, Tuple, Type
 
 from celery import Task
-from celery import signature
 
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
@@ -26,7 +25,7 @@ from packit_service.service.urls import (
     get_testing_farm_info_url,
     get_copr_build_info_url,
 )
-from packit_service.utils import dump_job_config, dump_package_config, elapsed_seconds
+from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
@@ -116,6 +115,16 @@ class TestingFarmHandler(
         self.build_id = build_id
         self._testing_farm_target_id = testing_farm_target_id
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
+        self._targets_with_builds: dict = None
+
+    @property
+    def targets_with_builds(self):
+        if self._targets_with_builds is None:
+            (
+                self._targets_with_builds,
+                _,
+            ) = self.testing_farm_job_helper.get_targets_with_builds(self.build_id)
+        return self._targets_with_builds
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
@@ -184,80 +193,11 @@ class TestingFarmHandler(
 
         return group, runs
 
-    def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
-        for _ in range(number_of_builds):
-            self.pushgateway.copr_builds_queued.inc()
-
-        signature(
-            TaskName.copr_build.value,
-            kwargs={
-                "package_config": dump_package_config(self.package_config),
-                "job_config": dump_job_config(
-                    job_config=self.testing_farm_job_helper.job_build_or_job_config
-                ),
-                "event": event_data,
-            },
-        ).apply_async()
-
     def run_with_copr_builds(self, targets: List[str], failed: Dict):
-        targets_without_successful_builds = set()
-        targets_with_builds = {}
-
-        for target in targets:
-            chroot = self.testing_farm_job_helper.test_target2build_target(target)
-            if self.build_id:
-                copr_build = CoprBuildTargetModel.get_by_id(self.build_id)
-            else:
-                copr_build = self.testing_farm_job_helper.get_latest_copr_build(
-                    target=chroot, commit_sha=self.data.commit_sha
-                )
-
-            if copr_build and copr_build.status not in (
-                BuildStatus.failure,
-                BuildStatus.error,
-            ):
-                targets_with_builds[target] = copr_build
-            else:
-                targets_without_successful_builds.add(chroot)
-
-        # Trigger copr build for targets missing successful build
-        if targets_without_successful_builds:
-            logger.info(
-                f"Missing successful Copr build for targets {targets_without_successful_builds} in "
-                f"{self.testing_farm_job_helper.job_owner}/"
-                f"{self.testing_farm_job_helper.job_project}"
-                f" and commit:{self.data.commit_sha}, running a new Copr build."
-            )
-
-            for missing_target in targets_without_successful_builds:
-                description = (
-                    "Missing successful Copr build for this target, "
-                    "running a new Copr build. "
-                )
-                if self.job_config.manual_trigger:
-                    state = BaseCommitStatus.neutral
-                    description += "Please retrigger the tests once it has finished."
-                else:
-                    state = BaseCommitStatus.pending
-                self.testing_farm_job_helper.report_status_to_tests_for_chroot(
-                    state=state,
-                    description=description,
-                    url="",
-                    chroot=missing_target,
-                )
-
-            event_data = self.data.get_dict()
-            event_data["build_targets_override"] = list(
-                targets_without_successful_builds
-            )
-            self.run_copr_build_handler(
-                event_data, len(targets_without_successful_builds)
-            )
-
-        if not targets_with_builds:
+        if not self.targets_with_builds:
             return
 
-        group, test_runs = self._get_or_create_group(targets_with_builds)
+        group, test_runs = self._get_or_create_group(self.targets_with_builds)
         for test_run in test_runs:
             copr_build = test_run.copr_builds[0]
             if copr_build.status in (

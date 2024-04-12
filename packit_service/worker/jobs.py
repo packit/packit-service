@@ -499,6 +499,9 @@ class SteveJobs:
         processing_results: List[TaskResults] = []
         signatures = []
         statuses_check_feedback = []
+
+        chroots_missing_build = set()
+
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
             if self.should_task_be_created_for_job_config_and_handler(
@@ -509,6 +512,11 @@ class SteveJobs:
                     job_config=job_config,
                     update_feedback_time=lambda t: statuses_check_feedback.append(t),
                 )
+                if handler_kls == TestingFarmHandler and not job_config.skip_build:
+                    chroots_missing_build.update(
+                        self.handle_tf_required_builds(job_config)
+                    )
+
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
                 )
@@ -520,10 +528,49 @@ class SteveJobs:
                         event=self.event,
                     )
                 )
+
         self.push_statuses_metrics(statuses_check_feedback)
         # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
         celery.group(signatures).apply_async()
+
+        if chroots_missing_build:
+            self.trigger_missing_builds_for_tests(chroots_missing_build)
+
         return processing_results
+
+    def handle_tf_required_builds(self, job_config):
+        helper = self.initialize_job_helper(TestingFarmHandler, job_config)
+        if not isinstance(helper, TestingFarmJobHelper) or helper.build_required():
+            return set()
+
+        _, missing_chroots = helper.get_targets_with_builds()
+        helper.report_missing_builds(missing_chroots)
+        return missing_chroots
+
+    def trigger_missing_builds_for_tests(self, chroots_without_builds: set[str]):
+        logger.debug(
+            "About to schedule CoprBuildHandler for missing "
+            f"successful builds for tests for these chroots: {chroots_without_builds}"
+        )
+        event_data = self.event.get_dict()
+        event_data["build_targets_override"] = list(chroots_without_builds)
+        for _ in range(len(chroots_without_builds)):
+            self.pushgateway.copr_builds_queued.inc()
+
+        build_job = None
+        for job in self.event.packages_config.get_job_views():
+            if job.trigger == self.event.job_config_trigger_type and job.type in (
+                JobType.copr_build,
+                JobType.build,
+            ):
+                build_job = job
+                break
+
+        if not build_job:
+            logger.debug("No build job found. Skipping the scheduling.")
+            return
+
+        CoprBuildHandler.get_signature(event=self.event, job=build_job).apply_async()
 
     def should_task_be_created_for_job_config_and_handler(
         self, job_config: JobConfig, handler_kls: Type[JobHandler]
