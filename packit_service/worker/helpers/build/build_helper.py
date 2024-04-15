@@ -385,14 +385,24 @@ class BaseBuildJobHelper(BaseJobHelper):
         chroot: str = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
+        package: Optional[str] = None,
+        template: Optional[str] = None,
     ):
+        if project_event_identifier:
+            project_event_identifier = project_event_identifier.replace(":", "-")
+
+        if template is not None:
+            return template.format(
+                job_name=job_name,
+                chroot=chroot,
+                event=project_event_identifier,
+                identifier=identifier,
+                package=package,
+            )
+
         chroot_str = f":{chroot}" if chroot else ""
         # replace ':' in the project event identifier
-        trigger_str = (
-            f":{project_event_identifier.replace(':', '-')}"
-            if project_event_identifier
-            else ""
-        )
+        trigger_str = f":{project_event_identifier}" if project_event_identifier else ""
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{job_name}{trigger_str}{chroot_str}{optional_suffix}"
 
