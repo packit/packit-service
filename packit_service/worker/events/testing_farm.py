@@ -76,10 +76,9 @@ class TestingFarmResultsEvent(AbstractResultEvent):
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
             if isinstance(self.project, PagureProject):
-                pull_request = self.project.get_pr(pr_id=self.pr_id)
                 return self.project.service.get_project(
                     namespace=self.project.namespace,
-                    username=pull_request.author,
+                    username=self.pull_request_object.author,
                     repo=self.project.repo,
                     is_fork=True,
                 )

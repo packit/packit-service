@@ -381,7 +381,7 @@ def test_report_status_by_comment(
     )
 
     if pr_id:
-        act_upon.should_receive("get_pr").with_args(pr_id=pr_id).and_return(
+        act_upon.should_receive("get_pr").with_args(pr_id).and_return(
             flexmock().should_receive("comment").with_args(body=comment_body).mock()
         ).once()
     else:
@@ -614,7 +614,7 @@ def test_comment(pr_id, commit_sha, duplicate_check, existing_comments, should_c
 
     if pr_id:
         pr = flexmock()
-        act_upon.should_receive("get_pr").with_args(pr_id=pr_id).and_return(pr)
+        act_upon.should_receive("get_pr").with_args(pr_id).and_return(pr)
         if duplicate_check != DuplicateCheckMode.do_not_check:
             flexmock(pr).should_receive("get_comments").with_args(
                 reverse=True

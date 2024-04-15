@@ -19,6 +19,7 @@ from packit.exceptions import PackitMergeException
 from packit.utils import PackitFormatter
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
+from packit_service.constants import FAILURE_COMMENT_MESSAGE_VARIABLES
 from packit_service.models import (
     PipelineModel,
     SRPMBuildModel,
@@ -27,7 +28,6 @@ from packit_service.models import (
     GitBranchModel,
     ProjectEventModel,
 )
-from packit_service.constants import FAILURE_COMMENT_MESSAGE_VARIABLES
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
@@ -131,9 +131,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             configured_branch = job_config.branch
             if not configured_branch:
                 return True
-            target_branch = self.project.get_pr(
-                self._db_project_object.pr_id  # type: ignore
-            ).target_branch
+            target_branch = self.pull_request_object.target_branch
             logger.info(
                 f"Configured branch: {configured_branch}, PR target branch: {target_branch}"
             )
@@ -516,9 +514,7 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         # use correct git ref to identify most recent tag
         if self.job_config.trigger == JobConfigTriggerType.pull_request:
-            merged_ref = self.project.get_pr(
-                self._db_project_object.pr_id
-            ).target_branch
+            merged_ref = self.pull_request_object.target_branch
         elif self.job_config.trigger == JobConfigTriggerType.commit:
             merged_ref = self._db_project_object.commit_sha
         elif self.job_config.trigger == JobConfigTriggerType.release:

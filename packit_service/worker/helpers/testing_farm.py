@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, Set, List, Union, Tuple, Callable
 
 import requests
 
-from ogr.abstract import GitProject, PullRequest
+from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitConfigException, PackitException
@@ -172,10 +172,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return (
             self.job_config.fmf_url
             or (
-                self.metadata.pr_id
-                and self.project.get_pr(
-                    self.metadata.pr_id
-                ).source_project.get_web_url()
+                self.pull_request_object
+                and self.pull_request_object.source_project.get_web_url()
             )
             or self.project.get_web_url()
         )
@@ -217,35 +215,45 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @property
     def source_branch_sha(self) -> Optional[str]:
-        return self._pr.head_commit if self._pr else None
+        return (
+            self.pull_request_object.head_commit if self.pull_request_object else None
+        )
 
     @property
     def target_branch_sha(self) -> Optional[str]:
-        return self._pr.target_branch_head_commit if self._pr else None
+        return (
+            self.pull_request_object.target_branch_head_commit
+            if self.pull_request_object
+            else None
+        )
 
     @property
     def target_branch(self) -> Optional[str]:
-        return self._pr.target_branch if self._pr else None
+        return (
+            self.pull_request_object.target_branch if self.pull_request_object else None
+        )
 
     @property
     def source_branch(self) -> Optional[str]:
-        return self._pr.source_branch if self._pr else None
+        return (
+            self.pull_request_object.source_branch if self.pull_request_object else None
+        )
 
     @property
     def target_project_url(self) -> Optional[str]:
-        return self._pr.target_project.get_web_url() if self._pr else None
+        return (
+            self.pull_request_object.target_project.get_web_url()
+            if self.pull_request_object
+            else None
+        )
 
     @property
     def source_project_url(self) -> Optional[str]:
-        return self._pr.source_project.get_web_url() if self._pr else None
-
-    @property
-    def _pr(self) -> Optional[PullRequest]:
-        if not self.metadata.pr_id:
-            return None
-        if not self.__pr:
-            self.__pr = self.project.get_pr(int(self.metadata.pr_id))
-        return self.__pr
+        return (
+            self.pull_request_object.source_project.get_web_url()
+            if self.pull_request_object
+            else None
+        )
 
     @property
     def comment_arguments(self) -> Optional[CommentArguments]:

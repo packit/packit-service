@@ -74,7 +74,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
     def commit_sha(self) -> str:  # type:ignore
         # mypy does not like properties
         if not self._commit_sha:
-            self._commit_sha = self.project.get_pr(pr_id=self.pr_id).head_commit
+            self._commit_sha = self.pull_request_object.head_commit
         return self._commit_sha
 
     @property
