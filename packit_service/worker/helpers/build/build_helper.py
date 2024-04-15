@@ -412,9 +412,16 @@ class BaseBuildJobHelper(BaseJobHelper):
         chroot: str = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
+        package: Optional[str] = None,
+        template: Optional[str] = None,
     ):
         return cls.get_check_cls(
-            cls.status_name_build, chroot, project_event_identifier, identifier
+            cls.status_name_build,
+            chroot,
+            project_event_identifier,
+            identifier,
+            package=package,
+            template=template,
         )
 
     @classmethod
@@ -423,9 +430,16 @@ class BaseBuildJobHelper(BaseJobHelper):
         chroot: str = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
+        package: Optional[str] = None,
+        template: Optional[str] = None,
     ):
         return cls.get_check_cls(
-            cls.status_name_test, chroot, project_event_identifier, identifier
+            cls.status_name_test,
+            chroot,
+            project_event_identifier,
+            identifier,
+            package=package,
+            template=template,
         )
 
     @property
@@ -447,6 +461,8 @@ class BaseBuildJobHelper(BaseJobHelper):
             chroot,
             self.project_event_identifier_for_status,
             self.job_build_or_job_config.identifier,
+            package=None,  # [TODO]
+            template=self.job_build_or_job_config.status_name_template,
         )
 
     def test_check_names_for_test_job(self, test_job_config: JobConfig) -> List[str]:
@@ -460,6 +476,8 @@ class BaseBuildJobHelper(BaseJobHelper):
                 target,
                 self.project_event_identifier_for_status,
                 test_job_config.identifier,
+                package=None,  # [TODO]
+                template=test_job_config.status_name_template,
             )
             for target in self.tests_targets_for_test_job(test_job_config)
         ]
