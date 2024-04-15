@@ -1286,7 +1286,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             chroot,
             self.project_event_identifier_for_status,
             self.job_config.identifier,
-            package=None,  # [TODO]
+            package=self.get_package_name(),
             template=self.job_config.status_name_template,
         )
 

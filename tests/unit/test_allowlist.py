@@ -620,7 +620,12 @@ def test_check_and_report(
         )
     ]
     flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
-        flexmock(jobs=job_configs, get_package_config_for=lambda job_config: flexmock())
+        flexmock(
+            jobs=job_configs,
+            get_package_config_for=lambda job_config: flexmock(
+                packages={"package": {}}
+            ),
+        )
     )
     _, _ = add_pull_request_event_with_empty_sha
 
@@ -805,7 +810,12 @@ def test_check_and_report_actor_pull_request(
         )
     ]
     flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
-        flexmock(jobs=job_configs, get_package_config_for=lambda job_config: flexmock())
+        flexmock(
+            jobs=job_configs,
+            get_package_config_for=lambda job_config: flexmock(
+                packages={"package": {}}
+            ),
+        )
     )
     _, _ = add_pull_request_event_with_empty_sha
 

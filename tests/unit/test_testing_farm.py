@@ -102,6 +102,9 @@ def test_testing_farm_response(
                 },
             ),
         ],
+        packages={
+            "package": {},
+        },
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"

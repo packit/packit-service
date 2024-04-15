@@ -461,7 +461,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             chroot,
             self.project_event_identifier_for_status,
             self.job_build_or_job_config.identifier,
-            package=None,  # [TODO]
+            package=self.get_package_name(),
             template=self.job_build_or_job_config.status_name_template,
         )
 
@@ -476,7 +476,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 target,
                 self.project_event_identifier_for_status,
                 test_job_config.identifier,
-                package=None,  # [TODO]
+                package=self.get_package_name(),
                 template=test_job_config.status_name_template,
             )
             for target in self.tests_targets_for_test_job(test_job_config)
