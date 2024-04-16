@@ -5,7 +5,8 @@ import json
 import pytest
 from flexmock import flexmock
 
-from ogr.services.pagure import GitlabProject, PagureProject
+from ogr.services.gitlab import GitlabProject
+from ogr.services.pagure import PagureProject
 from packit_service.config import PackageConfigGetter
 from packit_service.models import (
     ProjectEventModel,
@@ -169,4 +170,4 @@ def test_parse_anitya_version_update(anitya_version_update):
         event.distgit_project_url
         == "https://gitlab.com/redhat/centos-stream/rpms/python3-mypy-boto3"
     )
-    assert event._version == ["1.33.0", "1.33.1"]
+    assert event._versions == ["1.33.0", "1.33.1"]

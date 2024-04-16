@@ -420,7 +420,7 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
     assert event_object.packages_config
 
 
-def test_parse_issue_comment(self, github_issue_comment_propose_downstream):
+def test_parse_issue_comment(github_issue_comment_propose_downstream):
     event_object = Parser.parse_event(github_issue_comment_propose_downstream)
 
     assert isinstance(event_object, IssueCommentEvent)

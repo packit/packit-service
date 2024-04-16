@@ -195,6 +195,7 @@ def copr_build_model(
         type=project_event_model_type,
         event_id=1,
         get_project_event_object=lambda: trigger_object_model,
+        packages_config=None,
     )
 
     runs = []

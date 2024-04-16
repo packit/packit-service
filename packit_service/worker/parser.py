@@ -113,6 +113,7 @@ class Parser:
             ReleaseGitlabEvent,
             TagPushGitlabEvent,
             VMImageBuildResultEvent,
+            AnityaVersionUpdateEvent,
         ]
     ]:
         """
@@ -156,6 +157,7 @@ class Parser:
                 Parser.parse_new_hotness_update_event,
                 Parser.parse_gitlab_release_event,
                 Parser.parse_gitlab_tag_push_event,
+                Parser.parse_anitya_version_update_event,
             ),
         ):
             if response:

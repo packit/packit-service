@@ -38,24 +38,6 @@ def testing_farm_results_error():
         return json.load(outfile)
 
 
-@pytest.fixture()
-def tf_models():
-    time = datetime(2000, 4, 28, 14, 9, 33, 860293)
-    latest_time = datetime.utcnow()
-    fake_tf = flexmock(pipeline_id="1", submitted_time=time, target="target")
-    flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
-    tf = TFTTestRunTargetModel()
-    tf.__class__ = TFTTestRunTargetModel
-
-    another_fake_tf = flexmock(
-        pipeline_id="2", submitted_time=latest_time, target="target"
-    )
-    flexmock(TFTTestRunTargetModel).new_instances(another_fake_tf)
-    another_tf = TFTTestRunTargetModel()
-    another_tf.__class__ = TFTTestRunTargetModel
-    yield [tf, another_tf]
-
-
 @pytest.mark.parametrize("identifier", [None, "foo"])
 def test_parse_testing_farm_notification(
     testing_farm_notification, testing_farm_results, identifier
@@ -76,7 +58,15 @@ def test_parse_testing_farm_notification(
         .once()
         .mock()
         .should_receive("get_project_event_model")
-        .and_return(flexmock(pr_id=10, packages_config={"specfile_path": "path.spec"}))
+        .and_return(
+            flexmock(
+                pr_id=10,
+                packages_config={
+                    "specfile_path": "path.spec",
+                    "downstream_package_name": "packit",
+                },
+            )
+        )
         .once()
         .mock()
     )
