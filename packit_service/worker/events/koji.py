@@ -1,7 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import logging
-
 from typing import Union, Optional, Dict
 
 from ogr.abstract import GitProject

@@ -117,6 +117,8 @@ def mock_pr_functionality(request):
         .should_receive("get_project_event_object")
         .and_return(pr_model)
         .mock()
+        .should_receive("set_packages_config")
+        .mock()
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
@@ -163,6 +165,8 @@ def mock_push_functionality(request):
         flexmock(ProjectEventModel(type=JobConfigTriggerType.commit, id=123456))
         .should_receive("get_project_event_object")
         .and_return(branch_model)
+        .mock()
+        .should_receive("set_packages_config")
         .mock()
     )
 
@@ -211,6 +215,8 @@ def mock_release_functionality(request):
         flexmock(ProjectEventModel(type=JobConfigTriggerType.release, id=123456))
         .should_receive("get_project_event_object")
         .and_return(release_model)
+        .mock()
+        .should_receive("set_packages_config")
         .mock()
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)

@@ -112,6 +112,8 @@ DEFAULT_JOB_TIMEOUT = 7 * 24 * 3600
 # outdated and their logs can be discarded.
 SRPMBUILDS_OUTDATED_AFTER_DAYS = 30
 
+PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS = 1
+
 ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
     "waiting": "waiting",

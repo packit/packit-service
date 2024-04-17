@@ -32,7 +32,11 @@ from packit_service.utils import (
     load_package_config,
     log_package_versions,
 )
-from packit_service.worker.database import discard_old_srpm_build_logs, backup
+from packit_service.worker.database import (
+    discard_old_srpm_build_logs,
+    backup,
+    discard_old_package_configs,
+)
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -564,6 +568,7 @@ def babysit_pending_tft_runs() -> None:
 @celery_app.task
 def database_maintenance() -> None:
     discard_old_srpm_build_logs()
+    discard_old_package_configs()
     backup()
 
 

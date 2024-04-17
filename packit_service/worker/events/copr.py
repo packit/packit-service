@@ -6,7 +6,6 @@ from typing import Optional, Dict, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
-
 from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -15,8 +14,8 @@ from packit_service.models import (
     SRPMBuildModel,
     ProjectEventModel,
 )
-from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.worker.events.enums import FedmsgTopic
+from packit_service.worker.events.event import AbstractResultEvent
 
 logger = getLogger(__name__)
 
