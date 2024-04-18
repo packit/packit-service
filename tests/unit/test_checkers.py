@@ -124,6 +124,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
     ),
 )
 def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
+    event["pr_id"] = 1
     package_config = flexmock(jobs=[])
     job_config = flexmock(
         type=JobType.upstream_koji_build,
@@ -268,6 +269,7 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
     ),
 )
 def test_pr_event_checker(configured_branch, success, event, trigger, checker_kls):
+    event["pr_id"] = 1
     package_config = flexmock(jobs=[])
     job_config = flexmock(
         type=JobType.upstream_koji_build,

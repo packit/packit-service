@@ -127,9 +127,7 @@ class BaseJobHelper:
         """
         if self._base_project is None:
             if self.pr_id:
-                self._base_project = self.project.get_pr(
-                    pr_id=self.pr_id
-                ).source_project
+                self._base_project = self.pull_request_object.source_project
             else:
                 self._base_project = self.project
         return self._base_project

@@ -12,7 +12,7 @@ from packit_service.worker.reporting.enums import (
     DuplicateCheckMode,
 )
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PullRequest
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
@@ -39,6 +39,7 @@ class StatusReporter:
         self.commit_sha: str = commit_sha
         self.project_event_id: int = project_event_id
         self.pr_id: Optional[int] = pr_id
+        self._pull_request_object: Optional[PullRequest] = None
 
     @classmethod
     def get_instance(
@@ -72,12 +73,18 @@ class StatusReporter:
         """
         if self._project_with_commit is None:
             self._project_with_commit = (
-                self.project.get_pr(self.pr_id).source_project
+                self.pull_request_object.source_project
                 if isinstance(self.project, GitlabProject) and self.pr_id is not None
                 else self.project
             )
 
         return self._project_with_commit
+
+    @property
+    def pull_request_object(self) -> Optional[PullRequest]:
+        if not self._pull_request_object and self.pr_id:
+            self._pull_request_object = self.project.get_pr(self.pr_id)
+        return self._pull_request_object
 
     @staticmethod
     def get_commit_status(state: BaseCommitStatus):
@@ -224,7 +231,7 @@ class StatusReporter:
         comments = (
             reversed(self.project.get_commit_comments(self.commit_sha))
             if check_commit or not self.pr_id
-            else self.project.get_pr(pr_id=self.pr_id).get_comments(reverse=True)
+            else self.pull_request_object.get_comments(reverse=True)
         )
         for comment in comments:
             if comment.author.startswith(self._packit_user):
@@ -261,4 +268,4 @@ class StatusReporter:
         if to_commit or not self.pr_id:
             self.project.commit_comment(commit=self.commit_sha, body=body)
         else:
-            self.project.get_pr(pr_id=self.pr_id).comment(body=body)
+            self.pull_request_object.comment(body=body)

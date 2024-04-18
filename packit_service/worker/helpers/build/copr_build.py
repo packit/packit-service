@@ -479,7 +479,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
             # use correct git ref to identify most recent tag
             if self.job_config.trigger == JobConfigTriggerType.pull_request:
-                merged_ref = self.project.get_pr(pr_id).target_branch
+                merged_ref = self.pull_request_object.target_branch
             elif self.job_config.trigger == JobConfigTriggerType.commit:
                 merged_ref = self.metadata.commit_sha
             elif self.job_config.trigger == JobConfigTriggerType.release:
@@ -495,8 +495,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 ref=self.metadata.git_ref,
                 pr_id=str(pr_id) if pr_id else None,
                 merge_pr=self.package_config.merge_pr_in_ci,
-                target_branch=self.project.get_pr(pr_id).target_branch
-                if pr_id
+                target_branch=self.pull_request_object.target_branch
+                if self.pull_request_object
                 else None,
                 job_config_index=self.get_job_config_index(),
                 update_release=self.job_config.trigger != JobConfigTriggerType.release,

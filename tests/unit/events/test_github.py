@@ -363,7 +363,7 @@ def test_parse_pr_comment_created(github_pr_comment_created):
         not event_object.base_project  # With Github app, we cannot work with fork repo
     )
 
-    flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=9).and_return(
+    flexmock(GithubProject).should_receive("get_pr").with_args(9).and_return(
         flexmock(head_commit="12345")
     )
 
@@ -401,7 +401,7 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
         not event_object.base_project  # With Github app, we cannot work with fork repo
     )
 
-    flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=9).and_return(
+    flexmock(GithubProject).should_receive("get_pr").with_args(9).and_return(
         flexmock(head_commit="12345")
     )
 
