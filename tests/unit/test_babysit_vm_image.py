@@ -1,26 +1,25 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import pytest
-import packit_service
-
-from requests import HTTPError
-from flexmock import flexmock
 from flexmock import Mock
-from packit.config.job_config import JobConfigTriggerType, JobType
-from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
+from flexmock import flexmock
+from requests import HTTPError
+
+import packit_service
+from packit.config.job_config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     VMImageBuildTargetModel,
     VMImageBuildStatus,
     ProjectEventModelType,
 )
+from packit_service.worker.events import VMImageBuildResultEvent
+from packit_service.worker.handlers import VMImageBuildResultHandler
 from packit_service.worker.helpers.build.babysit import (
     check_pending_vm_image_builds,
     update_vm_image_build,
     UpdateImageBuildHelper,
 )
-from packit_service.worker.events import VMImageBuildResultEvent
-from packit_service.worker.handlers import VMImageBuildResultHandler
 from packit_service.worker.monitoring import Pushgateway
 
 
@@ -110,45 +109,39 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
             )
             .mock()
         )
-    flexmock(VMImageBuildResultEvent).should_receive("get_packages_config").and_return(
-        flexmock(
-            get_package_config_for=lambda job_config: flexmock(),
-            get_job_views=lambda: [
-                flexmock(
-                    trigger=JobConfigTriggerType.pull_request,
-                    type=JobType.vm_image_build,
-                    manual_trigger=False,
-                    require=RequirementsConfig(
-                        LabelRequirementsConfig(
-                            absent=[],
-                            present=[],
-                        )
-                    ),
-                )
-            ],
-        )
-    )
     flexmock(VMImageBuildResultEvent).should_receive(
         "job_config_trigger_type"
     ).and_return(JobConfigTriggerType.pull_request)
+    vm_image_model = (
+        flexmock(
+            status=None,
+            runs=[
+                flexmock(
+                    project_event=flexmock(
+                        packages_config={
+                            "downstream_package_name": "package",
+                            "specfile_path": "path",
+                            "jobs": [
+                                {"job": "vm_image_build", "trigger": "pull_request"}
+                            ],
+                        }
+                    )
+                )
+                .should_receive("get_project_event_object")
+                .and_return(db_project_object)
+                .mock()
+            ],
+        )
+        .should_receive("set_status")
+        .with_args(build_status)
+        .mock()
+    )
+    flexmock(VMImageBuildTargetModel).should_receive("get_by_build_id").with_args(
+        1
+    ).and_return(vm_image_model)
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_build_id").with_args(
         1
-    ).and_return(
-        [
-            flexmock(
-                status=None,
-                runs=[
-                    flexmock()
-                    .should_receive("get_project_event_object")
-                    .and_return(db_project_object)
-                    .mock()
-                ],
-            )
-            .should_receive("set_status")
-            .with_args(build_status)
-            .mock()
-        ]
-    )
+    ).and_return([vm_image_model])
 
     flexmock(VMImageBuildResultHandler).should_receive("report_status")
     flexmock(ServiceConfig).should_receive("get_project").and_return()
