@@ -44,5 +44,5 @@ class VMImageBuildResultEvent(AbstractResultEvent):
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
         model = VMImageBuildTargetModel.get_by_build_id(self.build_id)
         for run in model.runs:
-            return run.get_project_event_model()
+            return run.project_event
         return None
