@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, List, Tuple, Type
 
 from celery import Task
-from celery import signature
 
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
@@ -26,7 +25,7 @@ from packit_service.service.urls import (
     get_testing_farm_info_url,
     get_copr_build_info_url,
 )
-from packit_service.utils import dump_job_config, dump_package_config, elapsed_seconds
+from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
@@ -184,21 +183,6 @@ class TestingFarmHandler(
 
         return group, runs
 
-    def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
-        for _ in range(number_of_builds):
-            self.pushgateway.copr_builds_queued.inc()
-
-        signature(
-            TaskName.copr_build.value,
-            kwargs={
-                "package_config": dump_package_config(self.package_config),
-                "job_config": dump_job_config(
-                    job_config=self.testing_farm_job_helper.job_build_or_job_config
-                ),
-                "event": event_data,
-            },
-        ).apply_async()
-
     def run_with_copr_builds(self, targets: List[str], failed: Dict):
         targets_without_successful_builds = set()
         targets_with_builds = {}
@@ -220,39 +204,26 @@ class TestingFarmHandler(
             else:
                 targets_without_successful_builds.add(chroot)
 
-        # Trigger copr build for targets missing successful build
+        # Report targets missing successful build
         if targets_without_successful_builds:
             logger.info(
                 f"Missing successful Copr build for targets {targets_without_successful_builds} in "
                 f"{self.testing_farm_job_helper.job_owner}/"
                 f"{self.testing_farm_job_helper.job_project}"
-                f" and commit:{self.data.commit_sha}, running a new Copr build."
+                f" and commit:{self.data.commit_sha}, tests won't be triggered for the target."
             )
 
             for missing_target in targets_without_successful_builds:
                 description = (
                     "Missing successful Copr build for this target, "
-                    "running a new Copr build. "
+                    "please trigger the build first. "
                 )
-                if self.job_config.manual_trigger:
-                    state = BaseCommitStatus.neutral
-                    description += "Please retrigger the tests once it has finished."
-                else:
-                    state = BaseCommitStatus.pending
                 self.testing_farm_job_helper.report_status_to_tests_for_chroot(
-                    state=state,
+                    state=BaseCommitStatus.neutral,
                     description=description,
                     url="",
                     chroot=missing_target,
                 )
-
-            event_data = self.data.get_dict()
-            event_data["build_targets_override"] = list(
-                targets_without_successful_builds
-            )
-            self.run_copr_build_handler(
-                event_data, len(targets_without_successful_builds)
-            )
 
         if not targets_with_builds:
             return
