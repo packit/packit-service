@@ -321,18 +321,20 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         if self.copr_event.status != COPR_API_SUCC_STATE:
             failed_msg = "RPMs failed to be built."
             packit_dashboard_url = get_copr_build_info_url(self.build.id)
-            self.copr_build_helper.report_status_to_all_for_chroot(
-                state=BaseCommitStatus.failure,
-                description=failed_msg,
-                url=packit_dashboard_url,
-                chroot=self.copr_event.chroot,
-            )
-            self.measure_time_after_reporting()
-            self.copr_build_helper.notify_about_failure_if_configured(
-                packit_dashboard_url=packit_dashboard_url,
-                external_dashboard_url=self.build.web_url,
-                logs_url=self.build.build_logs_url,
-            )
+            # if SRPM build failed it has been reported already so skip reporting
+            if self.build.get_srpm_build().status != BuildStatus.failure:
+                self.copr_build_helper.report_status_to_all_for_chroot(
+                    state=BaseCommitStatus.failure,
+                    description=failed_msg,
+                    url=packit_dashboard_url,
+                    chroot=self.copr_event.chroot,
+                )
+                self.measure_time_after_reporting()
+                self.copr_build_helper.notify_about_failure_if_configured(
+                    packit_dashboard_url=packit_dashboard_url,
+                    external_dashboard_url=self.build.web_url,
+                    logs_url=self.build.build_logs_url,
+                )
             self.build.set_status(BuildStatus.failure)
             return TaskResults(success=False, details={"msg": failed_msg})
 
