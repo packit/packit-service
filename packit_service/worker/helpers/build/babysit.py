@@ -16,10 +16,13 @@ from packit_service.constants import (
     COPR_API_FAIL_STATE,
     COPR_API_SUCC_STATE,
     COPR_SUCC_STATE,
+    COPR_FAIL_STATE,
+    COPR_SRPM_CHROOT,
     TESTING_FARM_API_URL,
     DEFAULT_JOB_TIMEOUT,
 )
 from packit_service.models import (
+    SRPMBuildModel,
     CoprBuildTargetModel,
     VMImageBuildTargetModel,
     VMImageBuildStatus,
@@ -222,6 +225,27 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
 
     logger.info(f"The status of {build_id} is {build_copr.state!r}.")
 
+    if (
+        srpm_build := SRPMBuildModel.get_by_copr_build_id(build_id)
+    ) and srpm_build.status == BuildStatus.pending:
+        try:
+            build_copr_srpm = copr_client.build_proxy.get_source_chroot(build_id)
+        except copr.v3.CoprNoResultException:
+            logger.info(
+                f"SRPM build of Copr build {build_id} no longer available. "
+                "Setting it to error status and not checking it anymore."
+            )
+            srpm_build.set_status(BuildStatus.error)
+        else:
+            try:
+                update_srpm_build_state(srpm_build, build_copr, build_copr_srpm)
+            except Exception as ex:
+                logger.debug(
+                    f"There was an exception when updating the SRPM build of"
+                    f" Copr build {build_id}: {ex}"
+                )
+                return False
+
     current_time = datetime.now(timezone.utc)
     for build in builds:
         elapsed = elapsed_seconds(begin=build.build_submitted_time, end=current_time)
@@ -239,7 +263,15 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
                 "things were taken care of already, skipping."
             )
             continue
-        chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
+        try:
+            chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
+        except copr.v3.CoprNoResultException:
+            logger.info(
+                f"Copr build {build_id} for {build.target} no longer available. "
+                "Setting it to error status and not checking it anymore."
+            )
+            build.set_status(BuildStatus.error)
+            continue
         try:
             update_copr_build_state(build, build_copr, chroot_build)
         except Exception as ex:
@@ -250,6 +282,67 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             return False
     # Builds which we ran CoprBuildStartHandler for still need to be monitored.
     return bool(build_copr.ended_on)
+
+
+def update_srpm_build_state(
+    build: SRPMBuildModel, build_copr: Any, build_copr_srpm: Any
+) -> None:
+    """
+    Updates the state of the given SRPM build.
+
+    If the build ended, its state will be updated using CoprBuildEndHandler.
+
+    Args:
+        build: Model of the SRPM build to update.
+        build_copr: Data of the whole copr build from the copr API.
+        build_copr_srpm: Data of the associated SRPM build from the copr API.
+
+    """
+    if build_copr_srpm.state not in (COPR_SUCC_STATE, COPR_FAIL_STATE):
+        # Nothing to do
+        return
+
+    event = CoprBuildEndEvent(
+        topic=FedmsgTopic.copr_build_finished.value,
+        build_id=int(
+            build.copr_build_id
+        ),  # we expect int there even though we have str in DB
+        build=build,
+        chroot=COPR_SRPM_CHROOT,
+        status=(
+            COPR_API_SUCC_STATE
+            if build_copr_srpm.state == COPR_SUCC_STATE
+            else COPR_API_FAIL_STATE
+        ),
+        owner=build_copr.ownername,
+        project_name=build_copr.projectname,
+        pkg=build_copr.source_package.get("name", ""),  # this seems to be the SRPM name
+        timestamp=build_copr.ended_on,
+    )
+
+    packages_config = event.get_packages_config()
+    if not packages_config:
+        logger.info(f"No config found for {build.copr_build_id}. Skipping.")
+        return
+
+    job_configs = SteveJobs(event).get_config_for_handler_kls(
+        handler_kls=CoprBuildEndHandler,
+    )
+
+    for job_config in job_configs:
+        event_dict = event.get_dict()
+        package_config = (
+            event.packages_config.get_package_config_for(job_config)
+            if event.packages_config
+            else None
+        )
+        handler = CoprBuildEndHandler(
+            package_config=package_config,
+            job_config=job_config,
+            event=event_dict,
+        )
+        if handler.pre_check(package_config, job_config, event_dict):
+            handler.run_job()
 
 
 def update_copr_build_state(

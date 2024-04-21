@@ -19,6 +19,7 @@ from packit.config import (
 from packit.copr_helper import CoprHelper
 from packit_service.models import (
     CoprBuildTargetModel,
+    SRPMBuildModel,
     ProjectEventModelType,
     TFTTestRunTargetModel,
     TestingFarmResult,
@@ -71,6 +72,9 @@ def test_check_copr_build_already_successful():
                 build_submitted_time=datetime.datetime.utcnow(),
             )
         ]
+    )
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        flexmock(status=BuildStatus.success)
     )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
@@ -128,6 +132,9 @@ def test_check_copr_build_updated(
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").with_args(
         1
     ).and_return([db_build])
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        flexmock(status=BuildStatus.success)
+    )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             build_proxy=flexmock()
@@ -203,6 +210,9 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").with_args(
         1
     ).and_return([db_build])
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        flexmock(status=BuildStatus.success)
+    )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             build_proxy=flexmock()
@@ -245,6 +255,106 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
     assert not check_copr_build(build_id=1)
 
 
+def test_check_copr_build_waiting_srpm_failed(add_pull_request_event_with_sha_123456):
+    db_project_object, db_project_event = add_pull_request_event_with_sha_123456
+    db_build = (
+        flexmock(
+            build_id="55",
+            status=BuildStatus.waiting_for_srpm,
+            build_submitted_time=datetime.datetime.utcnow(),
+            target="the-target",
+            owner="the-owner",
+            project_name="the-namespace-repo_name-5",
+            commit_sha="123456",
+            project_event=flexmock(type=ProjectEventModelType.pull_request),
+            build_start_time=None,
+            srpm_build=flexmock(url=None)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock(),
+        )
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(db_project_event)
+        .mock()
+    )
+    flexmock(db_build).should_receive("get_package_name").and_return(None)
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "the-owner", "copr_url": "https://dummy.url"})
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        db_build
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
+        [db_build]
+    ).times(3)
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        flexmock(
+            copr_build_id="55",
+            status=BuildStatus.pending,
+            commit_sha="123456",
+        )
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(db_project_event)
+        .mock()
+        .should_receive("get_package_name")
+        .and_return(None)
+        .mock()
+    )
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            build_proxy=flexmock()
+            .should_receive("get")
+            .with_args(1)
+            .and_return(
+                flexmock(
+                    started_on="timestamp",
+                    ended_on=None,
+                    state="completed",
+                    ownername="the-owner",
+                    projectname="the-namespace-repo_name-5",
+                    source_package={
+                        "name": "source_package_name",
+                        "url": "https://some.host/my.srpm",
+                    },
+                )
+            )
+            .mock()
+            .should_receive("get_source_chroot")
+            .with_args(1)
+            .and_return(flexmock(state="failed"))
+            .mock(),
+            build_chroot_proxy=flexmock()
+            .should_receive("get")
+            .with_args(1, "the-target")
+            .and_return(
+                flexmock(started_on="timestamp", ended_on=None, state="succeeded")
+            )
+            .mock(),
+        )
+    )
+    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                )
+            ],
+            packages={"package": CommonPackageConfig()},
+        )
+    )
+    flexmock(CoprBuildEndHandler).should_receive("run_job").and_return().once()
+    flexmock(CoprBuildStartHandler).should_receive("run_job").and_return().once()
+    assert not check_copr_build(build_id=1)
+
+
 def test_check_copr_build_waiting_already_started(
     add_pull_request_event_with_sha_123456,
 ):
@@ -282,6 +392,9 @@ def test_check_copr_build_waiting_already_started(
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").with_args(
         1
     ).and_return([db_build])
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        flexmock(status=BuildStatus.success)
+    )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             build_proxy=flexmock()
@@ -378,6 +491,9 @@ def test_check_update_copr_builds_timeout():
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
         BuildStatus.pending
     ).and_return([build])
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        flexmock(status=BuildStatus.success)
+    )
     update_copr_builds(1, [build])
 
 
