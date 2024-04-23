@@ -87,6 +87,7 @@ TASK_ACCEPTED = "The task was accepted."
 
 COPR_SRPM_CHROOT = "srpm-builds"
 COPR_SUCC_STATE = "succeeded"
+COPR_FAIL_STATE = "failed"
 COPR_API_SUCC_STATE = 1
 COPR_API_FAIL_STATE = 2
 

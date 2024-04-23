@@ -199,7 +199,9 @@ def copr_build_model(
     )
 
     runs = []
-    srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
+    srpm_build = flexmock(
+        logs="asdsdf", url=None, runs=runs, status=BuildStatus.success
+    )
     copr_group = flexmock(runs=runs)
     copr_build = flexmock(
         id=1,
