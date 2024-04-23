@@ -1145,9 +1145,9 @@ class Parser:
 
         # error and complete are the end states
         if tf_state not in ("complete", "error"):
-            result = TestingFarmResult(tf_state or "unknown")
+            result = TestingFarmResult.from_string(tf_state or "unknown")
         else:
-            result = TestingFarmResult(tf_result or tf_state or "unknown")
+            result = TestingFarmResult.from_string(tf_result or tf_state or "unknown")
 
         summary: str = nested_get(event, "result", "summary") or ""
         env: dict = nested_get(event, "environments_requested", 0, default={})

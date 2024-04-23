@@ -2589,6 +2589,13 @@ class TestingFarmResult(str, enum.Enum):
     canceled = "canceled"
     cancel_requested = "cancel-requested"
 
+    @classmethod
+    def from_string(cls, value):
+        try:
+            return cls(value)
+        except ValueError:
+            return cls.unknown
+
 
 class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "tft_test_run_groups"
