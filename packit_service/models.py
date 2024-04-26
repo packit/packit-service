@@ -3432,3 +3432,63 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
             f"VMImageBuildTargetModel(id={self.id}, "
             f"build_submitted_time={self.build_submitted_time})"
         )
+
+
+class SidetagGroupModel(Base):
+    __tablename__ = "sidetag_groups"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, index=True)
+
+    sidetags = relationship("SidetagModel", back_populates="sidetag_group")
+
+    @classmethod
+    def get_or_create(cls, name: str) -> "SidetagGroupModel":
+        with sa_session_transaction(commit=True) as session:
+            group = cls.get_by_name(name)
+            if not group:
+                group = cls()
+                group.name = name
+                session.add(group)
+            return group
+
+    @classmethod
+    def get_by_name(cls, name: str) -> Optional["SidetagGroupModel"]:
+        with sa_session_transaction() as session:
+            return session.query(cls).filter_by(name=name).first()
+
+
+class SidetagModel(Base):
+    __tablename__ = "sidetags"
+    id = Column(Integer, primary_key=True)
+    koji_name = Column(String, unique=True, index=True)
+    target = Column(String)
+    sidetag_group_id = Column(Integer, ForeignKey("sidetag_groups.id"))
+
+    sidetag_group = relationship("SidetagGroupModel", back_populates="sidetags")
+
+    @classmethod
+    def get_or_create(cls, group: "SidetagGroupModel", target: str) -> "SidetagModel":
+        with sa_session_transaction(commit=True) as session:
+            sidetag = (
+                session.query(cls)
+                .filter_by(sidetag_group_id=group.id, target=target)
+                .first()
+            )
+            if not sidetag:
+                sidetag = cls()
+                sidetag.target = target
+                session.add(sidetag)
+
+                group.sidetags.append(sidetag)
+                session.add(group)
+            return sidetag
+
+    @classmethod
+    def get_by_koji_name(cls, koji_name: str) -> Optional["SidetagModel"]:
+        with sa_session_transaction() as session:
+            return session.query(SidetagModel).filter_by(koji_name=koji_name).first()
+
+    def set_koji_name(self, koji_name: str):
+        with sa_session_transaction(commit=True) as session:
+            self.koji_name = koji_name
+            session.add(self)
