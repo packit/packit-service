@@ -391,14 +391,21 @@ class BaseBuildJobHelper(BaseJobHelper):
         if project_event_identifier:
             project_event_identifier = project_event_identifier.replace(":", "-")
 
-        if template is not None:
-            return template.format(
-                job_name=job_name,
-                chroot=chroot,
-                event=project_event_identifier,
-                identifier=identifier,
-                package=package,
+        try:
+            if template is not None:
+                return template.format(
+                    job_name=job_name,
+                    chroot=chroot,
+                    event=project_event_identifier,
+                    identifier=identifier,
+                    package=package,
+                )
+        except Exception as e:
+            logger.warning(
+                "Failed to use the template for status check, falling back to default: %s",
+                e,
             )
+            pass
 
         chroot_str = f":{chroot}" if chroot else ""
         # replace ':' in the project event identifier
