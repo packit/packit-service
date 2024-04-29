@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 from enum import Enum
 from typing import List
+from datetime import datetime, timedelta
 
 CONTACTS_URL = "https://packit.dev/#contact"
 DOCS_URL = "https://packit.dev/docs"
@@ -282,3 +283,11 @@ FAILURE_COMMENT_MESSAGE_VARIABLES = {
         "logs_url",
     )
 }
+
+USAGE_CURRENT_DATE = datetime.now().replace(minute=0, second=0, microsecond=0)
+USAGE_PAST_DAY_DATE_STR = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+USAGE_PAST_WEEK_DATE_STR = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+USAGE_PAST_MONTH_DATE_STR = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+USAGE_PAST_YEAR_DATE_STR = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+USAGE_DATE_IN_THE_PAST = USAGE_CURRENT_DATE.replace(year=USAGE_CURRENT_DATE.year - 100)
+USAGE_DATE_IN_THE_PAST_STR = USAGE_DATE_IN_THE_PAST.strftime("%Y-%m-%d")

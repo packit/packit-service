@@ -24,17 +24,24 @@ from packit_service.models import (
     BodhiUpdateTargetModel,
     KojiBuildTargetModel,
     SyncReleaseTargetModel,
+    get_usage_data,
 )
 from packit_service.service.api.utils import response_maker
+from packit_service.constants import (
+    USAGE_CURRENT_DATE,
+    USAGE_DATE_IN_THE_PAST,
+    USAGE_DATE_IN_THE_PAST_STR,
+    USAGE_PAST_DAY_DATE_STR,
+    USAGE_PAST_WEEK_DATE_STR,
+    USAGE_PAST_MONTH_DATE_STR,
+    USAGE_PAST_YEAR_DATE_STR,
+)
 
 logger = getLogger("packit_service")
 
 usage_ns = Namespace("usage", description="Data about Packit usage")
 
-_CACHE_MAXSIZE = 100
-
-__now = datetime.now()
-_DATE_IN_THE_PAST = __now.replace(year=__now.year - 100)
+_CACHE_MAXSIZE = 100  # can it be removed, should things being cached already lower?
 
 
 @usage_ns.route("")
@@ -130,294 +137,6 @@ def process_timestamps(start, end):
         errors.append(f"To timestamp: {end_error}")
 
     return (errors, parsed_start, parsed_end)
-
-
-def get_usage_data(datetime_from=None, datetime_to=None, top=10):
-    """
-    Get usage data.
-
-    Example:
-    ```
-    >>> safe_dump(get_usage_data(top=3))
-    active_projects:
-      instances:
-        github.com: 279
-        gitlab.com: 3
-        gitlab.freedesktop.org: 3
-        gitlab.gnome.org: 2
-      project_count: 287
-      top_projects_by_events_handled:
-        https://github.com/avocado-framework/avocado: 1327
-        https://github.com/cockpit-project/cockpit: 1829
-        https://github.com/systemd/systemd: 4960
-    all_projects:
-      instances:
-        git.centos.org: 25
-        github.com: 7855
-        gitlab.com: 8
-        gitlab.freedesktop.org: 4
-        gitlab.gnome.org: 2
-        src.fedoraproject.org: 22175
-      project_count: 30069
-    events:
-      branch_push:
-        events_handled: 115
-        top_projects:
-          https://github.com/packit/ogr: 3
-          https://github.com/packit/packit: 3
-          https://github.com/rhinstaller/anaconda: 3
-      issue:
-        events_handled: 18
-        top_projects:
-          https://github.com/martinpitt/python-dbusmock: 2
-          https://github.com/packit/packit: 3
-          https://github.com/packit/specfile: 3
-      pull_request:
-        events_handled: 26605
-        top_projects:
-          https://github.com/avocado-framework/avocado: 1327
-          https://github.com/cockpit-project/cockpit: 1808
-          https://github.com/systemd/systemd: 4960
-      release:
-        events_handled: 425
-        top_projects:
-          https://github.com/facebook/folly: 40
-          https://github.com/packit/ogr: 33
-          https://github.com/packit/packit: 57
-    jobs:
-      copr_build_targets:
-        job_runs: 530955
-        per_event:
-          branch_push:
-            job_runs: 48160
-            top_projects_by_job_runs:
-              https://github.com/osandov/drgn: 5812
-              https://github.com/osbuild/osbuild: 7078
-              https://github.com/osbuild/osbuild-composer: 12847
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 481561
-            top_projects_by_job_runs:
-              https://github.com/osbuild/osbuild: 31108
-              https://github.com/osbuild/osbuild-composer: 93939
-              https://github.com/systemd/systemd: 60158
-          release:
-            job_runs: 1234
-            top_projects_by_job_runs:
-              https://github.com/facebook/folly: 340
-              https://github.com/packit/ogr: 104
-              https://github.com/packit/packit: 174
-        top_projects_by_job_runs:
-          https://github.com/osbuild/osbuild: 38186
-          https://github.com/osbuild/osbuild-composer: 106786
-          https://github.com/systemd/systemd: 60158
-      koji_build_targets:
-        job_runs: 1466
-        per_event:
-          branch_push:
-            job_runs: 56
-            top_projects_by_job_runs:
-              https://github.com/besser82/libxcrypt: 46
-              https://github.com/ostreedev/ostree: 10
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 1410
-            top_projects_by_job_runs:
-              https://github.com/containers/podman: 297
-              https://github.com/packit/ogr: 509
-              https://github.com/rear/rear: 267
-          release:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-        top_projects_by_job_runs:
-          https://github.com/containers/podman: 297
-          https://github.com/packit/ogr: 509
-          https://github.com/rear/rear: 267
-      srpm_builds:
-        job_runs: 103695
-        per_event:
-          branch_push:
-            job_runs: 7084
-            top_projects_by_job_runs:
-              https://github.com/osbuild/osbuild-composer: 646
-              https://github.com/packit/packit: 549
-              https://github.com/rhinstaller/anaconda: 1015
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 96305
-            top_projects_by_job_runs:
-              https://github.com/cockpit-project/cockpit: 6915
-              https://github.com/packit/hello-world: 10401
-              https://github.com/systemd/systemd: 14489
-          release:
-            job_runs: 306
-            top_projects_by_job_runs:
-              https://github.com/facebook/folly: 40
-              https://github.com/packit/ogr: 34
-              https://github.com/packit/packit: 54
-        top_projects_by_job_runs:
-          https://github.com/cockpit-project/cockpit: 6937
-          https://github.com/packit/hello-world: 10409
-          https://github.com/systemd/systemd: 14489
-      sync_release_runs:
-        job_runs: 419
-        per_event:
-          branch_push:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          issue:
-            job_runs: 22
-            top_projects_by_job_runs:
-              https://github.com/martinpitt/python-dbusmock: 3
-              https://github.com/packit/packit: 3
-              https://github.com/packit/specfile: 6
-          pull_request:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          release:
-            job_runs: 397
-            top_projects_by_job_runs:
-              https://github.com/martinpitt/python-dbusmock: 35
-              https://github.com/packit/packit: 35
-              https://github.com/rhinstaller/anaconda: 34
-        top_projects_by_job_runs:
-          https://github.com/martinpitt/python-dbusmock: 38
-          https://github.com/packit/packit: 38
-          https://github.com/rhinstaller/anaconda: 34
-      tft_test_run_targets:
-        job_runs: 150525
-        per_event:
-          branch_push:
-            job_runs: 441
-            top_projects_by_job_runs:
-              https://github.com/oamg/convert2rhel: 209
-              https://github.com/packit-service/packit: 50
-              https://github.com/python-bugzilla/python-bugzilla: 88
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 150026
-            top_projects_by_job_runs:
-              https://github.com/cockpit-project/cockpit: 21157
-              https://github.com/oamg/convert2rhel: 15297
-              https://github.com/teemtee/tmt: 22136
-          release:
-            job_runs: 58
-            top_projects_by_job_runs:
-              https://github.com/fedora-infra/fedora-messaging: 8
-              https://github.com/fedora-iot/zezere: 8
-              https://github.com/psss/tmt: 21
-        top_projects_by_job_runs:
-          https://github.com/cockpit-project/cockpit: 21157
-          https://github.com/oamg/convert2rhel: 15506
-          https://github.com/teemtee/tmt: 22136
-      vm_image_build_targets:
-        job_runs: 2
-        per_event:
-          branch_push:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 2
-            top_projects_by_job_runs:
-              https://github.com/packit/ogr: 2
-          release:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-        top_projects_by_job_runs:
-          https://github.com/packit/ogr: 2
-
-    ```
-    """
-    jobs = {}
-    for job_model in [
-        SRPMBuildModel,
-        CoprBuildGroupModel,
-        KojiBuildGroupModel,
-        VMImageBuildTargetModel,
-        TFTTestRunGroupModel,
-        SyncReleaseModel,
-    ]:
-        jobs[job_model.__tablename__] = dict(
-            job_runs=GitProjectModel.get_job_usage_numbers_count_all_project_events(
-                datetime_from=datetime_from,
-                datetime_to=datetime_to,
-                job_result_model=job_model,
-            ),
-            top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers_all_project_events(
-                datetime_from=datetime_from,
-                datetime_to=datetime_to,
-                top=top,
-                job_result_model=job_model,
-            ),
-        )
-        jobs[job_model.__tablename__]["per_event"] = {}
-        jobs[job_model.__tablename__]["per_event"].update(
-            {
-                project_event_type.value: dict(
-                    job_runs=GitProjectModel.get_job_usage_numbers_count(
-                        datetime_from=datetime_from,
-                        datetime_to=datetime_to,
-                        job_result_model=job_model,
-                        project_event_type=project_event_type,
-                    ),
-                    top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers(
-                        datetime_from=datetime_from,
-                        datetime_to=datetime_to,
-                        top=top,
-                        job_result_model=job_model,
-                        project_event_type=project_event_type,
-                    ),
-                )
-                for project_event_type in ProjectEventModelType
-            }
-        )
-
-    return dict(
-        all_projects=dict(
-            project_count=GitProjectModel.get_project_count(),
-            instances=GitProjectModel.get_instance_numbers(),
-        ),
-        active_projects=dict(
-            project_count=GitProjectModel.get_active_projects_count(
-                datetime_from=datetime_from,
-                datetime_to=datetime_to,
-            ),
-            top_projects_by_events_handled=GitProjectModel.get_active_projects_usage_numbers(
-                datetime_from=datetime_from, datetime_to=datetime_to, top=top
-            ),
-            instances=GitProjectModel.get_instance_numbers_for_active_projects(
-                datetime_from=datetime_from, datetime_to=datetime_to
-            ),
-        ),
-        events={
-            project_event_type.value: dict(
-                events_handled=GitProjectModel.get_project_event_usage_count(
-                    datetime_from=datetime_from,
-                    datetime_to=datetime_to,
-                    project_event_type=project_event_type,
-                ),
-                top_projects=GitProjectModel.get_project_event_usage_numbers(
-                    datetime_from=datetime_from,
-                    datetime_to=datetime_to,
-                    top=top,
-                    project_event_type=project_event_type,
-                ),
-            )
-            for project_event_type in ProjectEventModelType
-        },
-        jobs=jobs,
-    )
 
 
 def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
@@ -723,8 +442,7 @@ class UsagePastDay(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).total_seconds())
     def get(self):
-        yesterday_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=yesterday_date)
+        return _get_past_usage_data(datetime_from=USAGE_PAST_DAY_DATE_STR)
 
 
 @usage_ns.route("/past-week")
@@ -732,8 +450,7 @@ class UsagePastWeek(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).total_seconds())
     def get(self):
-        past_week_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_week_date)
+        return _get_past_usage_data(datetime_from=USAGE_PAST_WEEK_DATE_STR)
 
 
 @usage_ns.route("/past-month")
@@ -741,12 +458,7 @@ class UsagePastMonth(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).total_seconds())
     def get(self):
-        now = datetime.now()
-        past_month_past_day = now.replace(day=1) - timedelta(days=1)
-        past_month_date = now.replace(
-            year=past_month_past_day.year, month=past_month_past_day.month
-        ).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_month_date)
+        return _get_past_usage_data(datetime_from=USAGE_PAST_MONTH_DATE_STR)
 
 
 @usage_ns.route("/past-year")
@@ -754,9 +466,7 @@ class UsagePastYear(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).total_seconds())
     def get(self):
-        now = datetime.now()
-        past_year_date = now.replace(year=now.year - 1).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_year_date)
+        return _get_past_usage_data(datetime_from=USAGE_PAST_YEAR_DATE_STR)
 
 
 @usage_ns.route("/total")
@@ -764,8 +474,7 @@ class UsageTotal(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).total_seconds())
     def get(self):
-        past_date = _DATE_IN_THE_PAST.strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_date)
+        return _get_past_usage_data(datetime_from=USAGE_DATE_IN_THE_PAST_STR)
 
 
 # format the chart needs is a list of {"x": "datetimelegend", "y": value}
@@ -785,7 +494,7 @@ def _get_usage_interval_data(
     """
     delta = timedelta(days=days, hours=hours)
 
-    current_date = datetime.now()
+    current_date = USAGE_CURRENT_DATE
     days_legend = []
     for _ in range(count):
         days_legend.append(current_date)
@@ -798,9 +507,13 @@ def _get_usage_interval_data(
     result_active_projects: CHART_DATA_TYPE = []
     result_active_projects_cumulative: CHART_DATA_TYPE = []
 
-    past_data = get_usage_data(
-        datetime_from=_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
+    logger.warn(
+        f"Getting usage data datetime_from {USAGE_DATE_IN_THE_PAST} datetime_to {days_legend[-1]}"
     )
+    past_data = get_usage_data(
+        datetime_from=USAGE_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
+    )
+    logger.warn("Got usage data ")
     cumulative_projects_past = set(
         past_data["active_projects"]["top_projects_by_events_handled"].keys()
     )

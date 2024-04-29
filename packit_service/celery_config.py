@@ -40,6 +40,11 @@ beat_schedule = {
         "schedule": crontab(minute=0, hour=2),  # nightly at 2AM
         "options": {"queue": "long-running"},
     },
+    "get_usage_statistics": {
+        "task": "packit_service.worker.tasks.get_usage_statistics",
+        "schedule": crontab(minute=1, hour=0),  # nightly at 0AM
+        "options": {"queue": "long-running"},
+    },
 }
 
 # http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application
