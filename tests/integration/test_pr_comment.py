@@ -2434,6 +2434,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=None,
     ).and_return("")
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()

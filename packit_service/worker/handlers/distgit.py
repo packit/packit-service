@@ -22,6 +22,7 @@ from packit.exceptions import (
     PackitDownloadFailedException,
     ReleaseSkippedPackitException,
 )
+from packit.utils.koji_helper import KojiHelper
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
@@ -42,6 +43,8 @@ from packit_service.models import (
     KojiBuildTargetModel,
     PipelineModel,
     KojiBuildGroupModel,
+    SidetagGroupModel,
+    SidetagModel,
 )
 from packit_service.service.urls import (
     get_propose_downstream_info_url,
@@ -669,6 +672,8 @@ class AbstractDownstreamKojiBuildHandler(
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.downstream_koji_build
 
+    _koji_helper: Optional[KojiHelper] = None
+
     def __init__(
         self,
         package_config: PackageConfig,
@@ -687,6 +692,12 @@ class AbstractDownstreamKojiBuildHandler(
         self._pull_request: Optional[PullRequest] = None
         self._packit_api = None
         self._koji_group_model_id = koji_group_model_id
+
+    @property
+    def koji_helper(self):
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
@@ -724,6 +735,14 @@ class AbstractDownstreamKojiBuildHandler(
 
     def run(self) -> TaskResults:
         errors = {}
+
+        if self.job_config.sidetag_group:
+            sidetag_group = SidetagGroupModel.get_or_create(
+                self.job_config.sidetag_group
+            )
+        else:
+            sidetag_group = None
+
         group = self._get_or_create_koji_group_model()
         for koji_build_model in group.grouped_targets:
             branch = koji_build_model.target
@@ -740,11 +759,28 @@ class AbstractDownstreamKojiBuildHandler(
             koji_build_model.set_status("pending")
 
             try:
+                if sidetag_group:
+                    sidetag = SidetagModel.get_or_create(sidetag_group, branch)
+                    if not sidetag.koji_name or not self.koji_helper.get_tag_info(
+                        sidetag.koji_name
+                    ):
+                        # we need Kerberos ticket to create a new sidetag
+                        self.packit_api.init_kerberos_ticket()
+                        tag_info = self.koji_helper.create_sidetag(branch)
+                        if not tag_info:
+                            raise PackitException(
+                                f"Failed to create sidetag for {branch}"
+                            )
+                        sidetag.set_koji_name(tag_info["name"])
+                else:
+                    sidetag = None
+
                 stdout = self.packit_api.build(
                     dist_git_branch=koji_build_model.target,
                     scratch=self.job_config.scratch,
                     nowait=True,
                     from_upstream=False,
+                    koji_target=sidetag.koji_name if sidetag else None,
                 )
                 if stdout:
                     task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)

@@ -20,6 +20,7 @@ from packit.config import (
 )
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
+from packit.utils.koji_helper import KojiHelper
 from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter, ProjectToSync, ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
@@ -31,6 +32,8 @@ from packit_service.models import (
     KojiBuildGroupModel,
     PipelineModel,
     KojiBuildTargetModel,
+    SidetagModel,
+    SidetagGroupModel,
 )
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
@@ -190,11 +193,17 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
     assert not processing_results
 
 
-def test_downstream_koji_build():
+@pytest.mark.parametrize(
+    "sidetag_group",
+    [None, "test"],
+)
+def test_downstream_koji_build(sidetag_group):
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers':"
-        " ['rhcontainerbot']}],"
+        " ['rhcontainerbot']"
+        + (f", 'sidetag_group': '{sidetag_group}'" if sidetag_group else "")
+        + "}],"
         "'downstream_package_name': 'buildah'}"
     )
     pagure_project = flexmock(
@@ -252,6 +261,26 @@ def test_downstream_koji_build():
         flexmock(grouped_targets=[koji_build])
     )
 
+    if sidetag_group:
+        koji_target = "f40-build-side-12345"
+        sidetag = flexmock(koji_name=None)
+
+        def set_koji_name(name):
+            sidetag.koji_name = name
+
+        sidetag.should_receive("set_koji_name").with_args(koji_target).replace_with(
+            set_koji_name
+        )
+        flexmock(SidetagModel).should_receive("get_or_create").and_return(sidetag)
+        flexmock(SidetagGroupModel).should_receive("get_or_create").and_return(
+            flexmock()
+        )
+        flexmock(KojiHelper).should_receive("get_tag_info").and_return(None)
+        flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(None)
+        flexmock(KojiHelper).should_receive("create_sidetag").and_return(
+            {"name": koji_target}
+        )
+
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -260,6 +289,7 @@ def test_downstream_koji_build():
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=koji_target if sidetag_group else None,
     ).and_return("")
     processing_results = SteveJobs().process_message(distgit_commit_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -355,6 +385,7 @@ def test_downstream_koji_build_failure_no_issue():
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=None,
     ).and_raise(PackitException, "Some error")
 
     pagure_project_mock.should_receive("get_issue_list").times(0)
@@ -453,6 +484,7 @@ def test_downstream_koji_build_failure_issue_created():
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=None,
     ).and_raise(PackitException, "Some error")
 
     issue_project_mock = flexmock(GithubProject)
@@ -559,6 +591,7 @@ def test_downstream_koji_build_failure_issue_comment():
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=None,
     ).and_raise(PackitException, "Some error")
 
     issue_project_mock = flexmock(GithubProject)
@@ -755,12 +788,14 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=None,
     ).times(0)
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
         scratch=False,
         nowait=True,
         from_upstream=False,
+        koji_target=None,
     ).once().and_return("")
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
