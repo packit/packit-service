@@ -6,7 +6,10 @@ import packit_service.constants
 
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-task_default_queue
 task_default_queue = packit_service.constants.CELERY_TASK_DEFAULT_QUEUE
+# https://docs.celeryq.dev/en/latest/userguide/configuration.html#conf-redis-result-backend
+result_backend = "redis"
 
+imports = ("packit_service.worker.tasks", "packit_service.service.tasks")
 
 task_routes = {
     "task.babysit_vm_image_build": "long-running",

@@ -20,10 +20,12 @@ class Celerizer:
             password = getenv("REDIS_PASSWORD", "")
             port = getenv("REDIS_SERVICE_PORT", "6379")
             db = getenv("REDIS_SERVICE_DB", "0")
+            celery_beckend = getenv("REDIS_CELERY_BECKEND", "1")
             broker_url = f"redis://:{password}@{host}:{port}/{db}"
+            backend_url = f"redis://:{password}@{host}:{port}/{celery_beckend}"
 
             # http://docs.celeryq.dev/en/stable/reference/celery.html#celery.Celery
-            self._celery_app = Celery(broker=broker_url)
+            self._celery_app = Celery(backend=backend_url, broker=broker_url)
 
             # https://docs.celeryq.dev/en/stable/getting-started/first-steps-with-celery.html#configuration
             self._celery_app.config_from_object("packit_service.celery_config")

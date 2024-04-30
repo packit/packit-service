@@ -3497,6 +3497,7 @@ class SidetagModel(Base):
             self.koji_name = koji_name
             session.add(self)
 
+
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
 def get_usage_data(datetime_from=None, datetime_to=None, top=10) -> dict:
     """

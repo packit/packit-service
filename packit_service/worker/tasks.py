@@ -84,7 +84,6 @@ from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
 
-_CACHE_MAXSIZE = 100
 
 logger = logging.getLogger(__name__)
 
@@ -645,10 +644,14 @@ def _get_usage_interval_data(days, hours, count) -> None:
 def get_usage_statistics() -> None:
     """Call functions collecting usage statistics and **cache** results
     to be used later.
+
     We need to do the very same calls made by the dashboard! Keep it in sync.
     """
-    _get_usage_interval_data(days=7, hours=0, count=52)  # year weekly statistics
-    _get_usage_interval_data(days=0, hours=1, count=24)  # day hourly statistics
+    _get_usage_interval_data(days=0, hours=1, count=24)  # past day hourly statistics
+    _get_usage_interval_data(days=1, hours=0, count=7)  # past week daily statistics
+    _get_usage_interval_data(days=1, hours=0, count=30)  # past month daily statistics
+    _get_usage_interval_data(days=7, hours=0, count=52)  # past year weekly statistics
+
     for day in (
         USAGE_PAST_DAY_DATE_STR,
         USAGE_PAST_WEEK_DATE_STR,
