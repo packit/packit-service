@@ -1538,6 +1538,9 @@ class PipelineModel(Base):
                 func.array_agg(psql_array([PipelineModel.bodhi_update_group_id])).label(
                     "bodhi_update_group_id",
                 ),
+                func.array_agg(psql_array([PipelineModel.vm_image_build_id])).label(
+                    "vm_image_build_id",
+                ),
             )
 
     @classmethod

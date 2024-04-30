@@ -19,6 +19,7 @@ from packit_service.models import (
     TFTTestRunGroupModel,
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
+    VMImageBuildTargetModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
@@ -45,6 +46,19 @@ def _add_sync_release(run: SyncReleaseModel, response_dict: Dict):
 
     if "trigger" not in response_dict:
         response_dict["time_submitted"] = optional_timestamp(run.submitted_time)
+        response_dict["trigger"] = get_project_info_from_build(run)
+
+
+def _add_vm_image_build(run: VMImageBuildTargetModel, response_dict: Dict):
+    response_dict["vm_image_build"].append(
+        {
+            "packit_id": run.id,
+            "target": run.target,
+            "status": run.status,
+        }
+    )
+    if "trigger" not in response_dict:
+        response_dict["time_submitted"] = optional_timestamp(run.build_submitted_time)
         response_dict["trigger"] = get_project_info_from_build(run)
 
 
@@ -75,6 +89,7 @@ def process_runs(runs):
             "propose_downstream": [],
             "pull_from_upstream": [],
             "bodhi_update": [],
+            "vm_image_build": [],
         }
 
         if srpm_build := SRPMBuildModel.get_by_id(pipeline.srpm_build_id):
@@ -123,6 +138,15 @@ def process_runs(runs):
         if sync_release := list(flatten_and_remove_none(pipeline.sync_release_run_id)):
             _add_sync_release(
                 SyncReleaseModel.get_by_id(sync_release[0]),
+                response_dict,
+            )
+
+        # handle VM image builds
+        for vm_image_build_id in set(
+            flatten_and_remove_none(pipeline.vm_image_build_id)
+        ):
+            _add_vm_image_build(
+                VMImageBuildTargetModel.get_by_id(vm_image_build_id),
                 response_dict,
             )
 
