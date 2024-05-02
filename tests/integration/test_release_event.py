@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 from celery.app.task import Context, Task
-from celery.canvas import Signature
+from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
 
@@ -234,7 +234,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
 
@@ -385,7 +385,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             project_event_model_type=ProjectEventModelType.release,
         )
     )
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     from packit_service.worker.handlers.distgit import shutil
@@ -547,7 +547,7 @@ def test_dist_git_push_release_handle_one_failed(
         )
     )
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     from packit_service.worker.handlers.distgit import shutil
@@ -679,7 +679,7 @@ def test_dist_git_push_release_handle_all_failed(
         len(fedora_branches)
     )
     flexmock(shutil).should_receive("rmtree").with_args("")
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
@@ -749,7 +749,7 @@ def test_retry_propose_downstream_task(
             project_event_model_type=ProjectEventModelType.release,
         )
     )
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",
@@ -861,7 +861,7 @@ def test_dont_retry_propose_downstream_task(
             project_event_model_type=ProjectEventModelType.release,
         )
     )
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main",

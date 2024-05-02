@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime
 
 import pytest
-from celery.canvas import Signature
+from celery.canvas import group
 from flexmock import flexmock
 
 from ogr.abstract import GitTag
@@ -260,7 +260,7 @@ def test_issue_comment_propose_downstream_handler(
         status=SyncReleaseStatus.finished
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(ProposeDownstreamJobHelper).should_receive(
         "report_status_to_all"
@@ -384,7 +384,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
     flexmock(issue).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(Allowlist, check_and_report=True)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").and_return()
 
 

@@ -6,7 +6,7 @@ import shutil
 from typing import List
 
 import pytest
-from celery.canvas import Signature
+from celery.canvas import group as celery_group
 from flexmock import flexmock
 from github.MainClass import Github
 
@@ -232,7 +232,7 @@ def test_pr_comment_build_test_handler(
         "For more info, please check out "
         "[the documentation](https://packit.dev/docs/configuration/upstream/tests).\n\n",
     ).once()
-    flexmock(Signature).should_receive("apply_async").never()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -288,7 +288,7 @@ def test_pr_comment_build_build_and_test_handler(
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
     ).and_return(False).once()
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(celery_group).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").times(4).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -366,7 +366,7 @@ def test_pr_comment_build_build_and_test_handler_manual_test_reporting(
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
     ).and_return(False).once()
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(celery_group).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").times(4).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -467,7 +467,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -669,7 +669,7 @@ def test_pr_test_command_handler(
         get_files=lambda ref, recursive: ["the-specfile.spec", "packit.yaml"],
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
@@ -757,7 +757,7 @@ def test_pr_test_command_handler_identifiers(
         get_files=lambda ref, recursive: ["the-specfile.spec", "packit.yaml"],
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
@@ -1061,7 +1061,7 @@ def test_pr_test_command_handler_retries(
         markdown_content=markdown_content,
         links_to_external_services=None,
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1265,7 +1265,7 @@ def test_pr_test_command_handler_skip_build_option(
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1394,7 +1394,7 @@ def test_pr_test_command_handler_compose_not_present(
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1515,7 +1515,7 @@ def test_pr_test_command_handler_composes_not_available(
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -1581,7 +1581,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
-    flexmock(Signature).should_receive("apply_async").times(0)
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests (and builds) internally",
@@ -1645,7 +1645,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
-    flexmock(Signature).should_receive("apply_async").times(0)
+    flexmock(celery_group).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
@@ -1772,7 +1772,7 @@ def test_retest_failed(
         GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(3).and_return(
         {"test-target"}
     )
@@ -1929,7 +1929,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/packit-service/hello-world"
     )
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -2313,7 +2313,7 @@ def test_pr_test_command_handler_multiple_builds(
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -2428,7 +2428,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="the_distgit_branch",
         scratch=False,
@@ -2559,7 +2559,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(True)
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="the_distgit_branch",
         update_type="enhancement",
@@ -2753,7 +2753,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
             project_event_model_type=ProjectEventModelType.pull_request,
         )
     )
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(PullRequestCommentPagureEvent).should_receive(

@@ -6,7 +6,7 @@ import json
 from flexmock import flexmock
 
 from celery import Celery
-from celery.canvas import Signature
+from celery.canvas import group
 
 from ogr.services.github import GithubProject
 
@@ -99,7 +99,7 @@ def test_vm_image_build(github_vm_image_build_comment):
             )
         ]
     )
-    flexmock(Signature).should_receive("apply_async").times(1)
+    flexmock(group).should_receive("apply_async").times(1)
     repo_download_url = (
         "https://download.copr.fedorainfracloud.org/"
         "results/mmassari/knx-stack/fedora-36-x86_64/"

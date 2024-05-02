@@ -3,6 +3,7 @@
 
 import logging
 import socket
+from datetime import timedelta
 from os import getenv
 from typing import List, Optional
 
@@ -21,11 +22,19 @@ from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_BACKOFF,
     CELERY_DEFAULT_MAIN_TASK_NAME,
+    USAGE_CURRENT_DATE,
+    USAGE_DATE_IN_THE_PAST,
+    USAGE_DATE_IN_THE_PAST_STR,
+    USAGE_PAST_DAY_DATE_STR,
+    USAGE_PAST_MONTH_DATE_STR,
+    USAGE_PAST_WEEK_DATE_STR,
+    USAGE_PAST_YEAR_DATE_STR,
 )
 from packit_service.models import (
     VMImageBuildTargetModel,
     GitProjectModel,
     SyncReleaseTargetModel,
+    get_usage_data,
 )
 from packit_service.utils import (
     load_job_config,
@@ -74,6 +83,7 @@ from packit_service.worker.helpers.build.babysit import (
 from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
+
 
 logger = logging.getLogger(__name__)
 
@@ -588,3 +598,67 @@ def run_check_onboarded_projects() -> None:
         known_onboarded_projects
     )
     check_onboarded_projects(almost_onboarded_projects)
+
+
+def _get_usage_interval_data(days, hours, count) -> None:
+    """Call functions collecting usage statistics and **cache** results
+    to be used quicker later.
+
+    :param days: number of days for the interval length
+    :param hours: number of days for the interval length
+    :param count: number of intervals
+    """
+    logger.debug(
+        f"Starting collecting statistics for days={days}, hours={hours}, count={count}"
+    )
+
+    delta = timedelta(days=days, hours=hours)
+    current_date = USAGE_CURRENT_DATE
+    days_legend = []
+    for _ in range(count):
+        days_legend.append(current_date)
+        current_date -= delta
+
+    logger.debug(
+        f"Getting usage data datetime_from {USAGE_DATE_IN_THE_PAST} datetime_to {days_legend[-1]}"
+    )
+    get_usage_data(
+        datetime_from=USAGE_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
+    )
+    logger.debug("Got usage data.")
+
+    for day in reversed(days_legend):
+        day_from = (day - delta).isoformat()
+        day_to = day.isoformat()
+
+        logger.warn(f"Getting usage data datetime_from {day_from} datetime_to {day_to}")
+        get_usage_data(datetime_from=day_from, datetime_to=day_to, top=100000)
+        logger.warn("Got usage data.")
+
+    logger.debug(
+        f"Done collecting statistics for days={days}, hours={hours}, count={count}"
+    )
+
+
+@celery_app.task
+def get_usage_statistics() -> None:
+    """Call functions collecting usage statistics and **cache** results
+    to be used later.
+
+    We need to do the very same calls made by the dashboard! Keep it in sync.
+    """
+    _get_usage_interval_data(days=0, hours=1, count=24)  # past day hourly statistics
+    _get_usage_interval_data(days=1, hours=0, count=7)  # past week daily statistics
+    _get_usage_interval_data(days=1, hours=0, count=30)  # past month daily statistics
+    _get_usage_interval_data(days=7, hours=0, count=52)  # past year weekly statistics
+
+    for day in (
+        USAGE_PAST_DAY_DATE_STR,
+        USAGE_PAST_WEEK_DATE_STR,
+        USAGE_PAST_MONTH_DATE_STR,
+        USAGE_PAST_YEAR_DATE_STR,
+        USAGE_DATE_IN_THE_PAST_STR,
+    ):
+        logger.debug(f"Getting usage data from datetime_from {day}.")
+        get_usage_data(datetime_from=day)
+        logger.debug("Got usage data.")

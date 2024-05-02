@@ -9,7 +9,7 @@ import shutil
 from json import dumps, load
 
 import pytest
-from celery.canvas import Signature
+from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
 from ogr.services.github import GithubProject
@@ -194,7 +194,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     flexmock(Allowlist, check_and_report=True)
-    flexmock(Signature).should_receive("apply_async").times(1 if success else 0)
+    flexmock(group).should_receive("apply_async").times(1 if success else 0)
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
         "report_status_to_all"

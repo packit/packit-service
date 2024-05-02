@@ -1,15 +1,14 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+import time
+
+from datetime import datetime, timezone
 from http import HTTPStatus
 from logging import getLogger
-from typing import Any, Union
+from typing import Any
 
-from cachetools.func import ttl_cache
-
-from flask import request, escape
+from flask import request, escape, redirect, Response
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
@@ -21,20 +20,26 @@ from packit_service.models import (
     SyncReleaseModel,
     TFTTestRunGroupModel,
     VMImageBuildTargetModel,
-    BodhiUpdateTargetModel,
-    KojiBuildTargetModel,
-    SyncReleaseTargetModel,
+    get_usage_data,
 )
 from packit_service.service.api.utils import response_maker
+from packit_service.constants import (
+    USAGE_DATE_IN_THE_PAST_STR,
+    USAGE_PAST_DAY_DATE_STR,
+    USAGE_PAST_WEEK_DATE_STR,
+    USAGE_PAST_MONTH_DATE_STR,
+    USAGE_PAST_YEAR_DATE_STR,
+)
+from packit_service.celerizer import celery_app
+from packit_service.service.tasks import (
+    get_usage_interval_data,
+    get_past_usage_data,
+    calculate_onboarded_projects,
+)
 
 logger = getLogger("packit_service")
 
 usage_ns = Namespace("usage", description="Data about Packit usage")
-
-_CACHE_MAXSIZE = 100
-
-__now = datetime.now()
-_DATE_IN_THE_PAST = __now.replace(year=__now.year - 100)
 
 
 @usage_ns.route("")
@@ -130,294 +135,6 @@ def process_timestamps(start, end):
         errors.append(f"To timestamp: {end_error}")
 
     return (errors, parsed_start, parsed_end)
-
-
-def get_usage_data(datetime_from=None, datetime_to=None, top=10):
-    """
-    Get usage data.
-
-    Example:
-    ```
-    >>> safe_dump(get_usage_data(top=3))
-    active_projects:
-      instances:
-        github.com: 279
-        gitlab.com: 3
-        gitlab.freedesktop.org: 3
-        gitlab.gnome.org: 2
-      project_count: 287
-      top_projects_by_events_handled:
-        https://github.com/avocado-framework/avocado: 1327
-        https://github.com/cockpit-project/cockpit: 1829
-        https://github.com/systemd/systemd: 4960
-    all_projects:
-      instances:
-        git.centos.org: 25
-        github.com: 7855
-        gitlab.com: 8
-        gitlab.freedesktop.org: 4
-        gitlab.gnome.org: 2
-        src.fedoraproject.org: 22175
-      project_count: 30069
-    events:
-      branch_push:
-        events_handled: 115
-        top_projects:
-          https://github.com/packit/ogr: 3
-          https://github.com/packit/packit: 3
-          https://github.com/rhinstaller/anaconda: 3
-      issue:
-        events_handled: 18
-        top_projects:
-          https://github.com/martinpitt/python-dbusmock: 2
-          https://github.com/packit/packit: 3
-          https://github.com/packit/specfile: 3
-      pull_request:
-        events_handled: 26605
-        top_projects:
-          https://github.com/avocado-framework/avocado: 1327
-          https://github.com/cockpit-project/cockpit: 1808
-          https://github.com/systemd/systemd: 4960
-      release:
-        events_handled: 425
-        top_projects:
-          https://github.com/facebook/folly: 40
-          https://github.com/packit/ogr: 33
-          https://github.com/packit/packit: 57
-    jobs:
-      copr_build_targets:
-        job_runs: 530955
-        per_event:
-          branch_push:
-            job_runs: 48160
-            top_projects_by_job_runs:
-              https://github.com/osandov/drgn: 5812
-              https://github.com/osbuild/osbuild: 7078
-              https://github.com/osbuild/osbuild-composer: 12847
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 481561
-            top_projects_by_job_runs:
-              https://github.com/osbuild/osbuild: 31108
-              https://github.com/osbuild/osbuild-composer: 93939
-              https://github.com/systemd/systemd: 60158
-          release:
-            job_runs: 1234
-            top_projects_by_job_runs:
-              https://github.com/facebook/folly: 340
-              https://github.com/packit/ogr: 104
-              https://github.com/packit/packit: 174
-        top_projects_by_job_runs:
-          https://github.com/osbuild/osbuild: 38186
-          https://github.com/osbuild/osbuild-composer: 106786
-          https://github.com/systemd/systemd: 60158
-      koji_build_targets:
-        job_runs: 1466
-        per_event:
-          branch_push:
-            job_runs: 56
-            top_projects_by_job_runs:
-              https://github.com/besser82/libxcrypt: 46
-              https://github.com/ostreedev/ostree: 10
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 1410
-            top_projects_by_job_runs:
-              https://github.com/containers/podman: 297
-              https://github.com/packit/ogr: 509
-              https://github.com/rear/rear: 267
-          release:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-        top_projects_by_job_runs:
-          https://github.com/containers/podman: 297
-          https://github.com/packit/ogr: 509
-          https://github.com/rear/rear: 267
-      srpm_builds:
-        job_runs: 103695
-        per_event:
-          branch_push:
-            job_runs: 7084
-            top_projects_by_job_runs:
-              https://github.com/osbuild/osbuild-composer: 646
-              https://github.com/packit/packit: 549
-              https://github.com/rhinstaller/anaconda: 1015
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 96305
-            top_projects_by_job_runs:
-              https://github.com/cockpit-project/cockpit: 6915
-              https://github.com/packit/hello-world: 10401
-              https://github.com/systemd/systemd: 14489
-          release:
-            job_runs: 306
-            top_projects_by_job_runs:
-              https://github.com/facebook/folly: 40
-              https://github.com/packit/ogr: 34
-              https://github.com/packit/packit: 54
-        top_projects_by_job_runs:
-          https://github.com/cockpit-project/cockpit: 6937
-          https://github.com/packit/hello-world: 10409
-          https://github.com/systemd/systemd: 14489
-      sync_release_runs:
-        job_runs: 419
-        per_event:
-          branch_push:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          issue:
-            job_runs: 22
-            top_projects_by_job_runs:
-              https://github.com/martinpitt/python-dbusmock: 3
-              https://github.com/packit/packit: 3
-              https://github.com/packit/specfile: 6
-          pull_request:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          release:
-            job_runs: 397
-            top_projects_by_job_runs:
-              https://github.com/martinpitt/python-dbusmock: 35
-              https://github.com/packit/packit: 35
-              https://github.com/rhinstaller/anaconda: 34
-        top_projects_by_job_runs:
-          https://github.com/martinpitt/python-dbusmock: 38
-          https://github.com/packit/packit: 38
-          https://github.com/rhinstaller/anaconda: 34
-      tft_test_run_targets:
-        job_runs: 150525
-        per_event:
-          branch_push:
-            job_runs: 441
-            top_projects_by_job_runs:
-              https://github.com/oamg/convert2rhel: 209
-              https://github.com/packit-service/packit: 50
-              https://github.com/python-bugzilla/python-bugzilla: 88
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 150026
-            top_projects_by_job_runs:
-              https://github.com/cockpit-project/cockpit: 21157
-              https://github.com/oamg/convert2rhel: 15297
-              https://github.com/teemtee/tmt: 22136
-          release:
-            job_runs: 58
-            top_projects_by_job_runs:
-              https://github.com/fedora-infra/fedora-messaging: 8
-              https://github.com/fedora-iot/zezere: 8
-              https://github.com/psss/tmt: 21
-        top_projects_by_job_runs:
-          https://github.com/cockpit-project/cockpit: 21157
-          https://github.com/oamg/convert2rhel: 15506
-          https://github.com/teemtee/tmt: 22136
-      vm_image_build_targets:
-        job_runs: 2
-        per_event:
-          branch_push:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          issue:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-          pull_request:
-            job_runs: 2
-            top_projects_by_job_runs:
-              https://github.com/packit/ogr: 2
-          release:
-            job_runs: 0
-            top_projects_by_job_runs: {}
-        top_projects_by_job_runs:
-          https://github.com/packit/ogr: 2
-
-    ```
-    """
-    jobs = {}
-    for job_model in [
-        SRPMBuildModel,
-        CoprBuildGroupModel,
-        KojiBuildGroupModel,
-        VMImageBuildTargetModel,
-        TFTTestRunGroupModel,
-        SyncReleaseModel,
-    ]:
-        jobs[job_model.__tablename__] = dict(
-            job_runs=GitProjectModel.get_job_usage_numbers_count_all_project_events(
-                datetime_from=datetime_from,
-                datetime_to=datetime_to,
-                job_result_model=job_model,
-            ),
-            top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers_all_project_events(
-                datetime_from=datetime_from,
-                datetime_to=datetime_to,
-                top=top,
-                job_result_model=job_model,
-            ),
-        )
-        jobs[job_model.__tablename__]["per_event"] = {}
-        jobs[job_model.__tablename__]["per_event"].update(
-            {
-                project_event_type.value: dict(
-                    job_runs=GitProjectModel.get_job_usage_numbers_count(
-                        datetime_from=datetime_from,
-                        datetime_to=datetime_to,
-                        job_result_model=job_model,
-                        project_event_type=project_event_type,
-                    ),
-                    top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers(
-                        datetime_from=datetime_from,
-                        datetime_to=datetime_to,
-                        top=top,
-                        job_result_model=job_model,
-                        project_event_type=project_event_type,
-                    ),
-                )
-                for project_event_type in ProjectEventModelType
-            }
-        )
-
-    return dict(
-        all_projects=dict(
-            project_count=GitProjectModel.get_project_count(),
-            instances=GitProjectModel.get_instance_numbers(),
-        ),
-        active_projects=dict(
-            project_count=GitProjectModel.get_active_projects_count(
-                datetime_from=datetime_from,
-                datetime_to=datetime_to,
-            ),
-            top_projects_by_events_handled=GitProjectModel.get_active_projects_usage_numbers(
-                datetime_from=datetime_from, datetime_to=datetime_to, top=top
-            ),
-            instances=GitProjectModel.get_instance_numbers_for_active_projects(
-                datetime_from=datetime_from, datetime_to=datetime_to
-            ),
-        ),
-        events={
-            project_event_type.value: dict(
-                events_handled=GitProjectModel.get_project_event_usage_count(
-                    datetime_from=datetime_from,
-                    datetime_to=datetime_to,
-                    project_event_type=project_event_type,
-                ),
-                top_projects=GitProjectModel.get_project_event_usage_numbers(
-                    datetime_from=datetime_from,
-                    datetime_to=datetime_to,
-                    top=top,
-                    project_event_type=project_event_type,
-                ),
-            )
-            for project_event_type in ProjectEventModelType
-        },
-        jobs=jobs,
-    )
 
 
 def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
@@ -626,50 +343,6 @@ class Onboarded2024Q1(Resource):
         HTTPStatus.OK,
         "Onboarded projects for which exist a Bodhi update or a Koji build or a Packit merged PR.",
     )
-    @classmethod
-    def calculate(cls):
-        known_onboarded_projects = (
-            GitProjectModel.get_known_onboarded_downstream_projects()
-        )
-
-        bodhi_updates = BodhiUpdateTargetModel.get_all_projects()
-        koji_builds = KojiBuildTargetModel.get_all_projects()
-        onboarded_projects = bodhi_updates.union(koji_builds).union(
-            known_onboarded_projects
-        )
-
-        # find **downstream git projects** with a PR created by Packit
-        downstream_synced_projects = (
-            SyncReleaseTargetModel.get_all_downstream_projects()
-        )
-        # if there exist a downstream Packit PR we are not sure it has been
-        # merged, the project is *almost onboarded* until the PR is merged
-        # (unless we already know it has a koji build or bodhi update, then
-        # we don't need to check for a merged PR - it obviously has one)
-        almost_onboarded_projects = downstream_synced_projects.difference(
-            onboarded_projects
-        )
-        # do not re-check projects we already checked and we know they
-        # have a merged Packit PR
-        recheck_if_onboarded = almost_onboarded_projects.difference(
-            known_onboarded_projects
-        )
-
-        onboarded = {
-            project.id: project.project_url
-            for project in onboarded_projects.union(known_onboarded_projects)
-        }
-        almost_onboarded = {
-            project.id: project.project_url
-            for project in recheck_if_onboarded.difference(onboarded_projects)
-        }
-
-        return {"onboarded": onboarded, "almost_onboarded": almost_onboarded}
-
-    @classmethod
-    def get_num_of_onboarded_projects(cls):
-        return len(cls.calculate()["onboarded"])
-
     def get(self):
         """
         Returns a list of onboarded projects for which exist at least a
@@ -683,199 +356,124 @@ class Onboarded2024Q1(Resource):
         Examples:
         /api/usage/onboarded-projects
         """
-        return self.calculate()
+        return calculate_onboarded_projects()
 
 
-def _get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
-    # Even though frontend expects only the first N (=5) to be present
-    # in the project lists, we need to get all to calculate the number
-    # of active projects.
-    # (This info will be added to the payload for frontend.)
-    # The original `top` argument will be used later
-    # to get the expected number of projects in the response.
-    top_all_project = 100000
+def _get_celery_result(id: str) -> Response:
+    """
+    Present the Celery task result.
 
-    raw_result = get_usage_data(
-        datetime_from=datetime_from, datetime_to=datetime_to, top=top_all_project
-    )
-    return response_maker(
-        {
-            "active_projects": raw_result["active_projects"],
-            "jobs": {
-                job: {
-                    "job_runs": data["job_runs"],
-                    "top_projects_by_job_runs": dict(
-                        list(OrderedDict(data["top_projects_by_job_runs"]).items())[
-                            :top
-                        ]
-                    ),
-                    "active_projects": len(data["top_projects_by_job_runs"]),
-                }
-                for job, data in raw_result["jobs"].items()
-            },
-            "onboarded_projects_q1_2024": Onboarded2024Q1.get_num_of_onboarded_projects(),
-        }
-    )
+    The redirect link provided by the below api functions
+    is meant to be polled by the UX.
+
+    Wait here until the UX can deal with polling for the result.
+    """
+    TIMEOUT = 5  # seconds
+    STEP = 0.1  # second
+    elapsed = 0.0
+    while not (celery_app.AsyncResult(id).ready() or elapsed > TIMEOUT):
+        elapsed += STEP
+        time.sleep(STEP)
+    result = celery_app.AsyncResult(id)
+    return response_maker(result.result)
 
 
 @usage_ns.route("/past-day")
 class UsagePastDay(Resource):
-    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
-    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).total_seconds())
+    @usage_ns.response(
+        HTTPStatus.OK, "Provides a url where to wait for Packit last day usage"
+    )
     def get(self):
-        yesterday_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=yesterday_date)
+        task = get_past_usage_data.delay(datetime_from=USAGE_PAST_DAY_DATE_STR)
+        return _get_celery_result(task.id)
+
+
+@usage_ns.route("/past-day/<id>")
+@usage_ns.param("id", "Celery task id")
+class UsagePastDayResult(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Provide data about Packit last day usage")
+    def get(self, id):
+        return _get_celery_result(id)
 
 
 @usage_ns.route("/past-week")
 class UsagePastWeek(Resource):
-    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
-    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).total_seconds())
+    @usage_ns.response(
+        HTTPStatus.OK, "Provides a url where to wait for Packit last week usage"
+    )
     def get(self):
-        past_week_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_week_date)
+        task = get_past_usage_data.delay(datetime_from=USAGE_PAST_WEEK_DATE_STR)
+        return redirect(f"past-week/{task.id}", code=302)
+
+
+@usage_ns.route("/past-week/<id>")
+@usage_ns.param("id", "Celery task id")
+class UsagePastWeekResult(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Provide data about Packit last week usage")
+    def get(self, id):
+        return _get_celery_result(id)
 
 
 @usage_ns.route("/past-month")
 class UsagePastMonth(Resource):
-    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
-    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).total_seconds())
+    @usage_ns.response(
+        HTTPStatus.OK, "Provides a url where to wait for Packit last month usage"
+    )
     def get(self):
-        now = datetime.now()
-        past_month_past_day = now.replace(day=1) - timedelta(days=1)
-        past_month_date = now.replace(
-            year=past_month_past_day.year, month=past_month_past_day.month
-        ).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_month_date)
+        task = get_past_usage_data.delay(datetime_from=USAGE_PAST_MONTH_DATE_STR)
+        return redirect(f"past-month/{task.id}", code=302)
+
+
+@usage_ns.route("/past-month/<id>")
+@usage_ns.param("id", "Celery task id")
+class UsagePastMonthResult(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit last month usage")
+    def get(self, id):
+        return _get_celery_result(id)
 
 
 @usage_ns.route("/past-year")
 class UsagePastYear(Resource):
-    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
-    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).total_seconds())
+    @usage_ns.response(
+        HTTPStatus.OK, "Provides a url where to wait for Packit last year usage"
+    )
     def get(self):
-        now = datetime.now()
-        past_year_date = now.replace(year=now.year - 1).strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_year_date)
+        task = get_past_usage_data.delay(datetime_from=USAGE_PAST_YEAR_DATE_STR)
+        return redirect(f"past-year/{task.id}", code=302)
+
+
+@usage_ns.route("/past-year/<id>")
+@usage_ns.param("id", "Celery task id")
+class UsagePastYearResult(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit last year usage")
+    def get(self, id):
+        return _get_celery_result(id)
 
 
 @usage_ns.route("/total")
 class UsageTotal(Resource):
-    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
-    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(days=1).total_seconds())
+    @usage_ns.response(
+        HTTPStatus.OK, "Provides a url where to wait for Packit total usage data"
+    )
     def get(self):
-        past_date = _DATE_IN_THE_PAST.strftime("%Y-%m-%d")
-        return _get_past_usage_data(datetime_from=past_date)
+        task = get_past_usage_data.delay(datetime_from=USAGE_DATE_IN_THE_PAST_STR)
+        return redirect(f"total/{task.id}", code=302)
 
 
-# format the chart needs is a list of {"x": "datetimelegend", "y": value}
-CHART_DATA_TYPE = list[dict[str, Union[str, int]]]
-
-
-@ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=timedelta(hours=1).total_seconds())
-def _get_usage_interval_data(
-    days: int, hours: int, count: int
-) -> dict[str, Union[str, CHART_DATA_TYPE, dict[str, CHART_DATA_TYPE]]]:
-    """
-    :param days: number of days for the interval length
-    :param hours: number of days for the interval length
-    :param count: number of intervals
-    :return: usage data for the COUNT number of intervals
-      (delta is DAYS number of days and HOURS number of hours)
-    """
-    delta = timedelta(days=days, hours=hours)
-
-    current_date = datetime.now()
-    days_legend = []
-    for _ in range(count):
-        days_legend.append(current_date)
-        current_date -= delta
-
-    result_jobs: dict[str, CHART_DATA_TYPE] = {}
-    result_jobs_project_count: dict[str, CHART_DATA_TYPE] = {}
-    result_jobs_project_cumulative_count: dict[str, CHART_DATA_TYPE] = {}
-    result_events: dict[str, CHART_DATA_TYPE] = {}
-    result_active_projects: CHART_DATA_TYPE = []
-    result_active_projects_cumulative: CHART_DATA_TYPE = []
-
-    past_data = get_usage_data(
-        datetime_from=_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
-    )
-    cumulative_projects_past = set(
-        past_data["active_projects"]["top_projects_by_events_handled"].keys()
-    )
-    cumulative_projects = cumulative_projects_past.copy()
-    cumulative_projects_for_jobs_past = {
-        job: set(data["top_projects_by_job_runs"].keys())
-        for job, data in past_data["jobs"].items()
-    }
-    cumulative_projects_for_jobs = cumulative_projects_for_jobs_past.copy()
-
-    for day in reversed(days_legend):
-        day_from = (day - delta).isoformat()
-        day_to = day.isoformat()
-        legend = day.strftime("%H:%M" if (hours and not days) else "%Y-%m-%d")
-
-        interval_result = get_usage_data(
-            datetime_from=day_from, datetime_to=day_to, top=100000
-        )
-
-        for job, data in interval_result["jobs"].items():
-            result_jobs.setdefault(job, [])
-            result_jobs[job].append({"x": legend, "y": data["job_runs"]})
-            result_jobs_project_count.setdefault(job, [])
-            result_jobs_project_count[job].append(
-                {"x": legend, "y": len(data["top_projects_by_job_runs"])}
-            )
-
-            cumulative_projects_for_jobs[job] |= data["top_projects_by_job_runs"].keys()
-            result_jobs_project_cumulative_count.setdefault(job, [])
-            result_jobs_project_cumulative_count[job].append(
-                {"x": legend, "y": len(cumulative_projects_for_jobs[job])}
-            )
-
-        for event, data in interval_result["events"].items():
-            result_events.setdefault(event, [])
-            result_events[event].append({"x": legend, "y": data["events_handled"]})
-
-        result_active_projects.append(
-            {"x": legend, "y": interval_result["active_projects"].get("project_count")}
-        )
-        cumulative_projects |= interval_result["active_projects"][
-            "top_projects_by_events_handled"
-        ].keys()
-        result_active_projects_cumulative.append(
-            {"x": legend, "y": len(cumulative_projects)}
-        )
-
-    onboarded_projects_per_job = {}
-    for job, data in past_data["jobs"].items():
-        onboarded_projects_per_job[job] = list(
-            cumulative_projects_for_jobs[job] - cumulative_projects_for_jobs_past[job]
-        )
-
-    return response_maker(
-        {
-            "jobs": result_jobs,
-            "jobs_project_count": result_jobs_project_count,
-            "jobs_project_cumulative_count": result_jobs_project_cumulative_count,
-            "events": result_events,
-            "from": days_legend[0].isoformat(),
-            "to": days_legend[-1].isoformat(),
-            "active_projects": result_active_projects,
-            "active_projects_cumulative": result_active_projects_cumulative,
-            "onboarded_projects": list(cumulative_projects - cumulative_projects_past),
-            "onboarded_projects_per_job": onboarded_projects_per_job,
-        }
-    )
+@usage_ns.route("/total/<id>")
+@usage_ns.param("id", "Celery task id")
+class UsageTotalResult(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit total usage")
+    def get(self, id):
+        return _get_celery_result(id)
 
 
 @usage_ns.route("/intervals")
 class UsageIntervals(Resource):
-    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    @usage_ns.response(HTTPStatus.OK, "Ask data about Packit interval usage")
     def get(self):
         """
-        Returns the data for trend charts.
+        Returns a new url where to wait for Celery task results.
 
         Use `days` and `hours` parameters to define interval and `count` to set number of intervals.
 
@@ -886,4 +484,18 @@ class UsageIntervals(Resource):
         count = int(escape(request.args.get("count", "10")))
         delta_hours = int(escape(request.args.get("hours", "0")))
         delta_days = int(escape(request.args.get("days", "0")))
-        return _get_usage_interval_data(hours=delta_hours, days=delta_days, count=count)
+        task = get_usage_interval_data.delay(
+            hours=delta_hours, days=delta_days, count=count
+        )
+        return redirect(f"intervals/{task.id}", code=302)
+
+
+@usage_ns.route("/intervals/<id>")
+@usage_ns.param("id", "Celery task id")
+class UsageIntervalsResult(Resource):
+    @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
+    def get(self, id):
+        """
+        Returns the data for trend charts collected by a celery worker.
+        """
+        return _get_celery_result(id)

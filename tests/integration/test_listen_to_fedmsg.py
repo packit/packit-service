@@ -7,7 +7,7 @@ from datetime import datetime
 
 import pytest
 import requests
-from celery.canvas import Signature
+from celery.canvas import group as celery_group, Signature
 from copr.v3 import Client
 from flexmock import flexmock
 
@@ -307,7 +307,7 @@ def test_copr_build_end(
 
     # no test job defined => testing farm should be skipped
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # fix SRPM url since it touches multiple classes
 
@@ -392,7 +392,7 @@ def test_copr_build_end_push(
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -464,7 +464,7 @@ def test_copr_build_end_release(
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     flexmock(CoprBuildJobHelper).should_receive("get_build_chroot").with_args(
         1, "some-target"
@@ -709,7 +709,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -854,7 +855,8 @@ def test_copr_build_end_testing_farm_pr_branch(copr_build_end, copr_build_pr):
         "https://github.com/foo/bar"
     )
 
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -988,7 +990,7 @@ def test_copr_build_end_testing_farm_different_pr_branch(copr_build_end, copr_bu
         "https://github.com/foo/bar"
     )
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1142,7 +1144,7 @@ def test_copr_build_end_testing_farm_manual_trigger(
         "https://github.com/foo/bar"
     )
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1281,7 +1283,8 @@ def test_copr_build_end_testing_farm_labels_matching(copr_build_end, copr_build_
         "https://github.com/foo/bar"
     )
 
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1419,7 +1422,7 @@ def test_copr_build_end_testing_farm_labels_not_matching(copr_build_end, copr_bu
         "https://github.com/foo/bar"
     )
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1528,7 +1531,8 @@ def test_copr_build_end_push_testing_farm(copr_build_end_push, copr_build_branch
         chroot=copr_build_end_push["chroot"],
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1632,7 +1636,7 @@ def test_copr_build_end_push_testing_farm_different_branch(
         chroot=copr_build_end_push["chroot"],
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1791,7 +1795,8 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
         "https://github.com/foo/bar"
     )
 
-    flexmock(Signature).should_receive("apply_async").times(3)
+    flexmock(Signature).should_receive("apply_async").times(2)
+    flexmock(celery_group).should_receive("apply_async").times(1)
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -1970,7 +1975,8 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     (
         flexmock(CoprBuildJobHelper)
@@ -2156,7 +2162,8 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     (
         flexmock(CoprBuildJobHelper)
@@ -2237,7 +2244,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
@@ -2291,7 +2298,7 @@ def test_copr_build_start_already_ended(copr_build_start, pc_build_pr, copr_buil
         update_feedback_time=object,
     ).never()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
@@ -2344,7 +2351,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     ).once()
 
     flexmock(CoprBuildJobHelper).should_receive("get_built_packages").and_return([])
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     (
         flexmock(CoprBuildJobHelper)
@@ -2403,7 +2410,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
@@ -2468,7 +2475,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         links_to_external_services=None,
         update_feedback_time=object,
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
@@ -2532,7 +2539,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     flexmock(srpm_build_model).should_receive("set_url").with_args(
         "https://my.host/my.srpm"
@@ -2596,7 +2603,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     flexmock(srpm_build_model).should_receive("set_url").with_args(
         "https://my.host/my.srpm"
@@ -2650,7 +2657,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
         update_feedback_time=object,
     ).once()
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(srpm_build_start)
     event_dict, job, job_config, package_config = get_parameters_from_results(
