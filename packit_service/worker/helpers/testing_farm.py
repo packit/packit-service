@@ -1283,7 +1283,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def get_test_check(self, chroot: str = None) -> str:
         return self.get_test_check_cls(
-            chroot, self.project_event_identifier_for_status, self.job_config.identifier
+            chroot,
+            self.project_event_identifier_for_status,
+            self.job_config.identifier,
+            package=self.get_package_name(),
+            template=self.job_config.status_name_template,
         )
 
     @property
