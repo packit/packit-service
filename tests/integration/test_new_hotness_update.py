@@ -5,7 +5,7 @@ import json
 import shutil
 
 import pytest
-from celery.canvas import Signature
+from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
 
@@ -206,7 +206,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
             project_event_model_type=ProjectEventModelType.release,
         )
     )
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
 

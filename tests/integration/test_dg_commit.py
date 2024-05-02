@@ -4,7 +4,7 @@
 import json
 
 import pytest
-from celery.canvas import Signature
+from celery.canvas import group
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
@@ -110,7 +110,7 @@ def test_sync_from_downstream():
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").once()
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("sync_from_downstream").with_args(
         dist_git_branch="main", upstream_branch="aaa", sync_only_specfile=True
@@ -282,7 +282,7 @@ def test_downstream_koji_build(sidetag_group):
         )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
@@ -379,7 +379,7 @@ def test_downstream_koji_build_failure_no_issue():
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
         scratch=False,
@@ -478,7 +478,7 @@ def test_downstream_koji_build_failure_issue_created():
     )
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
         scratch=False,
@@ -585,7 +585,7 @@ def test_downstream_koji_build_failure_issue_comment():
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
         scratch=False,
@@ -668,7 +668,7 @@ def test_downstream_koji_build_no_config():
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").times(0)
+    flexmock(group).should_receive("apply_async").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
     assert (
@@ -781,7 +781,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
     )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="a-different-branch",
