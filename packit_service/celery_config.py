@@ -14,6 +14,8 @@ imports = ("packit_service.worker.tasks", "packit_service.service.tasks")
 task_routes = {
     "task.babysit_vm_image_build": "long-running",
     "task.babysit_copr_build": "long-running",
+    "packit_service.service.tasks.get_past_usage_data": "long-running",
+    "packit_service.service.tasks.get_usage_interval_data": "long-running",
 }
 
 # https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html
