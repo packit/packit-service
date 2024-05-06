@@ -9,6 +9,10 @@ task_default_queue = packit_service.constants.CELERY_TASK_DEFAULT_QUEUE
 # https://docs.celeryq.dev/en/latest/userguide/configuration.html#conf-redis-result-backend
 result_backend = "redis"
 
+# do not store task results by default
+# https://docs.celeryq.dev/en/latest/userguide/configuration.html#task-ignore-result
+task_ignore_result = True
+
 imports = ("packit_service.worker.tasks", "packit_service.service.tasks")
 
 task_routes = {
