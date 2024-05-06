@@ -483,6 +483,14 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         message = f"No response for VM Image Build {build_id}: {ex}"
         logger.error(message)
         status = VMImageBuildStatus.error
+    except Exception as ex:
+        message = (
+            f"There was an exception when getting status of the VM "
+            f"Image Build {build_id}: {ex}"
+        )
+        logger.error(message)
+        # keep polling
+        return False
 
     if status in (
         VMImageBuildStatus.pending,
