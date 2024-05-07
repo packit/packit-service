@@ -575,6 +575,19 @@ def check_pending_vm_image_builds() -> None:
     pending_vm_image_builds = VMImageBuildTargetModel.get_all_by_status(
         VMImageBuildStatus.pending
     )
-
+    current_time = datetime.now(timezone.utc)
     for build in pending_vm_image_builds:
+        logger.debug(f"Checking status of VM image build {build.build_id}")
+        if build.build_submitted_time:
+            elapsed = elapsed_seconds(
+                begin=build.build_submitted_time, end=current_time
+            )
+            if elapsed > DEFAULT_JOB_TIMEOUT:
+                logger.info(
+                    f"VM image build {build.build_id} has been running for "
+                    f"{elapsed}s, probably an internal error occurred. "
+                    "Not checking it anymore."
+                )
+                build.set_status(VMImageBuildStatus.error)
+                continue
         update_vm_image_build(build.build_id, build)
