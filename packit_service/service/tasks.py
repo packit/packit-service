@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 CHART_DATA_TYPE = list[dict[str, Union[str, int]]]
 
 
-@celery_app.task
+@celery_app.task(ignore_result=False)
 def get_usage_interval_data(
     days: int, hours: int, count: int
 ) -> dict[str, Union[str, CHART_DATA_TYPE, dict[str, CHART_DATA_TYPE]]]:
@@ -164,7 +164,7 @@ def calculate_onboarded_projects():
     return {"onboarded": onboarded, "almost_onboarded": almost_onboarded}
 
 
-@celery_app.task
+@celery_app.task(ignore_result=False)
 def get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
     # Even though frontend expects only the first N (=5) to be present
     # in the project lists, we need to get all to calculate the number
