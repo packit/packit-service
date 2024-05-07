@@ -51,7 +51,7 @@ beat_schedule = {
     },
     "get_usage_statistics": {
         "task": "packit_service.worker.tasks.get_usage_statistics",
-        "schedule": crontab(minute=1, hour=0),  # nightly at 0AM
+        "schedule": 3600.0,
         "options": {"queue": "long-running"},
     },
 }
