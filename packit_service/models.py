@@ -972,7 +972,7 @@ class GitProjectModel(Base):
     @classmethod
     def get_known_onboarded_downstream_projects(
         cls,
-    ) -> set["GitProjectModel"]:
+    ) -> Set["GitProjectModel"]:
         """
         List already known onboarded projects.
         An onboarded project is a project with a bodhi update or a koji build
@@ -984,7 +984,7 @@ class GitProjectModel(Base):
             query = session.query(GitProjectModel).filter(
                 GitProjectModel.onboarded_downstream == True  # noqa
             )
-            return query.all()
+            return set(query.all())
 
     def __repr__(self):
         return (
@@ -2044,7 +2044,7 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
             )
 
     @classmethod
-    def get_all_projects(cls) -> Iterable["GitProjectModel"]:
+    def get_all_projects(cls) -> Set["GitProjectModel"]:
         """Get all git projects with a saved successfull bodhi update."""
         with sa_session_transaction() as session:
             query = (
@@ -2283,7 +2283,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         )
 
     @classmethod
-    def get_all_projects(cls) -> Iterable["GitProjectModel"]:
+    def get_all_projects(cls) -> Set["GitProjectModel"]:
         """Get all git projects with a successful downstream koji build."""
         with sa_session_transaction() as session:
             query = (
@@ -3787,3 +3787,45 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10) -> dict:
         },
         jobs=jobs,
     )
+
+
+@cached(cache=TTLCache(maxsize=1, ttl=(60 * 60 * 24)))
+def get_onboarded_projects() -> Tuple[dict[int, str], dict[int, str]]:
+    """Returns a tuple with two dictionaries of project IDs and URLs:
+    onboarded projects: projects which have a
+      merged downstream PR, a Koji build or a Bodhi update
+    almost onboarded projects: projects with
+      a downstream PR created but not yet merged
+    """
+    known_onboarded_projects = GitProjectModel.get_known_onboarded_downstream_projects()
+
+    bodhi_updates = BodhiUpdateTargetModel.get_all_projects()
+    koji_builds = KojiBuildTargetModel.get_all_projects()
+    onboarded_projects = bodhi_updates.union(koji_builds).union(
+        known_onboarded_projects
+    )
+
+    # find **downstream git projects** with a PR created by Packit
+    downstream_synced_projects = SyncReleaseTargetModel.get_all_downstream_projects()
+    # if there exist a downstream Packit PR we are not sure it has been
+    # merged, the project is *almost onboarded* until the PR is merged
+    # (unless we already know it has a koji build or bodhi update, then
+    # we don't need to check for a merged PR - it obviously has one)
+    almost_onboarded_projects = downstream_synced_projects.difference(
+        onboarded_projects
+    )
+    # do not re-check projects we already checked and we know they
+    # have a merged Packit PR
+    recheck_if_onboarded = almost_onboarded_projects.difference(
+        known_onboarded_projects
+    )
+
+    onboarded = {
+        project.id: project.project_url
+        for project in onboarded_projects.union(known_onboarded_projects)
+    }
+    almost_onboarded = {
+        project.id: project.project_url
+        for project in recheck_if_onboarded.difference(onboarded_projects)
+    }
+    return (onboarded, almost_onboarded)

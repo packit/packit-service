@@ -14,10 +14,7 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     get_usage_data,
-    GitProjectModel,
-    BodhiUpdateTargetModel,
-    KojiBuildTargetModel,
-    SyncReleaseTargetModel,
+    get_onboarded_projects,
 )
 
 logger = logging.getLogger(__name__)
@@ -128,38 +125,7 @@ def get_usage_interval_data(
 
 
 def calculate_onboarded_projects():
-    """As from goal defined in 2024 1st Quarter"""
-    known_onboarded_projects = GitProjectModel.get_known_onboarded_downstream_projects()
-
-    bodhi_updates = BodhiUpdateTargetModel.get_all_projects()
-    koji_builds = KojiBuildTargetModel.get_all_projects()
-    onboarded_projects = bodhi_updates.union(koji_builds).union(
-        known_onboarded_projects
-    )
-
-    # find **downstream git projects** with a PR created by Packit
-    downstream_synced_projects = SyncReleaseTargetModel.get_all_downstream_projects()
-    # if there exist a downstream Packit PR we are not sure it has been
-    # merged, the project is *almost onboarded* until the PR is merged
-    # (unless we already know it has a koji build or bodhi update, then
-    # we don't need to check for a merged PR - it obviously has one)
-    almost_onboarded_projects = downstream_synced_projects.difference(
-        onboarded_projects
-    )
-    # do not re-check projects we already checked and we know they
-    # have a merged Packit PR
-    recheck_if_onboarded = almost_onboarded_projects.difference(
-        known_onboarded_projects
-    )
-
-    onboarded = {
-        project.id: project.project_url
-        for project in onboarded_projects.union(known_onboarded_projects)
-    }
-    almost_onboarded = {
-        project.id: project.project_url
-        for project in recheck_if_onboarded.difference(onboarded_projects)
-    }
+    onboarded, almost_onboarded = get_onboarded_projects()
 
     return {"onboarded": onboarded, "almost_onboarded": almost_onboarded}
 
@@ -174,7 +140,8 @@ def get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
     # to get the expected number of projects in the response.
     top_all_project = 100000
 
-    num_of_onboarded_projects = len(calculate_onboarded_projects()["onboarded"])
+    onboarded = get_onboarded_projects()[0]
+    num_of_onboarded_projects = len(onboarded)
 
     raw_result = get_usage_data(
         datetime_from=datetime_from, datetime_to=datetime_to, top=top_all_project
