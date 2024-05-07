@@ -368,7 +368,7 @@ def _get_celery_result(id: str) -> Response:
 
     Wait here until the UX can deal with polling for the result.
     """
-    TIMEOUT = 5  # seconds
+    TIMEOUT = 15  # seconds
     STEP = 0.1  # second
     elapsed = 0.0
     while not (celery_app.AsyncResult(id).ready() or elapsed > TIMEOUT):
