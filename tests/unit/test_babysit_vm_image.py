@@ -1,5 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import datetime
+
 import pytest
 from flexmock import Mock
 from flexmock import flexmock
@@ -26,10 +28,38 @@ from packit_service.worker.monitoring import Pushgateway
 def test_check_pending_vm_image_builds():
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_status").with_args(
         VMImageBuildStatus.pending
-    ).and_return([flexmock(build_id=1)])
+    ).and_return(
+        [
+            flexmock(
+                build_id=1,
+                build_submitted_time=datetime.datetime.utcnow()
+                - datetime.timedelta(days=1),
+            )
+        ]
+    )
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_vm_image_build"
     ).with_args(1, Mock)
+    check_pending_vm_image_builds()
+
+
+def test_check_pending_vm_image_builds_timeout():
+    flexmock(VMImageBuildTargetModel).should_receive("get_all_by_status").with_args(
+        VMImageBuildStatus.pending
+    ).and_return(
+        [
+            flexmock(
+                build_id=1,
+                build_submitted_time=datetime.datetime.utcnow()
+                - datetime.timedelta(weeks=2),
+            )
+            .should_receive("set_status")
+            .mock()
+        ]
+    )
+    flexmock(packit_service.worker.helpers.build.babysit).should_receive(
+        "update_vm_image_build"
+    ).never()
     check_pending_vm_image_builds()
 
 
