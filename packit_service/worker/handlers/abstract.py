@@ -204,6 +204,8 @@ class Handler(PackitAPIProtocol, Config):
                     "namespace": self.project.namespace,
                 }
             )
+        if "package_name" in self.data.event_dict:
+            tags.update({"package_name": self.data.event_dict["package_name"]})
         return tags
 
     def run_n_clean(self) -> TaskResults:
