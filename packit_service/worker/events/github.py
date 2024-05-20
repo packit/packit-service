@@ -38,9 +38,9 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
         super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
-        self.identifier: Optional[
-            str
-        ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
+        self.identifier: Optional[str] = (
+            None  # will be shown to users -- e.g. in logs or in the copr-project name
+        )
 
 
 class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):

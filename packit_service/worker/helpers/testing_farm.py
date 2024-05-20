@@ -128,9 +128,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self._tft_api_url: str = ""
         self._tft_token: str = ""
         self.__pr = None
-        self._copr_builds_from_other_pr: Optional[
-            Dict[str, CoprBuildTargetModel]
-        ] = None
+        self._copr_builds_from_other_pr: Optional[Dict[str, CoprBuildTargetModel]] = (
+            None
+        )
         self._test_check_names: Optional[List[str]] = None
         self._comment_arguments: Optional[CommentArguments] = None
 
@@ -488,9 +488,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_UPSTREAM_NAME": self.job_config.upstream_package_name,
             "PACKIT_UPSTREAM_URL": self.job_config.upstream_project_url,
             "PACKIT_DOWNSTREAM_NAME": self.job_config.downstream_package_name,
-            "PACKIT_DOWNSTREAM_URL": self.job_config.downstream_project_url
-            if self.job_config.downstream_package_name
-            else None,
+            "PACKIT_DOWNSTREAM_URL": (
+                self.job_config.downstream_project_url
+                if self.job_config.downstream_package_name
+                else None
+            ),
             "PACKIT_PACKAGE_NAME": self.job_config.downstream_package_name,
             "PACKIT_PACKAGE_NVR": nvr,
             "PACKIT_BUILD_LOG_URL": build_log_url,
@@ -503,12 +505,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_SOURCE_URL": self.source_project_url,
             "PACKIT_TARGET_URL": self.target_project_url,
             "PACKIT_PR_ID": self.pr_id,
-            "PACKIT_COPR_PROJECT": " ".join(packit_copr_projects)
-            if packit_copr_projects
-            else None,
-            "PACKIT_COPR_RPMS": " ".join(packit_copr_rpms)
-            if packit_copr_rpms
-            else None,
+            "PACKIT_COPR_PROJECT": (
+                " ".join(packit_copr_projects) if packit_copr_projects else None
+            ),
+            "PACKIT_COPR_RPMS": (
+                " ".join(packit_copr_rpms) if packit_copr_rpms else None
+            ),
         }
         predefined_environment = {
             k: v for k, v in predefined_environment.items() if v is not None

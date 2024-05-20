@@ -259,11 +259,11 @@ class SteveJobs:
         """
         params = {
             "service_config": self.service_config,
-            "package_config": self.event.packages_config.get_package_config_for(
-                job_config
-            )
-            if self.event.packages_config
-            else None,
+            "package_config": (
+                self.event.packages_config.get_package_config_for(job_config)
+                if self.event.packages_config
+                else None
+            ),
             "project": self.event.project,
             "metadata": EventData.from_event_dict(self.event.get_dict()),
             "db_project_event": self.event.db_project_event,
@@ -554,9 +554,11 @@ class SteveJobs:
             return False
 
         if not handler_kls.pre_check(
-            package_config=self.event.packages_config.get_package_config_for(job_config)
-            if self.event.packages_config
-            else None,
+            package_config=(
+                self.event.packages_config.get_package_config_for(job_config)
+                if self.event.packages_config
+                else None
+            ),
             job_config=job_config,
             event=self.event.get_dict(),
         ):

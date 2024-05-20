@@ -5,6 +5,7 @@ Revises: 376bdebc4180
 Create Date: 2022-01-17 13:51:01.783926
 
 """
+
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
