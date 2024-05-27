@@ -42,6 +42,7 @@ repos:
         args:
           - --max-line-length=100
           - --per-file-ignores=files/packit.wsgi:F401,E402
+          - --extend-ignore=E701 # conflicting with black
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0
     hooks:
