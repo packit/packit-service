@@ -495,9 +495,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 ref=self.metadata.git_ref,
                 pr_id=str(pr_id) if pr_id else None,
                 merge_pr=self.package_config.merge_pr_in_ci,
-                target_branch=self.pull_request_object.target_branch
-                if self.pull_request_object
-                else None,
+                target_branch=(
+                    self.pull_request_object.target_branch
+                    if self.pull_request_object
+                    else None
+                ),
                 job_config_index=self.get_job_config_index(),
                 update_release=self.job_config.trigger != JobConfigTriggerType.release,
                 release_suffix=self.job_config.release_suffix,

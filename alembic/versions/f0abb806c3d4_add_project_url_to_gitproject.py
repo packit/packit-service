@@ -5,6 +5,7 @@ Revises: c6250555a36c
 Create Date: 2020-04-27 11:46:17.288814
 
 """
+
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa

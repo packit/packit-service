@@ -43,9 +43,9 @@ MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(se
 MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
     set
 )
-SUPPORTED_EVENTS_FOR_HANDLER: Dict[
-    Type["JobHandler"], Set[Type["Event"]]
-] = defaultdict(set)
+SUPPORTED_EVENTS_FOR_HANDLER: Dict[Type["JobHandler"], Set[Type["Event"]]] = (
+    defaultdict(set)
+)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 

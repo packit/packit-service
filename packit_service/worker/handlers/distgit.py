@@ -302,9 +302,11 @@ class AbstractSyncReleaseHandler(
         sync_release_model, _ = SyncReleaseModel.create_with_new_run(
             status=SyncReleaseStatus.running,
             project_event_model=self.data.db_project_event,
-            job_type=SyncReleaseJobType.propose_downstream
-            if self.job_config.type == JobType.propose_downstream
-            else SyncReleaseJobType.pull_from_upstream,
+            job_type=(
+                SyncReleaseJobType.propose_downstream
+                if self.job_config.type == JobType.propose_downstream
+                else SyncReleaseJobType.pull_from_upstream
+            ),
             package_name=self.get_package_name(),
         )
 

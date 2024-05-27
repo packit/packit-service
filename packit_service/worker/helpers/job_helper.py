@@ -83,12 +83,14 @@ class BaseJobHelper:
                 working_dir=self.service_config.command_handler_work_dir,
                 ref=self.metadata.git_ref,
                 pr_id=self.metadata.pr_id,
-                cache=RepositoryCache(
-                    cache_path=self.service_config.repository_cache,
-                    add_new=self.service_config.add_repositories_to_repository_cache,
-                )
-                if self.service_config.repository_cache
-                else None,
+                cache=(
+                    RepositoryCache(
+                        cache_path=self.service_config.repository_cache,
+                        add_new=self.service_config.add_repositories_to_repository_cache,
+                    )
+                    if self.service_config.repository_cache
+                    else None
+                ),
                 merge_pr=self.package_config.merge_pr_in_ci,
             )
         return self._local_project
@@ -164,9 +166,9 @@ class BaseJobHelper:
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 packit_user=self.service_config.get_github_account_name(),
-                project_event_id=self.db_project_event.id
-                if self.db_project_event
-                else None,
+                project_event_id=(
+                    self.db_project_event.id if self.db_project_event else None
+                ),
                 pr_id=self.metadata.pr_id,
             )
         return self._status_reporter

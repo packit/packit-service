@@ -5,6 +5,7 @@ Revises: a0e48c400be4
 Create Date: 2020-11-05 11:33:02.769607
 
 """
+
 from typing import TYPE_CHECKING
 
 from urllib.parse import urlparse
