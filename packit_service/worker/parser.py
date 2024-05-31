@@ -1111,6 +1111,8 @@ class Parser:
         dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
         dg_project_url = f"{dg_base_url}{dg_repo_namespace}/{dg_repo_name}"
 
+        dg_pr_id = nested_get(event, "pull_request_id")
+
         return PushPagureEvent(
             repo_namespace=dg_repo_namespace,
             repo_name=dg_repo_name,
@@ -1118,6 +1120,7 @@ class Parser:
             project_url=dg_project_url,
             commit_sha=dg_commit,
             committer=username,
+            pr_id=dg_pr_id,
         )
 
     @staticmethod

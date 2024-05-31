@@ -16,7 +16,7 @@ from packit.api import PackitAPI
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 
-from ogr.abstract import GitProject, PullRequest, PRStatus
+from ogr.abstract import GitProject, PullRequest
 
 from packit_service.config import ServiceConfig
 from packit_service.worker.reporting import BaseCommitStatus
@@ -250,19 +250,12 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
     @property
     def pull_request(self):
         if not self._pull_request:
-            logger.debug(
-                f"Getting pull request with head commit {self.data.commit_sha}"
-                f"for repo {self.project.namespace}/{self.project.repo}"
-            )
-            # We are interested just in merge commits.
-            commit_merge_prs = [
-                pr
-                for pr in self.project.get_pr_list(status=PRStatus.all)
-                if pr.head_commit == self.data.commit_sha
-                and pr.target_branch == self.data.git_ref
-            ]
-            if commit_merge_prs:
-                self._pull_request = commit_merge_prs[0]
+            if self.data.pr_id:
+                logger.debug(
+                    f"Getting pull request #{self.data.pr_id}"
+                    f"for repo {self.project.namespace}/{self.project.repo}"
+                )
+                self._pull_request = self.project.get_pr(self.data.pr_id)
         return self._pull_request
 
     def get_pr_author(self):
