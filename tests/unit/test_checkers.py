@@ -1025,16 +1025,14 @@ def test_labels_on_distgit_pr(
     )
     job_config = jobs[0]
 
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
-                status=PRStatus.open,
-                labels=pr_labels,
-                target_branch="f36",
-            )
-        ]
+    flexmock(PagureProject).should_receive("get_pr").and_return(
+        flexmock(
+            id=5,
+            head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
+            status=PRStatus.open,
+            labels=pr_labels,
+            target_branch="f36",
+        )
     )
 
     checker = LabelsOnDistgitPR(

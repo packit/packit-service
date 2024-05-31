@@ -60,8 +60,9 @@ class PushPagureEvent(AddBranchPushEventToDb, AbstractPagureEvent):
         project_url: str,
         commit_sha: str,
         committer: str,
+        pr_id: Optional[int],
     ):
-        super().__init__(project_url=project_url)
+        super().__init__(project_url=project_url, pr_id=pr_id)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref

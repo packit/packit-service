@@ -318,16 +318,7 @@ def test_downstream_koji_build_failure_no_issue():
         get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
         default_branch="main",
     )
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author="author",
-                head_commit="not-the-same-commit-hash",
-                status=PRStatus.open,
-            )
-        ]
-    )
+    flexmock(PagureProject).should_receive("get_pr").never()
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
@@ -418,16 +409,7 @@ def test_downstream_koji_build_failure_issue_created():
         get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
         default_branch="main",
     )
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author="author",
-                head_commit="not-the-same-commit-hash",
-                status=PRStatus.open,
-            )
-        ]
-    )
+    flexmock(PagureProject).should_receive("get_pr").never()
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
@@ -524,16 +506,7 @@ def test_downstream_koji_build_failure_issue_comment():
         get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
         default_branch="main",
     )
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author="author",
-                head_commit="not-the-same-commit-hash",
-                status=PRStatus.open,
-            )
-        ]
-    )
+    flexmock(PagureProject).should_receive("get_pr").never()
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
@@ -633,16 +606,7 @@ def test_downstream_koji_build_no_config():
         get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
         default_branch="main",
     )
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author="author",
-                head_commit="not-the-same-commit-hash",
-                status=PRStatus.open,
-            )
-        ]
-    )
+    flexmock(PagureProject).should_receive("get_pr").never()
     pagure_project.should_receive("get_files").with_args(
         ref="main", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
@@ -715,16 +679,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         f"'jobs': {jobs_config},"
         "'downstream_package_name': 'buildah'}"
     )
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author="author",
-                head_commit="not-the-same-commit-hash",
-                status=PRStatus.open,
-            )
-        ]
-    )
+    flexmock(PagureProject).should_receive("get_pr").never()
     pagure_project = flexmock(
         PagureProject,
         full_repo_name="rpms/buildah",
@@ -902,16 +857,8 @@ def test_precheck_koji_build_push(
     distgit_push_event, push_username, allowed_committers, should_pass
 ):
     distgit_push_event.committer = push_username
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author="author",
-                head_commit="not-the-same-commit-hash",
-                status=PRStatus.open,
-            )
-        ]
-    )
+    distgit_push_event = flexmock(distgit_push_event, _pr_id=None)
+    flexmock(PagureProject).should_receive("get_pr").never()
 
     flexmock(GitProjectModel).should_receive("get_or_create").with_args(
         namespace="rpms",
@@ -1017,16 +964,14 @@ def test_precheck_koji_build_push_pr(
             },
         ),
     ]
-    flexmock(PagureProject).should_receive("get_pr_list").and_return(
-        [
-            flexmock(
-                id=5,
-                author=pr_author,
-                head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
-                status=PRStatus.open,
-                target_branch="f36",
-            )
-        ]
+    flexmock(PagureProject).should_receive("get_pr").and_return(
+        flexmock(
+            id=5,
+            author=pr_author,
+            head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
+            status=PRStatus.open,
+            target_branch="f36",
+        )
     )
     flexmock(PagureProject).should_receive("get_pr_files_diff").with_args(
         5, retries=int, wait_seconds=int
