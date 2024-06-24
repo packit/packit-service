@@ -19,7 +19,7 @@ from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit.distgit import DistGit
 from packit.exceptions import PackitException
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
 from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
@@ -135,6 +135,7 @@ jobs:
     )
     flexmock(project_class).should_receive("get_releases").and_return([gr])
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     lp = flexmock(git_project=flexmock(default_branch="main"))
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)

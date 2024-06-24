@@ -36,6 +36,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
     job_type_test = None
     status_name_build: str = "koji-build"
     status_name_test: str = None
+    require_git_repo_in_local_project: bool = True
 
     def __init__(
         self,

@@ -1,15 +1,9 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from pathlib import Path
 
 import pytest
 from flexmock import flexmock
 
-from packit.config.notifications import (
-    NotificationsConfig,
-    FailureCommentNotificationsConfig,
-)
-from packit.copr_helper import CoprHelper
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -18,6 +12,11 @@ from packit.config import (
     PackageConfig,
 )
 from packit.config.aliases import get_build_targets
+from packit.config.notifications import (
+    NotificationsConfig,
+    FailureCommentNotificationsConfig,
+)
+from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
@@ -2786,7 +2785,7 @@ def test_repository_cache_invocation():
     service_config.add_repositories_to_repository_cache = False
     service_config.command_handler_work_dir = "/tmp/some-dir"
 
-    copr_build_helper = CoprBuildJobHelper(
+    copr_build_helper = KojiBuildJobHelper(
         service_config=service_config,
         package_config=PackageConfig(
             jobs=[
@@ -2828,8 +2827,7 @@ def test_repository_cache_invocation():
 
     flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(RepositoryCache).should_receive("get_repo").with_args(
-        "https://github.com/some-namespace/some-repo.git",
-        directory=Path("/tmp/some-dir"),
+        "https://github.com/some-namespace/some-repo.git", directory="/tmp/some-dir"
     ).and_return(
         flexmock(
             git=flexmock().should_receive("checkout").and_return().mock(),
