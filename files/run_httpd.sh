@@ -29,6 +29,7 @@ HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVIC
 exec mod_wsgi-express-3 start-server \
     --access-log \
     --log-to-terminal \
+    --http2 \
     --https-port "${HTTPS_PORT:-8443}" \
     --ssl-certificate-file /secrets/fullchain.pem \
     --ssl-certificate-key-file /secrets/privkey.pem \

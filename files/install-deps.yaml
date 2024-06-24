@@ -16,6 +16,7 @@
           - git # setuptools-scm
           # httpd & deps
           - python3-mod_wsgi
+          - mod_http2
           - mod_ssl
           - python3-alembic
           - python3-sqlalchemy
