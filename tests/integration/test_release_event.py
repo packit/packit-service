@@ -36,6 +36,7 @@ from packit_service.models import (
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.handlers.distgit import AbstractSyncReleaseHandler
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
@@ -928,4 +929,96 @@ def test_dont_retry_propose_downstream_task(
 
     results = run_propose_downstream_handler(event_dict, package_config, job_config)
 
+    assert not first_dict_value(results["job"])["success"]
+
+
+def test_dist_git_push_release_failed_issue_creation_disabled(
+    github_release_webhook,
+    fedora_branches,
+    propose_downstream_model,
+    propose_downstream_target_models,
+):
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        ", jobs: ["
+        "{trigger: release, job: propose_downstream, "
+        "targets:[], dist_git_branches: fedora-all, notifications: "
+        "{failure_issue: {create: false}}}]}"
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    table_content = ""
+    for model in propose_downstream_target_models:
+        model.set_status(SyncReleaseTargetStatus.error)
+
+    for model in sorted(
+        propose_downstream_target_models, key=lambda model: model.branch
+    ):
+        table_content += (
+            f"| `{model.branch}` | See {get_propose_downstream_info_url(model.id)} |\n"
+        )
+    project = (
+        flexmock(
+            get_file_content=lambda path, ref: packit_yaml,
+            full_repo_name="packit-service/hello-world",
+            repo="hello-world",
+            namespace="packit-service",
+            get_files=lambda ref, recursive: ["packit.yaml"],
+            get_sha_from_tag=lambda tag_name: "123456",
+            get_web_url=lambda: "https://github.com/packit/hello-world",
+            is_private=lambda: False,
+            default_branch="main",
+        )
+        .should_receive("create_issue")
+        .never()
+        .mock()
+    )
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.git_project = project
+    lp.git_url = "https://src.fedoraproject.org/rpms/hello-world.git"
+    lp.working_dir = ""
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
+    )
+
+    flexmock(Allowlist, check_and_report=True)
+    ServiceConfig().get_service_config().get_project = (
+        lambda url, required=True: project
+    )
+
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.release,
+            id=123,
+            project_event_model_type=ProjectEventModelType.release,
+        )
+    )
+
+    for model in propose_downstream_target_models:
+        flexmock(AbstractSyncReleaseHandler).should_receive(
+            "run_for_target"
+        ).and_return("some error")
+    flexmock(propose_downstream_model).should_receive("set_status").with_args(
+        status=SyncReleaseStatus.error
+    ).once()
+
+    flexmock(shutil).should_receive("rmtree").with_args("")
+    flexmock(group).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
     assert not first_dict_value(results["job"])["success"]
