@@ -539,6 +539,10 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         return (IsUpstreamTagMatchingConfig,)
 
     def _report_errors_for_each_branch(self, message: str) -> None:
+        if not self.job_config.notifications.failure_issue.create:
+            logger.debug("Reporting via issues disabled in config, skipping.")
+            return
+
         msg_retrigger = MSG_RETRIGGER.format(
             job="update",
             command="propose-downstream",
