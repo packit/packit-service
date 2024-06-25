@@ -43,6 +43,7 @@ from sqlalchemy import (
     null,
     case,
     Table,
+    asc,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.ext.declarative import declarative_base
@@ -1571,6 +1572,7 @@ class PipelineModel(Base):
                     else_=PipelineModel.id,
                 ),
             )
+            .order_by(asc("merged_id"))
             .first()
         )
 
