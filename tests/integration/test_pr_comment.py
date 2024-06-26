@@ -23,7 +23,7 @@ from packit.config import (
 from packit.copr_helper import CoprHelper
 from packit.distgit import DistGit
 from packit.exceptions import PackitConfigException
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.upstream import Upstream
 from packit.utils.koji_helper import KojiHelper
 from packit_service.config import ServiceConfig
@@ -191,6 +191,7 @@ def mock_pr_comment_functionality(request):
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(db_project_object)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     flexmock(Allowlist, check_and_report=True)
 
 
@@ -2426,7 +2427,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     )
 
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
-
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(celery_group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -2636,6 +2637,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         default_branch="main",
     )
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.working_dir = ""
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)

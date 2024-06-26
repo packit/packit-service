@@ -6,9 +6,10 @@ import json
 import pytest
 from celery.canvas import group
 from flexmock import flexmock
+
+from ogr.abstract import PRStatus
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
-
 from packit.api import PackitAPI
 from packit.config import (
     CommonPackageConfig,
@@ -19,7 +20,7 @@ from packit.config import (
     PackageConfig,
 )
 from packit.exceptions import PackitException
-from packit.local_project import LocalProject
+from packit.local_project import LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
 from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter, ProjectToSync, ServiceConfig
@@ -43,8 +44,6 @@ from packit_service.worker.tasks import (
     run_downstream_koji_build,
     run_sync_from_downstream_handler,
 )
-
-from ogr.abstract import PRStatus
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -108,7 +107,7 @@ def test_sync_from_downstream():
         )
     )
 
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -281,7 +280,7 @@ def test_downstream_koji_build(sidetag_group):
             {"name": koji_target}
         )
 
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -369,7 +368,7 @@ def test_downstream_koji_build_failure_no_issue():
     )
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
@@ -459,7 +458,7 @@ def test_downstream_koji_build_failure_issue_created():
         flexmock(grouped_targets=[koji_build])
     )
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
@@ -557,7 +556,7 @@ def test_downstream_koji_build_failure_issue_comment():
     )
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
@@ -631,7 +630,7 @@ def test_downstream_koji_build_no_config():
     )
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
@@ -735,7 +734,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         flexmock(grouped_targets=[koji_build])
     )
 
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -838,7 +837,7 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
     )
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(PackitAPI).should_receive("build").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())

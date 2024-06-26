@@ -14,7 +14,7 @@ from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit.distgit import DistGit
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     ProjectEventModelType,
@@ -126,6 +126,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         default_branch="main",
     )
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.working_dir = ""
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)

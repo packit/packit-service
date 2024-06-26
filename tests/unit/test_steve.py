@@ -18,7 +18,7 @@ from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     TASK_ACCEPTED,
@@ -84,8 +84,8 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     gh_project.should_receive("get_files").and_return([])  # specfile
     gh_project.should_receive("get_files").and_return(["packit.yaml", "setup.cfg"])
     gh_project.default_branch = "main"
-
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.git_project = gh_project
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)

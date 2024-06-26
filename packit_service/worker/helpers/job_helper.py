@@ -12,7 +12,12 @@ from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
-from packit.local_project import LocalProject
+from packit.local_project import (
+    LocalProject,
+    LocalProjectBuilder,
+    CALCULATE,
+    NOT_TO_CALCULATE,
+)
 from packit.utils.repo import RepositoryCache
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import (
@@ -28,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 class BaseJobHelper:
+    require_git_repo_in_local_project: bool = False
+
     def __init__(
         self,
         service_config: ServiceConfig,
@@ -78,11 +85,7 @@ class BaseJobHelper:
     @property
     def local_project(self) -> LocalProject:
         if self._local_project is None:
-            self._local_project = LocalProject(
-                git_project=self.project,
-                working_dir=self.service_config.command_handler_work_dir,
-                ref=self.metadata.git_ref,
-                pr_id=self.metadata.pr_id,
+            builder = LocalProjectBuilder(
                 cache=(
                     RepositoryCache(
                         cache_path=self.service_config.repository_cache,
@@ -91,7 +94,22 @@ class BaseJobHelper:
                     if self.service_config.repository_cache
                     else None
                 ),
+            )
+            self._local_project = builder.build(
+                git_project=self.project,
+                working_dir=self.service_config.command_handler_work_dir,
+                ref=self.metadata.git_ref,
+                pr_id=self.metadata.pr_id,
                 merge_pr=self.package_config.merge_pr_in_ci,
+                git_url=CALCULATE,
+                repo_name=CALCULATE,
+                full_name=CALCULATE,
+                namespace=CALCULATE,
+                git_repo=(
+                    CALCULATE
+                    if self.require_git_repo_in_local_project
+                    else NOT_TO_CALCULATE
+                ),
             )
         return self._local_project
 

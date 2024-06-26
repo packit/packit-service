@@ -14,7 +14,7 @@ from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit.distgit import DistGit
 from packit.exceptions import PackitDownloadFailedException
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.pkgtool import PkgTool
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -169,7 +169,8 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         is_private=lambda: False,
         default_branch="main",
     )
-    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.working_dir = ""
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
@@ -295,6 +296,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         is_private=lambda: False,
         default_branch="main",
     )
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(LocalProject).should_receive("git_repo").and_return(
         flexmock(
@@ -437,6 +439,8 @@ def test_dist_git_push_release_handle_one_failed(
         .mock()
     )
     project.should_receive("get_issue_list").and_return([])
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(LocalProject).should_receive("git_repo").and_return(
         flexmock(
@@ -616,7 +620,8 @@ def test_dist_git_push_release_handle_all_failed(
         .mock()
     )
     project.should_receive("get_issue_list").and_return([])
-    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.git_project = project
     lp.git_url = "https://src.fedoraproject.org/rpms/hello-world.git"
     lp.working_dir = ""
@@ -722,7 +727,8 @@ def test_retry_propose_downstream_task(
         default_branch="main",
     )
 
-    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.git_project = project
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
@@ -844,7 +850,8 @@ def test_dont_retry_propose_downstream_task(
     )
     project.should_receive("get_issue_list").and_return([]).once()
 
-    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.git_project = project
     lp.git_url = "https://src.fedoraproject.org/rpms/hello-world.git"
     lp.working_dir = ""
@@ -972,7 +979,8 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
         .never()
         .mock()
     )
-    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.git_project = project
     lp.git_url = "https://src.fedoraproject.org/rpms/hello-world.git"
     lp.working_dir = ""

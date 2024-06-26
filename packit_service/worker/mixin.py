@@ -13,7 +13,7 @@ from fasjson_client.errors import APIError
 from ogr.abstract import Issue
 
 from packit.api import PackitAPI
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder, CALCULATE
 from packit.utils.repo import RepositoryCache
 
 from ogr.abstract import GitProject, PullRequest
@@ -214,10 +214,9 @@ class LocalProjectMixin(Config):
 
     @property
     def local_project(self) -> LocalProject:
+
         if not self._local_project:
-            kwargs = dict(
-                working_dir=Path(self.service_config.command_handler_work_dir)
-                / SANDCASTLE_LOCAL_PROJECT_DIR,
+            builder = LocalProjectBuilder(
                 cache=(
                     RepositoryCache(
                         cache_path=self.service_config.repository_cache,
@@ -225,13 +224,27 @@ class LocalProjectMixin(Config):
                     )
                     if self.service_config.repository_cache
                     else None
-                ),
+                )
             )
+            working_dir = Path(
+                Path(self.service_config.command_handler_work_dir)
+                / SANDCASTLE_LOCAL_PROJECT_DIR
+            )
+            kwargs = dict(
+                repo_name=CALCULATE,
+                full_name=CALCULATE,
+                namespace=CALCULATE,
+                working_dir=working_dir,
+                git_repo=CALCULATE,
+            )
+
             if self.project:
                 kwargs["git_project"] = self.project
             else:
                 kwargs["git_url"] = self.project_url
-            self._local_project = LocalProject(**kwargs)
+
+            self._local_project = builder.build(**kwargs)
+
         return self._local_project
 
 
