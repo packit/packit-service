@@ -232,12 +232,13 @@ def test_issue_comment_propose_downstream_handler(
         job_type=SyncReleaseJobType.propose_downstream,
         package_name="packit",
     ).and_return(propose_downstream_model, run_model).once()
+    sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
         pr_id=1,
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
-    ).and_return(object)
+    ).and_return(sync_release_pr_model)
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
@@ -249,7 +250,7 @@ def test_issue_comment_propose_downstream_handler(
         downstream_pr_url="https://xyz"
     )
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object
+        downstream_pr=sync_release_pr_model
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted
