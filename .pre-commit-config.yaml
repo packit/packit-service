@@ -8,7 +8,7 @@ repos:
     hooks:
       - id: black
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.2
+    rev: v3.16.0
     hooks:
       - id: pyupgrade
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -36,7 +36,7 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
+    rev: 7.1.0
     hooks:
       - id: flake8
         args:
@@ -44,7 +44,7 @@ repos:
           - --per-file-ignores=files/packit.wsgi:F401,E402
           - --extend-ignore=E701 # conflicting with black
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+    rev: v1.10.1
     hooks:
       - id: mypy
         args: [
@@ -106,14 +106,14 @@ repos:
         files: /tests_openshift.*\.yaml$
         stages: [manual, push]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.2
+    rev: v8.18.4
     hooks:
       - id: gitleaks
         # The hook runs 'gitleaks protect --staged' which parses output of
         # 'git diff --staged', i.e. always passes in pre-push/manual stage.
         stages: [commit]
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.28.4
+    rev: 0.28.6
     hooks:
       - id: check-github-workflows
         args: ["--verbose"]
