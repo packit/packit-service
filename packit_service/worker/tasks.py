@@ -72,7 +72,10 @@ from packit_service.worker.handlers.distgit import (
     PullFromUpstreamHandler,
 )
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
-from packit_service.worker.handlers.koji import KojiBuildReportHandler
+from packit_service.worker.handlers.koji import (
+    KojiBuildReportHandler,
+    KojiBuildTagHandler,
+)
 from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
@@ -555,6 +558,12 @@ def babysit_vm_image_build(self, build_id: int):
         raise PackitVMImageBuildTimeoutException(
             f"No feedback for vm image build id={build_id} yet"
         )
+
+
+@celery_app.task(name=TaskName.koji_build_tag, base=TaskWithRetry)
+def run_koji_build_tag_handler(event: dict, package_config: dict, job_config: dict):
+    handler = KojiBuildTagHandler(package_config=None, job_config=None, event=event)
+    return get_handlers_task_results(handler.run_job(), event)
 
 
 def get_handlers_task_results(results: dict, event: dict) -> dict:

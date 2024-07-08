@@ -75,6 +75,7 @@ from packit_service.worker.events import (
     IssueCommentEvent,
     IssueCommentGitlabEvent,
 )
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -877,6 +878,7 @@ class AbstractDownstreamKojiBuildHandler(
 @run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
 @reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=KojiBuildTagEvent)
 class DownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,
     ConfigFromEventMixin,
@@ -921,6 +923,11 @@ class DownstreamKojiBuildHandler(
             trigger_type_description += (
                 f"Fedora Koji build was triggered "
                 f"by push with sha {self.data.commit_sha}."
+            )
+        elif self.data.event_type == KojiBuildTagEvent.__name__:
+            trigger_type_description += (
+                f"Fedora Koji build was triggered "
+                f"by tagging of build {self.data.build_id} to {self.data.koji_tag_name}."
             )
         return trigger_type_description
 

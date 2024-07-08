@@ -24,6 +24,7 @@ from packit.config import (
 from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+from packit.utils.koji_helper import KojiHelper
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
 from packit_service.models import (
@@ -37,6 +38,7 @@ from packit_service.models import (
     BuildStatus,
     ProjectReleaseModel,
     GitBranchModel,
+    SidetagModel,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -45,6 +47,7 @@ from packit_service.service.urls import (
 )
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -53,6 +56,7 @@ from packit_service.worker.tasks import (
     run_copr_build_end_handler,
     run_copr_build_start_handler,
     run_koji_build_report_handler,
+    run_koji_build_tag_handler,
     run_testing_farm_handler,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -162,6 +166,56 @@ def pc_koji_build_pr():
             "package": CommonPackageConfig(
                 specfile_path="test.spec",
             )
+        },
+    )
+
+
+@pytest.fixture(scope="module")
+def pc_koji_build_tag_specfile():
+    return PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.koji_build,
+                trigger=JobConfigTriggerType.commit,
+                sidetag_group="test",
+                dependents=["packit"],
+                packages={
+                    "specfile": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="python-specfile.spec",
+                    )
+                },
+            ),
+        ],
+        packages={
+            "specfile": CommonPackageConfig(
+                specfile_path="python-specfile.spec",
+            ),
+        },
+    )
+
+
+@pytest.fixture(scope="module")
+def pc_koji_build_tag_packit():
+    return PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.koji_build,
+                trigger=JobConfigTriggerType.koji_build,
+                sidetag_group="test",
+                dependencies=["python-specfile"],
+                packages={
+                    "packit": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="packit.spec",
+                    )
+                },
+            ),
+        ],
+        packages={
+            "packit": CommonPackageConfig(
+                specfile_path="packit.spec",
+            ),
         },
     )
 
@@ -2485,6 +2539,47 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     assert json.dumps(event_dict)
 
     results = run_koji_build_report_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_koji_build_tag(
+    koji_build_tagged, pc_koji_build_tag_specfile, pc_koji_build_tag_packit
+):
+    flexmock(KojiHelper).should_receive("get_build_info").with_args(1234567).and_return(
+        {"task_id": 7654321}
+    )
+
+    flexmock(KojiBuildTagEvent).should_receive("get_packages_config").and_return(
+        pc_koji_build_tag_specfile
+    )
+
+    flexmock(SidetagModel).should_receive("get_by_koji_name").with_args(
+        "f40-build-side-12345"
+    ).and_return(flexmock(sidetag_group=flexmock(name="test"), target="f40"))
+
+    flexmock(KojiHelper).should_receive("get_builds_in_tag").with_args(
+        "f40-build-side-12345"
+    ).and_return([{"package_name": "python-specfile"}])
+
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo"
+    ).and_return(pc_koji_build_tag_specfile).and_return(pc_koji_build_tag_packit)
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(koji_build_tagged)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_koji_build_tag_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,

@@ -6,8 +6,11 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
+from os import getenv
 from datetime import datetime
 from typing import Optional, Tuple, Type
+
+from celery import signature
 
 from ogr.abstract import GitProject
 from packit.config import (
@@ -15,14 +18,22 @@ from packit.config import (
     JobType,
 )
 from packit.config.package_config import PackageConfig
+from packit.constants import DISTGIT_INSTANCES
+from packit.utils.koji_helper import KojiHelper
+from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     KojiBuildState,
 )
 from packit_service.constants import KojiTaskState
+from packit_service.utils import (
+    dump_job_config,
+    dump_package_config,
+)
 from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
     ProjectEventModel,
+    SidetagModel,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -31,6 +42,7 @@ from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.koji import (
     PermissionOnKoji,
     IsJobConfigTriggerMatching,
+    SidetagExists,
 )
 from packit_service.worker.events import (
     CheckRerunCommitEvent,
@@ -45,7 +57,7 @@ from packit_service.worker.events import (
     AbstractPRCommentEvent,
     ReleaseGitlabEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -353,4 +365,90 @@ class KojiBuildReportHandler(
         )
         self.build.set_build_logs_urls(koji_build_logs)
 
+        return TaskResults(success=True, details={"msg": msg})
+
+
+@configured_as(job_type=JobType.koji_build_tag)
+@reacts_to(event=KojiBuildTagEvent)
+class KojiBuildTagHandler(
+    JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+):
+    task_name = TaskName.koji_build_tag
+
+    _koji_helper: Optional[KojiHelper] = None
+
+    @property
+    def koji_helper(self):
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (SidetagExists,)
+
+    def run(self) -> TaskResults:
+        dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
+        sidetag = SidetagModel.get_by_koji_name(self.data.tag_name)
+        sidetag_group = sidetag.sidetag_group.name
+        builds = self.koji_helper.get_builds_in_tag(self.data.tag_name)
+        tagged_packages = {b["package_name"] for b in builds}
+        logger.debug(f"Packages tagged into {self.data.tag_name}: {tagged_packages}")
+
+        packages_to_trigger = set()
+        for package_name in tagged_packages:
+            distgit_project_url = f"{dg_base_url}rpms/{package_name}"
+            project = self.service_config.get_project(url=distgit_project_url)
+            packages_config = PackageConfigGetter.get_package_config_from_repo(
+                base_project=None,
+                project=project,
+                pr_id=None,
+                reference=None,
+                fail_when_missing=False,
+            )
+            if not packages_config:
+                logger.debug(
+                    f"Packit config not found for package {package_name}, skipping."
+                )
+                continue
+            for job in packages_config.get_job_views():
+                if (
+                    job.type == JobType.koji_build
+                    and job.sidetag_group == sidetag_group
+                ):
+                    packages_to_trigger.update(job.dependents)
+        logger.debug(f"Packages to trigger: {packages_to_trigger}")
+
+        for package_name in packages_to_trigger:
+            distgit_project_url = f"{dg_base_url}rpms/{package_name}"
+            project = self.service_config.get_project(url=distgit_project_url)
+            packages_config = PackageConfigGetter.get_package_config_from_repo(
+                base_project=None,
+                project=project,
+                pr_id=None,
+                reference=None,
+                fail_when_missing=False,
+            )
+            if not packages_config:
+                logger.debug(
+                    f"Packit config not found for package {package_name}, skipping."
+                )
+                continue
+            for job in packages_config.get_job_views():
+                if (
+                    job.type == JobType.koji_build
+                    and job.sidetag_group == sidetag_group
+                ):
+                    event_dict = self.data.get_dict()
+                    event_dict["git_ref"] = sidetag.target
+                    signature(
+                        TaskName.downstream_koji_build.value,
+                        kwargs={
+                            "event": event_dict,
+                            "package_config": dump_package_config(packages_config),
+                            "job_config": dump_job_config(job),
+                        },
+                    ).apply_async()
+
+        msg = f"Tag {self.data.tag_name} event handled."
         return TaskResults(success=True, details={"msg": msg})

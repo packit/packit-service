@@ -1,0 +1,26 @@
+{
+  "body": {
+    "base_url": "https://koji.fedoraproject.org",
+    "build_id": 1234567,
+    "instance": "primary",
+    "name": "python-specfile",
+    "owner": "nforro",
+    "release": "1.fc40",
+    "tag": "f40-build-side-12345",
+    "tag_id": 12345,
+    "user": "nforro",
+    "version": "0.31.0"
+  },
+  "headers": {
+    "fedora_messaging_rpm_python-specfile": true,
+    "fedora_messaging_schema": "koji_fedoramessaging.tag.TagV1",
+    "fedora_messaging_severity": 10,
+    "fedora_messaging_user_nforro": true,
+    "priority": 2,
+    "sent-at": "2024-06-20T15:04:24+00:00"
+  },
+  "id": "0b2addd5-e1b8-4ebe-9e2a-9b1b21a8bbad",
+  "priority": 2,
+  "queue": null,
+  "topic": "org.fedoraproject.prod.buildsys.tag"
+}

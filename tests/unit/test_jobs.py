@@ -46,7 +46,11 @@ from packit_service.worker.events import (
     VMImageBuildResultEvent,
     AbstractCoprBuildEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent, AbstractKojiEvent
+from packit_service.worker.events.koji import (
+    KojiBuildEvent,
+    KojiBuildTagEvent,
+    AbstractKojiEvent,
+)
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -60,7 +64,10 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
-from packit_service.worker.handlers.koji import KojiBuildReportHandler
+from packit_service.worker.handlers.koji import (
+    KojiBuildReportHandler,
+    KojiBuildTagHandler,
+)
 from packit_service.worker.jobs import SteveJobs, get_handlers_for_check_rerun
 from packit_service.worker.result import TaskResults
 
@@ -893,6 +900,19 @@ from packit_service.worker.result import TaskResults
             {KojiBuildHandler},
             id="Upstream Koji build on release on GitLab",
         ),
+        pytest.param(
+            KojiBuildTagEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.koji_build),
+            [
+                JobConfig(
+                    type=JobType.koji_build_tag,
+                    trigger=JobConfigTriggerType.koji_build,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {KojiBuildTagHandler},
+            id="Koji build tagged",
+        ),
     ],
 )
 def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
@@ -909,7 +929,9 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
 
         @property
         def packages_config(self):
-            return flexmock(get_job_views=lambda: jobs)
+            return flexmock(
+                get_job_views=lambda: jobs, packages={"package": CommonPackageConfig()}
+            )
 
     event = Event()
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
