@@ -60,7 +60,7 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import (
     AnityaVersionUpdateEvent,
     NewHotnessUpdateEvent,
@@ -99,6 +99,7 @@ class Parser:
             MergeRequestGitlabEvent,
             KojiTaskEvent,
             KojiBuildEvent,
+            KojiBuildTagEvent,
             MergeRequestCommentGitlabEvent,
             IssueCommentGitlabEvent,
             PushGitlabEvent,
@@ -147,6 +148,7 @@ class Parser:
                 Parser.parse_mr_event,
                 Parser.parse_koji_task_event,
                 Parser.parse_koji_build_event,
+                Parser.parse_koji_build_tag_event,
                 Parser.parse_merge_request_comment_event,
                 Parser.parse_gitlab_issue_comment_event,
                 Parser.parse_gitlab_push_event,
@@ -1409,6 +1411,40 @@ class Parser:
         )
 
     @staticmethod
+    def parse_koji_build_tag_event(event) -> Optional[KojiBuildTagEvent]:
+        if event.get("topic") != "org.fedoraproject.prod.buildsys.tag":
+            return None
+
+        build_id = event.get("build_id")
+        tag_name = event.get("tag")
+        tag_id = event.get("tag_id")
+        owner = event.get("owner")
+
+        logger.info(
+            f"Koji build tag event: build_id={build_id} tag={tag_name} owner={owner}"
+        )
+
+        package_name = event.get("name")
+        epoch = event.get("epoch")
+        version = event.get("version")
+        release = event.get("release")
+
+        dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
+        distgit_project_url = f"{dg_base_url}rpms/{package_name}"
+
+        return KojiBuildTagEvent(
+            build_id=build_id,
+            tag_name=tag_name,
+            tag_id=tag_id,
+            project_url=distgit_project_url,
+            package_name=package_name,
+            epoch=epoch,
+            version=version,
+            release=release,
+            owner=owner,
+        )
+
+    @staticmethod
     def parse_pipeline_event(event) -> Optional[PipelineGitlabEvent]:
         """
         Look into the provided event and see if it is Gitlab Pipeline event.
@@ -1637,6 +1673,7 @@ class Parser:
             "copr.build.end": parse_copr_event.__func__,  # type: ignore
             "buildsys.task.state.change": parse_koji_task_event.__func__,  # type: ignore
             "buildsys.build.state.change": parse_koji_build_event.__func__,  # type: ignore
+            "buildsys.tag": parse_koji_build_tag_event.__func__,  # type: ignore
             "hotness.update.bug.file": parse_new_hotness_update_event.__func__,  # type: ignore
             "org.release-monitoring.prod.anitya.project.version.update.v2": (
                 parse_anitya_version_update_event.__func__  # type: ignore

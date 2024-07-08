@@ -47,6 +47,7 @@ from packit_service.worker.events.event import (
     AbstractResultEvent,
     AbstractForgeIndependentEvent,
 )
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -660,6 +661,14 @@ class SteveJobs:
                     # after a failed release event
                     # (which has created the issue)
                     matching_jobs.append(job)
+        elif isinstance(self.event, KojiBuildTagEvent):
+            # create a virtual job config
+            job = JobConfig(
+                JobType.koji_build_tag,
+                JobConfigTriggerType.koji_build,
+                self.event.packages_config.packages,
+            )
+            matching_jobs.append(job)
 
         return matching_jobs
 
