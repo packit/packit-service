@@ -766,7 +766,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
         "packit-specfile-91-fedora+epel chroots=['fedora-rawhide-x86_64', "
         "'epel-9-x86_64', 'fedora-36-x86_64', 'fedora-35-x86_64']): name: "
         "Name must contain only letters, digits, underscores, dashes and dots.\n```\n---\n"
-        "Please check your configuration for:\n\n"
+        "Unless the HTTP status code above is >= 500,  please check your configuration for:\n\n"
         "1. typos in owner and project name (groups need to be prefixed with `@`)\n"
         "2. whether the project name doesn't contain not allowed characters (only letters, "
         "digits, underscores, dashes and dots must be used)\n"
