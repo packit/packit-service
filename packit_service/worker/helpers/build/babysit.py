@@ -82,9 +82,9 @@ def check_pending_testing_farm_runs() -> None:
         if not response.ok:
             logger.info(
                 f"Failed to obtain state of TF pipeline {run.pipeline_id}. "
-                f"Status code {response.status_code}. Reason: {response.reason}."
+                f"Status code {response.status_code}. Reason: {response.reason}. "
+                "Let's try again later."
             )
-            run.set_status(TestingFarmResult.error)
             continue
 
         details = response.json()
