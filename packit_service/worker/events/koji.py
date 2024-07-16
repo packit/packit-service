@@ -6,6 +6,7 @@ from typing import Union, Optional, Dict
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType, PackageConfig
+from packit.utils.koji_helper import KojiHelper
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
@@ -332,3 +333,54 @@ class KojiTaskEvent(AbstractKojiEvent):
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
         return result
+
+
+@use_for_job_config_trigger(trigger_type=JobConfigTriggerType.koji_build)
+class KojiBuildTagEvent(AbstractKojiEvent):
+
+    _koji_helper: Optional[KojiHelper] = None
+
+    def __init__(
+        self,
+        build_id: int,
+        tag_id: int,
+        tag_name: str,
+        project_url: str,
+        package_name: str,
+        epoch: str,
+        version: str,
+        release: str,
+        owner: str,
+    ):
+        task_id = None
+        if info := self.koji_helper.get_build_info(build_id):
+            task_id = info.get("task_id")
+
+        super().__init__(task_id=task_id)
+
+        self.build_id = build_id
+        self.tag_id = tag_id
+        self.tag_name = tag_name
+        self.project_url = project_url
+        self.package_name = package_name
+        self.epoch = epoch
+        self.version = version
+        self.release = release
+        self.owner = owner
+
+    @property
+    def koji_helper(self) -> KojiHelper:
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
+
+    @property
+    def commit_sha(self) -> Optional[str]:  # type:ignore
+        return None
+
+    @property
+    def nvr(self) -> str:
+        return f"{self.package_name}-{self.version}-{self.release}"
+
+    def get_non_serializable_attributes(self):
+        return super().get_non_serializable_attributes() + ["_koji_helper"]

@@ -277,6 +277,7 @@ class ProjectEventModelType(str, enum.Enum):
     branch_push = "branch_push"
     release = "release"
     issue = "issue"
+    koji_build_tag = "koji_build_tag"
 
 
 class BuildsAndTestsConnector:
@@ -456,6 +457,7 @@ class GitProjectModel(Base):
     branches = relationship("GitBranchModel", back_populates="project")
     releases = relationship("ProjectReleaseModel", back_populates="project")
     issues = relationship("IssueModel", back_populates="project")
+    koji_build_tags = relationship("KojiBuildTagModel", back_populates="project")
     sync_release_pull_requests = relationship(
         "SyncReleasePullRequestModel", back_populates="project"
     )
@@ -1252,11 +1254,63 @@ class ProjectReleaseModel(BuildsAndTestsConnector, Base):
         )
 
 
+class KojiBuildTagModel(BuildsAndTestsConnector, Base):
+    __tablename__ = "koji_build_tags"
+    id = Column(Integer, primary_key=True)  # our database PK
+    task_id = Column(String, index=True)
+    koji_tag_name = Column(String, index=True)
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
+    project = relationship("GitProjectModel", back_populates="koji_build_tags")
+
+    job_config_trigger_type = JobConfigTriggerType.koji_build
+    project_event_model_type = ProjectEventModelType.koji_build_tag
+
+    @classmethod
+    def get_or_create(
+        cls,
+        task_id: str,
+        koji_tag_name: str,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+    ) -> "KojiBuildTagModel":
+        with sa_session_transaction(commit=True) as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name, project_url=project_url
+            )
+            koji_build_tag = (
+                session.query(KojiBuildTagModel)
+                .filter_by(
+                    task_id=task_id, koji_tag_name=koji_tag_name, project_id=project.id
+                )
+                .first()
+            )
+            if not koji_build_tag:
+                koji_build_tag = KojiBuildTagModel()
+                koji_build_tag.task_id = task_id
+                koji_build_tag.koji_tag_name = koji_tag_name
+                koji_build_tag.project_id = project.id
+                session.add(koji_build_tag)
+            return koji_build_tag
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["KojiBuildTagModel"]:
+        with sa_session_transaction() as session:
+            return session.query(KojiBuildTagModel).filter_by(id=id_).first()
+
+    def __repr__(self):
+        return (
+            f"KojiBuildTagModel(task_id={self.task_id}, koji_tag_name={self.koji_tag_name}, "
+            f"project={self.project})"
+        )
+
+
 AbstractProjectObjectDbType = Union[
     PullRequestModel,
     ProjectReleaseModel,
     GitBranchModel,
     IssueModel,
+    KojiBuildTagModel,
 ]
 
 MODEL_FOR_PROJECT_EVENT: Dict[
@@ -1266,6 +1320,7 @@ MODEL_FOR_PROJECT_EVENT: Dict[
     ProjectEventModelType.branch_push: GitBranchModel,
     ProjectEventModelType.release: ProjectReleaseModel,
     ProjectEventModelType.issue: IssueModel,
+    ProjectEventModelType.koji_build_tag: KojiBuildTagModel,
 }
 
 
@@ -1382,6 +1437,29 @@ class ProjectEventModel(Base):
             commit_sha=None,
         )
         return (issue, event)
+
+    @classmethod
+    def add_koji_build_tag_event(
+        cls,
+        task_id: str,
+        koji_tag_name: str,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+    ) -> Tuple[KojiBuildTagModel, "ProjectEventModel"]:
+        koji_build_tag = KojiBuildTagModel.get_or_create(
+            task_id=task_id,
+            koji_tag_name=koji_tag_name,
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=koji_build_tag.project_event_model_type,
+            event_id=koji_build_tag.id,
+            commit_sha=None,
+        )
+        return (koji_build_tag, event)
 
     @classmethod
     def get_or_create(

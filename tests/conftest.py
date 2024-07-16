@@ -550,6 +550,12 @@ def koji_build_completed_epel8():
         return load_the_message_from_file(outfile)
 
 
+@pytest.fixture()
+def koji_build_tagged():
+    with open(DATA_DIR / "fedmsg" / "koji_build_tagged.json") as outfile:
+        return load_the_message_from_file(outfile)
+
+
 def pytest_assertrepr_compare(op, left, right):
     if isinstance(left, JobConfig) and isinstance(right, JobConfig) and op == "==":
         from packit.schema import JobConfigSchema

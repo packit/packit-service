@@ -7,6 +7,7 @@ from packit_service.constants import (
     KOJI_PRODUCTION_BUILDS_ISSUE,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
+from packit_service.models import SidetagModel
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
@@ -55,3 +56,8 @@ class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
             return False
 
         return True
+
+
+class SidetagExists(Checker):
+    def pre_check(self) -> bool:
+        return SidetagModel.get_by_koji_name(self.data.tag_name) is not None

@@ -234,6 +234,19 @@ class EventData:
                 repo_name=self.project.repo,
                 project_url=self.project_url,
             )
+        elif self.event_type in {
+            "KojiBuildTagEvent",
+        }:
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_koji_build_tag_event(
+                task_id=str(self.event_dict.get("event_dict", {}).get("task_id")),
+                koji_tag_name=self.tag_name,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+            )
         else:
             logger.warning(
                 "We don't know, what to search in the database for this event data."

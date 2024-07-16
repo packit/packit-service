@@ -5,9 +5,14 @@ from flexmock import flexmock
 
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
+from packit.utils.koji_helper import KojiHelper
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import KojiBuildTargetModel
-from packit_service.worker.events.koji import KojiBuildEvent, KojiTaskEvent
+from packit_service.worker.events.koji import (
+    KojiBuildEvent,
+    KojiTaskEvent,
+    KojiBuildTagEvent,
+)
 from packit_service.worker.parser import Parser
 
 
@@ -371,3 +376,29 @@ def test_parse_koji_build_event_completed_epel8(
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
+
+
+def test_parse_koji_tag_event(koji_build_tagged):
+    flexmock(KojiHelper).should_receive("get_build_info").with_args(1234567).and_return(
+        {"task_id": 7654321}
+    )
+
+    event_object = Parser.parse_event(koji_build_tagged)
+
+    assert isinstance(event_object, KojiBuildTagEvent)
+    assert event_object.build_id == 1234567
+    assert event_object.task_id == 7654321
+    assert event_object.tag_id == 12345
+    assert event_object.tag_name == "f40-build-side-12345"
+    assert event_object.owner == "nforro"
+    assert event_object.package_name == "python-specfile"
+    assert event_object.epoch is None
+    assert event_object.version == "0.31.0"
+    assert event_object.release == "1.fc40"
+    assert event_object.nvr == "python-specfile-0.31.0-1.fc40"
+    assert (
+        event_object.project_url == "https://src.fedoraproject.org/rpms/python-specfile"
+    )
+
+    assert isinstance(event_object.project, PagureProject)
+    assert event_object.project.full_repo_name == "rpms/python-specfile"

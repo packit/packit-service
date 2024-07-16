@@ -75,6 +75,7 @@ from packit_service.worker.events import (
     IssueCommentEvent,
     IssueCommentGitlabEvent,
 )
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -795,6 +796,19 @@ class AbstractDownstreamKojiBuildHandler(
                 else:
                     sidetag = None
 
+                # skip submitting build for a branch if dependencies
+                # are not satisfied within a sidetag
+                if sidetag and self.job_config.dependencies:
+                    builds = self.koji_helper.get_builds_in_tag(sidetag.koji_name)
+                    tagged_packages = {b["package_name"] for b in builds}
+                    if set(self.job_config.dependencies) <= tagged_packages:
+                        missing = set(self.job_config.dependencies) - tagged_packages
+                        logger.debug(
+                            f"Skipping downstream Koji build for branch {branch}, "
+                            f"missing dependencies: {missing}"
+                        )
+                        continue
+
                 stdout = self.packit_api.build(
                     dist_git_branch=koji_build_model.target,
                     scratch=self.job_config.scratch,
@@ -877,6 +891,7 @@ class AbstractDownstreamKojiBuildHandler(
 @run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
 @reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=KojiBuildTagEvent)
 class DownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,
     ConfigFromEventMixin,
@@ -921,6 +936,11 @@ class DownstreamKojiBuildHandler(
             trigger_type_description += (
                 f"Fedora Koji build was triggered "
                 f"by push with sha {self.data.commit_sha}."
+            )
+        elif self.data.event_type == KojiBuildTagEvent.__name__:
+            trigger_type_description += (
+                f"Fedora Koji build was triggered "
+                f"by tagging of build {self.data.build_id} to {self.data.koji_tag_name}."
             )
         return trigger_type_description
 

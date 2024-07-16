@@ -43,7 +43,7 @@ from packit_service.worker.events import (
     CheckRerunEvent,
 )
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -482,6 +482,7 @@ class Allowlist:
                 InstallationEvent,
                 KojiTaskEvent,
                 KojiBuildEvent,
+                KojiBuildTagEvent,
                 CheckRerunEvent,
                 NewHotnessUpdateEvent,
             ): self._check_unchecked_event,
