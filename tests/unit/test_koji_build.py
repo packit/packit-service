@@ -16,7 +16,7 @@ from packit.config import (
     PackageConfig,
 )
 from packit.exceptions import PackitCommandFailedError
-from packit.upstream import Upstream
+from packit.upstream import GitUpstream
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import (
@@ -168,7 +168,7 @@ def test_koji_build_check_names(
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # koji build
-    flexmock(Upstream).should_receive("koji_build").and_return(
+    flexmock(GitUpstream).should_receive("koji_build").and_return(
         "Uploading srpm: /python-ogr-0.11.1"
         ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
         "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
@@ -370,7 +370,7 @@ def test_koji_build_with_multiple_targets(
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # koji build
-    flexmock(Upstream).should_receive("koji_build").and_return(
+    flexmock(GitUpstream).should_receive("koji_build").and_return(
         "Uploading srpm: /python-ogr-0.11.1"
         ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
         "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
@@ -447,7 +447,9 @@ def test_koji_build_failed(github_pr_event, add_pull_request_event_with_sha_528b
 
     # koji build
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
-    flexmock(Upstream).should_receive("koji_build").and_raise(Exception, "some error")
+    flexmock(GitUpstream).should_receive("koji_build").and_raise(
+        Exception, "some error"
+    )
 
     result = helper.run_koji_build()
     assert not result["success"]
@@ -569,7 +571,7 @@ def test_koji_build_targets_override(
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # koji build
-    flexmock(Upstream).should_receive("koji_build").once().with_args(
+    flexmock(GitUpstream).should_receive("koji_build").once().with_args(
         scratch=True,
         nowait=True,
         koji_target="bright-future",
