@@ -195,7 +195,12 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
         if self.copr_event.chroot == COPR_SRPM_CHROOT:
             url = get_srpm_build_info_url(self.build.id)
-            self.copr_build_helper.report_status_to_all(
+            report_status = (
+                self.copr_build_helper.report_status_to_all
+                if self.job_config.sync_test_job_statuses_with_builds
+                else self.copr_build_helper.report_status_to_build
+            )
+            report_status(
                 description="SRPM build is in progress...",
                 state=BaseCommitStatus.running,
                 url=url,
@@ -208,7 +213,12 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
         url = get_copr_build_info_url(self.build.id)
         self.build.set_status(BuildStatus.pending)
 
-        self.copr_build_helper.report_status_to_all_for_chroot(
+        report_status_for_chroot = (
+            self.copr_build_helper.report_status_to_all_for_chroot
+            if self.job_config.sync_test_job_statuses_with_builds
+            else self.copr_build_helper.report_status_to_build_for_chroot
+        )
+        report_status_for_chroot(
             description="RPM build is in progress...",
             state=BaseCommitStatus.running,
             url=url,
@@ -377,12 +387,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             url=url,
             chroot=self.copr_event.chroot,
         )
-        self.copr_build_helper.report_status_to_all_test_jobs_for_chroot(
-            state=BaseCommitStatus.pending,
-            description="RPMs were built successfully.",
-            url=url,
-            chroot=self.copr_event.chroot,
-        )
+        if self.job_config.sync_test_job_statuses_with_builds:
+            self.copr_build_helper.report_status_to_all_test_jobs_for_chroot(
+                state=BaseCommitStatus.pending,
+                description="RPMs were built successfully.",
+                url=url,
+                chroot=self.copr_event.chroot,
+            )
 
     def handle_srpm_end(self):
         url = get_srpm_build_info_url(self.build.id)
@@ -412,7 +423,12 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             build.set_status(BuildStatus.pending)
 
         self.build.set_status(BuildStatus.success)
-        self.copr_build_helper.report_status_to_all(
+        report_status = (
+            self.copr_build_helper.report_status_to_all
+            if self.job_config.sync_test_job_statuses_with_builds
+            else self.copr_build_helper.report_status_to_build
+        )
+        report_status(
             state=BaseCommitStatus.running,
             description="SRPM build succeeded. Waiting for RPM build to start...",
             url=url,
