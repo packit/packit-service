@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import tempfile
 from datetime import datetime, timezone
+from os.path import basename
+from pathlib import Path
 from typing import Tuple, Type, Optional
 
 from celery import signature, Task
@@ -29,6 +32,7 @@ from packit_service.utils import (
     dump_package_config,
     elapsed_seconds,
     pr_labels_match_configuration,
+    download_file,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
@@ -354,6 +358,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         self.set_built_packages()
         self.build.set_status(BuildStatus.success)
         self.handle_testing_farm()
+        # self.handle_scan()
 
         return TaskResults(success=True, details={})
 
@@ -479,3 +484,26 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                         "build_id": self.build.id,
                     },
                 ).apply_async()
+
+    def handle_scan(self):
+        if (
+            self.build.target != "fedora-rawhide-x86_64"
+            or not self.job_config.osh_diff_scan_after_copr_build
+        ):
+            return
+
+        logger.info("About to trigger scan in OpenScanHub.")
+
+        # TODO handle the base build check and download and add it to the run_osh_build call
+
+        directory = tempfile.mkdtemp()
+
+        srpm_model = self.build.get_srpm_build()
+        srpm_path = Path(directory).joinpath(basename(srpm_model.url))
+
+        if not download_file(srpm_model.url, srpm_path):
+            return
+
+        self.copr_build_helper.api.run_osh_build(srpm_path=srpm_path)
+
+        # TODO reporting and cleanup

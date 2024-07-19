@@ -2,16 +2,21 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
 from datetime import datetime, timezone
 from io import StringIO
 from logging import StreamHandler
+from pathlib import Path
 from re import search
 from typing import List, Tuple, Optional
+
+import requests
 
 from ogr.abstract import PullRequest
 from packit.config import JobConfig, PackageConfig
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
+from packit_service import __version__ as ps_version
 
 logger = logging.getLogger(__name__)
 
@@ -253,3 +258,37 @@ def pr_labels_match_configuration(
         not configured_labels_absent
         or all(label not in pr_labels for label in configured_labels_absent)
     )
+
+
+def download_file(url: str, path: Path):
+    """
+    Download a file from given url to the given path.
+
+    Returns:
+        True if the download was successful, False otherwise
+    """
+    # TODO: use a library to make the downloads more robust (e.g. pycurl),
+    # unify with packit code:
+    # https://github.com/packit/packit/blob/2e75e6ff4c0cadb55da1c8daf9315e4b0a69e4a8/packit/base_git.py#L566-L583
+    user_agent = (
+        os.getenv("PACKIT_USER_AGENT")
+        or f"packit-service/{ps_version} (hello@packit.dev)"
+    )
+    try:
+        with requests.get(
+            url,
+            headers={"User-Agent": user_agent},
+            # connection and read timout
+            timeout=(10, 30),
+            stream=True,
+        ) as response:
+            response.raise_for_status()
+            with open(path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    except requests.exceptions.RequestException as e:
+        msg = f"Failed to download file from {url}"
+        logger.debug(f"{msg}: {e!r}")
+        return False
+
+    return True
