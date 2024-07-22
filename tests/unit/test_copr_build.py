@@ -469,18 +469,22 @@ def test_run_copr_build_from_source_script_github_outage_retry(
 
 
 @pytest.mark.parametrize(
-    "project, generic_statuses",
+    "project, generic_statuses, sync_test_job_statuses_with_builds",
     [
-        (GitlabProject(None, None, None), True),
-        (GithubProject(None, None, None), False),
+        (GitlabProject(None, None, None), True, True),
+        (GitlabProject(None, None, None), True, False),
+        (GithubProject(None, None, None), False, True),
+        (GithubProject(None, None, None), False, False),
     ],
 )
 def test_report_pending_build_and_test_on_build_submission(
-    github_pr_event, project, generic_statuses
+    github_pr_event, project, generic_statuses, sync_test_job_statuses_with_builds
 ):
     helper = CoprBuildJobHelper(
         package_config=None,
-        job_config=None,
+        job_config=flexmock(
+            sync_test_job_statuses_with_builds=sync_test_job_statuses_with_builds
+        ),
         service_config=ServiceConfig.get_service_config(),
         project=project,
         metadata=None,
@@ -498,7 +502,11 @@ def test_report_pending_build_and_test_on_build_submission(
             "report_status_to_all_test_jobs"
         ).with_args(
             description="Job is in progress...",
-            state=BaseCommitStatus.running,
+            state=(
+                BaseCommitStatus.running
+                if sync_test_job_statuses_with_builds
+                else BaseCommitStatus.pending
+            ),
             url=DASHBOARD_JOBS_TESTING_FARM_PATH,
         ).once()
     else:
@@ -510,12 +518,83 @@ def test_report_pending_build_and_test_on_build_submission(
         flexmock(CoprBuildJobHelper).should_receive(
             "report_status_to_all_test_jobs"
         ).with_args(
-            description="SRPM build in Copr was submitted...",
-            state=BaseCommitStatus.running,
+            description=(
+                "SRPM build in Copr was submitted..."
+                if sync_test_job_statuses_with_builds
+                else "Waiting for RPMs to be built..."
+            ),
+            state=(
+                BaseCommitStatus.running
+                if sync_test_job_statuses_with_builds
+                else BaseCommitStatus.pending
+            ),
             url="/results/srpm-builds/1",
         ).once()
 
     helper.report_running_build_and_test_on_build_submission("copr-url")
+
+
+@pytest.mark.parametrize(
+    "sync_test_job_statuses_with_builds",
+    [
+        True,
+        False,
+    ],
+)
+def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_builds):
+    helper = CoprBuildJobHelper(
+        package_config=None,
+        job_config=flexmock(
+            sync_test_job_statuses_with_builds=sync_test_job_statuses_with_builds
+        ),
+        service_config=ServiceConfig.get_service_config(),
+        project=GithubProject(None, None, None),
+        metadata=None,
+        db_project_event=None,
+    )
+    web_url = "copr-url"
+    chroot = "fedora-rawhide-x86_64"
+    if sync_test_job_statuses_with_builds:
+        flexmock(CoprBuildJobHelper).should_receive(
+            "report_status_to_build_for_chroot"
+        ).with_args(
+            description="Starting RPM build...",
+            state=BaseCommitStatus.running,
+            url="/results/copr-builds/1",
+            chroot=chroot,
+            markdown_content=None,
+            update_feedback_time=None,
+        ).once()
+        flexmock(CoprBuildJobHelper).should_receive(
+            "report_status_to_all_test_jobs_for_chroot"
+        ).with_args(
+            description="Starting RPM build...",
+            state=BaseCommitStatus.running,
+            url="/results/copr-builds/1",
+            chroot=chroot,
+            markdown_content=None,
+            links_to_external_services=None,
+            update_feedback_time=None,
+        ).once()
+    else:
+        flexmock(CoprBuildJobHelper).should_receive(
+            "report_status_to_build_for_chroot"
+        ).with_args(
+            description="Starting RPM build...",
+            state=BaseCommitStatus.running,
+            url="/results/copr-builds/1",
+            chroot=chroot,
+        ).once()
+        flexmock(CoprBuildJobHelper).should_receive(
+            "report_status_to_all_test_jobs_for_chroot"
+        ).never()
+
+    target = flexmock(id=1, status=BuildStatus.pending, target=chroot)
+    target.should_receive("set_build_id").with_args("1").once()
+    target.should_receive("set_web_url").with_args(web_url).once()
+
+    flexmock(Celery).should_receive("send_task").once()
+    helper.handle_rpm_build_start(flexmock(grouped_targets=[target]), 1, "copr-url")
 
 
 def test_get_latest_fedora_stable_chroot(github_pr_event):

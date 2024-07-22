@@ -445,23 +445,32 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             web_url: URL for the particular Copr build
         """
         if isinstance(self.project, GitlabProject):
-            description = "Job is in progress..."
+            build_description = test_description = "Job is in progress..."
             url_for_build = web_url
             url_for_tests = (
                 f"{self.service_config.dashboard_url}{DASHBOARD_JOBS_TESTING_FARM_PATH}"
             )
         else:
-            description = "SRPM build in Copr was submitted..."
+            build_description = "SRPM build in Copr was submitted..."
+            test_description = "Waiting for RPMs to be built..."
             url_for_build = url_for_tests = get_srpm_build_info_url(self.srpm_model.id)
 
         self.report_status_to_build(
-            description=description,
+            description=build_description,
             state=BaseCommitStatus.running,
             url=url_for_build,
         )
         self.report_status_to_all_test_jobs(
-            description=description,
-            state=BaseCommitStatus.running,
+            description=(
+                build_description
+                if self.job_config.sync_test_job_statuses_with_builds
+                else test_description
+            ),
+            state=(
+                BaseCommitStatus.running
+                if self.job_config.sync_test_job_statuses_with_builds
+                else BaseCommitStatus.pending
+            ),
             url=url_for_tests,
         )
 
@@ -697,7 +706,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 delay = 60 * interval
                 max_retries = DEFAULT_RETRY_LIMIT_OUTAGE
 
-            self.report_status_to_all(
+            report_status = (
+                self.report_status_to_all
+                if self.job_config.sync_test_job_statuses_with_builds
+                else self.report_status_to_build
+            )
+            report_status(
                 state=BaseCommitStatus.pending,
                 description=f"Submit of the build failed due to a {what_failed} error, the task "
                 f"will be retried in {retry_in}.",
@@ -756,7 +770,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             target.set_web_url(web_url)
             if target.status != BuildStatus.waiting_for_srpm:
                 url = get_copr_build_info_url(id_=target.id)
-                self.report_status_to_all_for_chroot(
+                report_status_for_chroot = (
+                    self.report_status_to_all_for_chroot
+                    if self.job_config.sync_test_job_statuses_with_builds
+                    else self.report_status_to_build_for_chroot
+                )
+                report_status_for_chroot(
                     state=BaseCommitStatus.running,
                     description="Starting RPM build...",
                     url=url,
