@@ -162,7 +162,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     @property
     def job_project(self) -> Optional[str]:
         """
-        The job definition from the config file.
+        The project definition from the config file.
         """
         if self.job_build and self.job_build.project:
             return self.job_build.project
@@ -173,6 +173,35 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 return test_job.project
 
         return self.default_project_name
+
+    def job_project_for_commit_job_config(self, job_config) -> Optional[str]:
+        """
+        Get the Copr project name for the specified job config with commit trigger.
+        """
+        if job_config.project:
+            return job_config.project
+
+        service_hostname = parse_git_repo(self.project.service.instance_url).hostname
+        service_prefix = (
+            "" if isinstance(self.project, GithubProject) else f"{service_hostname}-"
+        )
+
+        namespace = self.project.namespace.replace("/", "-")
+
+        ref_identifier = job_config.branch or self.project.default_branch
+
+        configured_identifier = (
+            f"-{job_config.identifier}"
+            if job_config.identifier and not self.job_config.package
+            else ""
+        )
+
+        copr_project_name = (
+            f"{service_prefix}{namespace}-{self.project.repo}-{ref_identifier}"
+            f"{configured_identifier}"
+        )
+
+        return self.normalise_copr_project_name(copr_project_name)
 
     @property
     def job_owner(self) -> Optional[str]:
@@ -186,6 +215,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # return the owner from first test job where present
             if test_job and test_job.owner:
                 return test_job.owner
+        return self.api.copr_helper.copr_client.config.get("username")
+
+    def job_owner_for_job_config(self, job_config: JobConfig) -> Optional[str]:
+        """
+        Owner used for the copr build for the specified config
+         -- search the config or use the copr's config.
+        """
+        if job_config.owner:
+            return job_config.owner
+
         return self.api.copr_helper.copr_client.config.get("username")
 
     @property
