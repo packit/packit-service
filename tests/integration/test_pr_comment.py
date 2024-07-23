@@ -24,7 +24,7 @@ from packit.copr_helper import CoprHelper
 from packit.distgit import DistGit
 from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject, LocalProjectBuilder
-from packit.upstream import Upstream
+from packit.upstream import GitUpstream
 from packit.utils.koji_helper import KojiHelper
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -2657,7 +2657,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         AuthMethod.token
     ).once()
 
-    flexmock(Upstream).should_receive("get_last_tag").and_return("7.0.3")
+    flexmock(GitUpstream).should_receive("get_last_tag").and_return("7.0.3")
 
     flexmock(Allowlist, check_and_report=True)
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
