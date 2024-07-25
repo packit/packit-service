@@ -44,7 +44,6 @@
           - epel-rpm-macros
           # for the `pkg_tool` switch to allow centpkg
           - centpkg
-          - osh-cli
         state: present
         install_weak_deps: False
     - name: Install pip deps
@@ -67,6 +66,10 @@
           - python3-ogr
           - python3-specfile
           - packit
+        state: latest
+    - name: Install OpenScanHub client from Copr
+      ansible.builtin.dnf:
+        name: osh-client
         state: latest
     - name: Install OKD CLI (oc) # sandcastle
       ansible.builtin.unarchive:
