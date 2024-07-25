@@ -44,6 +44,7 @@
           - epel-rpm-macros
           # for the `pkg_tool` switch to allow centpkg
           - centpkg
+          - osh-cli
         state: present
         install_weak_deps: False
     - name: Install pip deps
