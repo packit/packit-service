@@ -20,6 +20,7 @@ from packit.config import (
 )
 from packit.config import JobConfigTriggerType
 from packit.config.package_config import PackageConfig
+from packit_service import sentry_integration
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
@@ -377,6 +378,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                     build=self.build,
                 ).handle_scan()
             except Exception as ex:
+                sentry_integration.send_to_sentry(ex)
                 logger.debug(
                     f"Handling the scan raised an exception: {ex}. Skipping "
                     f"as this is only experimental functionality for now."
