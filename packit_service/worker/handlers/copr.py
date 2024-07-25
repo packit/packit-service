@@ -643,11 +643,12 @@ class ScanHelper:
             target="fedora-rawhide-x86_64",
             status=BuildStatus.success,
         )
-        if not builds:
+
+        try:
+            return next(iter(builds)).get_srpm_build()
+        except StopIteration:
             logger.debug("No matching base build found in our DB.")
             return None
-
-        return next(iter(builds)).get_srpm_build()
 
     @staticmethod
     def download_srpms(
