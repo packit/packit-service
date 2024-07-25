@@ -373,7 +373,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         ):
             try:
                 ScanHelper(
-                    build_job_helper=self.copr_build_helper,
+                    copr_build_helper=self.copr_build_helper,
                     build=self.build,
                 ).handle_scan()
             except Exception as ex:
