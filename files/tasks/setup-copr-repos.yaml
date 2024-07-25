@@ -24,3 +24,8 @@
   community.general.copr:
     name: packit/{{ copr_repo_disabled }}
     state: disabled
+
+- name: Enable OpenScanHub Copr repo
+  community.general.copr:
+    name: "@openscanhub/devel"
+    state: enabled

@@ -67,6 +67,10 @@
           - python3-specfile
           - packit
         state: latest
+    - name: Install OpenScanHub client from Copr
+      ansible.builtin.dnf:
+        name: osh-client
+        state: latest
     - name: Install OKD CLI (oc) # sandcastle
       ansible.builtin.unarchive:
         src: https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
