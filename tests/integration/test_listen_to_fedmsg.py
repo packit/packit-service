@@ -49,6 +49,7 @@ from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import CoprBuildEndHandler
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -2569,6 +2570,8 @@ def test_koji_build_tag(
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(pc_koji_build_tag_specfile).and_return(pc_koji_build_tag_packit)
+
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(celery_group).should_receive("apply_async").once()

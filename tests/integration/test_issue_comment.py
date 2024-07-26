@@ -418,6 +418,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         dist_git_branch="f38",
         update_type="enhancement",
         koji_builds=["python-teamcity-messages.fc38"],
+        sidetag=None,
     ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
         "f38"
@@ -436,6 +437,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         dist_git_branch="f37",
         update_type="enhancement",
         koji_builds=["python-teamcity-messages.fc37"],
+        sidetag=None,
     ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
         "f37"
@@ -458,7 +460,8 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         grouped_targets=[
             flexmock(
                 target="f37",
-                koji_nvr="python-teamcity-messages.fc37",
+                koji_nvrs="python-teamcity-messages.fc37",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -467,7 +470,8 @@ def test_issue_comment_retrigger_bodhi_update_handler(
             ),
             flexmock(
                 target="f38",
-                koji_nvr="python-teamcity-messages.fc38",
+                koji_nvrs="python-teamcity-messages.fc38",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -479,13 +483,15 @@ def test_issue_comment_retrigger_bodhi_update_handler(
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="f38",
-        koji_nvr="python-teamcity-messages.fc38",
+        koji_nvrs="python-teamcity-messages.fc38",
+        sidetag=None,
         status="queued",
         bodhi_update_group=group_model,
     ).and_return().once()
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="f37",
-        koji_nvr="python-teamcity-messages.fc37",
+        koji_nvrs="python-teamcity-messages.fc37",
+        sidetag=None,
         status="queued",
         bodhi_update_group=group_model,
     ).and_return().once()

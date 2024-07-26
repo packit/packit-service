@@ -2505,7 +2505,8 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         grouped_targets=[
             flexmock(
                 target="the_distgit_branch",
-                koji_nvr="123",
+                koji_nvrs="123",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -2517,7 +2518,8 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="the_distgit_branch",
-        koji_nvr="123",
+        koji_nvrs="123",
+        sidetag=None,
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -2565,6 +2567,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         dist_git_branch="the_distgit_branch",
         update_type="enhancement",
         koji_builds=["123"],
+        sidetag=None,
     ).once().and_return(("alias", "url"))
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()

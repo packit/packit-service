@@ -124,7 +124,8 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
             grouped_targets=[
                 flexmock(
                     target="f36",
-                    koji_nvr="a_package_1.f36",
+                    koji_nvrs="a_package_1.f36",
+                    sidetag=None,
                     set_status=lambda x: None,
                     set_data=lambda x: None,
                 )

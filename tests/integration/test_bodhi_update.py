@@ -67,6 +67,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_return(("alias", "url"))
 
     # Database structure
@@ -86,7 +87,8 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -98,7 +100,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -160,6 +162,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_raise(PackitException, "Failed to create an update")
 
     pagure_project_mock.should_receive("get_issue_list").times(0)
@@ -182,7 +185,8 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -192,7 +196,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -256,6 +260,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_raise(PackitException, "Failed to create an update")
 
     issue_project_mock = flexmock(GithubProject)
@@ -280,7 +285,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -290,7 +296,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -358,6 +364,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_raise(PackitException, "Failed to create an update")
 
     issue_project_mock = flexmock(GithubProject)
@@ -391,7 +398,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -401,7 +409,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -468,6 +476,7 @@ def test_bodhi_update_build_not_tagged_yet(
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_raise(PackitException, "build not tagged")
 
     # no reporting should be done as the update is created on the second run
@@ -482,7 +491,8 @@ def test_bodhi_update_build_not_tagged_yet(
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -492,7 +502,7 @@ def test_bodhi_update_build_not_tagged_yet(
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -536,6 +546,7 @@ def test_bodhi_update_build_not_tagged_yet(
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_return(
         None
     )  # tagged now
@@ -584,7 +595,8 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -594,7 +606,8 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
+        sidetag=None,
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -653,12 +666,14 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         dist_git_branch="rawhide",
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
+        sidetag=None,
     ).and_return(("alias", "url"))
     group_model = flexmock(
         grouped_targets=[
             flexmock(
                 target="rawhide",
-                koji_nvr="packit-0.43.0-1.fc36",
+                koji_nvrs="packit-0.43.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -670,7 +685,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
-        koji_nvr="packit-0.43.0-1.fc36",
+        koji_nvrs="packit-0.43.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
@@ -790,6 +805,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         dist_git_branch="f36",
         update_type="enhancement",
         koji_builds=["python-ogr-0.34.0-1.fc36"],
+        sidetag=None,
     ).once().and_return(("alias", "url"))
 
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
@@ -797,7 +813,8 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         grouped_targets=[
             flexmock(
                 target="f36",
-                koji_nvr="python-ogr-0.34.0-1.fc36",
+                koji_nvrs="python-ogr-0.34.0-1.fc36",
+                sidetag=None,
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
@@ -809,7 +826,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="f36",
-        koji_nvr="python-ogr-0.34.0-1.fc36",
+        koji_nvrs="python-ogr-0.34.0-1.fc36",
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
