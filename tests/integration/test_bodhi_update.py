@@ -5,7 +5,7 @@ import json
 
 import pytest
 from celery import Task
-from celery.canvas import group
+from celery.canvas import Signature, group
 from celery.exceptions import Retry
 from flexmock import flexmock
 
@@ -16,6 +16,8 @@ from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
+from packit.utils.koji_helper import KojiHelper
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import (
     GitBranchModel,
@@ -23,14 +25,25 @@ from packit_service.models import (
     PipelineModel,
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
+    ProjectEventModel,
+    KojiBuildTagModel,
+    SidetagModel,
+    SidetagGroupModel,
 )
-from packit_service.utils import load_job_config, load_package_config
+from packit_service.utils import (
+    load_job_config,
+    load_package_config,
+    dump_job_config,
+    dump_package_config,
+)
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     run_bodhi_update,
+    run_bodhi_update_from_sidetag,
+    run_koji_build_tag_handler,
     BodhiTaskWithRetry,
 )
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -847,3 +860,210 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     )
 
     assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "missing_dependency",
+    [False, True],
+)
+def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
+    """(Sidetag scenario.)"""
+
+    build_id = 1234567
+    task_id = 7654321
+    dg_branch = "f40"
+    sidetag_group_name = "test"
+    sidetag_name = "f40-build-side-12345"
+
+    flexmock(KojiHelper).should_receive("get_build_info").with_args(
+        build_id
+    ).and_return({"task_id": task_id})
+
+    sidetag_group = flexmock(name=sidetag_group_name)
+    sidetag = flexmock(
+        sidetag_group=sidetag_group, target=dg_branch, koji_name=sidetag_name
+    )
+    sidetag_group.should_receive("get_sidetag_by_target").with_args(
+        dg_branch
+    ).and_return(sidetag)
+
+    flexmock(SidetagGroupModel).should_receive("get_by_name").with_args(
+        sidetag_group_name
+    ).and_return(sidetag_group)
+    flexmock(SidetagModel).should_receive("get_by_koji_name").with_args(
+        sidetag_name
+    ).and_return(sidetag)
+
+    builds_in_sidetag = [
+        {"package_name": "python-specfile", "nvr": "python-specfile-0.31.0-1.fc40"},
+        {"package_name": "packit", "nvr": "packit-0.99.0-1.fc40"},
+    ]
+
+    if missing_dependency:
+        builds_in_sidetag.pop()
+
+    flexmock(KojiHelper).should_receive("get_builds_in_tag").with_args(
+        sidetag_name
+    ).and_return(builds_in_sidetag)
+
+    flexmock(KojiHelper).should_receive("get_latest_nvr_in_tag").with_args(
+        package="python-specfile", tag=str
+    ).and_return("python-specfile-0.30.0-1.fc40")
+    flexmock(KojiHelper).should_receive("get_latest_nvr_in_tag").with_args(
+        package="packit", tag=str
+    ).and_return("packit-0.98.0-1.fc40")
+
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        task_id=task_id
+    ).and_return(flexmock(target=dg_branch, get_project_event_model=lambda: None))
+
+    specfile_packit_yaml = (
+        "{'specfile_path': 'python-specfile.spec', 'synced_files': [],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'sidetag_group': 'test',"
+        "'dependents': ['packit'], 'dist_git_branches': ['f40']}],"
+        "'downstream_package_name': 'python-specfile'}"
+    )
+    specfile_pagure_project = flexmock(
+        namespace="rpms",
+        repo="python-specfile",
+        full_repo_name="rpms/python-specfile",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/python-specfile",
+        default_branch="main",
+    )
+    specfile_pagure_project.should_receive("get_files").with_args(
+        ref=None, filter_regex=r".+\.spec$"
+    ).and_return(["python-specfile.spec"])
+    specfile_pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref=None
+    ).and_return(specfile_packit_yaml)
+    specfile_pagure_project.should_receive("get_files").with_args(
+        ref=None, recursive=False
+    ).and_return(["python-specfile.spec", ".packit.yaml"])
+
+    flexmock(ServiceConfig).should_receive("get_project").with_args(
+        url="https://src.fedoraproject.org/rpms/python-specfile"
+    ).and_return(specfile_pagure_project)
+    flexmock(ServiceConfig).should_receive("get_project").with_args(
+        url="https://src.fedoraproject.org/rpms/python-specfile", required=True
+    ).and_return(specfile_pagure_project)
+
+    packit_packit_yaml = (
+        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "'jobs': [{'trigger': 'koji_build', 'job': 'bodhi_update', 'sidetag_group': 'test',"
+        "'dependencies': ['python-specfile'], 'dist_git_branches': ['f40']}],"
+        "'downstream_package_name': 'packit'}"
+    )
+    packit_pagure_project = flexmock(
+        namespace="rpms",
+        repo="packit",
+        full_repo_name="rpms/packit",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/packit",
+        default_branch="main",
+    )
+    packit_pagure_project.should_receive("get_files").with_args(
+        ref=None, filter_regex=r".+\.spec$"
+    ).and_return(["packit.spec"])
+    packit_pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref=None
+    ).and_return(packit_packit_yaml)
+    packit_pagure_project.should_receive("get_files").with_args(
+        ref=None, recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
+
+    flexmock(ServiceConfig).should_receive("get_project").with_args(
+        url="https://src.fedoraproject.org/rpms/packit"
+    ).and_return(packit_pagure_project)
+
+    flexmock(group).should_receive("apply_async").once()
+    flexmock(Signature).should_receive("apply_async").once()
+
+    flexmock(KojiBuildTagModel).should_receive("get_or_create").with_args(
+        task_id=str(task_id),
+        koji_tag_name=sidetag_name,
+        namespace="rpms",
+        repo_name="python-specfile",
+        project_url="https://src.fedoraproject.org/rpms/python-specfile",
+    ).and_return(flexmock(id=1, project_event_model_type="koji_build_tag"))
+
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type="koji_build_tag", event_id=1, commit_sha=None
+    ).and_return(flexmock())
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+
+    def _create_update(dist_git_branch, update_type, koji_builds, sidetag):
+        assert dist_git_branch == dg_branch
+        assert update_type == "enhancement"
+        assert set(koji_builds) == {
+            "python-specfile-0.31.0-1.fc40",
+            "packit-0.99.0-1.fc40",
+        }
+        assert sidetag == sidetag_name
+        return "alias", "url"
+
+    flexmock(PackitAPI).should_receive("create_update").replace_with(
+        _create_update
+    ).times(0 if missing_dependency else 1)
+
+    flexmock(PipelineModel).should_receive("create").and_return(flexmock())
+    group_model = flexmock(
+        grouped_targets=[
+            flexmock(
+                target=dg_branch,
+                koji_nvrs="python-specfile-0.31.0-1.fc40 packit-0.99.0-1.fc40",
+                sidetag=sidetag_name,
+                set_status=lambda x: None,
+                set_data=lambda x: None,
+                set_web_url=lambda x: None,
+                set_alias=lambda x: None,
+                set_update_creation_time=lambda x: None,
+            )
+        ]
+    )
+    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+
+    def _create(target, koji_nvrs, sidetag, status, bodhi_update_group):
+        assert target == dg_branch
+        assert set(koji_nvrs.split()) == {
+            "python-specfile-0.31.0-1.fc40",
+            "packit-0.99.0-1.fc40",
+        }
+        assert sidetag == sidetag_name
+        assert status == "queued"
+        assert bodhi_update_group == group_model
+
+    flexmock(BodhiUpdateTargetModel).should_receive("create").replace_with(_create)
+
+    processing_results = SteveJobs().process_message(koji_build_tagged)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_koji_build_tag_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+    pc = PackageConfigGetter.get_package_config_from_repo(project=packit_pagure_project)
+    package_config = dump_package_config(pc)
+    job_config = dump_job_config(pc.jobs[0])
+
+    if missing_dependency:
+        with pytest.raises(PackitException):
+            results = run_bodhi_update_from_sidetag(
+                package_config=package_config,
+                event=event_dict,
+                job_config=job_config,
+            )
+    else:
+        results = run_bodhi_update_from_sidetag(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
+        assert first_dict_value(results["job"])["success"]
