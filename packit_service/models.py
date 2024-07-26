@@ -3543,6 +3543,14 @@ class SidetagGroupModel(Base):
         with sa_session_transaction() as session:
             return session.query(cls).filter_by(name=name).first()
 
+    def get_sidetag_by_target(self, target: str) -> Optional["SidetagModel"]:
+        with sa_session_transaction() as session:
+            return (
+                session.query(SidetagModel)
+                .filter_by(sidetag_group_id=self.id, target=target)
+                .first()
+            )
+
 
 class SidetagModel(Base):
     __tablename__ = "sidetags"

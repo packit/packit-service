@@ -15,6 +15,7 @@ from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,
+    GetKojiBuildDataFromKojiBuildTagEventMixin,
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildEventMixin,
 )
@@ -28,7 +29,7 @@ from packit_service.worker.events import (
     IssueCommentGitlabEvent,
 )
 
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.reporting import report_in_issue_repository
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
         if self.data.event_type in (
             PullRequestCommentPagureEvent.__name__,
             KojiBuildEvent.__name__,
+            KojiBuildTagEvent.__name__,
         ):
             for koji_build_data in self:
                 if koji_build_data.state != KojiBuildState.complete:
@@ -96,6 +98,12 @@ class IsKojiBuildCompleteAndBranchConfiguredCheckEvent(
     IsKojiBuildCompleteAndBranchConfigured,
     GetKojiBuildEventMixin,
     GetKojiBuildDataFromKojiBuildEventMixin,
+): ...
+
+
+class IsKojiBuildCompleteAndBranchConfiguredCheckSidetag(
+    IsKojiBuildCompleteAndBranchConfigured,
+    GetKojiBuildDataFromKojiBuildTagEventMixin,
 ): ...
 
 
