@@ -16,6 +16,7 @@ from ogr.abstract import GitProject
 from packit.config import (
     JobConfig,
     JobType,
+    JobConfigTriggerType,
 )
 from packit.config.package_config import PackageConfig
 from packit.constants import DISTGIT_INSTANCES
@@ -66,6 +67,8 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     run_for_comment,
 )
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
+from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
@@ -436,13 +439,23 @@ class KojiBuildTagHandler(
                 continue
             for job in packages_config.get_job_views():
                 if (
-                    job.type == JobType.koji_build
+                    job.type in (JobType.koji_build, JobType.bodhi_update)
+                    and job.trigger == JobConfigTriggerType.koji_build
                     and job.sidetag_group == sidetag_group
                 ):
-                    event_dict = self.data.get_dict()
+                    event_dict = self.data.get_dict().get("event_dict", {})
                     event_dict["git_ref"] = sidetag.target
+                    handler = (
+                        DownstreamKojiBuildHandler
+                        if job.type == JobType.koji_build
+                        else BodhiUpdateFromSidetagHandler
+                    )
+                    if not handler.pre_check(
+                        package_config=packages_config, job_config=job, event=event_dict
+                    ):
+                        continue
                     signature(
-                        TaskName.downstream_koji_build.value,
+                        handler.task_name.value,
                         kwargs={
                             "event": event_dict,
                             "package_config": dump_package_config(packages_config),
