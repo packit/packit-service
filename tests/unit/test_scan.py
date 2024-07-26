@@ -34,7 +34,7 @@ def test_handle_scan():
     ).and_return([base_copr_model])
 
     flexmock(PackitAPI).should_receive("run_osh_build").once().and_return(
-        '{"url": "scan-url"}'
+        'some\nmultiline\noutput\n{"id": 123}\nand\nmore\n{"url": "scan-url"}\n'
     )
 
     flexmock(CoprBuildJobHelper).should_receive("_report")

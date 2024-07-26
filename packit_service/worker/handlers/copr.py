@@ -3,6 +3,7 @@
 
 import json
 import logging
+import re
 import tempfile
 from datetime import datetime, timezone
 from os import getenv
@@ -564,17 +565,20 @@ class ScanHelper:
                 logger.debug("Something went wrong, skipping the reporting.")
                 return
 
-            logger.info(f"Scan submitted successfully, output: {output}")
+            logger.info("Scan submitted successfully.")
 
-            response = json.loads(output)
-            if not (url := response.get("url")):
+            response_dict = self.parse_dict_from_output(output)
+
+            logger.debug(f"Parsed dict from output: {response_dict} ")
+
+            if not (url := response_dict.get("url")):
                 logger.debug("It was not possible to get the URL from the response.")
                 return
 
             self.copr_build_helper._report(
                 state=BaseCommitStatus.success,
                 description=(
-                    "Scan in OpenScanHub submitted succesfully. Check the URL for more details."
+                    "Scan in OpenScanHub submitted successfully. Check the URL for more details."
                 ),
                 url=url,
                 check_names=["osh-diff-scan:fedora-rawhide-x86_64"],
@@ -586,6 +590,17 @@ class ScanHelper:
                     f"see [docs]({DOCS_URL}/configuration#osh_diff_scan_after_copr_build)."
                 ),
             )
+
+    @staticmethod
+    def parse_dict_from_output(output: str) -> dict:
+        json_pattern = r"\{.*?\}"
+        matches = re.findall(json_pattern, output, re.DOTALL)
+
+        if not matches:
+            return {}
+
+        json_str = matches[-1]
+        return json.loads(json_str)
 
     def find_base_build_job(self) -> Optional[JobConfig]:
         """
