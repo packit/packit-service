@@ -244,7 +244,7 @@ def test_set_status_github_check(
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(
-            title, summary + "\n---\n*Interesting news.*"
+            title, summary + "\n\n---\n*Interesting news.*"
         ),
     ).once()
 
@@ -460,7 +460,7 @@ def test_status_instead_check(
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(
-            title, summary + "\n---\n*Interesting news.*"
+            title, summary + "\n\n---\n*Interesting news.*"
         ),
     ).and_raise(exception_type).once()
 
