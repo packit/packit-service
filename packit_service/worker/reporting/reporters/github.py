@@ -107,6 +107,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         summary = (
             self._create_table(url, links_to_external_services)
             + markdown_content
+            + "\n"
             + f"---\n*{News.get_sentence()}*"
         )
 
