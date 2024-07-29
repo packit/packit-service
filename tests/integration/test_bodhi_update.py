@@ -1052,18 +1052,10 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
     package_config = dump_package_config(pc)
     job_config = dump_job_config(pc.jobs[0])
 
-    if missing_dependency:
-        with pytest.raises(PackitException):
-            results = run_bodhi_update_from_sidetag(
-                package_config=package_config,
-                event=event_dict,
-                job_config=job_config,
-            )
-    else:
-        results = run_bodhi_update_from_sidetag(
-            package_config=package_config,
-            event=event_dict,
-            job_config=job_config,
-        )
+    results = run_bodhi_update_from_sidetag(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
 
-        assert first_dict_value(results["job"])["success"]
+    assert first_dict_value(results["job"])["success"]
