@@ -69,7 +69,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         table_content = []
         if url:
             type_of_url = ""
-            if "dashboard.packit.dev" in url or "dashboard.stg.packit.dev":
+            if "dashboard.packit.dev" in url or "dashboard.stg.packit.dev" in url:
                 type_of_url = "Dashboard"
             elif DOCS_URL in url:
                 type_of_url = "Documentation"
@@ -107,6 +107,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         summary = (
             self._create_table(url, links_to_external_services)
             + markdown_content
+            + "\n"
             + f"---\n*{News.get_sentence()}*"
         )
 
