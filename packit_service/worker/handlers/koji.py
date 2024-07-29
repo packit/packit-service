@@ -444,6 +444,7 @@ class KojiBuildTagHandler(
                     and job.sidetag_group == sidetag_group
                 ):
                     event_dict = self.data.get_dict().get("event_dict", {})
+                    event_dict["project_url"] = distgit_project_url
                     event_dict["git_ref"] = sidetag.target
                     handler = (
                         DownstreamKojiBuildHandler
