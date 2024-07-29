@@ -807,6 +807,7 @@ class AbstractDownstreamKojiBuildHandler(
                             f"Skipping downstream Koji build for branch {branch}, "
                             f"missing dependencies: {missing}"
                         )
+                        koji_build_model.set_status("skipped")
                         continue
 
                 stdout = self.packit_api.build(
