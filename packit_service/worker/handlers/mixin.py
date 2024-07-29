@@ -16,6 +16,7 @@ from packit_service.models import (
     ProjectEventModel,
     CoprBuildTargetModel,
     SRPMBuildModel,
+    SidetagModel,
     BuildStatus,
 )
 from packit_service.worker.events.event import EventData
@@ -29,7 +30,7 @@ from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
 from packit_service.worker.mixin import Config, ConfigFromEventMixin, GetBranches
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.monitoring import Pushgateway
 
 
@@ -172,6 +173,53 @@ class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEven
     @property
     def _task_id(self) -> int:
         return self.koji_build_event.task_id
+
+    @property
+    def num_of_branches(self):
+        return 1  # just a branch in the event
+
+
+class GetKojiBuildDataFromKojiBuildTagEventMixin(
+    ConfigFromEventMixin, GetKojiBuildData
+):
+    _koji_build_tag_event: Optional[KojiBuildTagEvent] = None
+    _sidetag: Optional[SidetagModel] = None
+
+    @property
+    def koji_build_tag_event(self) -> KojiBuildTagEvent:
+        if not self._koji_build_tag_event:
+            self._koji_build_tag_event = KojiBuildTagEvent.from_event_dict(
+                self.data.event_dict
+            )
+        return self._koji_build_tag_event
+
+    @property
+    def sidetag(self) -> Optional[SidetagModel]:
+        if not self._sidetag:
+            self._sidetag = SidetagModel.get_by_koji_name(
+                self.koji_build_tag_event.tag_name
+            )
+        return self._sidetag
+
+    @property
+    def _nvr(self) -> str:
+        return self.koji_build_tag_event.nvr
+
+    @property
+    def _build_id(self) -> int:
+        return self.koji_build_tag_event.build_id
+
+    @property
+    def _dist_git_branch(self) -> str:
+        return self.sidetag.target
+
+    @property
+    def _state(self) -> KojiBuildState:
+        return KojiBuildState.complete
+
+    @property
+    def _task_id(self) -> int:
+        return self.koji_build_tag_event.task_id
 
     @property
     def num_of_branches(self):

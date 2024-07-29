@@ -49,6 +49,8 @@ from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import CoprBuildEndHandler
+from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -201,6 +203,18 @@ def pc_koji_build_tag_packit():
         jobs=[
             JobConfig(
                 type=JobType.koji_build,
+                trigger=JobConfigTriggerType.koji_build,
+                sidetag_group="test",
+                dependencies=["python-specfile"],
+                packages={
+                    "packit": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="packit.spec",
+                    )
+                },
+            ),
+            JobConfig(
+                type=JobType.bodhi_update,
                 trigger=JobConfigTriggerType.koji_build,
                 sidetag_group="test",
                 dependencies=["python-specfile"],
@@ -2570,7 +2584,10 @@ def test_koji_build_tag(
         "get_package_config_from_repo"
     ).and_return(pc_koji_build_tag_specfile).and_return(pc_koji_build_tag_packit)
 
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(BodhiUpdateFromSidetagHandler).should_receive("pre_check").and_return(True)
+
+    flexmock(Signature).should_receive("apply_async").twice()
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(koji_build_tagged)

@@ -16,6 +16,7 @@ from packit_service.worker.events import (
 )
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
@@ -42,7 +43,10 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
-        if self.data.event_type in (PushPagureEvent.__name__,):
+        if self.data.event_type in (
+            PushPagureEvent.__name__,
+            KojiBuildTagEvent.__name__,
+        ):
             if self.data.git_ref not in (
                 configured_branches := get_branches(
                     *self.job_config.dist_git_branches,
@@ -56,6 +60,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                 )
                 return False
 
+        if self.data.event_type in (PushPagureEvent.__name__,):
             if self.pull_request:
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")

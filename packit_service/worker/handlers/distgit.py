@@ -801,7 +801,7 @@ class AbstractDownstreamKojiBuildHandler(
                 if sidetag and self.job_config.dependencies:
                     builds = self.koji_helper.get_builds_in_tag(sidetag.koji_name)
                     tagged_packages = {b["package_name"] for b in builds}
-                    if set(self.job_config.dependencies) <= tagged_packages:
+                    if not set(self.job_config.dependencies) <= tagged_packages:
                         missing = set(self.job_config.dependencies) - tagged_packages
                         logger.debug(
                             f"Skipping downstream Koji build for branch {branch}, "

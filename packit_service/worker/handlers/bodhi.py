@@ -8,12 +8,14 @@ import abc
 import logging
 from datetime import datetime
 from os import getenv
-from typing import Tuple, Type, Optional
+from typing import List, Tuple, Type, Optional
 
 from celery import Task
 
 from packit.config import JobConfig, JobType, PackageConfig, Deployment
 from packit.exceptions import PackitException
+from packit.utils.koji_helper import KojiHelper
+from specfile.utils import NEVR
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     MSG_RETRIGGER,
@@ -26,12 +28,14 @@ from packit_service.models import (
     PipelineModel,
     BodhiUpdateTargetModel,
     KojiBuildTargetModel,
+    SidetagGroupModel,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
     IsAuthorAPackager,
     HasIssueCommenterRetriggeringPermissions,
     IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
+    IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
     IsKojiBuildOwnerMatchingConfiguration,
 )
@@ -40,7 +44,7 @@ from packit_service.worker.events import (
     IssueCommentEvent,
     IssueCommentGitlabEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
@@ -51,6 +55,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildDataFromKojiServiceMultipleBranches,
     GetKojiBuildDataFromKojiBuildEventMixin,
+    GetKojiBuildDataFromKojiBuildTagEventMixin,
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildEventMixin,
     GetKojiBuildData,
@@ -70,10 +75,98 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
+class SidetagHelper:
+    _koji_helper: Optional[KojiHelper] = None
+    _sidetag_group: Optional[SidetagGroupModel] = None
+
+    def __init__(self, job_config: JobConfig) -> None:
+        self.job_config = job_config
+
+    @property
+    def koji_helper(self) -> KojiHelper:
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
+
+    @property
+    def sidetag_group(self) -> SidetagGroupModel:
+        if not self._sidetag_group:
+            self._sidetag_group = SidetagGroupModel.get_by_name(
+                self.job_config.sidetag_group
+            )
+        return self._sidetag_group
+
+    def get_builds_in_sidetag(self, dist_git_branch: str) -> Tuple[str, List[str]]:
+        """
+        Gets the latest builds of required packages from a sidetag identified
+        by the configured sidetag group and the specified dist-git branch.
+
+        Args:
+            dist_git_branch: dist-git branch.
+
+        Returns:
+            A tuple where the first element is the name of the sidetag
+            and the second element is a list of NVRs.
+
+        Raises:
+            PackitException if a sidetag was not found or if job dependencies
+            are not satisfied.
+        """
+        sidetag = self.sidetag_group.get_sidetag_by_target(dist_git_branch)
+        if not sidetag:
+            raise PackitException(
+                f"No sidetag found for {self.sidetag_group.name} and {dist_git_branch}"
+            )
+
+        builds = self.koji_helper.get_builds_in_tag(sidetag.koji_name)
+        tagged_packages = {b["package_name"] for b in builds}
+
+        # check if dependencies are satisfied within the sidetag
+        dependencies = set(self.job_config.dependencies or [])
+        dependencies.add(self.job_config.downstream_package_name)  # include self
+        if not dependencies <= tagged_packages:
+            missing = dependencies - tagged_packages
+            raise PackitException(f"Missing dependencies for Bodhi update: {missing}")
+
+        candidate_tag = self.koji_helper.get_candidate_tag(dist_git_branch)
+        stable_tags = self.koji_helper.get_stable_tags(candidate_tag)
+
+        nvrs = []
+        for package in dependencies:
+            latest_stable_nvr = max(
+                (
+                    self.koji_helper.get_latest_nvr_in_tag(package=package, tag=t)
+                    for t in stable_tags + [candidate_tag]
+                ),
+                key=lambda nvr: NEVR.from_string(nvr),
+            )
+            latest_build_in_sidetag = max(
+                (b for b in builds if b["package_name"] == package),
+                key=lambda b: NEVR.from_string(b["nvr"]),
+            )
+            # exclude NVRs that are already in stable or candidate tags - if a build
+            # has been manually tagged into the sidetag to satisfy dependencies,
+            # we don't want it in the update
+            if NEVR.from_string(latest_build_in_sidetag["nvr"]) > NEVR.from_string(
+                latest_stable_nvr
+            ):
+                nvrs.append(latest_build_in_sidetag["nvr"])
+
+        return sidetag.koji_name, nvrs
+
+
 class BodhiUpdateHandler(
     RetriableJobHandler, PackitAPIWithDownstreamMixin, GetKojiBuildData
 ):
     topic = "org.fedoraproject.prod.buildsys.build.state.change"
+
+    _sidetag_helper: Optional[SidetagHelper] = None
+
+    @property
+    def sidetag_helper(self) -> SidetagHelper:
+        if not self._sidetag_helper:
+            self._sidetag_helper = SidetagHelper(self.job_config)
+        return self._sidetag_helper
 
     def __init__(
         self,
@@ -98,14 +191,18 @@ class BodhiUpdateHandler(
             try:
                 logger.debug(
                     f"Create update for dist-git branch: {target_model.target} "
-                    f"and nvr: {target_model.koji_nvr}."
+                    f"and nvrs: {target_model.koji_nvrs}"
+                    + (
+                        f" from sidetag: {target_model.sidetag}."
+                        if target_model.sidetag
+                        else "."
+                    )
                 )
                 result = self.packit_api.create_update(
                     dist_git_branch=target_model.target,
                     update_type="enhancement",
-                    koji_builds=[
-                        target_model.koji_nvr
-                    ],  # it accepts NVRs, not build IDs
+                    koji_builds=target_model.koji_nvrs.split(),  # it accepts NVRs, not build IDs
+                    sidetag=target_model.sidetag,
                 )
                 if not result:
                     # update was already created
@@ -179,9 +276,17 @@ class BodhiUpdateHandler(
         group = BodhiUpdateGroupModel.create(run_model)
 
         for koji_build_data in self:
+            if self.job_config.sidetag_group:
+                sidetag, builds = self.sidetag_helper.get_builds_in_sidetag(
+                    koji_build_data.dist_git_branch
+                )
+            else:
+                sidetag = builds = None
+
             BodhiUpdateTargetModel.create(
                 target=koji_build_data.dist_git_branch,
-                koji_nvr=koji_build_data.nvr,
+                koji_nvrs=koji_build_data.nvr if not builds else " ".join(builds),
+                sidetag=sidetag,
                 status="queued",
                 bodhi_update_group=group,
             )
@@ -288,12 +393,42 @@ class CreateBodhiUpdateHandler(
             group = BodhiUpdateGroupModel.create(run_model)
             BodhiUpdateTargetModel.create(
                 target=koji_build_data.dist_git_branch,
-                koji_nvr=koji_build_data.nvr,
+                koji_nvrs=koji_build_data.nvr,
                 status="queued",
                 bodhi_update_group=group,
             )
 
         return group
+
+
+@configured_as(job_type=JobType.bodhi_update)
+@reacts_to(event=KojiBuildTagEvent)
+class BodhiUpdateFromSidetagHandler(
+    BodhiUpdateHandler,
+    RetriableJobHandler,
+    GetKojiBuildDataFromKojiBuildTagEventMixin,
+):
+    """
+    This handler can create a bodhi update from a sidetag.
+    """
+
+    task_name = TaskName.bodhi_update_from_sidetag
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        """We react only on finished builds (=KojiBuildState.complete)
+        and configured branches.
+        """
+        logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
+        return (IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,)
+
+    def get_trigger_type_description(self) -> str:
+        for koji_build_data in self:
+            return (
+                f"Fedora Bodhi update was triggered by "
+                f"Koji build {koji_build_data.nvr}."
+            )
+        return ""
 
 
 @configured_as(job_type=JobType.bodhi_update)

@@ -241,7 +241,7 @@ class EventData:
                 self._db_project_object,
                 self._db_project_event,
             ) = ProjectEventModel.add_koji_build_tag_event(
-                task_id=str(self.event_dict.get("event_dict", {}).get("task_id")),
+                task_id=str(self.event_dict.get("task_id")),
                 koji_tag_name=self.tag_name,
                 namespace=self.project.namespace,
                 repo_name=self.project.repo,

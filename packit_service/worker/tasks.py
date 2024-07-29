@@ -63,6 +63,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import (
     CreateBodhiUpdateHandler,
+    BodhiUpdateFromSidetagHandler,
     RetriggerBodhiUpdateHandler,
     IssueCommentRetriggerBodhiUpdateHandler,
 )
@@ -459,6 +460,29 @@ def run_bodhi_update(
     bodhi_update_group_model_id: Optional[int] = None,
 ):
     handler = CreateBodhiUpdateHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+        bodhi_update_group_model_id=bodhi_update_group_model_id,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    bind=True,
+    name=TaskName.bodhi_update_from_sidetag,
+    base=BodhiTaskWithRetry,
+    queue="long-running",
+)
+def run_bodhi_update_from_sidetag(
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    bodhi_update_group_model_id: Optional[int] = None,
+):
+    handler = BodhiUpdateFromSidetagHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

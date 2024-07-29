@@ -181,6 +181,7 @@ class TaskName(str, enum.Enum):
     # downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     sync_from_downstream = "task.run_sync_from_downstream_handler"
     bodhi_update = "task.bodhi_update"
+    bodhi_update_from_sidetag = "task.bodhi_update_from_sidetag"
     retrigger_bodhi_update = "task.retrigger_bodhi_update"
     issue_comment_retrigger_bodhi_update = "task.issue_comment_retrigger_bodhi_update"
     github_fas_verification = "task.github_fas_verification"

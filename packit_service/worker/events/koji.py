@@ -382,5 +382,19 @@ class KojiBuildTagEvent(AbstractKojiEvent):
     def nvr(self) -> str:
         return f"{self.package_name}-{self.version}-{self.release}"
 
+    @classmethod
+    def from_event_dict(cls, event: dict) -> "KojiBuildTagEvent":
+        return KojiBuildTagEvent(
+            build_id=event.get("build_id"),
+            tag_id=event.get("tag_id"),
+            tag_name=event.get("tag_name"),
+            project_url=event.get("project_url"),
+            package_name=event.get("package_name"),
+            epoch=event.get("epoch"),
+            version=event.get("version"),
+            release=event.get("release"),
+            owner=event.get("owner"),
+        )
+
     def get_non_serializable_attributes(self):
         return super().get_non_serializable_attributes() + ["_koji_helper"]

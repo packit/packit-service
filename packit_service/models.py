@@ -2048,7 +2048,8 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
     status = Column(String)
     target = Column(String)
     web_url = Column(String)
-    koji_nvr = Column(String)
+    koji_nvrs = Column(String)
+    sidetag = Column(String)
     alias = Column(String)
     submitted_time = Column(DateTime, default=datetime.utcnow)
     update_creation_time = Column(DateTime)
@@ -2089,14 +2090,16 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
         cls,
         target: str,
         status: str,
-        koji_nvr: str,
+        koji_nvrs: str,
         bodhi_update_group: "BodhiUpdateGroupModel",
+        sidetag: Optional[str] = None,
     ) -> "BodhiUpdateTargetModel":
         with sa_session_transaction(commit=True) as session:
             update = cls()
             update.status = status
             update.target = target
-            update.koji_nvr = koji_nvr
+            update.koji_nvrs = koji_nvrs
+            update.sidetag = sidetag
             session.add(update)
 
             bodhi_update_group.bodhi_update_targets.append(update)
@@ -3539,6 +3542,14 @@ class SidetagGroupModel(Base):
     def get_by_name(cls, name: str) -> Optional["SidetagGroupModel"]:
         with sa_session_transaction() as session:
             return session.query(cls).filter_by(name=name).first()
+
+    def get_sidetag_by_target(self, target: str) -> Optional["SidetagModel"]:
+        with sa_session_transaction() as session:
+            return (
+                session.query(SidetagModel)
+                .filter_by(sidetag_group_id=self.id, target=target)
+                .first()
+            )
 
 
 class SidetagModel(Base):
