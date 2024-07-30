@@ -164,6 +164,24 @@ class IsProjectOk(Checker, GetProjectToSyncMixin):
         return self.project_to_sync is not None
 
 
+class TaggedBuildIsNotABuildOfSelf(Checker):
+    """
+    Make sure to skip the build if the event that triggered it is a reaction
+    to an already completed Koji build of the same package that was tagged
+    into a sidetag, to avoid doing the same build over and over again.
+    """
+
+    def pre_check(self) -> bool:
+        if self.data.event_type in (KojiBuildTagEvent.__name__,):
+            if (
+                self.data.event_dict.get("package_name")
+                == self.job_config.downstream_package_name
+            ):
+                logger.info("Skipping build triggered by tagging a build of self.")
+                return False
+        return True
+
+
 class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
     """
     Check that package config (with upstream_project_url set) is present
