@@ -418,6 +418,7 @@ class KojiBuildTagHandler(
                 if (
                     job.type == JobType.koji_build
                     and job.sidetag_group == sidetag_group
+                    and job.dependents
                 ):
                     packages_to_trigger.update(job.dependents)
         logger.debug(f"Packages to trigger: {packages_to_trigger}")
