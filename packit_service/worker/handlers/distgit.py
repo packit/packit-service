@@ -64,6 +64,7 @@ from packit_service.worker.checker.distgit import (
     HasIssueCommenterRetriggeringPermissions,
     IsUpstreamTagMatchingConfig,
     LabelsOnDistgitPR,
+    TaggedBuildIsNotABuildOfSelf,
 )
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -726,6 +727,7 @@ class AbstractDownstreamKojiBuildHandler(
             LabelsOnDistgitPR,
             PermissionOnDistgit,
             HasIssueCommenterRetriggeringPermissions,
+            TaggedBuildIsNotABuildOfSelf,
         )
 
     def _get_or_create_koji_group_model(self) -> KojiBuildGroupModel:

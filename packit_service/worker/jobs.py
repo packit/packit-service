@@ -632,11 +632,12 @@ class SteveJobs:
             for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in [JobType.koji_build, JobType.bodhi_update]
-                    and job.trigger == JobConfigTriggerType.commit
+                    and job.trigger
+                    in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
                     and self.event.job_config_trigger_type
                     == JobConfigTriggerType.pull_request
                 ):
-                    # A koji_build job with comment trigger
+                    # A koji_build or bodhi_update job with comment or koji_build trigger
                     # can be re-triggered by a Pagure comment in a PR
                     matching_jobs.append(job)
                 elif (
@@ -652,7 +653,8 @@ class SteveJobs:
             for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in (JobType.koji_build, JobType.bodhi_update)
-                    and job.trigger == JobConfigTriggerType.commit
+                    and job.trigger
+                    in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
                     and self.event.job_config_trigger_type
                     == JobConfigTriggerType.release
                 ):
