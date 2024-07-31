@@ -235,31 +235,33 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
     _koji_helper: Optional[KojiHelper] = None
 
     @property
-    def koji_helper(self):
+    def koji_helper(self) -> KojiHelper:
         if not self._koji_helper:
             self._koji_helper = KojiHelper()
         return self._koji_helper
 
-    @property
-    def build(self):
-        if not self._build:
-            if not (
-                candidate_tag := self.koji_helper.get_candidate_tag(
-                    self._dist_git_branch
-                )
-            ):
-                raise PackitException(
-                    f"Failed to get candidate tag for {self._dist_git_branch}"
-                )
-            self._build = self.koji_helper.get_latest_build_in_tag(
-                package=self.project.repo,
-                tag=candidate_tag,
+    def _get_latest_build(self) -> dict:
+        if not (
+            candidate_tag := self.koji_helper.get_candidate_tag(self._dist_git_branch)
+        ):
+            raise PackitException(
+                f"Failed to get candidate tag for {self._dist_git_branch}"
             )
-            if not self._build:
-                raise PackitException(
-                    f"No build found for package={self.project.repo} "
-                    f"and tag={self._dist_git_branch}"
-                )
+        build = self.koji_helper.get_latest_build_in_tag(
+            package=self.project.repo,
+            tag=candidate_tag,
+        )
+        if not build:
+            raise PackitException(
+                f"No build found for package={self.project.repo} "
+                f"and branch={self._dist_git_branch}"
+            )
+        return build
+
+    @property
+    def build(self) -> dict:
+        if not self._build:
+            self._build = self._get_latest_build()
         return self._build
 
     @property
@@ -301,21 +303,7 @@ class GetKojiBuildDataFromKojiServiceMultipleBranches(
     @property
     def build(self):
         # call it every time since dist_git_branch reference can change
-        if not (
-            candidate_tag := self.koji_helper.get_candidate_tag(self._dist_git_branch)
-        ):
-            raise PackitException(
-                f"Failed to get candidate tag for {self._dist_git_branch}"
-            )
-        build = self.koji_helper.get_latest_build_in_tag(
-            package=self.project.repo,
-            tag=candidate_tag,
-        )
-        if not build:
-            raise PackitException(
-                f"No build found for package={self.project.repo} and tag={self._dist_git_branch}"
-            )
-        return build
+        return self._get_latest_build()
 
     @property
     def num_of_branches(self):
