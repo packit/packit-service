@@ -128,7 +128,9 @@ class SidetagHelper:
             missing = dependencies - tagged_packages
             raise PackitException(f"Missing dependencies for Bodhi update: {missing}")
 
-        candidate_tag = self.koji_helper.get_candidate_tag(dist_git_branch)
+        if not (candidate_tag := self.koji_helper.get_candidate_tag(dist_git_branch)):
+            raise PackitException(f"Failed to get candidate tag for {dist_git_branch}")
+
         stable_tags = self.koji_helper.get_stable_tags(candidate_tag)
 
         nvrs = []
