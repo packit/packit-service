@@ -44,7 +44,7 @@ from packit_service.worker.events import (
     IssueCommentEvent,
     IssueCommentGitlabEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
@@ -409,7 +409,6 @@ class CreateBodhiUpdateHandler(
 
 
 @configured_as(job_type=JobType.bodhi_update)
-@reacts_to(event=KojiBuildTagEvent)
 class BodhiUpdateFromSidetagHandler(
     BodhiUpdateHandler,
     RetriableJobHandler,

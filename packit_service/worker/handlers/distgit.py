@@ -894,7 +894,6 @@ class AbstractDownstreamKojiBuildHandler(
 @run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
 @reacts_to(event=PullRequestCommentPagureEvent)
-@reacts_to(event=KojiBuildTagEvent)
 class DownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,
     ConfigFromEventMixin,
