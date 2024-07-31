@@ -2778,3 +2778,170 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
+
+
+def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
+    pagure_pr_comment_added,
+):
+    pagure_pr_comment_added["pullrequest"]["comments"][0][
+        "comment"
+    ] = "/packit pull-from-upstream --with-pr-config --resolved-bugs rhbz#123,rhbz#124"
+    sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
+    model = flexmock(status="queued", id=1234, branch="main")
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
+    ).and_return(model)
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+    ).and_return(sync_release_pr_model)
+
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec', "
+        "jobs: [{trigger: release, job: pull_from_upstream, metadata: {targets:[]}}]}"
+    )
+    pr_mock = (
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            "The task was accepted. You can check the recent runs of pull from upstream jobs in "
+            "[Packit dashboard](/jobs/pull-from-upstreams)"
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
+        )
+        .mock()
+    )
+    distgit_project = flexmock(
+        get_files=lambda ref, recursive: [".packit.yaml"],
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name=pagure_pr_comment_added["pullrequest"]["project"]["fullname"],
+        repo=pagure_pr_comment_added["pullrequest"]["project"]["name"],
+        namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
+        is_private=lambda: False,
+        default_branch="main",
+        service=flexmock(get_project=lambda **_: None),
+        get_pr=lambda pr_id: pr_mock,
+    )
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
+    lp.working_dir = ""
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
+    flexmock(GithubService).should_receive("set_auth_method").with_args(
+        AuthMethod.token
+    ).once()
+    flexmock(Allowlist, check_and_report=True)
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True
+    )
+
+    def _get_project(url, *_, **__):
+        if url == pagure_pr_comment_added["pullrequest"]["project"]["full_url"]:
+            return distgit_project
+        return None
+
+    service_config = ServiceConfig().get_service_config()
+    flexmock(service_config).should_receive("get_project").replace_with(_get_project)
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr = (
+        flexmock(id=21, url="some_url", target_project=target_project)
+        .should_receive("comment")
+        .mock()
+    )
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="main",
+        create_pr=True,
+        local_pr_branch_suffix="update-pull_from_upstream",
+        use_downstream_specfile=True,
+        sync_default_files=False,
+        add_pr_instructions=True,
+        resolved_bugs=["rhbz#123", "rhbz#124"],
+        release_monitoring_project_id=None,
+        sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
+    ).and_return(pr).once()
+    flexmock(PackitAPI).should_receive("clean")
+
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.running
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr_url").with_args(
+        downstream_pr_url="some_url"
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr").with_args(
+        downstream_pr=sync_release_pr_model
+    ).once()
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.submitted
+    ).once()
+    flexmock(model).should_receive("set_start_time").once()
+    flexmock(model).should_receive("set_finished_time").once()
+    flexmock(model).should_receive("set_logs").once()
+
+    db_project_object = flexmock(
+        id=12,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    run_model = flexmock(PipelineModel)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=12,
+        commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=pagure_pr_comment_added["pullrequest"]["id"],
+        namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
+        repo_name=pagure_pr_comment_added["pullrequest"]["project"]["name"],
+        project_url=pagure_pr_comment_added["pullrequest"]["project"]["full_url"],
+    ).and_return(db_project_object)
+    sync_release_model = flexmock(id=123, sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
+        project_event_model=db_project_event,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+        package_name="python-teamcity-messages",
+    ).and_return(sync_release_model, run_model).once()
+    flexmock(sync_release_model).should_receive("set_status").with_args(
+        status=SyncReleaseStatus.finished
+    ).once()
+
+    flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            project_event_model_type=ProjectEventModelType.pull_request,
+        )
+    )
+    flexmock(celery_group).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(shutil).should_receive("rmtree").with_args("")
+    flexmock(PullRequestCommentPagureEvent).should_receive(
+        "get_base_project"
+    ).once().and_return(distgit_project)
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_pull_from_upstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]

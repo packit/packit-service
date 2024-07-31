@@ -197,14 +197,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             f"{self.data.event_dict.get('version')}"
         )
 
-        if not self.package_config.upstream_project_url:
-            msg_to_report = (
-                "`upstream_project_url` is not set in "
-                "the dist-git package configuration."
-            )
-            valid = False
-
-        if not (
+        if self.package_config.upstream_project_url and not (
             self.data.event_dict.get("repo_name")
             and self.data.event_dict.get("repo_namespace")
         ):
@@ -215,7 +208,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             )
             valid = False
 
-        if (
+        if self.package_config.upstream_project_url and (
             self.data.event_type in (NewHotnessUpdateEvent.__name__,)
             and not self.data.tag_name
         ):

@@ -60,6 +60,22 @@ class AnityaUpdateEvent(Event):
 
     def _add_release_and_event(self):
         if not self._db_project_object or not self._db_project_event:
+            if not self.project_url:
+                # we do not know what is the upstream project
+                # and it doesn't necessarily have tag,
+                # let's use dist-git project and version
+                (
+                    self._db_project_object,
+                    self._db_project_event,
+                ) = ProjectEventModel.add_release_event(
+                    tag_name=self.version,
+                    namespace="rpms",
+                    repo_name=self.project.repo,
+                    project_url=self.distgit_project_url,
+                    commit_hash=None,
+                )
+                return
+
             if not (
                 self.tag_name
                 and self.repo_name

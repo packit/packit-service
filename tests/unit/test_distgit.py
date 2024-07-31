@@ -125,7 +125,9 @@ def test_pull_from_upstream_auth_method():
     class Test(PullFromUpstreamHandler):
         pass
 
-    handler = Test(None, None, {"event_type": "unknown"}, None)
+    handler = Test(
+        None, flexmock(upstream_project_url="url"), {"event_type": "unknown"}, None
+    )
     flexmock(GithubService).should_receive("set_auth_method").once()
     flexmock(AbstractSyncReleaseHandler).should_receive("run").once()
     flexmock(GithubService).should_receive("reset_auth_method").once()
