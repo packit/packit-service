@@ -100,7 +100,7 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["project_url"] == SampleValues.project_url
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert response_dict["built_packages"] == SampleValues.built_packages
     assert "branch_name" in response_dict
@@ -161,7 +161,7 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["project_url"] == SampleValues.project_url
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert "branch_name" in response_dict
     assert "release" in response_dict
@@ -252,7 +252,7 @@ def test_srpm_build_info(
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["project_url"] == SampleValues.project_url
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert "branch_name" in response_dict
     assert "release" in response_dict
@@ -341,7 +341,7 @@ def test_get_testing_farm_result(client, clean_before_and_after, a_new_test_run_
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["project_url"] == SampleValues.project_url
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert "branch_name" in response_dict
     assert "release" in response_dict
@@ -628,7 +628,7 @@ def test_detailed_propose_info_release(
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["project_url"] == SampleValues.project_url
     assert response_dict["release"] == SampleValues.tag_name
 
 
@@ -655,8 +655,41 @@ def test_detailed_pull_from_upstream_info(
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["project_url"] == SampleValues.project_url
     assert response_dict["release"] == SampleValues.tag_name
+
+
+def test_detailed_pull_from_upstream_info_non_git(
+    client, clean_before_and_after, pull_from_upstream_target_model_non_git
+):
+    response = client.get(
+        url_for(
+            "api.pull-from-upstream_pull_result",
+            id=pull_from_upstream_target_model_non_git.id,
+        )
+    )
+    response_dict = response.json
+
+    assert response_dict["status"] == SyncReleaseTargetStatus.submitted
+    assert response_dict["branch"] == SampleValues.branch
+    assert response_dict["downstream_pr_url"] == SampleValues.downstream_pr_url
+    assert response_dict["downstream_pr_id"] == SampleValues.downstream_pr_id
+    assert response_dict["downstream_pr_project"] == SampleValues.downstream_project_url
+    assert response_dict["submitted_time"] is not None
+    assert response_dict["finished_time"] is not None
+    assert response_dict["logs"] == "random logs"
+
+    # Project info:
+    assert response_dict["repo_namespace"] is None
+    assert response_dict["repo_name"] is None
+    assert (
+        response_dict["project_url"]
+        == f"https://release-monitoring.org/project/{SampleValues.anitya_project_id}"
+    )
+    assert response_dict["release"] is None
+    assert response_dict["anitya_version"] == SampleValues.tag_name
+    assert response_dict["anitya_project_id"] == SampleValues.anitya_project_id
+    assert response_dict["anitya_project_name"] == SampleValues.anitya_project_name
 
 
 def test_detailed_propose_info_issue(

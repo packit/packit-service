@@ -156,6 +156,7 @@ class SyncFromDownstream(
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
     task_name = TaskName.sync_from_downstream
+    non_git_upstream = False
 
     def __init__(
         self,
@@ -202,7 +203,7 @@ class AbstractSyncReleaseHandler(
     sync_release_job_type: SyncReleaseJobType
     job_name_for_reporting: str
     get_dashboard_url: ClassVar  # static method from Callable[[int], str]
-    check_for_non_git_upstreams: bool
+    check_for_non_git_upstreams: bool = False
 
     def __init__(
         self,
@@ -253,7 +254,7 @@ class AbstractSyncReleaseHandler(
                 add_pr_instructions=True,
                 resolved_bugs=self.get_resolved_bugs(),
                 release_monitoring_project_id=self.data.event_dict.get(
-                    "release_monitoring_project_id"
+                    "anitya_project_id"
                 ),
                 sync_acls=True,
                 pr_description_footer=DistgitAnnouncement.get_announcement(),

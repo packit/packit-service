@@ -27,6 +27,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
     SyncReleaseJobType,
     SyncReleasePullRequestModel,
+    AnityaVersionModel,
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
@@ -83,7 +84,7 @@ def sync_release_model_non_git():
         id=12,
         project_event_model_type=ProjectEventModelType.release,
         job_config_trigger_type=JobConfigTriggerType.release,
-        project=flexmock(project_url="https://src.fedoraproject.org/rpms/redis"),
+        project=flexmock(project_url=None),
     )
     project_event = (
         flexmock()
@@ -95,12 +96,11 @@ def sync_release_model_non_git():
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.release, event_id=12, commit_sha=None
     ).and_return(project_event)
-    flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
-        tag_name="7.0.3",
-        namespace="rpms",
-        repo_name="redis",
-        project_url="https://src.fedoraproject.org/rpms/redis",
-        commit_hash=None,
+    flexmock(AnityaVersionModel).should_receive("get_or_create").with_args(
+        version="7.0.3",
+        project_name="redis",
+        project_id=4181,
+        package="redis",
     ).and_return(db_project_object)
     sync_release_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
