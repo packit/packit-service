@@ -14,7 +14,7 @@ from typing import Optional, Union, Callable
 import celery
 
 from ogr.exceptions import GithubAppNotInstalledError
-from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config import JobConfig, JobConfigView, JobType, JobConfigTriggerType
 from packit.config.job_config import DEPRECATED_JOB_TYPES
 from packit.utils import nested_get
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
@@ -665,12 +665,15 @@ class SteveJobs:
                     matching_jobs.append(job)
         elif isinstance(self.event, KojiBuildTagEvent):
             # create a virtual job config
-            job = JobConfig(
+            job_config = JobConfig(
                 JobType.koji_build_tag,
                 JobConfigTriggerType.koji_build,
                 self.event.packages_config.packages,
             )
-            matching_jobs.append(job)
+            for package, config in self.event.packages_config.packages.items():
+                if config.downstream_package_name == self.event.package_name:
+                    job = JobConfigView(job_config, package)
+                    matching_jobs.append(job)
 
         return matching_jobs
 

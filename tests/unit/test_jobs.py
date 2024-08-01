@@ -921,7 +921,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
     # (And real event classes have a lot of __init__ arguments.)
     class Event(event_cls):
         def __init__(self):
-            pass
+            self.package_name = "test"
 
         @property
         def db_project_object(self):

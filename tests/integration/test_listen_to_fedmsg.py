@@ -185,6 +185,7 @@ def pc_koji_build_tag_specfile():
                     "specfile": CommonPackageConfig(
                         _targets=["fedora-all"],
                         specfile_path="python-specfile.spec",
+                        downstream_package_name="python-specfile",
                     )
                 },
             ),
@@ -192,6 +193,7 @@ def pc_koji_build_tag_specfile():
         packages={
             "specfile": CommonPackageConfig(
                 specfile_path="python-specfile.spec",
+                downstream_package_name="python-specfile",
             ),
         },
     )
@@ -210,6 +212,7 @@ def pc_koji_build_tag_packit():
                     "packit": CommonPackageConfig(
                         _targets=["fedora-all"],
                         specfile_path="packit.spec",
+                        downstream_package_name="packit",
                     )
                 },
             ),
@@ -222,6 +225,7 @@ def pc_koji_build_tag_packit():
                     "packit": CommonPackageConfig(
                         _targets=["fedora-all"],
                         specfile_path="packit.spec",
+                        downstream_package_name="packit",
                     )
                 },
             ),
@@ -229,6 +233,7 @@ def pc_koji_build_tag_packit():
         packages={
             "packit": CommonPackageConfig(
                 specfile_path="packit.spec",
+                downstream_package_name="packit",
             ),
         },
     )
