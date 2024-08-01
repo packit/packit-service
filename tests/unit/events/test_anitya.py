@@ -122,7 +122,7 @@ def test_parse_new_hotness_update(
     assert isinstance(event_object, NewHotnessUpdateEvent)
     assert isinstance(event_object.project, PagureProject)
     assert event_object.package_name == "redis"
-    assert event_object.release_monitoring_project_id == 4181
+    assert event_object.anitya_project_id == 4181
     assert event_object.repo_namespace == repo_namespace
     assert event_object.repo_name == repo_name
     assert (
@@ -163,7 +163,7 @@ def test_parse_anitya_version_update(anitya_version_update):
     assert isinstance(event, AnityaVersionUpdateEvent)
     assert isinstance(event.project, GitlabProject)
     assert event.package_name == "python3-mypy-boto3"
-    assert event.release_monitoring_project_id == 40221
+    assert event.anitya_project_id == 40221
     assert event.repo_namespace == "vemel"
     assert event.repo_name == "mypy_boto3"
     assert (
