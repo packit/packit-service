@@ -388,6 +388,8 @@ class ProjectAndEventsConnector:
         project_event_object = self.get_project_event_object()
         if isinstance(project_event_object, GitBranchModel):
             return project_event_object.name
+        if isinstance(project_event_object, KojiBuildTagModel):
+            return project_event_object.target
         return None
 
     def get_release_tag(self) -> Optional[str]:
@@ -1259,6 +1261,7 @@ class KojiBuildTagModel(BuildsAndTestsConnector, Base):
     id = Column(Integer, primary_key=True)  # our database PK
     task_id = Column(String, index=True)
     koji_tag_name = Column(String, index=True)
+    target = Column(String)
     project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="koji_build_tags")
 
@@ -1270,6 +1273,7 @@ class KojiBuildTagModel(BuildsAndTestsConnector, Base):
         cls,
         task_id: str,
         koji_tag_name: str,
+        target: Optional[str],
         namespace: str,
         repo_name: str,
         project_url: str,
@@ -1289,6 +1293,7 @@ class KojiBuildTagModel(BuildsAndTestsConnector, Base):
                 koji_build_tag = KojiBuildTagModel()
                 koji_build_tag.task_id = task_id
                 koji_build_tag.koji_tag_name = koji_tag_name
+                koji_build_tag.target = target
                 koji_build_tag.project_id = project.id
                 session.add(koji_build_tag)
             return koji_build_tag
@@ -1301,7 +1306,7 @@ class KojiBuildTagModel(BuildsAndTestsConnector, Base):
     def __repr__(self):
         return (
             f"KojiBuildTagModel(task_id={self.task_id}, koji_tag_name={self.koji_tag_name}, "
-            f"project={self.project})"
+            f"target={self.target}, project={self.project})"
         )
 
 
@@ -1447,9 +1452,13 @@ class ProjectEventModel(Base):
         repo_name: str,
         project_url: str,
     ) -> Tuple[KojiBuildTagModel, "ProjectEventModel"]:
+        target = None
+        if sidetag := SidetagModel.get_by_koji_name(koji_tag_name):
+            target = sidetag.target
         koji_build_tag = KojiBuildTagModel.get_or_create(
             task_id=task_id,
             koji_tag_name=koji_tag_name,
+            target=target,
             namespace=namespace,
             repo_name=repo_name,
             project_url=project_url,
