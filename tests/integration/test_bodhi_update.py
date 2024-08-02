@@ -986,6 +986,7 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
     flexmock(KojiBuildTagModel).should_receive("get_or_create").with_args(
         task_id=str(task_id),
         koji_tag_name=sidetag_name,
+        target="f40",
         namespace="rpms",
         repo_name="python-specfile",
         project_url="https://src.fedoraproject.org/rpms/python-specfile",
