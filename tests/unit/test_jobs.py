@@ -182,6 +182,32 @@ from packit_service.worker.result import TaskResults
             {CoprBuildHandler},
             id="config=build_for_release&release&ReleaseEvent",
         ),
+        pytest.param(
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=test_for_release&release&ReleaseEvent",
+        ),
+        pytest.param(
+            ReleaseGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=test_for_release&release&ReleaseGitlabEvent",
+        ),
         # Copr results for build:
         pytest.param(
             CoprBuildStartEvent,
