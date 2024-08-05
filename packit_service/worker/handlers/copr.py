@@ -558,7 +558,7 @@ class ScanHelper:
             output = self.copr_build_helper.api.run_osh_build(
                 srpm_path=paths[1],
                 base_srpm=paths[0],
-                comment=f"Submitted via Packit Service for {build_dashboard_url}.",
+                comment=f"Submitted via Packit Service for {build_dashboard_url}",
             )
 
             if not output:
