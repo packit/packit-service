@@ -584,7 +584,9 @@ class ScanHelper:
                 check_names=["osh-diff-scan:fedora-rawhide-x86_64"],
                 markdown_content=(
                     "This is an experimental feature. Once the scan finishes, you can see the "
-                    "newly introduced defects in the `added.html` in `Logs`. "
+                    "new findings in the `added.html` in `Logs`. \n\n"
+                    ":warning: You can see the list of known issues and also provide your feedback"
+                    " [here](https://github.com/packit/packit/discussions/2371). \n\n"
                     "You can disable the scanning in your configuration by "
                     "setting `osh_diff_scan_after_copr_build` to `false`. For more information, "
                     f"see [docs]({DOCS_URL}/configuration#osh_diff_scan_after_copr_build)."
