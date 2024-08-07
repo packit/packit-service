@@ -498,6 +498,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_BUILD_LOG_URL": build_log_url,
             "PACKIT_SRPM_URL": srpm_url,
             "PACKIT_COMMIT_SHA": self.metadata.commit_sha,
+            "PACKIT_TAG_NAME": (
+                self.metadata.tag_name if self.metadata.tag_name else None
+            ),
             "PACKIT_SOURCE_SHA": self.source_branch_sha,
             "PACKIT_TARGET_SHA": self.target_branch_sha,
             "PACKIT_SOURCE_BRANCH": self.source_branch,
