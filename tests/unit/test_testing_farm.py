@@ -351,6 +351,7 @@ def test_is_compose_matching(compose, composes, result):
         "repo,"
         "namespace,"
         "commit_sha,"
+        "tag_name,"
         "project_url,"
         "git_ref,"
         "copr_owner,"
@@ -376,6 +377,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -400,6 +402,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -424,6 +427,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -449,6 +453,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -480,6 +485,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -505,6 +511,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -540,6 +547,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -583,6 +591,7 @@ def test_is_compose_matching(compose, composes, result):
             "packit",
             "packit-service",
             "feb41e5",
+            "1.0",
             "https://github.com/source/packit",
             "master",
             "me",
@@ -612,6 +621,7 @@ def test_payload(
     repo,
     namespace,
     commit_sha,
+    tag_name,
     project_url,
     git_ref,
     copr_owner,
@@ -653,6 +663,7 @@ def test_payload(
     metadata = flexmock(
         trigger=flexmock(),
         commit_sha=commit_sha,
+        tag_name=tag_name,
         git_ref=git_ref,
         project_url=project_url,
         pr_id=123,
@@ -745,6 +756,7 @@ def test_payload(
             "variables": {
                 "PACKIT_BUILD_LOG_URL": log_url,
                 "PACKIT_COMMIT_SHA": commit_sha,
+                "PACKIT_TAG_NAME": tag_name,
                 "PACKIT_FULL_REPO_NAME": f"{namespace}/{repo}",
                 "PACKIT_PACKAGE_NVR": f"{repo}-0.1-1",
                 "PACKIT_SOURCE_BRANCH": "the-source-branch",
@@ -865,7 +877,7 @@ def test_merge_extra_params_with_install():
     service_config = flexmock(testing_farm_secret="secret token", deployment="prod")
     package_config = flexmock()
     project = flexmock(full_repo_name="test/merge")
-    metadata = flexmock(commit_sha="0000000", pr_id=None)
+    metadata = flexmock(commit_sha="0000000", pr_id=None, tag_name=None)
     db_project_event = (
         flexmock()
         .should_receive("get_project_event_object")
@@ -998,6 +1010,7 @@ def test_test_repo(
     git_ref = "master"
     namespace = "packit-service"
     commit_sha = "feb41e5"
+    tag_name = None
     copr_owner = "me"
     copr_project = "cool-project"
     chroot = "centos-stream-x86_64"
@@ -1030,6 +1043,7 @@ def test_test_repo(
     metadata = flexmock(
         trigger=flexmock(),
         commit_sha=commit_sha,
+        tag_name=tag_name,
         git_ref=git_ref,
         project_url=source_project_url,
         pr_id=123,
