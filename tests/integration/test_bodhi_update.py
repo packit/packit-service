@@ -881,7 +881,10 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
 
     sidetag_group = flexmock(name=sidetag_group_name)
     sidetag = flexmock(
-        sidetag_group=sidetag_group, target=dg_branch, koji_name=sidetag_name
+        sidetag_group=sidetag_group,
+        target=dg_branch,
+        koji_name=sidetag_name,
+        delete=lambda: None,
     )
     sidetag_group.should_receive("get_sidetag_by_target").with_args(
         dg_branch
@@ -918,6 +921,9 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
     flexmock(KojiHelper).should_receive("get_latest_nvr_in_tag").with_args(
         package="packit", tag=str
     ).and_return("packit-0.98.0-1.fc40")
+    flexmock(KojiHelper).should_receive("remove_sidetag").with_args(sidetag_name).times(
+        0 if missing_dependency else 1
+    )
 
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         task_id=task_id
@@ -997,6 +1003,8 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
     ).and_return(flexmock())
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return()
 
     def _create_update(dist_git_branch, update_type, koji_builds, sidetag):
         assert dist_git_branch == dg_branch
