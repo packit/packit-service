@@ -7,7 +7,11 @@ from typing import Optional, List, Set
 from ogr.abstract import GitProject
 
 from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerType
-from packit.config.aliases import get_branches
+from packit.config.aliases import (
+    get_branches,
+    get_ff_branches_from as _get_ff_branches_from,
+    get_all_ff_branches,
+)
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.trigger_mapping import are_job_types_same
@@ -51,6 +55,12 @@ class SyncReleaseHelper(BaseJobHelper):
         """
         raise NotImplementedError("Use subclass.")
 
+    def _filter_override_branches(self, branches):
+        if self.branches_override:
+            logger.debug(f"Branches override: {self.branches_override}")
+            branches = branches & self.branches_override
+        return branches
+
     @property
     def branches(self) -> Set[str]:
         """
@@ -61,11 +71,35 @@ class SyncReleaseHelper(BaseJobHelper):
             default_dg_branch=self.default_dg_branch,
             default=self.default_dg_branch,
         )
-        if self.branches_override:
-            logger.debug(f"Branches override: {self.branches_override}")
-            branches = branches & self.branches_override
+        return self._filter_override_branches(branches)
 
-        return branches
+    def get_ff_branches_from(self, source_branch: str) -> Set[str]:
+        """
+        Returns a list of branches that can be fast forwarded merging
+        the specified source_branch. They are listed in the config.
+
+        source_branch: source branch
+        """
+        branches = _get_ff_branches_from(
+            self.job.dist_git_branches,
+            source_branch,
+            default=self.default_dg_branch,
+            default_dg_branch=self.default_dg_branch,
+        )
+        return self._filter_override_branches(branches)
+
+    @property
+    def ff_branches(self) -> Set[str]:
+        """
+        Returns the list of all branches that can be fast forwarded merging
+        another branch. They are listed in the config.
+        """
+        branches = get_all_ff_branches(
+            self.job.dist_git_branches,
+            default=self.default_dg_branch,
+            default_dg_branch=self.default_dg_branch,
+        )
+        return self._filter_override_branches(branches)
 
     @property
     def job(self) -> Optional[JobConfig]:

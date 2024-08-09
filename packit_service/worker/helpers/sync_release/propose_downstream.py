@@ -57,7 +57,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         url: str = "",
         markdown_content: str = None,
     ):
-        if self.job and branch in self.branches:
+        if self.job and branch in (self.branches.union(self.ff_branches)):
             cs = self.get_check(branch)
             self._report(
                 description=description,
@@ -98,7 +98,10 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         e.g. ["propose-downstream:f34", "propose-downstream:f35"]
         """
         if not self._check_names:
-            self._check_names = [self.get_check(branch) for branch in self.branches]
+            self._check_names = [
+                self.get_check(branch)
+                for branch in (self.branches.union(self.ff_branches))
+            ]
         return self._check_names
 
     def report_status_to_all(

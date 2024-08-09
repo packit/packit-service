@@ -23,6 +23,7 @@ from packit.exceptions import (
     ReleaseSkippedPackitException,
 )
 from packit.utils.koji_helper import KojiHelper
+from packit.config.aliases import ff_branch_into
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
@@ -259,6 +260,7 @@ class AbstractSyncReleaseHandler(
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
                 # [TODO] Remove for CentOS support once it gets refined
                 add_new_sources=self.package_config.pkg_tool in (None, "fedpkg"),
+                ff_branch_into=ff_branch_into(branch),
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
@@ -312,7 +314,9 @@ class AbstractSyncReleaseHandler(
             package_name=self.get_package_name(),
         )
 
-        for branch in self.sync_release_helper.branches:
+        for branch in self.sync_release_helper.branches.union(
+            self.sync_release_helper.ff_branches
+        ):
             sync_release_target = SyncReleaseTargetModel.create(
                 status=SyncReleaseTargetStatus.queued, branch=branch
             )
