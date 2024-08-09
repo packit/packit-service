@@ -29,6 +29,7 @@ from packit_service.models import (
     BodhiUpdateTargetModel,
     KojiBuildTargetModel,
     SidetagGroupModel,
+    SidetagModel,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
@@ -156,6 +157,12 @@ class SidetagHelper:
 
         return sidetag.koji_name, nvrs
 
+    def remove_sidetag(self, koji_name: str) -> None:
+        """Removes the specified sidetag."""
+        self.koji_helper.remove_sidetag(koji_name)
+        if sidetag := SidetagModel.get_by_koji_name(koji_name):
+            sidetag.delete()
+
 
 class BodhiUpdateHandler(
     RetriableJobHandler, PackitAPIWithDownstreamMixin, GetKojiBuildData
@@ -215,6 +222,15 @@ class BodhiUpdateHandler(
                     # update was already created
                     target_model.set_status("skipped")
                     continue
+
+                if target_model.sidetag:
+                    # remove the sidetag now; Bodhi would remove it for us
+                    # when the update hits stable, but we would be blocked
+                    # from creating new updates until that happens
+                    logger.debug(f"Removing sidetag {target_model.sidetag}")
+                    # we need Kerberos ticket to remove a sidetag
+                    self.packit_api.init_kerberos_ticket()
+                    self.sidetag_helper.remove_sidetag(target_model.sidetag)
 
                 alias, url = result
                 target_model.set_status("success")

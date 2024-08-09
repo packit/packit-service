@@ -3592,10 +3592,14 @@ class SidetagModel(Base):
         with sa_session_transaction() as session:
             return session.query(SidetagModel).filter_by(koji_name=koji_name).first()
 
-    def set_koji_name(self, koji_name: str):
+    def set_koji_name(self, koji_name: str) -> None:
         with sa_session_transaction(commit=True) as session:
             self.koji_name = koji_name
             session.add(self)
+
+    def delete(self) -> None:
+        with sa_session_transaction(commit=True) as session:
+            session.delete(self)
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
