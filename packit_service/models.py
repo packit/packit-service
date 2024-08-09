@@ -278,6 +278,7 @@ class ProjectEventModelType(str, enum.Enum):
     release = "release"
     issue = "issue"
     koji_build_tag = "koji_build_tag"
+    anitya_version = "anitya_version"
 
 
 class BuildsAndTestsConnector:
@@ -357,7 +358,7 @@ class ProjectAndEventsConnector:
         project_event = self.get_project_event_model()
         return project_event.get_project_event_object() if project_event else None
 
-    def get_project(self) -> Optional["GitProjectModel"]:
+    def get_project(self) -> Optional[Union["AnityaProjectModel", "GitProjectModel"]]:
         project_event_object = self.get_project_event_object()
         return project_event_object.project if project_event_object else None
 
@@ -398,6 +399,12 @@ class ProjectAndEventsConnector:
             return project_event_object.tag_name
         return None
 
+    def get_anitya_version(self) -> Optional[str]:
+        project_event_object = self.get_project_event_object()
+        if isinstance(project_event_object, AnityaVersionModel):
+            return project_event_object.version
+        return None
+
 
 class GroupAndTargetModelConnector:
     """
@@ -413,7 +420,7 @@ class GroupAndTargetModelConnector:
     def get_project_event_object(self) -> Optional["AbstractProjectObjectDbType"]:
         return self.group_of_targets.get_project_event_object()
 
-    def get_project(self) -> Optional["GitProjectModel"]:
+    def get_project(self) -> Optional[Union["AnityaProjectModel", "GitProjectModel"]]:
         return self.group_of_targets.get_project()
 
     def get_pr_id(self) -> Optional[int]:
@@ -427,6 +434,9 @@ class GroupAndTargetModelConnector:
 
     def get_release_tag(self) -> Optional[str]:
         return self.group_of_targets.get_release_tag()
+
+    def get_anitya_version(self) -> Optional[str]:
+        return self.group_of_targets.get_anitya_version()
 
     def get_package_name(self) -> Optional[str]:
         return self.group_of_targets.get_package_name()
@@ -447,6 +457,87 @@ class GroupModel:
     def grouped_targets(self):
         """Returns the list of grouped targets."""
         raise NotImplementedError
+
+
+class AnityaProjectModel(Base):
+    __tablename__ = "anitya_projects"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, index=True)
+    project_name = Column(String)
+    package = Column(String)
+    versions = relationship("AnityaVersionModel", back_populates="project")
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["AnityaProjectModel"]:
+        with sa_session_transaction() as session:
+            return session.query(AnityaProjectModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_or_create(
+        cls, project_name: str, project_id: int, package: str
+    ) -> "AnityaProjectModel":
+        with sa_session_transaction(commit=True) as session:
+            project = (
+                session.query(AnityaProjectModel)
+                .filter_by(
+                    project_name=project_name, project_id=project_id, package=package
+                )
+                .first()
+            )
+            if not project:
+                project = AnityaProjectModel()
+                project.project_id = project_id
+                project.project_name = project_name
+                project.package = package
+                session.add(project)
+            return project
+
+
+class AnityaVersionModel(BuildsAndTestsConnector, Base):
+    __tablename__ = "anitya_versions"
+    id = Column(Integer, primary_key=True)  # our database PK
+    version = Column(String)
+    project_id = Column(Integer, ForeignKey("anitya_projects.id"), index=True)
+    project = relationship("AnityaProjectModel", back_populates="versions")
+
+    job_config_trigger_type = JobConfigTriggerType.release
+    project_event_model_type = ProjectEventModelType.anitya_version
+
+    @classmethod
+    def get_or_create(
+        cls,
+        version: str,
+        project_id: int,
+        project_name: str,
+        package: str,
+    ) -> "AnityaVersionModel":
+        with sa_session_transaction(commit=True) as session:
+            project = AnityaProjectModel.get_or_create(
+                project_id=project_id, project_name=project_name, package=package
+            )
+            project_version = (
+                session.query(AnityaVersionModel)
+                .filter_by(version=version, project_id=project.id)
+                .first()
+            )
+            if not project_version:
+                project_version = AnityaVersionModel()
+                project_version.version = version
+                project_version.project = project
+                session.add(project_version)
+            return project_version
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["AnityaVersionModel"]:
+        with sa_session_transaction() as session:
+            return session.query(AnityaVersionModel).filter_by(id=id_).first()
+
+    def __repr__(self):
+        return (
+            f"AnityaVersionModel("
+            f"version={self.version}, "
+            f"project={self.project})"
+        )
 
 
 class GitProjectModel(Base):
@@ -1316,6 +1407,7 @@ AbstractProjectObjectDbType = Union[
     GitBranchModel,
     IssueModel,
     KojiBuildTagModel,
+    AnityaVersionModel,
 ]
 
 MODEL_FOR_PROJECT_EVENT: Dict[
@@ -1326,6 +1418,7 @@ MODEL_FOR_PROJECT_EVENT: Dict[
     ProjectEventModelType.release: ProjectReleaseModel,
     ProjectEventModelType.issue: IssueModel,
     ProjectEventModelType.koji_build_tag: KojiBuildTagModel,
+    ProjectEventModelType.anitya_version: AnityaVersionModel,
 }
 
 
@@ -1421,6 +1514,27 @@ class ProjectEventModel(Base):
             commit_sha=commit_hash,
         )
         return (release, event)
+
+    @classmethod
+    def add_anitya_version_event(
+        cls,
+        version: str,
+        project_name: str,
+        project_id: int,
+        package: str,
+    ) -> Tuple[AnityaVersionModel, "ProjectEventModel"]:
+        project_version = AnityaVersionModel.get_or_create(
+            version=version,
+            project_name=project_name,
+            project_id=project_id,
+            package=package,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=project_version.project_event_model_type,
+            event_id=project_version.id,
+            commit_sha=None,
+        )
+        return (project_version, event)
 
     @classmethod
     def add_issue_event(

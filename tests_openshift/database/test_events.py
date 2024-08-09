@@ -220,7 +220,7 @@ def test_pr_comment_event_existing_pr(
     assert event_object.pr_id == 342
     assert event_object.project_url == "https://github.com/the-namespace/the-repo-name"
 
-    flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=342).and_return(
+    flexmock(GithubProject).should_receive("get_pr").with_args(342).and_return(
         flexmock(head_commit="12345")
     )
     assert event_object.commit_sha == "12345"
@@ -244,7 +244,7 @@ def test_pr_comment_event_non_existing_pr(
     assert event_object.git_ref is None
     assert event_object.pr_id == 342
 
-    flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=342).and_return(
+    flexmock(GithubProject).should_receive("get_pr").with_args(342).and_return(
         flexmock(head_commit="12345")
     )
     assert event_object.commit_sha == "12345"
