@@ -204,6 +204,18 @@ class EventData:
         elif self.event_type in {
             "NewHotnessUpdateEvent",
         }:
+            if not self.project_url:
+                (
+                    self._db_project_object,
+                    self._db_project_event,
+                ) = ProjectEventModel.add_anitya_version_event(
+                    version=self.event_dict.get("version"),
+                    project_name=self.event_dict.get("anitya_project_name"),
+                    project_id=self.event_dict.get("anitya_project_id"),
+                    package=self.event_dict.get("package_name"),
+                )
+                return
+
             if self.project:
                 namespace = self.project.namespace
                 repo_name = self.project.repo

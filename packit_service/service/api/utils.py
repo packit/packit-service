@@ -9,6 +9,7 @@ from flask.json import jsonify
 from packit_service.models import (
     CoprBuildTargetModel,
     CoprBuildGroupModel,
+    GitProjectModel,
     KojiBuildTargetModel,
     KojiBuildGroupModel,
     SRPMBuildModel,
@@ -19,6 +20,7 @@ from packit_service.models import (
     optional_timestamp,
     BodhiUpdateTargetModel,
     VMImageBuildTargetModel,
+    AnityaProjectModel,
 )
 
 
@@ -46,15 +48,15 @@ def get_project_info_from_build(
     if not (project := build.get_project()):
         return {}
 
-    return {
-        "repo_namespace": project.namespace,
-        "repo_name": project.repo_name,
-        "git_repo": project.project_url,
+    result_dict = {
         "pr_id": build.get_pr_id(),
         "issue_id": build.get_issue_id(),
         "branch_name": build.get_branch_name(),
         "release": build.get_release_tag(),
+        "anitya_version": build.get_anitya_version(),
     }
+    result_dict.update(get_project_info(project))
+    return result_dict
 
 
 def get_sync_release_target_info(sync_release_model: SyncReleaseTargetModel):
@@ -89,10 +91,37 @@ def get_sync_release_info(sync_release_model: SyncReleaseModel):
         "pr_id": sync_release_model.get_pr_id(),
         "issue_id": sync_release_model.get_issue_id(),
         "release": sync_release_model.get_release_tag(),
+        "anitya_version": sync_release_model.get_anitya_version(),
     }
 
     project = sync_release_model.get_project()
-    result_dict["repo_namespace"] = project.namespace if project else ""
-    result_dict["repo_name"] = project.repo_name if project else ""
-    result_dict["project_url"] = project.project_url if project else ""
+    result_dict.update(get_project_info(project))
+
+    return result_dict
+
+
+def get_project_info(project: Union[AnityaProjectModel, GitProjectModel]):
+    result_dict = {}
+
+    anitya_project_id = anitya_project_name = anitya_package = None
+    project_url = repo_name = repo_namespace = None
+
+    if isinstance(project, AnityaProjectModel):
+        anitya_project_id = project.project_id if project else ""
+        anitya_project_name = project.project_name if project else ""
+        anitya_package = project.package if project else ""
+        project_url = f"https://release-monitoring.org/project/{anitya_project_id}"
+    elif isinstance(project, GitProjectModel):
+        repo_namespace = project.namespace if project else ""
+        repo_name = project.repo_name if project else ""
+        project_url = project.project_url if project else ""
+
+    result_dict["repo_namespace"] = repo_namespace
+    result_dict["repo_name"] = repo_name
+    result_dict["project_url"] = project_url
+    result_dict["anitya_project_id"] = anitya_project_id
+    result_dict["anitya_project_name"] = anitya_project_name
+    result_dict["anitya_package"] = anitya_package
+    result_dict["non_git_upstream"] = isinstance(project, AnityaProjectModel)
+
     return result_dict

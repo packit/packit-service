@@ -188,8 +188,16 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
                 upstream_local_project=self.local_project,
                 dist_git_clone_path=Path(self.service_config.command_handler_work_dir)
                 / SANDCASTLE_DG_REPO_DIR,
+                non_git_upstream=self.non_git_upstream,
             )
         return self._packit_api
+
+    @property
+    def non_git_upstream(self):
+        return (
+            self.check_for_non_git_upstreams
+            and self.job_config.upstream_project_url is None
+        )
 
     def clean_api(self) -> None:
         if self._packit_api:
@@ -202,7 +210,7 @@ class GetSyncReleaseTagMixin(PackitAPIWithUpstreamMixin):
     @property
     def tag(self) -> Optional[str]:
         self._tag = self.data.tag_name
-        if not self._tag:
+        if not self._tag and not self.non_git_upstream:
             # there is no tag information when retriggering pull-from-upstream
             # from dist-git PR
             self._tag = self.packit_api.up.get_last_tag()

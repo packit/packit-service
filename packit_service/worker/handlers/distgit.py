@@ -156,6 +156,7 @@ class SyncFromDownstream(
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
     task_name = TaskName.sync_from_downstream
+    non_git_upstream = False
 
     def __init__(
         self,
@@ -202,6 +203,7 @@ class AbstractSyncReleaseHandler(
     sync_release_job_type: SyncReleaseJobType
     job_name_for_reporting: str
     get_dashboard_url: ClassVar  # static method from Callable[[int], str]
+    check_for_non_git_upstreams: bool = False
 
     def __init__(
         self,
@@ -243,9 +245,8 @@ class AbstractSyncReleaseHandler(
             is_pull_from_upstream_job = (
                 self.sync_release_job_type == SyncReleaseJobType.pull_from_upstream
             )
-            downstream_pr = self.packit_api.sync_release(
+            kwargs = dict(
                 dist_git_branch=branch,
-                tag=self.tag,
                 create_pr=True,
                 local_pr_branch_suffix=branch_suffix,
                 use_downstream_specfile=is_pull_from_upstream_job,
@@ -253,13 +254,18 @@ class AbstractSyncReleaseHandler(
                 add_pr_instructions=True,
                 resolved_bugs=self.get_resolved_bugs(),
                 release_monitoring_project_id=self.data.event_dict.get(
-                    "release_monitoring_project_id"
+                    "anitya_project_id"
                 ),
                 sync_acls=True,
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
                 # [TODO] Remove for CentOS support once it gets refined
                 add_new_sources=self.package_config.pkg_tool in (None, "fedpkg"),
             )
+            if not self.packit_api.non_git_upstream:
+                kwargs["tag"] = self.tag
+            elif version := self.data.event_dict.get("version"):
+                kwargs["versions"] = [version]
+            downstream_pr = self.packit_api.sync_release(**kwargs)
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
             # retry for the archive to become available
@@ -291,9 +297,10 @@ class AbstractSyncReleaseHandler(
                 raise AbortSyncRelease()
             raise ex
         finally:
-            self.packit_api.up.local_project.git_repo.head.reset(
-                "HEAD", index=True, working_tree=True
-            )
+            if self.packit_api.up.local_project:
+                self.packit_api.up.local_project.git_repo.head.reset(
+                    "HEAD", index=True, working_tree=True
+                )
 
         return downstream_pr
 
@@ -533,6 +540,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
     sync_release_job_type = SyncReleaseJobType.propose_downstream
     job_name_for_reporting = "propose downstream"
     get_dashboard_url = staticmethod(get_propose_downstream_info_url)
+    check_for_non_git_upstreams = False
 
     def __init__(
         self,
@@ -594,6 +602,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     sync_release_job_type = SyncReleaseJobType.pull_from_upstream
     job_name_for_reporting = "Pull from upstream"
     get_dashboard_url = staticmethod(get_pull_from_upstream_info_url)
+    check_for_non_git_upstreams = True
 
     def __init__(
         self,

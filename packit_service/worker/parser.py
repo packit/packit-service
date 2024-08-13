@@ -1597,9 +1597,8 @@ class Parser:
         version = nested_get(event, "trigger", "msg", "project", "version")
 
         bug_id = nested_get(event, "bug", "bug_id")
-        release_monitoring_project_id = nested_get(
-            event, "trigger", "msg", "project", "id"
-        )
+        anitya_project_id = nested_get(event, "trigger", "msg", "project", "id")
+        anitya_project_name = nested_get(event, "trigger", "msg", "project", "name")
 
         logger.info(
             f"New hotness update event for package: {package_name}, version: {version},"
@@ -1611,7 +1610,8 @@ class Parser:
             version=version,
             distgit_project_url=distgit_project_url,
             bug_id=bug_id,
-            release_monitoring_project_id=release_monitoring_project_id,
+            anitya_project_id=anitya_project_id,
+            anitya_project_name=anitya_project_name,
         )
 
     @staticmethod
@@ -1633,7 +1633,8 @@ class Parser:
         # ‹upstream_versions› contain the new releases
         versions = nested_get(event, "message", "upstream_versions")
 
-        release_monitoring_project_id = nested_get(event, "message", "project", "id")
+        anitya_project_id = nested_get(event, "message", "project", "id")
+        anitya_project_name = nested_get(event, "message", "project", "name")
 
         logger.info(
             f"Anitya version update event for package: {package_name}, versions: {versions}"
@@ -1642,7 +1643,8 @@ class Parser:
             package_name=package_name,
             versions=versions,
             distgit_project_url=distgit_project_url,
-            release_monitoring_project_id=release_monitoring_project_id,
+            anitya_project_id=anitya_project_id,
+            anitya_project_name=anitya_project_name,
         )
 
     # The .__func__ are needed for Python < 3.10

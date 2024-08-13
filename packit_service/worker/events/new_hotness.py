@@ -23,13 +23,15 @@ class AnityaUpdateEvent(Event):
         self,
         package_name: str,
         distgit_project_url: str,
-        release_monitoring_project_id: int,
+        anitya_project_id: int,
+        anitya_project_name: str,
     ):
         super().__init__()
 
         self.package_name = package_name
         self.distgit_project_url = distgit_project_url
-        self.release_monitoring_project_id = release_monitoring_project_id
+        self.anitya_project_id = anitya_project_id
+        self.anitya_project_name = anitya_project_name
 
         self._repo_url: Optional[RepoUrl] = None
         self._db_project_object: Optional[ProjectReleaseModel] = None
@@ -60,6 +62,18 @@ class AnityaUpdateEvent(Event):
 
     def _add_release_and_event(self):
         if not self._db_project_object or not self._db_project_event:
+            if not self.project_url:
+                (
+                    self._db_project_object,
+                    self._db_project_event,
+                ) = ProjectEventModel.add_anitya_version_event(
+                    version=self.version,
+                    project_name=self.anitya_project_name,
+                    project_id=self.anitya_project_id,
+                    package=self.package_name,
+                )
+                return
+
             if not (
                 self.tag_name
                 and self.repo_name
@@ -162,12 +176,14 @@ class NewHotnessUpdateEvent(AnityaUpdateEvent):
         version: str,
         distgit_project_url: str,
         bug_id: int,
-        release_monitoring_project_id: int,
+        anitya_project_id: int,
+        anitya_project_name: str,
     ):
         super().__init__(
             package_name=package_name,
             distgit_project_url=distgit_project_url,
-            release_monitoring_project_id=release_monitoring_project_id,
+            anitya_project_id=anitya_project_id,
+            anitya_project_name=anitya_project_name,
         )
         self._version = version
         self.bug_id = bug_id
@@ -186,12 +202,14 @@ class AnityaVersionUpdateEvent(AnityaUpdateEvent):
         package_name: str,
         versions: list[str],
         distgit_project_url: str,
-        release_monitoring_project_id: int,
+        anitya_project_id: int,
+        anitya_project_name: str,
     ):
         super().__init__(
             package_name=package_name,
             distgit_project_url=distgit_project_url,
-            release_monitoring_project_id=release_monitoring_project_id,
+            anitya_project_id=anitya_project_id,
+            anitya_project_name=anitya_project_name,
         )
 
         self._versions = versions

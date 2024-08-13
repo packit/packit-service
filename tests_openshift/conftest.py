@@ -153,6 +153,10 @@ class SampleValues:
     alias = "FEDORA-123"
     bodhi_url = "https://bodhi.fedoraproject.org/FEDORA-123"
 
+    # anitya
+    anitya_project_id = 12345
+    anitya_project_name = "packit-anitya"
+
 
 @pytest.fixture(scope="session", autouse=True)
 def global_service_config():
@@ -276,6 +280,17 @@ def release_model():
 
 
 @pytest.fixture()
+def anitya_version_model():
+    release, _ = ProjectEventModel.add_anitya_version_event(
+        version=SampleValues.tag_name,
+        project_name=SampleValues.anitya_project_name,
+        project_id=SampleValues.anitya_project_id,
+        package=SampleValues.package_name,
+    )
+    yield release
+
+
+@pytest.fixture()
 def different_release_model():
     release, _ = ProjectEventModel.add_release_event(
         tag_name=SampleValues.different_tag_name,
@@ -338,6 +353,32 @@ def pull_from_upstream_target_model(release_project_event_model):
     pull_from_upstream_model, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
         project_event_model=release_project_event_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+
+    target_model = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+    )
+    sync_release_pull_request_model = SyncReleasePullRequestModel.get_or_create(
+        SampleValues.downstream_pr_id,
+        SampleValues.downstream_namespace,
+        SampleValues.downstream_repo,
+        SampleValues.downstream_project_url,
+    )
+    target_model.set_downstream_pr_url(downstream_pr_url=SampleValues.downstream_pr_url)
+    target_model.set_downstream_pr(sync_release_pull_request_model)
+    target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
+    target_model.set_logs(logs="random logs")
+
+    pull_from_upstream_model.sync_release_targets.append(target_model)
+    yield target_model
+
+
+@pytest.fixture()
+def pull_from_upstream_target_model_non_git(anitya_version_project_event_model):
+    pull_from_upstream_model, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
+        project_event_model=anitya_version_project_event_model,
         job_type=SyncReleaseJobType.pull_from_upstream,
     )
 
@@ -445,6 +486,15 @@ def release_project_event_model(release_model):
         type=ProjectEventModelType.release,
         event_id=release_model.id,
         commit_sha=SampleValues.commit_sha,
+    )
+
+
+@pytest.fixture()
+def anitya_version_project_event_model(anitya_version_model):
+    yield ProjectEventModel.get_or_create(
+        type=ProjectEventModelType.anitya_version,
+        event_id=anitya_version_model.id,
+        commit_sha=None,
     )
 
 
