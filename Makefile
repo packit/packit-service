@@ -134,7 +134,7 @@ compose-for-db-up:
 # run alembic revision through another service pod
 # run processes as *local host user* inside the pod
 # preserve *local host user* files' uid inside the pod
-# See CONTRIBUTING.md#database
+# See docs/database/README.md
 migrate-db: compose-for-db-up
 	sleep 10 # service pod have to be up and running "alembic upgrade head"
 	podman run --rm -ti --user $(MY_ID) --uidmap=$(MY_ID):0:1 --uidmap=0:1:999 \

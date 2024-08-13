@@ -1,8 +1,8 @@
 """Add Anitya related models
 
-Revision ID: b43ff6137622
-Revises: 64a51b961c28
-Create Date: 2024-08-01 10:37:55.286362
+Revision ID: fd785af95c19
+Revises: 2fdbdcd581f5
+Create Date: 2024-08-13 13:02:24.370985
 
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "b43ff6137622"
-down_revision = "64a51b961c28"
+revision = "fd785af95c19"
+down_revision = "2fdbdcd581f5"
 branch_labels = None
 depends_on = None
 
