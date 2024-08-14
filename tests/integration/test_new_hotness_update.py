@@ -28,6 +28,7 @@ from packit_service.models import (
     SyncReleaseJobType,
     SyncReleasePullRequestModel,
     AnityaVersionModel,
+    AnityaProjectModel,
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
@@ -80,11 +81,14 @@ def sync_release_model():
 
 @pytest.fixture
 def sync_release_model_non_git():
+    class AnityaTestProjectModel(AnityaProjectModel):
+        pass
+
     db_project_object = flexmock(
         id=12,
         project_event_model_type=ProjectEventModelType.release,
         job_config_trigger_type=JobConfigTriggerType.release,
-        project=flexmock(project_url=None),
+        project=AnityaTestProjectModel(),
     )
     project_event = (
         flexmock()
