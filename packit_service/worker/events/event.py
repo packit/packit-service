@@ -19,6 +19,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
+    AnityaProjectModel,
 )
 
 logger = getLogger(__name__)
@@ -378,7 +379,10 @@ class Event:
         )
         d["project_url"] = d.get("project_url") or (
             self.db_project_object.project.project_url
-            if self.db_project_object
+            if (
+                self.db_project_object
+                and not isinstance(self.db_project_object.project, AnityaProjectModel)
+            )
             else None
         )
         if self.build_targets_override:
