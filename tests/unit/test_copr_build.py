@@ -387,9 +387,10 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         )
     )
     flexmock(GithubProject).should_receive("get_pr").and_raise(exc)
+    srpm_model = flexmock(status="success", id=1)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="success", id=1),
+            srpm_model,
             flexmock(),
         )
     )
@@ -464,6 +465,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             markdown_content=None,
         ).and_return()
         flexmock(build).should_receive("set_status").with_args(BuildStatus.error)
+        srpm_model.should_receive("set_status").with_args(BuildStatus.error)
 
     assert helper.run_copr_build_from_source_script()["success"] is retry
 
