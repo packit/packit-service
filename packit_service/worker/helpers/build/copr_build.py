@@ -771,8 +771,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     "msg": f"There was a {what_failed} error: {ex}. Task will be retried."
                 },
             )
-
-        # Set status
+        # Set DB statuses
+        self._srpm_model.set_status(BuildStatus.error)
         for chroot in group.grouped_targets:
             chroot.set_status(BuildStatus.error)
         sentry_integration.send_to_sentry(ex)
