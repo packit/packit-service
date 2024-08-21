@@ -242,16 +242,10 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
 
     def _get_latest_build(self) -> dict:
         if not (
-            candidate_tag := self.koji_helper.get_candidate_tag(self._dist_git_branch)
-        ):
-            raise PackitException(
-                f"Failed to get candidate tag for {self._dist_git_branch}"
+            build := self.koji_helper.get_latest_candidate_build(
+                self.project.repo, self._dist_git_branch
             )
-        build = self.koji_helper.get_latest_build_in_tag(
-            package=self.project.repo,
-            tag=candidate_tag,
-        )
-        if not build:
+        ):
             raise PackitException(
                 f"No build found for package={self.project.repo} "
                 f"and branch={self._dist_git_branch}"

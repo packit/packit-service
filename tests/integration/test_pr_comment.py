@@ -2545,8 +2545,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         get_pr=lambda id: pr_mock,
     )
 
-    flexmock(KojiHelper).should_receive("get_candidate_tag").and_return("tag")
-    flexmock(KojiHelper).should_receive("get_latest_build_in_tag").and_return(
+    flexmock(KojiHelper).should_receive("get_latest_candidate_build").and_return(
         {"nvr": "123", "build_id": 321, "state": 0, "task_id": 123}
     )
 

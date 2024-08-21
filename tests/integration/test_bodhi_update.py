@@ -909,17 +909,15 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
         sidetag_name
     ).and_return(builds_in_sidetag)
 
-    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
-        "f40"
-    ).and_return("f40-updates-candidate")
-    flexmock(KojiHelper).should_receive("get_stable_tags").with_args(
-        "f40-updates-candidate"
-    ).and_return(["f40-updates", "f40"])
-    flexmock(KojiHelper).should_receive("get_latest_nvr_in_tag").with_args(
-        package="python-specfile", tag=str
+    flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
+        "python-specfile",
+        "f40",
+        include_candidate=True,
     ).and_return("python-specfile-0.30.0-1.fc40")
-    flexmock(KojiHelper).should_receive("get_latest_nvr_in_tag").with_args(
-        package="packit", tag=str
+    flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
+        "packit",
+        "f40",
+        include_candidate=True,
     ).and_return("packit-0.98.0-1.fc40")
     flexmock(KojiHelper).should_receive("remove_sidetag").with_args(sidetag_name).times(
         0 if missing_dependency else 1
