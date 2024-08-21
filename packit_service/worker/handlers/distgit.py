@@ -16,6 +16,7 @@ from celery import Task
 from ogr.abstract import PullRequest, AuthMethod
 from ogr.services.github import GithubService
 from packit.config import JobConfig, JobType, Deployment
+from packit.config import aliases
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
     PackitException,
@@ -1015,3 +1016,83 @@ class RetriggerDownstreamKojiBuildHandler(
             f"Fedora Koji build was re-triggered "
             f"by comment in issue {self.data.issue_id}."
         )
+
+
+@configured_as(job_type=JobType.koji_build)
+@run_for_comment(command="koji-tag")
+@reacts_to(event=PullRequestCommentPagureEvent)
+class TagIntoSidetagHandler(
+    RetriableJobHandler,
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
+    GetPagurePullRequestMixin,
+):
+    task_name = TaskName.tag_into_sidetag
+
+    _koji_helper: Optional[KojiHelper] = None
+
+    @property
+    def koji_helper(self):
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (PermissionOnDistgit,)
+
+    def run_for_branch(self, job_config: JobConfig, branch: str) -> None:
+        sidetag_group = SidetagGroupModel.get_or_create(job_config.sidetag_group)
+        sidetag = SidetagModel.get_or_create(sidetag_group, branch)
+        # we need Kerberos ticket to tag a build into sidetag
+        # and to create a new sidetag (if needed)
+        self.packit_api.init_kerberos_ticket()
+        if not sidetag.koji_name or not self.koji_helper.get_tag_info(
+            sidetag.koji_name
+        ):
+            tag_info = self.koji_helper.create_sidetag(branch)
+            if not tag_info:
+                logger.error(f"Failed to create sidetag for {branch}")
+                return
+            sidetag.set_koji_name(tag_info["name"])
+        if not (
+            nvr := self.koji_helper.get_latest_stable_nvr(
+                job_config.downstream_package_name, branch
+            )
+        ):
+            logger.debug(
+                "Failed to get the latest stable build "
+                f"of {job_config.downstream_package_name} for {branch}"
+            )
+            return
+        logger.debug(f"Tagging {nvr} into {sidetag.koji_name}")
+        self.koji_helper.tag_build(nvr, sidetag.koji_name)
+
+    def run(self) -> TaskResults:
+        comment = self.data.event_dict.get("comment")
+        commands = get_packit_commands_from_comment(
+            comment, self.service_config.comment_command_prefix
+        )
+        args = commands[1:] if len(commands) > 1 else ""
+        for job in self.package_config.get_job_views():
+            if (
+                job.type == JobType.koji_build
+                and job.sidetag_group
+                and job.dist_git_branches
+            ):
+                configured_branches = aliases.get_branches(
+                    *job.dist_git_branches, default_dg_branch="rawhide"
+                )
+                if "--all-branches" in args:
+                    branches = configured_branches
+                elif self.pull_request.target_branch not in configured_branches:
+                    continue
+                else:
+                    branches = {self.pull_request.target_branch}
+                logger.debug(
+                    "Running downstream Koji build tagging "
+                    f"of {job.downstream_package_name} for {branches}"
+                )
+                for branch in branches:
+                    self.run_for_branch(job, branch)
+        return TaskResults(success=True, details={})

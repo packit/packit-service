@@ -71,6 +71,7 @@ from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
     RetriggerDownstreamKojiBuildHandler,
     PullFromUpstreamHandler,
+    TagIntoSidetagHandler,
 )
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
 from packit_service.worker.handlers.koji import (
@@ -590,6 +591,19 @@ def run_koji_build_tag_handler(event: dict, package_config: dict, job_config: di
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(bind=True, name=TaskName.tag_into_sidetag, base=TaskWithRetry)
+def run_tag_into_sidetag_handler(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = TagIntoSidetagHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

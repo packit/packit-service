@@ -6,7 +6,10 @@ import re
 
 from packit.config.aliases import get_branches
 from packit_service.constants import MSG_GET_IN_TOUCH
-from packit_service.utils import pr_labels_match_configuration
+from packit_service.utils import (
+    pr_labels_match_configuration,
+    get_packit_commands_from_comment,
+)
 from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
@@ -93,24 +96,30 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     )
                     return False
         elif self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+            comment = self.data.event_dict.get("comment", "")
+            commands = get_packit_commands_from_comment(
+                comment, self.service_config.comment_command_prefix
+            )
+            command = commands[0] if commands else ""
             commenter = self.data.actor
             logger.debug(
-                f"Triggering downstream koji build through comment by: {commenter}"
+                f"{'Tagging' if command == 'koji-tag' else 'Triggering'} "
+                f"downstream koji build through comment by: {commenter}"
             )
             if not self.is_packager(commenter):
                 msg = (
-                    f"koji-build retriggering through comment "
-                    f"on PR identifier {self.data.pr_id} "
+                    f"koji-build {'tagging' if command == 'koji-tag' else 'retriggering'} "
+                    f"through comment on PR identifier {self.data.pr_id} "
                     f"and project {self.data.project_url} "
-                    f"done by {commenter} which is not a packager."
+                    f"done by {commenter} who is not a packager."
                 )
                 logger.info(msg)
                 report_in_issue_repository(
                     issue_repository=self.job_config.issue_repository,
                     service_config=self.service_config,
                     title=(
-                        "Re-triggering downstream koji build "
-                        "through comment in dist-git PR failed"
+                        f"{'Tagging' if command == 'koji-tag' else 'Re-triggering'} "
+                        "downstream koji build through comment in dist-git PR failed"
                     ),
                     message=msg + MSG_GET_IN_TOUCH,
                     comment_to_existing=msg,

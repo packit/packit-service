@@ -56,6 +56,8 @@ from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
     SyncReleasePullRequestModel,
+    SidetagGroupModel,
+    SidetagModel,
 )
 from packit_service.service.db_project_events import AddPullRequestEventToDb
 from packit_service.utils import (
@@ -68,7 +70,11 @@ from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
-from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
+from packit_service.worker.handlers.distgit import (
+    DownstreamKojiBuildHandler,
+    TagIntoSidetagHandler,
+    aliases,
+)
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -85,6 +91,7 @@ from packit_service.worker.tasks import (
     run_testing_farm_handler,
     run_pull_from_upstream_handler,
     run_downstream_koji_build,
+    run_tag_into_sidetag_handler,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -2943,4 +2950,139 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         event=event_dict,
         job_config=job_config,
     )
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "all_branches",
+    [False, True],
+)
+def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_branches):
+    packit_yaml = (
+        "{'specfile_path': 'python-teamcity-messages.spec', 'synced_files': [],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'sidetag_group': 'test',"
+        "'dist_git_branches': ['fedora-stable']}],"
+        "'downstream_package_name': 'python-ogr', 'issue_repository': "
+        "'https://github.com/namespace/repo'}"
+    )
+    pagure_project = flexmock(
+        PagureProject,
+        full_repo_name="rpms/packit",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/python-teamcity-messages",
+        default_branch="main",
+    )
+    pagure_project.should_receive("get_files").with_args(
+        ref="main", filter_regex=r".+\.spec$"
+    ).and_return(["python-teamcity-messages.spec"])
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="main"
+    ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="main", recursive=False
+    ).and_return(["python-teamcity-messages.spec", ".packit.yaml"])
+
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = (
+        "/packit koji-tag" + (" --all-branches" if all_branches else "")
+    )
+
+    project_event = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
+        project_event
+    )
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        project_event
+    )
+    flexmock(PipelineModel).should_receive("create")
+
+    db_project_object = flexmock(
+        id=12,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    db_project_event = (
+        flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=12,
+        commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    ).and_return(db_project_event)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=pagure_pr_comment_added["pullrequest"]["id"],
+        namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
+        repo_name=pagure_pr_comment_added["pullrequest"]["project"]["name"],
+        project_url=pagure_pr_comment_added["pullrequest"]["project"]["full_url"],
+    ).and_return(db_project_object)
+
+    pr_mock = (
+        flexmock(target_branch="f40")
+        .should_receive("comment")
+        .with_args("The task was accepted.")
+        .mock()
+    )
+    flexmock(
+        PagureProject,
+        full_repo_name="rpms/jouduv-dort",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/jouduv-dort",
+        default_branch="main",
+        get_pr=lambda id: pr_mock,
+    )
+
+    flexmock(TagIntoSidetagHandler).should_receive("pre_check").and_return(True)
+    flexmock(celery_group).should_receive("apply_async").once()
+
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return()
+    flexmock(aliases).should_receive("get_branches").with_args(
+        "fedora-stable", default_dg_branch="rawhide"
+    ).and_return({"f39", "f40"})
+
+    sidetag_group = flexmock()
+    flexmock(SidetagGroupModel).should_receive("get_or_create").with_args(
+        "test"
+    ).and_return(sidetag_group)
+    flexmock(SidetagModel).should_receive("get_or_create").with_args(
+        sidetag_group, "f39"
+    ).and_return(flexmock(koji_name="f39-build-side-12345"))
+    flexmock(SidetagModel).should_receive("get_or_create").with_args(
+        sidetag_group, "f40"
+    ).and_return(flexmock(koji_name="f40-build-side-12345"))
+    flexmock(KojiHelper).should_receive("get_tag_info").with_args(
+        "f39-build-side-12345"
+    ).and_return(flexmock())
+    flexmock(KojiHelper).should_receive("get_tag_info").with_args(
+        "f40-build-side-12345"
+    ).and_return(flexmock())
+    flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
+        "python-ogr", "f39"
+    ).and_return("python-ogr-0.1-1.fc39")
+    flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
+        "python-ogr", "f40"
+    ).and_return("python-ogr-0.1-1.fc40")
+
+    if all_branches:
+        flexmock(KojiHelper).should_receive("tag_build").with_args(
+            "python-ogr-0.1-1.fc39", "f39-build-side-12345"
+        ).once()
+    flexmock(KojiHelper).should_receive("tag_build").with_args(
+        "python-ogr-0.1-1.fc40", "f40-build-side-12345"
+    ).once()
+
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    results = run_tag_into_sidetag_handler(
+        event=event_dict,
+        package_config=package_config,
+        job_config=job_config,
+    )
+
     assert first_dict_value(results["job"])["success"]
