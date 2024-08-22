@@ -134,6 +134,7 @@ DEFAULT_MAPPING_TF = {
     "epel-7": "centos-7",
     "epel-8": "centos-stream-8",
     "epel-9": "centos-stream-9",
+    "epel-10": "centos-stream-10",
 }
 
 DEFAULT_MAPPING_INTERNAL_TF = {
@@ -141,6 +142,7 @@ DEFAULT_MAPPING_INTERNAL_TF = {
     "epel-7": "rhel-7",
     "epel-8": "rhel-8",
     "epel-9": "centos-stream-9",
+    "epel-10": "centos-stream-10",
 }
 
 COMMENT_REACTION = "eyes"
