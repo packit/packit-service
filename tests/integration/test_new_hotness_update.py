@@ -222,6 +222,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
+        fast_forward_merge_branches=set(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -394,6 +395,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
+        fast_forward_merge_branches=set(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 

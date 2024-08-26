@@ -2705,6 +2705,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
+        fast_forward_merge_branches=set(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -2872,6 +2873,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         sync_acls=True,
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
+        fast_forward_merge_branches=set(),
     ).and_return(pr).once()
     flexmock(PackitAPI).should_receive("clean")
 
