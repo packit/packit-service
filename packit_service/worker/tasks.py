@@ -586,7 +586,11 @@ def babysit_vm_image_build(self, build_id: int):
 
 @celery_app.task(name=TaskName.koji_build_tag, base=TaskWithRetry)
 def run_koji_build_tag_handler(event: dict, package_config: dict, job_config: dict):
-    handler = KojiBuildTagHandler(package_config=None, job_config=None, event=event)
+    handler = KojiBuildTagHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
     return get_handlers_task_results(handler.run_job(), event)
 
 
