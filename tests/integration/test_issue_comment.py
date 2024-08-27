@@ -420,11 +420,8 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         koji_builds=["python-teamcity-messages.fc38"],
         sidetag=None,
     ).and_return(("alias", "url"))
-    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
-        "f38"
-    ).and_return("f38-updates-candidate")
-    flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="python-teamcity-messages", tag="f38-updates-candidate"
+    flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
+        "python-teamcity-messages", "f38"
     ).and_return(
         {
             "nvr": "python-teamcity-messages.fc38",
@@ -439,11 +436,8 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         koji_builds=["python-teamcity-messages.fc37"],
         sidetag=None,
     ).and_return(("alias", "url"))
-    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
-        "f37"
-    ).and_return("f37-updates-candidate")
-    flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="python-teamcity-messages", tag="f37-updates-candidate"
+    flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
+        "python-teamcity-messages", "f37"
     ).and_return(
         {
             "nvr": "python-teamcity-messages.fc37",

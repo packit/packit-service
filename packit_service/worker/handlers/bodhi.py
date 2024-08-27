@@ -129,19 +129,10 @@ class SidetagHelper:
             missing = dependencies - tagged_packages
             raise PackitException(f"Missing dependencies for Bodhi update: {missing}")
 
-        if not (candidate_tag := self.koji_helper.get_candidate_tag(dist_git_branch)):
-            raise PackitException(f"Failed to get candidate tag for {dist_git_branch}")
-
-        stable_tags = self.koji_helper.get_stable_tags(candidate_tag)
-
         nvrs = []
         for package in dependencies:
-            latest_stable_nvr = max(
-                (
-                    self.koji_helper.get_latest_nvr_in_tag(package=package, tag=t)
-                    for t in stable_tags + [candidate_tag]
-                ),
-                key=lambda nvr: NEVR.from_string(nvr),
+            latest_stable_nvr = self.koji_helper.get_latest_stable_nvr(
+                package, dist_git_branch, include_candidate=True
             )
             latest_build_in_sidetag = max(
                 (b for b in builds if b["package_name"] == package),

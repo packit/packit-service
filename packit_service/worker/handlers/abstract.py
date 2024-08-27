@@ -190,6 +190,7 @@ class TaskName(str, enum.Enum):
     pull_from_upstream = "task.pull_from_upstream"
     check_onboarded_projects = "task.check_onboarded_projects"
     koji_build_tag = "task.koji_build_tag"
+    tag_into_sidetag = "task.tag_into_sidetag"
 
 
 class Handler(PackitAPIProtocol, Config):
