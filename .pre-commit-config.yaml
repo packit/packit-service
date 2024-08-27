@@ -61,7 +61,7 @@ repos:
         additional_dependencies:
           [
             types-jwt,
-            types-pkg_resources,
+            types-setuptools,
             types-redis,
             types-requests,
             types-Flask,
