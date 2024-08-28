@@ -19,4 +19,4 @@
           - pytest==8.0.2
           - pytest-cov
           - pytest-flask
-          - deepdiff
+          - deepdiff < 8.0.0 # version 8.0.0 requires numpy, avoid it
