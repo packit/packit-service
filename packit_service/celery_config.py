@@ -53,6 +53,7 @@ beat_schedule = {
         "task": "packit_service.worker.tasks.get_usage_statistics",
         "schedule": 3600.0,
         "options": {"queue": "long-running"},
+        "time_limit": 1800,
     },
 }
 
