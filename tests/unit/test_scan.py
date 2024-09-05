@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import pytest
 from flexmock import flexmock
 
 from packit.api import PackitAPI
@@ -16,22 +17,34 @@ from packit_service.worker.handlers.copr import ScanHelper
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 
 
-def test_handle_scan():
+@pytest.mark.parametrize(
+    "build_models",
+    [
+        [("abcdef", [flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))])],
+        [
+            ("abcdef", []),
+            (
+                "fedcba",
+                [flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))],
+            ),
+        ],
+    ],
+)
+def test_handle_scan(build_models):
     srpm_mock = flexmock(url="https://some-url/my-srpm.src.rpm")
     flexmock(AbstractCoprBuildEvent).should_receive("from_event_dict").and_return(
         flexmock(chroot="fedora-rawhide-x86_64", build_id="123", pr_id=12)
     )
     flexmock(copr).should_receive("download_file").twice().and_return(True)
 
-    base_copr_model = flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))
-
-    flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
-        commit_sha="abcdef",
-        project_name="commit-project",
-        owner="user-123",
-        target="fedora-rawhide-x86_64",
-        status=BuildStatus.success,
-    ).and_return([base_copr_model])
+    for commit_sha, models in build_models:
+        flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
+            commit_sha=commit_sha,
+            project_name="commit-project",
+            owner="user-123",
+            target="fedora-rawhide-x86_64",
+            status=BuildStatus.success,
+        ).and_return(models).once()
 
     flexmock(PackitAPI).should_receive("run_osh_build").once().and_return(
         'some\nmultiline\noutput\n{"id": 123}\nand\nmore\n{"url": "scan-url"}\n'
@@ -53,7 +66,8 @@ def test_handle_scan():
     project = flexmock(
         get_pr=lambda pr_id: flexmock(
             target_branch="main", target_branch_head_commit="abcdef"
-        )
+        ),
+        get_commits=lambda ref: ["abcdef", "fedcba"],
     )
 
     ScanHelper(
