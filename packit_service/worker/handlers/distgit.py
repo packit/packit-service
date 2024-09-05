@@ -261,6 +261,9 @@ class AbstractSyncReleaseHandler(
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
                 # [TODO] Remove for CentOS support once it gets refined
                 add_new_sources=self.package_config.pkg_tool in (None, "fedpkg"),
+                fast_forward_merge_branches=self.helper.get_fast_forward_merge_branches_for(
+                    branch
+                ),
             )
             if not self.packit_api.non_git_upstream:
                 kwargs["tag"] = self.tag

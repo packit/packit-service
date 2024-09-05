@@ -7,7 +7,7 @@ from typing import Optional, List, Set
 from ogr.abstract import GitProject
 
 from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerType
-from packit.config.aliases import get_branches
+from packit.config import aliases
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.trigger_mapping import are_job_types_same
@@ -51,21 +51,44 @@ class SyncReleaseHelper(BaseJobHelper):
         """
         raise NotImplementedError("Use subclass.")
 
+    def _filter_override_branches(self, branches: Set[str]) -> Set[str]:
+        """
+        If a branch has been overriden filter it out.
+        If we re-run the job in a subset of branches
+        the overriden branches are those where the job
+        has not to be run again.
+        """
+        if self.branches_override:
+            logger.debug(f"Branches override: {self.branches_override}")
+            branches = branches & self.branches_override
+        return branches
+
     @property
     def branches(self) -> Set[str]:
         """
         Return all valid branches from config.
         """
-        branches = get_branches(
+        branches = aliases.get_branches(
             *self.job.dist_git_branches,
             default_dg_branch=self.default_dg_branch,
             default=self.default_dg_branch,
         )
-        if self.branches_override:
-            logger.debug(f"Branches override: {self.branches_override}")
-            branches = branches & self.branches_override
+        return self._filter_override_branches(branches)
 
-        return branches
+    def get_fast_forward_merge_branches_for(self, source_branch: str) -> Set[str]:
+        """
+        Returns a list of branches that can be fast forwarded merging
+        the specified source_branch. They are listed in the config.
+
+        source_branch: source branch
+        """
+        branches = aliases.get_fast_forward_merge_branches_for(
+            self.job.dist_git_branches,
+            source_branch,
+            default=self.default_dg_branch,
+            default_dg_branch=self.default_dg_branch,
+        )
+        return self._filter_override_branches(branches)
 
     @property
     def job(self) -> Optional[JobConfig]:
