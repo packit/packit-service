@@ -279,6 +279,7 @@ class ProjectEventModelType(str, enum.Enum):
     issue = "issue"
     koji_build_tag = "koji_build_tag"
     anitya_version = "anitya_version"
+    anitya_multiple_versions = "anitya_multiple_versions"
 
 
 class BuildsAndTestsConnector:
@@ -466,6 +467,9 @@ class AnityaProjectModel(Base):
     project_name = Column(String)
     package = Column(String)
     versions = relationship("AnityaVersionModel", back_populates="project")
+    multiple_versions = relationship(
+        "AnityaMultipleVersionsModel", back_populates="project"
+    )
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["AnityaProjectModel"]:
@@ -491,6 +495,53 @@ class AnityaProjectModel(Base):
                 project.package = package
                 session.add(project)
             return project
+
+
+class AnityaMultipleVersionsModel(BuildsAndTestsConnector, Base):
+    __tablename__ = "anitya_multiple_versions"
+    id = Column(Integer, primary_key=True)  # our database PK
+    versions = Column(ARRAY(String), nullable=False)
+    project_id = Column(Integer, ForeignKey("anitya_projects.id"), index=True)
+    project = relationship("AnityaProjectModel", back_populates="multiple_versions")
+
+    job_config_trigger_type = JobConfigTriggerType.release
+    project_event_model_type = ProjectEventModelType.anitya_multiple_versions
+
+    @classmethod
+    def get_or_create(
+        cls,
+        versions: list[str],
+        project_id: int,
+        project_name: str,
+        package: str,
+    ) -> "AnityaMultipleVersionsModel":
+        with sa_session_transaction(commit=True) as session:
+            project = AnityaProjectModel.get_or_create(
+                project_id=project_id, project_name=project_name, package=package
+            )
+            project_version = (
+                session.query(AnityaMultipleVersionsModel)
+                .filter_by(versions=versions, project_id=project.id)
+                .first()
+            )
+            if not project_version:
+                project_version = AnityaMultipleVersionsModel()
+                project_version.versions = versions
+                project_version.project = project
+                session.add(project_version)
+            return project_version
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["AnityaMultipleVersionsModel"]:
+        with sa_session_transaction() as session:
+            return session.query(AnityaVersionModel).filter_by(id=id_).first()
+
+    def __repr__(self):
+        return (
+            f"AnityaMultipleVersionsModel("
+            f"versions={self.versions}, "
+            f"project={self.project})"
+        )
 
 
 class AnityaVersionModel(BuildsAndTestsConnector, Base):
@@ -1525,6 +1576,27 @@ class ProjectEventModel(Base):
     ) -> Tuple[AnityaVersionModel, "ProjectEventModel"]:
         project_version = AnityaVersionModel.get_or_create(
             version=version,
+            project_name=project_name,
+            project_id=project_id,
+            package=package,
+        )
+        event = ProjectEventModel.get_or_create(
+            type=project_version.project_event_model_type,
+            event_id=project_version.id,
+            commit_sha=None,
+        )
+        return (project_version, event)
+
+    @classmethod
+    def add_anitya_multiple_versions_event(
+        cls,
+        versions: list[str],
+        project_name: str,
+        project_id: int,
+        package: str,
+    ) -> Tuple[AnityaMultipleVersionsModel, "ProjectEventModel"]:
+        project_version = AnityaMultipleVersionsModel.get_or_create(
+            versions=versions,
             project_name=project_name,
             project_id=project_id,
             package=package,
