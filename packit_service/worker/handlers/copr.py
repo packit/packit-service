@@ -646,26 +646,38 @@ class ScanHelper:
         base_build_owner = self.copr_build_helper.job_owner_for_job_config(
             base_build_job
         )
+
+        def get_srpm_build(commit_sha):
+            logger.debug(
+                f"Searching for base build for {target_branch_commit} commit "
+                f"in {base_build_owner}/{base_build_project_name} Copr project in our DB. "
+            )
+
+            builds = CoprBuildTargetModel.get_all_by(
+                commit_sha=commit_sha,
+                project_name=base_build_project_name,
+                owner=base_build_owner,
+                target="fedora-rawhide-x86_64",
+                status=BuildStatus.success,
+            )
+            try:
+                return next(iter(builds)).get_srpm_build()
+            except StopIteration:
+                return None
+
         target_branch_commit = (
             self.copr_build_helper.pull_request_object.target_branch_head_commit
         )
 
-        logger.debug(
-            f"Searching for base build for {target_branch_commit} commit "
-            f"in {base_build_owner}/{base_build_project_name} Copr project in our DB. "
-        )
+        if srpm_build := get_srpm_build(target_branch_commit):
+            return srpm_build
 
-        builds = CoprBuildTargetModel.get_all_by(
-            commit_sha=target_branch_commit,
-            project_name=base_build_project_name,
-            owner=base_build_owner,
-            target="fedora-rawhide-x86_64",
-            status=BuildStatus.success,
-        )
-
-        try:
-            return next(iter(builds)).get_srpm_build()
-        except StopIteration:
+        for target_branch_commit in self.copr_build_helper.project.get_commits(
+            self.copr_build_helper.pull_request_object.target_branch
+        )[1:]:
+            if srpm_build := get_srpm_build(target_branch_commit):
+                return srpm_build
+        else:
             logger.debug("No matching base build found in our DB.")
             return None
 
