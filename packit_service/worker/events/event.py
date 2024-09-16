@@ -260,6 +260,18 @@ class EventData:
                 repo_name=self.project.repo,
                 project_url=self.project_url,
             )
+        elif self.event_type in {
+            "KojiBuildEvent",
+        }:
+            (self._db_project_object, self._db_project_event) = (
+                ProjectEventModel.add_branch_push_event(
+                    branch_name=self.event_dict.get("branch_name"),
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                    commit_sha=self.event_dict.get("commit_sha"),
+                )
+            )
         else:
             logger.warning(
                 "We don't know, what to search in the database for this event data."
