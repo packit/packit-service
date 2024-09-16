@@ -29,6 +29,7 @@ from packit_service.models import (
     KojiBuildTagModel,
     SidetagModel,
     SidetagGroupModel,
+    ProjectEventModelType,
 )
 from packit_service.utils import (
     load_job_config,
@@ -86,7 +87,9 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     # Database structure
     run_model_flexmock = flexmock()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -110,6 +113,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
             )
         ],
     )
+    flexmock(ProjectEventModel).should_receive("get_or_create")
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
@@ -184,7 +188,9 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     # Database structure
     run_model_flexmock = flexmock()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -192,6 +198,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
+    flexmock(ProjectEventModel).should_receive("get_or_create")
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     group_model = flexmock(
         id=12,
@@ -285,7 +292,9 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     # Database structure
     run_model_flexmock = flexmock()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -294,6 +303,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(ProjectEventModel).should_receive("get_or_create")
     group_model = flexmock(
         grouped_targets=[
             flexmock(
@@ -398,7 +408,9 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     # Database structure
     run_model_flexmock = flexmock()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -407,6 +419,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(ProjectEventModel).should_receive("get_or_create")
     group_model = flexmock(
         grouped_targets=[
             flexmock(
@@ -520,7 +533,9 @@ def test_bodhi_update_build_not_tagged_yet(
         bodhi_update_group=group_model,
     ).and_return()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -625,7 +640,9 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         bodhi_update_group=group_model,
     ).and_return()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -634,6 +651,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         git_branch_model_flexmock
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(ProjectEventModel).should_receive("get_or_create")
     flexmock(KojiBuildTargetModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -764,7 +782,9 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     # Database structure
     run_model_flexmock = flexmock()
     git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+        id=1,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         79721403
@@ -843,7 +863,16 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         status="queued",
         bodhi_update_group=group_model,
     ).and_return()
-    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(80860789)
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        80860789
+    ).and_return(
+        flexmock(
+            get_project_event_object=lambda: flexmock(
+                id=1, job_config_trigger_type=JobConfigTriggerType.commit
+            ),
+            group_of_targets=flexmock(runs=[flexmock()]),
+        )
+    )
 
     processing_results = SteveJobs().process_message(koji_build_completed_f36)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
