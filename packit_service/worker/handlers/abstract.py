@@ -71,7 +71,6 @@ def configured_as(job_type: JobType):
     E.g. CoprBuildHandler uses both copr_build and build:
     ```
     @configured_as(job_type=JobType.copr_build)
-    @configured_as(job_type=JobType.build)
     class CoprBuildHandler(JobHandler):
     ```
     """
@@ -173,7 +172,6 @@ def run_for_check_rerun(prefix: str):
     Example:
     ```
     @configured_as(job_type=JobType.copr_build)
-    @configured_as(job_type=JobType.build)
     @run_for_check_rerun(prefix="rpm-build")
     @reacts_to(CheckRerunPullRequestEvent)
     @reacts_to(CheckRerunCommitEvent)

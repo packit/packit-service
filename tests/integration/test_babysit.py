@@ -186,7 +186,7 @@ def test_check_copr_build_updated(
         PackageConfig(
             jobs=[
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
@@ -273,7 +273,7 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
         PackageConfig(
             jobs=[
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
@@ -379,7 +379,7 @@ def test_check_copr_build_waiting_srpm_failed(add_pull_request_event_with_sha_12
         PackageConfig(
             jobs=[
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
@@ -467,7 +467,7 @@ def test_check_copr_build_waiting_already_started(
         PackageConfig(
             jobs=[
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
                 ),

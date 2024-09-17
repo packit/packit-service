@@ -347,7 +347,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
     package_config = PackageConfig(
         jobs=[
             JobConfig(
-                type=JobType.production_build,
+                type=JobType.upstream_koji_build,
                 trigger=JobConfigTriggerType.pull_request,
                 packages={
                     "package": CommonPackageConfig(
@@ -360,7 +360,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         packages={"package": CommonPackageConfig()},
     )
     job_config = JobConfig(
-        type=JobType.production_build,
+        type=JobType.upstream_koji_build,
         trigger=JobConfigTriggerType.pull_request,
         packages={
             "package": CommonPackageConfig(

@@ -46,7 +46,7 @@ def build_helper(
     jobs = jobs or []
     jobs.append(
         JobConfig(
-            type=JobType.production_build,
+            type=JobType.upstream_koji_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
             packages={
                 "package": CommonPackageConfig(
