@@ -88,7 +88,6 @@ logger = logging.getLogger(__name__)
 
 
 @configured_as(job_type=JobType.copr_build)
-@configured_as(job_type=JobType.build)
 @run_for_comment(command="build")
 @run_for_comment(command="copr-build")
 @run_for_comment(command="rebuild-failed")
@@ -151,7 +150,6 @@ class AbstractCoprBuildReportHandler(
 
 
 @configured_as(job_type=JobType.copr_build)
-@configured_as(job_type=JobType.build)
 @reacts_to(event=CoprBuildStartEvent)
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
@@ -242,7 +240,6 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
 
 @configured_as(job_type=JobType.copr_build)
-@configured_as(job_type=JobType.build)
 @reacts_to(event=CoprBuildEndEvent)
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
@@ -613,7 +610,7 @@ class ScanHelper:
 
         for job in self.copr_build_helper.package_config.get_job_views():
             if (
-                job.type in (JobType.copr_build, JobType.build)
+                job.type == JobType.copr_build
                 and job.trigger == JobConfigTriggerType.commit
                 and (
                     (

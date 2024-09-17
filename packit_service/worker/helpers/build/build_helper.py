@@ -29,7 +29,6 @@ from packit_service.models import (
     ProjectEventModel,
 )
 from packit_service.service.urls import get_srpm_build_info_url
-from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.monitoring import Pushgateway
@@ -149,9 +148,10 @@ class BaseBuildJobHelper(BaseJobHelper):
             return None
         if not self._job_build:
             for job in [self.job_config] + self.package_config.jobs:
-                if are_job_types_same(
-                    job.type, self.job_type_build
-                ) and self.is_job_config_trigger_matching(job):
+                if (
+                    job.type == self.job_type_build
+                    and self.is_job_config_trigger_matching(job)
+                ):
                     self._job_build = job
                     break
         return self._job_build
@@ -173,9 +173,10 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         if not self._job_tests_all:
             for job in self.package_config.jobs:
-                if are_job_types_same(
-                    job.type, self.job_type_test
-                ) and self.is_job_config_trigger_matching(job):
+                if (
+                    job.type == self.job_type_test
+                    and self.is_job_config_trigger_matching(job)
+                ):
                     matching_jobs.append(job)
             self._job_tests_all = matching_jobs
 
