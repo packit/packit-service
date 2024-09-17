@@ -16,7 +16,7 @@ from ogr.services.gitlab import GitlabProject
 
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_aliases
-from packit.config.common_package_config import Deployment
+from packit.config.common_package_config import Deployment, MockBootstrapSetup
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
     PackitCoprException,
@@ -254,6 +254,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Additional repos that will be enabled for copr build.
         """
         return self.job_build.additional_repos if self.job_build else None
+
+    @property
+    def bootstrap(self) -> Optional[MockBootstrapSetup]:
+        """
+        mock bootstrap feature setup.
+        """
+        return self.job_build.bootstrap if self.job_build else None
 
     @property
     def build_targets_all(self) -> Set[str]:
@@ -897,6 +904,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 list_on_homepage=self.list_on_homepage if overwrite_booleans else None,
                 preserve_project=self.preserve_project if overwrite_booleans else None,
                 additional_repos=self.additional_repos,
+                bootstrap=self.bootstrap,
                 request_admin_if_needed=True,
                 targets_dict=self.job_config.targets_dict,
                 module_hotfixes=self.module_hotfixes if overwrite_booleans else None,
