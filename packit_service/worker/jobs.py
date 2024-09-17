@@ -19,6 +19,7 @@ from packit.utils import nested_get
 
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
+    TASK_ACCEPTED,
     COMMENT_REACTION,
     DOCS_CONFIGURATION_URL,
     PACKIT_VERIFY_FAS_COMMAND,
@@ -650,18 +651,6 @@ class SteveJobs:
             event=self.event.get_dict(),
         ):
             return False
-
-        if deprecation_msg := DEPRECATED_JOB_TYPES.get(job_config.type):
-            job_helper = self.initialize_job_helper(handler_kls, job_config)
-            job_helper.status_reporter.report(
-                state=BaseCommitStatus.error,
-                description=f"Job name `{job_config.type.name}` deprecated.",
-                url=f"{DOCS_CONFIGURATION_URL}/#supported-jobs",
-                check_names=f"config-deprecation-{job_config.type.name}",
-                markdown_content=f"{deprecation_msg}\n\n"
-                "The support for the old name will be removed "
-                "by the end of the year.",
-            )
 
         return True
 
