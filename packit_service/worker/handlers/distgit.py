@@ -577,7 +577,6 @@ class AbortSyncRelease(Exception):
 
 @configured_as(job_type=JobType.propose_downstream)
 @run_for_comment(command="propose-downstream")
-@run_for_comment(command="propose-update")  # deprecated
 @run_for_check_rerun(prefix="propose-downstream")
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=ReleaseGitlabEvent)
