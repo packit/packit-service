@@ -1459,6 +1459,7 @@ AbstractProjectObjectDbType = Union[
     IssueModel,
     KojiBuildTagModel,
     AnityaVersionModel,
+    AnityaMultipleVersionsModel,
 ]
 
 MODEL_FOR_PROJECT_EVENT: Dict[
@@ -1470,6 +1471,7 @@ MODEL_FOR_PROJECT_EVENT: Dict[
     ProjectEventModelType.issue: IssueModel,
     ProjectEventModelType.koji_build_tag: KojiBuildTagModel,
     ProjectEventModelType.anitya_version: AnityaVersionModel,
+    ProjectEventModelType.anitya_multiple_versions: AnityaMultipleVersionsModel,
 }
 
 
