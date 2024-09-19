@@ -215,13 +215,20 @@ class AnityaVersionUpdateEvent(AnityaUpdateEvent):
         self._versions = versions
 
     @property
-    def version(self) -> str:
-        # TODO: Handle here or further down the chain? we should be able to get
-        # the package config from dist-git and resolve the next version; how are
-        # we going to choose the version?
-        #   a) latest greatest
-        #   b) next unreleased?
-        # this can be also influenced by the mask…
-        #
-        # It would be ideal to handle here because of the serialization…
-        raise NotImplementedError()
+    def version(self) -> Optional[str]:
+        # we will decide the version just when syncing release
+        # (for the particular branch etc.),
+        # until that we work with all the new versions
+        return None
+
+    def _add_release_and_event(self):
+        if not self._db_project_object or not self._db_project_event:
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_anitya_multiple_versions_event(
+                versions=self._versions,
+                project_name=self.anitya_project_name,
+                project_id=self.anitya_project_id,
+                package=self.package_name,
+            )
