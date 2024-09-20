@@ -186,7 +186,6 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         create_pr=True,
         local_pr_branch_suffix="update-propose_downstream",
         use_downstream_specfile=False,
-        sync_default_files=True,
         add_pr_instructions=True,
         resolved_bugs=[],
         release_monitoring_project_id=None,

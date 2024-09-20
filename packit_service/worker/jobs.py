@@ -13,15 +13,12 @@ from typing import Callable, Optional, Union
 
 import celery
 from ogr.exceptions import GithubAppNotInstalledError
-from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType
-from packit.config.job_config import DEPRECATED_JOB_TYPES
-from packit.utils import nested_get
 
+from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType
+from packit.utils import nested_get
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
-    TASK_ACCEPTED,
     COMMENT_REACTION,
-    DOCS_CONFIGURATION_URL,
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
@@ -641,7 +638,7 @@ class SteveJobs:
             )
             return False
 
-        if not handler_kls.pre_check(
+        return handler_kls.pre_check(
             package_config=(
                 self.event.packages_config.get_package_config_for(job_config)
                 if self.event.packages_config
@@ -649,10 +646,7 @@ class SteveJobs:
             ),
             job_config=job_config,
             event=self.event.get_dict(),
-        ):
-            return False
-
-        return True
+        )
 
     def is_project_public_or_enabled_private(self) -> bool:
         """
