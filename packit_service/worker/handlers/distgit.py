@@ -266,7 +266,6 @@ class AbstractSyncReleaseHandler(
                 "create_pr": True,
                 "local_pr_branch_suffix": branch_suffix,
                 "use_downstream_specfile": is_pull_from_upstream_job,
-                "sync_default_files": not is_pull_from_upstream_job,
                 "add_pr_instructions": True,
                 "resolved_bugs": self.get_resolved_bugs(),
                 "release_monitoring_project_id": self.data.event_dict.get(
