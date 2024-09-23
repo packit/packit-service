@@ -28,7 +28,7 @@ def traces_sampler(sampling_context: Dict) -> float:
     if rate := getenv("SENTRY_TRACES_SAMPLE_RATE"):
         return float(rate)
     # TODO: Take sampling_context into account
-    return 0.25 if getenv("DEPLOYMENT") == "prod" else 1.0
+    return 0.1 if getenv("DEPLOYMENT") == "prod" else 0.25
 
 
 @only_once
