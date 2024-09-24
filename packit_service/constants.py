@@ -52,6 +52,12 @@ MSG_RETRIGGER = (
     "You can retrigger the {job} by adding a comment (`{packit_comment_command_prefix} {command}`) "
     "into this {place}."
 )
+
+MSG_RETRIGGER_DISTGIT = (
+    "You can retrigger the {job} by adding a comment (`{packit_comment_command_prefix} {command}`) "
+    "into any open open pull request in dist-git."
+)
+
 COPR_CHROOT_CHANGE_MSG = (
     "Settings of a Copr project {owner}/{project} need to be updated, "
     "but Packit can't do that when there are previous builds still in progress.\n"
