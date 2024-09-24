@@ -498,7 +498,14 @@ class AbstractSyncReleaseHandler(
             branch_errors = ""
             for model in sorted(models_with_errors, key=lambda model: model.branch):
                 dashboard_url = self.get_dashboard_url(model.id)
-                branch_errors += f"| `{model.branch}` | See {dashboard_url} |\n"
+                branch_errors += (
+                    "<tr>"
+                    f"<td><code>{model.branch}</code></td>"
+                    f'<td>See <a href="{dashboard_url}">{dashboard_url}</a></td>'
+                    "</tr>\n"
+                )
+            branch_errors += "</table>\n"
+
             body_msg = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
                 object="pull-requests",
                 dist_git_url=self.packit_api.dg.local_project.git_url,
@@ -873,7 +880,13 @@ class AbstractDownstreamKojiBuildHandler(
             object="Koji build", dist_git_url=self.packit_api.dg.local_project.git_url
         )
         for branch, ex in errors.items():
-            body += f"| `{branch}` | ```{ex}``` |\n"
+            body += (
+                "<tr>"
+                f"<td><code>{branch}</code></td>"
+                f"<td><pre>{ex}</pre></td>"
+                "</tr>\n"
+            )
+        body += "</table>\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
             job="build",

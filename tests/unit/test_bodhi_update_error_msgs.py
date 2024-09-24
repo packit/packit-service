@@ -90,9 +90,10 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
     msg = (
         "Packit failed on creating Bodhi update "
         "in dist-git (an url):\n\n"
-        "| dist-git branch | error |\n"
-        "| --------------- | ----- |\n"
-        "| `f36` | ```error abc``` |\n\n"
+        "<table>"
+        "<tr><th>dist-git branch</th><th>error</th></tr>"
+        "<tr><td><code>f36</code></td><td><pre>error abc</pre></td></tr>\n"
+        "</table>\n\n"
         "Fedora Bodhi update was re-triggered by comment in dist-git PR with id 123.\n\n"
         "You can retrigger the update by adding a comment (`/packit create-update`) "
         "into this issue.\n\n---\n\n"

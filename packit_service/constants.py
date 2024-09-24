@@ -40,8 +40,11 @@ TESTING_FARM_ARTIFACTS_KEY = "artifacts"
 MSG_DOWNSTREAM_JOB_ERROR_HEADER = (
     "Packit failed on creating {object} in dist-git "
     "({dist_git_url}):\n\n"
-    "| dist-git branch | error |\n"
-    "| --------------- | ----- |\n"
+    "<table>"
+    "<tr>"
+    "<th>dist-git branch</th>"
+    "<th>error</th>"
+    "</tr>"
 )
 
 MSG_GET_IN_TOUCH = (
