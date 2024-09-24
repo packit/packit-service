@@ -32,6 +32,7 @@ from packit_service.constants import (
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     DEFAULT_RETRY_BACKOFF,
+    MSG_RETRIGGER_DISTGIT,
     RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
 )
 from packit_service.models import (
@@ -491,6 +492,14 @@ class AbstractSyncReleaseHandler(
                 dist_git_url=self.packit_api.dg.local_project.git_url,
             )
             body_msg += f"{branch_errors}\n\n"
+
+            if self.task_name == TaskName.pull_from_upstream:
+                body_msg += MSG_RETRIGGER_DISTGIT.format(
+                    job="pull_from_upstream",
+                    packit_comment_command_prefix=self.service_config.comment_command_prefix,
+                    command="pull-from-upstream",
+                )
+
             self._report_errors_for_each_branch(body_msg)
             sync_release_run_model.set_status(status=SyncReleaseStatus.error)
             return TaskResults(
