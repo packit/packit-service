@@ -20,7 +20,6 @@ from packit.config import (
 )
 from packit.config.package_config import PackageConfig
 from packit.constants import DISTGIT_INSTANCES
-from packit.utils.koji_helper import KojiHelper
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     KojiBuildState,
@@ -34,7 +33,6 @@ from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
     ProjectEventModel,
-    SidetagModel,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -70,6 +68,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
+from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
@@ -378,25 +377,15 @@ class KojiBuildTagHandler(
 ):
     task_name = TaskName.koji_build_tag
 
-    _koji_helper: Optional[KojiHelper] = None
-
-    @property
-    def koji_helper(self):
-        if not self._koji_helper:
-            self._koji_helper = KojiHelper()
-        return self._koji_helper
-
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (SidetagExists,)
 
     def run(self) -> TaskResults:
         dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
-        sidetag = SidetagModel.get_by_koji_name(self.data.tag_name)
-        sidetag_group = sidetag.sidetag_group.name
-        builds = self.koji_helper.get_builds_in_tag(self.data.tag_name)
-        tagged_packages = {b["package_name"] for b in builds}
-        logger.debug(f"Packages tagged into {self.data.tag_name}: {tagged_packages}")
+        sidetag = SidetagHelper.get_sidetag_by_koji_name(self.data.tag_name)
+        tagged_packages = sidetag.get_packages()
+        logger.debug(f"Packages tagged into {sidetag.koji_name}: {tagged_packages}")
 
         packages_to_trigger = set()
         for package_name in tagged_packages:
@@ -417,7 +406,7 @@ class KojiBuildTagHandler(
             for job in packages_config.get_job_views():
                 if (
                     job.type == JobType.koji_build
-                    and job.sidetag_group == sidetag_group
+                    and job.sidetag_group == sidetag.sidetag_group
                 ):
                     if job.dependents:
                         packages_to_trigger.update(job.dependents)
@@ -448,11 +437,11 @@ class KojiBuildTagHandler(
                 if (
                     job.type in (JobType.koji_build, JobType.bodhi_update)
                     and job.trigger == JobConfigTriggerType.koji_build
-                    and job.sidetag_group == sidetag_group
+                    and job.sidetag_group == sidetag.sidetag_group
                 ):
                     event_dict = self.data.get_dict().get("event_dict", {})
                     event_dict["project_url"] = distgit_project_url
-                    event_dict["git_ref"] = sidetag.target
+                    event_dict["git_ref"] = sidetag.dist_git_branch
                     handler = (
                         DownstreamKojiBuildHandler
                         if job.type == JobType.koji_build

@@ -934,6 +934,10 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
     if missing_dependency:
         builds_in_sidetag.pop()
 
+    flexmock(KojiHelper).should_receive("get_tag_info").with_args(
+        sidetag_name
+    ).and_return({"name": sidetag_name})
+
     flexmock(KojiHelper).should_receive("get_builds_in_tag").with_args(
         sidetag_name
     ).and_return(builds_in_sidetag)

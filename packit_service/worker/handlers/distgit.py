@@ -23,7 +23,6 @@ from packit.exceptions import (
     PackitDownloadFailedException,
     ReleaseSkippedPackitException,
 )
-from packit.utils.koji_helper import KojiHelper
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
@@ -45,8 +44,6 @@ from packit_service.models import (
     KojiBuildTargetModel,
     PipelineModel,
     KojiBuildGroupModel,
-    SidetagGroupModel,
-    SidetagModel,
 )
 from packit_service.service.urls import (
     get_propose_downstream_info_url,
@@ -90,6 +87,7 @@ from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
 )
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
+from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
@@ -716,8 +714,6 @@ class AbstractDownstreamKojiBuildHandler(
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.downstream_koji_build
 
-    _koji_helper: Optional[KojiHelper] = None
-
     def __init__(
         self,
         package_config: PackageConfig,
@@ -736,12 +732,6 @@ class AbstractDownstreamKojiBuildHandler(
         self._pull_request: Optional[PullRequest] = None
         self._packit_api = None
         self._koji_group_model_id = koji_group_model_id
-
-    @property
-    def koji_helper(self):
-        if not self._koji_helper:
-            self._koji_helper = KojiHelper()
-        return self._koji_helper
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
@@ -781,13 +771,6 @@ class AbstractDownstreamKojiBuildHandler(
     def run(self) -> TaskResults:
         errors = {}
 
-        if self.job_config.sidetag_group:
-            sidetag_group = SidetagGroupModel.get_or_create(
-                self.job_config.sidetag_group
-            )
-        else:
-            sidetag_group = None
-
         group = self._get_or_create_koji_group_model()
         for koji_build_model in group.grouped_targets:
             branch = koji_build_model.target
@@ -804,32 +787,22 @@ class AbstractDownstreamKojiBuildHandler(
             koji_build_model.set_status("pending")
 
             try:
-                if sidetag_group:
-                    sidetag = SidetagModel.get_or_create(sidetag_group, branch)
-                    if not sidetag.koji_name or not self.koji_helper.get_tag_info(
-                        sidetag.koji_name
+                sidetag = None
+                if self.job_config.sidetag_group:
+                    # we need Kerberos ticket to create a new sidetag
+                    self.packit_api.init_kerberos_ticket()
+                    sidetag = SidetagHelper.get_or_create_sidetag(
+                        self.job_config.sidetag_group, branch
+                    )
+                    # skip submitting build for a branch if dependencies
+                    # are not satisfied within a sidetag
+                    dependencies = set(self.job_config.dependencies or [])
+                    if missing_dependencies := sidetag.get_missing_dependencies(
+                        dependencies
                     ):
-                        # we need Kerberos ticket to create a new sidetag
-                        self.packit_api.init_kerberos_ticket()
-                        tag_info = self.koji_helper.create_sidetag(branch)
-                        if not tag_info:
-                            raise PackitException(
-                                f"Failed to create sidetag for {branch}"
-                            )
-                        sidetag.set_koji_name(tag_info["name"])
-                else:
-                    sidetag = None
-
-                # skip submitting build for a branch if dependencies
-                # are not satisfied within a sidetag
-                if sidetag and self.job_config.dependencies:
-                    builds = self.koji_helper.get_builds_in_tag(sidetag.koji_name)
-                    tagged_packages = {b["package_name"] for b in builds}
-                    if not set(self.job_config.dependencies) <= tagged_packages:
-                        missing = set(self.job_config.dependencies) - tagged_packages
                         logger.debug(
                             f"Skipping downstream Koji build for branch {branch}, "
-                            f"missing dependencies: {missing}"
+                            f"missing dependencies: {missing_dependencies}"
                         )
                         koji_build_model.set_status("skipped")
                         continue
@@ -1041,44 +1014,16 @@ class TagIntoSidetagHandler(
 ):
     task_name = TaskName.tag_into_sidetag
 
-    _koji_helper: Optional[KojiHelper] = None
-
-    @property
-    def koji_helper(self):
-        if not self._koji_helper:
-            self._koji_helper = KojiHelper()
-        return self._koji_helper
-
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnDistgit,)
 
     def run_for_branch(self, job_config: JobConfig, branch: str) -> None:
-        sidetag_group = SidetagGroupModel.get_or_create(job_config.sidetag_group)
-        sidetag = SidetagModel.get_or_create(sidetag_group, branch)
         # we need Kerberos ticket to tag a build into sidetag
         # and to create a new sidetag (if needed)
         self.packit_api.init_kerberos_ticket()
-        if not sidetag.koji_name or not self.koji_helper.get_tag_info(
-            sidetag.koji_name
-        ):
-            tag_info = self.koji_helper.create_sidetag(branch)
-            if not tag_info:
-                logger.error(f"Failed to create sidetag for {branch}")
-                return
-            sidetag.set_koji_name(tag_info["name"])
-        if not (
-            nvr := self.koji_helper.get_latest_stable_nvr(
-                job_config.downstream_package_name, branch
-            )
-        ):
-            logger.debug(
-                "Failed to get the latest stable build "
-                f"of {job_config.downstream_package_name} for {branch}"
-            )
-            return
-        logger.debug(f"Tagging {nvr} into {sidetag.koji_name}")
-        self.koji_helper.tag_build(nvr, sidetag.koji_name)
+        sidetag = SidetagHelper.get_or_create_sidetag(job_config.sidetag_group, branch)
+        sidetag.tag_latest_stable_build(job_config.downstream_package_name)
 
     def run(self) -> TaskResults:
         comment = self.data.event_dict.get("comment")
