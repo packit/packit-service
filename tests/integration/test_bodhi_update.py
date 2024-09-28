@@ -948,9 +948,6 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
         "f40",
         include_candidate=True,
     ).and_return("packit-0.98.0-1.fc40")
-    flexmock(KojiHelper).should_receive("remove_sidetag").with_args(sidetag_name).times(
-        0 if missing_dependency else 1
-    )
 
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         task_id=task_id

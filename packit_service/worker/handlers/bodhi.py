@@ -214,15 +214,6 @@ class BodhiUpdateHandler(
                     target_model.set_status("skipped")
                     continue
 
-                if target_model.sidetag:
-                    # remove the sidetag now; Bodhi would remove it for us
-                    # when the update hits stable, but we would be blocked
-                    # from creating new updates until that happens
-                    logger.debug(f"Removing sidetag {target_model.sidetag}")
-                    # we need Kerberos ticket to remove a sidetag
-                    self.packit_api.init_kerberos_ticket()
-                    self.sidetag_helper.remove_sidetag(target_model.sidetag)
-
                 alias, url = result
                 target_model.set_status("success")
                 target_model.set_alias(alias)
