@@ -2350,6 +2350,20 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
             projects = [branch.project for branch in project_event_branches]
             return set(projects)
 
+    @classmethod
+    def get_first_successful_by_sidetag(
+        cls, sidetag: str
+    ) -> Optional["BodhiUpdateTargetModel"]:
+        with sa_session_transaction() as session:
+            return (
+                session.query(BodhiUpdateTargetModel)
+                .filter(
+                    BodhiUpdateTargetModel.status == "success",
+                    BodhiUpdateTargetModel.sidetag == sidetag,
+                )
+                .first()
+            )
+
 
 class BodhiUpdateGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "bodhi_update_groups"

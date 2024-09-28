@@ -2575,6 +2575,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         update_type="enhancement",
         koji_builds=["123"],
         sidetag=None,
+        alias=None,
     ).once().and_return(("alias", "url"))
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()

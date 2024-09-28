@@ -419,6 +419,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         update_type="enhancement",
         koji_builds=["python-teamcity-messages.fc38"],
         sidetag=None,
+        alias=None,
     ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
         "python-teamcity-messages", "f38"
@@ -435,6 +436,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         update_type="enhancement",
         koji_builds=["python-teamcity-messages.fc37"],
         sidetag=None,
+        alias=None,
     ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
         "python-teamcity-messages", "f37"

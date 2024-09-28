@@ -104,8 +104,21 @@ class BodhiUpdateHandler(
         errors = {}
         for target_model in group.grouped_targets:
             try:
+                existing_alias = None
+                if target_model.sidetag:
+                    # get update alias from previous run(s) from the same sidetag (if any)
+                    if model := BodhiUpdateTargetModel.get_first_successful_by_sidetag(
+                        target_model.sidetag
+                    ):
+                        existing_alias = model.alias
+
                 logger.debug(
-                    f"Create update for dist-git branch: {target_model.target} "
+                    (
+                        f"Edit update {existing_alias} "
+                        if existing_alias
+                        else "Create update "
+                    )
+                    + f"for dist-git branch: {target_model.target} "
                     f"and nvrs: {target_model.koji_nvrs}"
                     + (
                         f" from sidetag: {target_model.sidetag}."
@@ -118,6 +131,7 @@ class BodhiUpdateHandler(
                     update_type="enhancement",
                     koji_builds=target_model.koji_nvrs.split(),  # it accepts NVRs, not build IDs
                     sidetag=target_model.sidetag,
+                    alias=existing_alias,
                 )
                 if not result:
                     # update was already created
