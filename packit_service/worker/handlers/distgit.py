@@ -15,7 +15,7 @@ from celery import Task
 
 from ogr.abstract import PullRequest, AuthMethod
 from ogr.services.github import GithubService
-from packit.config import JobConfig, JobType, Deployment
+from packit.config import JobConfig, JobType, JobConfigTriggerType, Deployment
 from packit.config import aliases
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
@@ -268,6 +268,20 @@ class AbstractSyncReleaseHandler(
                 kwargs["tag"] = self.tag
             elif version := self.data.event_dict.get("version"):
                 kwargs["versions"] = [version]
+            # check if there is a Koji build job that should trigger on PR merge
+            kwargs["warn_about_koji_build_triggering_bug"] = False
+            for job in self.package_config.get_job_views():
+                if job.type != JobType.koji_build:
+                    continue
+                if job.trigger != JobConfigTriggerType.commit:
+                    continue
+                if branch not in aliases.get_branches(
+                    *job.dist_git_branches,
+                    default_dg_branch="rawhide",
+                ):
+                    continue
+                kwargs["warn_about_koji_build_triggering_bug"] = True
+                break
             downstream_pr = self.packit_api.sync_release(**kwargs)
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
