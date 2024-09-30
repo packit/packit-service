@@ -2579,11 +2579,22 @@ def test_koji_build_tag(
 
     flexmock(SidetagModel).should_receive("get_by_koji_name").with_args(
         "f40-build-side-12345"
-    ).and_return(flexmock(sidetag_group=flexmock(name="test"), target="f40"))
+    ).and_return(
+        flexmock(
+            sidetag_group=flexmock(name="test"),
+            target="f40",
+            koji_name="f40-build-side-12345",
+        )
+    )
 
+    flexmock(KojiHelper).should_receive("get_tag_info").with_args(
+        "f40-build-side-12345"
+    ).and_return({"name": "f40-build-side-12345"})
     flexmock(KojiHelper).should_receive("get_builds_in_tag").with_args(
         "f40-build-side-12345"
-    ).and_return([{"package_name": "python-specfile"}])
+    ).and_return(
+        [{"package_name": "python-specfile", "nvr": "python-specfile-0.32.0-1.fc40"}]
+    )
 
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"

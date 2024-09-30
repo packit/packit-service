@@ -16,7 +16,6 @@ from packit_service.models import (
     ProjectEventModel,
     CoprBuildTargetModel,
     SRPMBuildModel,
-    SidetagModel,
     BuildStatus,
 )
 from packit_service.worker.events.event import EventData
@@ -25,6 +24,7 @@ from packit_service.worker.events.github import PullRequestCommentGithubEvent
 from packit_service.worker.events.gitlab import MergeRequestCommentGitlabEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.abstract import CeleryTask
+from packit_service.worker.helpers.sidetag import SidetagHelper, Sidetag
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -183,7 +183,7 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
     ConfigFromEventMixin, GetKojiBuildData
 ):
     _koji_build_tag_event: Optional[KojiBuildTagEvent] = None
-    _sidetag: Optional[SidetagModel] = None
+    _sidetag: Optional[Sidetag] = None
 
     @property
     def koji_build_tag_event(self) -> KojiBuildTagEvent:
@@ -194,9 +194,9 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
         return self._koji_build_tag_event
 
     @property
-    def sidetag(self) -> Optional[SidetagModel]:
+    def sidetag(self) -> Optional[Sidetag]:
         if not self._sidetag:
-            self._sidetag = SidetagModel.get_by_koji_name(
+            self._sidetag = SidetagHelper.get_sidetag_by_koji_name(
                 self.koji_build_tag_event.tag_name
             )
         return self._sidetag
@@ -211,7 +211,7 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
 
     @property
     def _dist_git_branch(self) -> str:
-        return self.sidetag.target
+        return self.sidetag.dist_git_branch
 
     @property
     def _state(self) -> KojiBuildState:

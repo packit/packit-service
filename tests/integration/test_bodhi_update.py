@@ -82,6 +82,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_return(("alias", "url"))
 
     # Database structure
@@ -180,6 +181,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_raise(PackitException, "Failed to create an update")
 
     pagure_project_mock.should_receive("get_issue_list").times(0)
@@ -281,6 +283,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_raise(PackitException, "Failed to create an update")
 
     issue_project_mock = flexmock(GithubProject)
@@ -388,6 +391,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_raise(PackitException, "Failed to create an update")
 
     issue_project_mock = flexmock(GithubProject)
@@ -503,6 +507,7 @@ def test_bodhi_update_build_not_tagged_yet(
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_raise(PackitException, "build not tagged")
 
     # no reporting should be done as the update is created on the second run
@@ -575,6 +580,7 @@ def test_bodhi_update_build_not_tagged_yet(
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_return(
         None
     )  # tagged now
@@ -698,6 +704,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).and_return(("alias", "url"))
     group_model = flexmock(
         grouped_targets=[
@@ -839,6 +846,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         update_type="enhancement",
         koji_builds=["python-ogr-0.34.0-1.fc36"],
         sidetag=None,
+        alias=None,
     ).once().and_return(("alias", "url"))
 
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
@@ -892,10 +900,12 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
 
 
 @pytest.mark.parametrize(
-    "missing_dependency",
-    [False, True],
+    "missing_dependency, existing_update",
+    [(False, None), (False, "FEDORA-2024-abcdef1234"), (True, None)],
 )
-def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
+def test_bodhi_update_from_sidetag(
+    koji_build_tagged, missing_dependency, existing_update
+):
     """(Sidetag scenario.)"""
 
     build_id = 1234567
@@ -934,6 +944,10 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
     if missing_dependency:
         builds_in_sidetag.pop()
 
+    flexmock(KojiHelper).should_receive("get_tag_info").with_args(
+        sidetag_name
+    ).and_return({"name": sidetag_name})
+
     flexmock(KojiHelper).should_receive("get_builds_in_tag").with_args(
         sidetag_name
     ).and_return(builds_in_sidetag)
@@ -948,13 +962,16 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
         "f40",
         include_candidate=True,
     ).and_return("packit-0.98.0-1.fc40")
-    flexmock(KojiHelper).should_receive("remove_sidetag").with_args(sidetag_name).times(
-        0 if missing_dependency else 1
-    )
 
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
         task_id=task_id
     ).and_return(flexmock(target=dg_branch, get_project_event_model=lambda: None))
+
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_first_successful_by_sidetag"
+    ).with_args(sidetag_name).and_return(
+        flexmock(alias=existing_update) if existing_update else None
+    )
 
     specfile_packit_yaml = (
         "{'specfile_path': 'python-specfile.spec', 'synced_files': [],"
@@ -1033,7 +1050,7 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
 
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return()
 
-    def _create_update(dist_git_branch, update_type, koji_builds, sidetag):
+    def _create_update(dist_git_branch, update_type, koji_builds, sidetag, alias):
         assert dist_git_branch == dg_branch
         assert update_type == "enhancement"
         assert set(koji_builds) == {
@@ -1041,6 +1058,7 @@ def test_bodhi_update_from_sidetag(koji_build_tagged, missing_dependency):
             "packit-0.99.0-1.fc40",
         }
         assert sidetag == sidetag_name
+        assert alias == (existing_update if existing_update else None)
         return "alias", "url"
 
     flexmock(PackitAPI).should_receive("create_update").replace_with(
