@@ -590,8 +590,9 @@ def test_issue_comment_retrigger_koji_build_error_msg(
     ).and_return(packit_api)
     msg = (
         "Packit failed on creating Koji build in dist-git (an url):"
-        "\n\n| dist-git branch | error |\n| --------------- | ----- |\n"
-        "| `f37` | ```error abc``` |\n\n"
+        "\n\n<table><tr>"
+        "<th>dist-git branch</th><th>error</th></tr>"
+        "<tr><td><code>f37</code></td><td><pre>error abc</pre></td></tr>\n</table>\n\n"
         "Fedora Koji build was re-triggered by comment in issue 1.\n\n"
         "You can retrigger the build by adding a comment "
         "(`/packit koji-build`) into this issue.\n\n"

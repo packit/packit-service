@@ -195,9 +195,14 @@ def test_koji_build_error_msg(distgit_push_packit):
         packit_api
     )
     msg = (
-        "Packit failed on creating Koji build in dist-git (an url):"
-        "\n\n| dist-git branch | error |\n| --------------- | ----- |"
-        "\n| `f36` | ```error abc``` |\n\n"
+        "Packit failed on creating Koji build in dist-git (an url):\n\n"
+        "<table>"
+        "<tr>"
+        "<th>dist-git branch</th>"
+        "<th>error</th>"
+        "</tr>"
+        "<tr><td><code>f36</code></td><td><pre>error abc</pre></td></tr>\n"
+        "</table>\n\n"
         "Fedora Koji build was triggered by push "
         "with sha ad0c308af91da45cf40b253cd82f07f63ea9cbbf."
         "\n\nYou can retrigger the build by adding a comment "

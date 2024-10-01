@@ -606,8 +606,12 @@ def test_dist_git_push_release_handle_all_failed(
     for model in sorted(
         propose_downstream_target_models, key=lambda model: model.branch
     ):
+        dashboard_url = get_propose_downstream_info_url(model.id)
         table_content += (
-            f"| `{model.branch}` | See {get_propose_downstream_info_url(model.id)} |\n"
+            "<tr>"
+            f"<td><code>{model.branch}</code></td>"
+            f'<td>See <a href="{dashboard_url}">{dashboard_url}</a></td>'
+            "</tr>\n"
         )
     project = (
         flexmock(
@@ -626,9 +630,12 @@ def test_dist_git_push_release_handle_all_failed(
             title="[packit] Propose downstream failed for release 0.3.0",
             body="Packit failed on creating pull-requests in dist-git "
             "(https://src.fedoraproject.org/rpms/hello-world.git):\n\n"
-            "| dist-git branch | error |\n"
-            "| --------------- | ----- |\n"
-            f"{table_content}\n\n"
+            "<table>"
+            "<tr>"
+            "<th>dist-git branch</th>"
+            "<th>error</th>"
+            "</tr>"
+            f"{table_content}</table>\n\n\n"
             "You can retrigger the update by adding a comment (`/packit propose-downstream`)"
             " into this issue.\n",
         )

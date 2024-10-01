@@ -255,7 +255,13 @@ class BodhiUpdateHandler(
             object="Bodhi update", dist_git_url=self.packit_api.dg.local_project.git_url
         )
         for branch, ex in errors.items():
-            body += f"| `{branch}` | ```{ex}``` |\n"
+            body += (
+                "<tr>"
+                f"<td><code>{branch}</code></td>"
+                f"<td><pre>{ex}</pre></td>"
+                "</tr>\n"
+            )
+        body += "</table>\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
             job="update",
