@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from os import getenv
 from typing import (
     Dict,
+    Generator,
     Iterable,
     List,
     Optional,
@@ -3773,8 +3774,19 @@ class SidetagModel(Base):
     sidetag_group = relationship("SidetagGroupModel", back_populates="sidetags")
 
     @classmethod
-    def get_or_create(cls, group: "SidetagGroupModel", target: str) -> "SidetagModel":
-        with sa_session_transaction(commit=True) as session:
+    @contextmanager
+    def get_or_create_for_updating(
+        cls, group: "SidetagGroupModel", target: str
+    ) -> Generator["SidetagModel", None, None]:
+        """
+        Context manager that gets or creates a sidetag upon entering the context,
+        provides a corresponding instance of `SidetagModel` to be updated within the context
+        and commits the changes upon exiting the context, all within a single transaction.
+        """
+        session = singleton_session or Session()
+        session.begin()
+
+        try:
             sidetag = (
                 session.query(cls)
                 .filter_by(sidetag_group_id=group.id, target=target)
@@ -3787,21 +3799,29 @@ class SidetagModel(Base):
 
                 group.sidetags.append(sidetag)
                 session.add(group)
-            return sidetag
+        except Exception as ex:
+            logger.warning(f"Exception while working with database: {ex!r}")
+            session.rollback()
+            raise
+
+        try:
+            yield sidetag
+        except Exception:
+            session.rollback()
+            raise
+
+        try:
+            session.add(sidetag)
+            session.commit()
+        except Exception as ex:
+            logger.warning(f"Exception while working with database: {ex!r}")
+            session.rollback()
+            raise
 
     @classmethod
     def get_by_koji_name(cls, koji_name: str) -> Optional["SidetagModel"]:
         with sa_session_transaction() as session:
             return session.query(SidetagModel).filter_by(koji_name=koji_name).first()
-
-    def set_koji_name(self, koji_name: str) -> None:
-        with sa_session_transaction(commit=True) as session:
-            self.koji_name = koji_name
-            session.add(self)
-
-    def delete(self) -> None:
-        with sa_session_transaction(commit=True) as session:
-            session.delete(self)
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
