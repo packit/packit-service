@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Set
+from typing import Any, Optional, Set
 
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
@@ -70,7 +70,7 @@ class Sidetag:
 
 
 class SidetagHelperMeta(type):
-    def __init__(cls, *args, **kwargs):
+    def __init__(cls, *args: Any, **kwargs: Any) -> None:
         cls._koji_helper: Optional[KojiHelper] = None
 
     @property
