@@ -518,7 +518,7 @@ class Allowlist:
                 return callback(event, project, job_configs)
 
         msg = f"Failed to validate account: Unrecognized event type {type(event)!r}."
-        logger.error(msg)
+        logger.debug(msg)
         raise PackitException(msg)
 
     def get_approval_issue(self, namespace) -> Optional[str]:

@@ -481,7 +481,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         status = body["image_status"]["status"]
     except HTTPError as ex:
         message = f"No response for VM Image Build {build_id}: {ex}"
-        logger.error(message)
+        logger.debug(message)
         status = VMImageBuildStatus.error
     except Exception as ex:
         message = (
@@ -503,7 +503,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     if status == VMImageBuildStatus.failure:
         error = body["image_status"]["error"]
         message = f"VM image build {build.build_id} failed: {error}"
-        logger.error(message)
+        logger.debug(message)
 
     if status == VMImageBuildStatus.success:
         message = get_message_for_successful_build(body["image_status"])
@@ -524,7 +524,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     packages_config = event.get_packages_config()
     if not packages_config:
         build.set_status(status)
-        logger.error(
+        logger.debug(
             f"No package config found for {build.build_id}. "
             "No feedback can be given to the user."
         )
@@ -555,7 +555,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         return True
 
     build.set_status(status)
-    logger.error(
+    logger.debug(
         f"Something went wrong retrieving job configs for {build.build_id}. "
         "No feedback can be given to the user."
     )
