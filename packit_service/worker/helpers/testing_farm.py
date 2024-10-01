@@ -730,7 +730,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 f"The compose {compose} (from target {distro}) does not match any compose"
                 f" in the list of available composes:\n{composes}. "
             )
-            logger.error(msg)
+            logger.debug(msg)
             msg += (
                 "Please, check the targets defined in your test job configuration. If you think"
                 f" your configuration is correct, get in touch with [us]({CONTACTS_URL})."
@@ -762,7 +762,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 f"The architecture {arch} is not in the list of "
                 f"available architectures:\n{supported_architectures}. "
             )
-            logger.error(msg)
+            logger.debug(msg)
             msg += (
                 "Please, check the targets defined in your test job configuration. If you think"
                 f" your configuration is correct, get in touch with [us]({CONTACTS_URL})."
@@ -841,7 +841,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
             msg = f"Target '{test_run.target}' not defined for tests but triggered."
-            logger.error(msg)
+            logger.debug(msg)
             send_to_sentry(PackitConfigException(msg))
             return TaskResults(
                 success=False,

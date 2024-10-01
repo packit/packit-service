@@ -337,11 +337,6 @@ class JobHandler(Handler):
         job_results[result_key] = self.run_n_clean()
         logger.debug("Job finished!")
 
-        for result in job_results.values():
-            if not (result and result["success"]):
-                if msg := result["details"].get("msg"):
-                    logger.error(msg)
-
         # push the metrics from job
         self.pushgateway.push()
 
