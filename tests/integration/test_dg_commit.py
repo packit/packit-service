@@ -264,13 +264,9 @@ def test_downstream_koji_build(sidetag_group):
         koji_target = "f40-build-side-12345"
         sidetag = flexmock(koji_name=None)
 
-        def set_koji_name(name):
-            sidetag.koji_name = name
-
-        sidetag.should_receive("set_koji_name").with_args(koji_target).replace_with(
-            set_koji_name
+        flexmock(SidetagModel).should_receive("get_or_create_for_updating").and_return(
+            sidetag
         )
-        flexmock(SidetagModel).should_receive("get_or_create").and_return(sidetag)
         flexmock(SidetagGroupModel).should_receive("get_or_create").and_return(
             flexmock()
         )

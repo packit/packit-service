@@ -7,9 +7,11 @@ This file defines classes for job handlers specific for distgit
 import abc
 import logging
 import shutil
+from collections import defaultdict
 from datetime import datetime
+from functools import partial
 from os import getenv
-from typing import Optional, Tuple, Type, List, ClassVar
+from typing import Dict, Optional, Set, Tuple, Type, List, ClassVar
 
 from celery import Task
 
@@ -1045,12 +1047,12 @@ class TagIntoSidetagHandler(
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnDistgit,)
 
-    def run_for_branch(self, job_config: JobConfig, branch: str) -> None:
+    def run_for_branch(self, package: str, sidetag_group: str, branch: str) -> None:
         # we need Kerberos ticket to tag a build into sidetag
         # and to create a new sidetag (if needed)
         self.packit_api.init_kerberos_ticket()
-        sidetag = SidetagHelper.get_or_create_sidetag(job_config.sidetag_group, branch)
-        sidetag.tag_latest_stable_build(job_config.downstream_package_name)
+        sidetag = SidetagHelper.get_or_create_sidetag(sidetag_group, branch)
+        sidetag.tag_latest_stable_build(package)
 
     def run(self) -> TaskResults:
         comment = self.data.event_dict.get("comment")
@@ -1058,6 +1060,9 @@ class TagIntoSidetagHandler(
             comment, self.service_config.comment_command_prefix
         )
         args = commands[1:] if len(commands) > 1 else ""
+        packages_to_tag: Dict[str, Dict[str, Set[str]]] = defaultdict(
+            partial(defaultdict, set)
+        )
         for job in self.package_config.get_job_views():
             if (
                 job.type == JobType.koji_build
@@ -1073,10 +1078,15 @@ class TagIntoSidetagHandler(
                     continue
                 else:
                     branches = {self.pull_request.target_branch}
+                packages_to_tag[job.downstream_package_name][
+                    job.sidetag_group
+                ] |= branches
+        for package, sidetag_groups in packages_to_tag.items():
+            for sidetag_group, branches in sidetag_groups.items():
                 logger.debug(
-                    "Running downstream Koji build tagging "
-                    f"of {job.downstream_package_name} for {branches}"
+                    f"Running downstream Koji build tagging of {package} "
+                    f"for {branches} in {sidetag_group}"
                 )
                 for branch in branches:
-                    self.run_for_branch(job, branch)
+                    self.run_for_branch(package, sidetag_group, branch)
         return TaskResults(success=True, details={})
