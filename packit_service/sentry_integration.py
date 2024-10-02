@@ -84,6 +84,8 @@ def configure_sentry(
         integrations=integrations,
         environment=getenv("DEPLOYMENT"),
         traces_sampler=traces_sampler,
+        # Do not report crawlers sending requests with wrong method.
+        ignore_errors=["MethodNotAllowed"],
     )
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("runner-type", runner_type)
