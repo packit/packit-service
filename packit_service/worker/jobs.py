@@ -526,6 +526,10 @@ class SteveJobs:
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
                 )
+                logger.debug(
+                    f"Got signature for handler={handler_kls} "
+                    f"and job_config={job_config}."
+                )
                 processing_results.append(
                     TaskResults.create_from(
                         success=True,
@@ -534,8 +538,10 @@ class SteveJobs:
                         event=self.event,
                     )
                 )
+        logger.debug("Signatures are going to be sent to Celery.")
         # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
         celery.group(signatures).apply_async()
+        logger.debug("Signatures were sent to Celery.")
         return processing_results
 
     def should_task_be_created_for_job_config_and_handler(
