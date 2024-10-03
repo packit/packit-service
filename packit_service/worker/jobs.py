@@ -459,6 +459,7 @@ class SteveJobs:
         allowlist = Allowlist(service_config=self.service_config)
         processing_results: List[TaskResults] = []
 
+        statuses_check_feedback: List[datetime] = []
         for handler_kls in handler_classes:
             # TODO: merge to to get_handlers_for_event so
             # so we don't need to go through the similar process twice.
@@ -483,12 +484,18 @@ class SteveJobs:
                     for job_config in job_configs
                 ]
 
-            processing_results.extend(self.create_tasks(job_configs, handler_kls))
+            processing_results.extend(
+                self.create_tasks(job_configs, handler_kls, statuses_check_feedback)
+            )
+        self.push_statuses_metrics(statuses_check_feedback)
 
         return processing_results
 
     def create_tasks(
-        self, job_configs: List[JobConfig], handler_kls: Type[JobHandler]
+        self,
+        job_configs: List[JobConfig],
+        handler_kls: Type[JobHandler],
+        statuses_check_feedback: list[datetime],
     ) -> List[TaskResults]:
         """
         Create handler tasks for handler and job configs.
@@ -499,7 +506,6 @@ class SteveJobs:
         """
         processing_results: List[TaskResults] = []
         signatures = []
-        statuses_check_feedback = []
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
             if self.should_task_be_created_for_job_config_and_handler(
@@ -520,6 +526,10 @@ class SteveJobs:
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
                 )
+                logger.debug(
+                    f"Got signature for handler={handler_kls} "
+                    f"and job_config={job_config}."
+                )
                 processing_results.append(
                     TaskResults.create_from(
                         success=True,
@@ -528,9 +538,10 @@ class SteveJobs:
                         event=self.event,
                     )
                 )
-        self.push_statuses_metrics(statuses_check_feedback)
+        logger.debug("Signatures are going to be sent to Celery.")
         # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
         celery.group(signatures).apply_async()
+        logger.debug("Signatures were sent to Celery.")
         return processing_results
 
     def should_task_be_created_for_job_config_and_handler(

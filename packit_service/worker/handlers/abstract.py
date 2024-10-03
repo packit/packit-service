@@ -217,6 +217,9 @@ class Handler(PackitAPIProtocol, Config):
                 for k, v in self.get_tag_info().items():
                     scope.set_tag(k, v)
                 return self.run()
+        except Exception as ex:
+            logger.error(f"Failed to run the handler: {ex}")
+            raise
         finally:
             self.clean()
 
