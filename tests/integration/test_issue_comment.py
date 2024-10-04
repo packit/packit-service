@@ -542,6 +542,9 @@ def test_issue_comment_retrigger_koji_build_handler(
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
         "local_project"
     ).and_return(flexmock())
+    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     results = run_retrigger_downstream_koji_build(
         package_config=package_config,
@@ -605,6 +608,9 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         message=msg,
         comment_to_existing=msg,
     ).once()
+    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     run_retrigger_downstream_koji_build(
         package_config=package_config,

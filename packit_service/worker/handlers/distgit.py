@@ -25,6 +25,7 @@ from packit.exceptions import (
     PackitDownloadFailedException,
     ReleaseSkippedPackitException,
 )
+from packit.utils.koji_helper import KojiHelper
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
@@ -35,6 +36,7 @@ from packit_service.constants import (
     DEFAULT_RETRY_BACKOFF,
     MSG_RETRIGGER_DISTGIT,
     RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
+    KojiBuildState,
 )
 from packit_service.models import (
     SyncReleasePullRequestModel,
@@ -737,6 +739,8 @@ class AbstractDownstreamKojiBuildHandler(
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.downstream_koji_build
 
+    _koji_helper: Optional[KojiHelper] = None
+
     def __init__(
         self,
         package_config: PackageConfig,
@@ -755,6 +759,12 @@ class AbstractDownstreamKojiBuildHandler(
         self._pull_request: Optional[PullRequest] = None
         self._packit_api = None
         self._koji_group_model_id = koji_group_model_id
+
+    @property
+    def koji_helper(self):
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
@@ -791,6 +801,27 @@ class AbstractDownstreamKojiBuildHandler(
     def get_branches(self) -> List[str]:
         """Get a list of branch (names) to be built in koji"""
 
+    def is_already_triggered(self, branch: str) -> bool:
+        """
+        Check if the build was already triggered
+        (building or completed state).
+        """
+        nvr = self.packit_api.dg.get_nvr(branch)
+        existing_build = self.koji_helper.get_build_info(nvr)
+
+        if existing_build:
+            raw_state = existing_build["state"]
+            if (state := KojiBuildState.from_number(raw_state)) in (
+                KojiBuildState.building,
+                KojiBuildState.complete,
+            ):
+                logger.debug(
+                    f"Koji build with matching NVR ({nvr}) found with state {state}"
+                )
+                return True
+
+        return False
+
     def run(self) -> TaskResults:
         errors = {}
 
@@ -804,6 +835,14 @@ class AbstractDownstreamKojiBuildHandler(
                     f"Skipping downstream Koji build for branch {branch} "
                     f"that was already processed."
                 )
+                continue
+
+            if not self.job_config.scratch and self.is_already_triggered(branch):
+                logger.info(
+                    f"Skipping downstream Koji build for branch {branch} "
+                    f"that was already triggered."
+                )
+                koji_build_model.set_status("skipped")
                 continue
 
             logger.debug(f"Running downstream Koji build for {branch}")

@@ -9,8 +9,10 @@ from flexmock import flexmock
 
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
-from packit.exceptions import PackitException
+from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
+from packit.exceptions import PackitException
+from packit.utils.koji_helper import KojiHelper
 from packit_service.config import PackageConfigGetter
 from packit_service.models import (
     GitBranchModel,
@@ -19,21 +21,21 @@ from packit_service.models import (
     ProjectEventModel,
     KojiBuildGroupModel,
 )
-from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.monitoring import Pushgateway
+from packit_service.models import (
+    ProjectEventModelType,
+)
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.tasks import (
-    run_downstream_koji_build,
-    run_downstream_koji_build_report,
+from packit_service.worker.events.pagure import (
+    PushPagureEvent,
 )
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
 )
-from packit_service.models import (
-    ProjectEventModelType,
-)
-from packit_service.worker.events.pagure import (
-    PushPagureEvent,
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.tasks import (
+    run_downstream_koji_build,
+    run_downstream_koji_build_report,
 )
 from tests.conftest import koji_build_completed_rawhide, koji_build_start_rawhide
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -216,9 +218,35 @@ def test_koji_build_error_msg(distgit_push_packit):
         message=msg,
         comment_to_existing=msg,
     ).once()
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     run_downstream_koji_build(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,
     )
+
+
+@pytest.mark.parametrize(
+    "build_info, result",
+    [
+        (None, False),
+        ({"state": 0}, True),
+        ({"state": 1}, True),
+        ({"state": 2}, False),
+    ],
+)
+def test_is_already_triggered(build_info, result):
+    flexmock(PackitAPI).should_receive("dg").and_return(
+        flexmock(get_nvr=lambda branch: "some-nvr")
+    )
+    flexmock(KojiHelper).should_receive("get_build_info").and_return(build_info)
+
+    DownstreamKojiBuildHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={},
+        celery_task=flexmock(),
+    ).is_already_triggered("rawhide") is result
