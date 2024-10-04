@@ -453,7 +453,7 @@ def _mock_targets(jobs, job, job_type):
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"packages": CommonPackageConfig()},
                 ),
@@ -474,7 +474,7 @@ def _mock_targets(jobs, job, job_type):
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -736,7 +736,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
                 ),
@@ -757,7 +757,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -1008,7 +1008,7 @@ def test_deduced_copr_targets():
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -1233,7 +1233,7 @@ def test_build_targets_overrides(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -1751,7 +1751,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.upstream_koji_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -1768,7 +1768,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.upstream_koji_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -1832,19 +1832,19 @@ def test_koji_targets_overrides(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
-                type=JobType.build,
+                type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
-                type=JobType.build,
+                type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 packages={"packages": CommonPackageConfig()},
             ),
@@ -2054,7 +2054,7 @@ def test_koji_targets_overrides(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"packages": CommonPackageConfig()},
                 ),
@@ -2065,13 +2065,13 @@ def test_koji_targets_overrides(
                 ),
             ],
             JobConfig(
-                type=JobType.build,
+                type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
-                type=JobType.build,
+                type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 packages={"packages": CommonPackageConfig()},
             ),
@@ -2301,7 +2301,7 @@ def test_build_handler_job_and_test_properties(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
+                    type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -2698,7 +2698,7 @@ def test_check_if_custom_copr_can_be_used_and_report(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.upstream_koji_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
@@ -2715,7 +2715,7 @@ def test_check_if_custom_copr_can_be_used_and_report(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.upstream_koji_build,
                     trigger=JobConfigTriggerType.commit,
                     packages={
                         "package": CommonPackageConfig(
@@ -2733,7 +2733,7 @@ def test_check_if_custom_copr_can_be_used_and_report(
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.upstream_koji_build,
                     trigger=JobConfigTriggerType.release,
                     packages={
                         "package": CommonPackageConfig(

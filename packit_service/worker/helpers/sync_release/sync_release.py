@@ -10,7 +10,6 @@ from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerTyp
 from packit.config import aliases
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
-from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 
@@ -97,7 +96,7 @@ class SyncReleaseHelper(BaseJobHelper):
         """
         if not self._job:
             for job in [self.job_config] + self.package_config.jobs:
-                if are_job_types_same(job.type, self.job_type) and (
+                if job.type == self.job_type and (
                     self._db_project_object
                     and (
                         self._db_project_object.job_config_trigger_type == job.trigger
