@@ -680,7 +680,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         """
         If we are reacting to New Hotness, return the corresponding bugzilla ID only.
         In case of comment, take the argument from comment. The format in the comment
-        should be /packit pull-from-upstream --resolved-bugs rhbz#123,rhbz#124
+        should be /packit pull-from-upstream --resolve-bug rhbz#123,rhbz#124
         """
         if self.data.event_type in (NewHotnessUpdateEvent.__name__,):
             bug_id = self.data.event_dict.get("bug_id")
@@ -691,7 +691,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             comment, self.service_config.comment_command_prefix
         )
         args = commands[1:] if len(commands) > 1 else ""
-        bugs_keyword = "--resolved-bugs"
+        bugs_keyword = "--resolve-bug"
         if bugs_keyword not in args:
             return []
 
