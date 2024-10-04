@@ -82,13 +82,12 @@ class SyncReleaseHelper(BaseJobHelper):
 
         source_branch: source branch
         """
-        branches = aliases.get_fast_forward_merge_branches_for(
+        return aliases.get_fast_forward_merge_branches_for(
             self.job.dist_git_branches,
             source_branch,
             default=self.default_dg_branch,
             default_dg_branch=self.default_dg_branch,
         )
-        return self._filter_override_branches(branches)
 
     @property
     def job(self) -> Optional[JobConfig]:

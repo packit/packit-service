@@ -129,7 +129,6 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                     trigger=JobConfigTriggerType.release,
                     packages={
                         "package": CommonPackageConfig(
-                            # no sense but possible!
                             dist_git_branches={
                                 "f41": {"fast_forward_merge_into": ["f40", "f39"]},
                                 "f38": {"fast_forward_merge_into": ["f37"]},
@@ -139,9 +138,9 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                 ),
             ],
             JobConfigTriggerType.release,
-            {"f41", "f40"},
             {"f41"},
-            {"f41": {"f40"}},
+            {"f41"},
+            {"f41": {"f40", "f39"}},
         ),
     ],
 )
