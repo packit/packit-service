@@ -2600,7 +2600,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
 def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     pagure_pr_comment_added["pullrequest"]["comments"][0][
         "comment"
-    ] = "/packit pull-from-upstream --with-pr-config --resolved-bugs rhbz#123,rhbz#124"
+    ] = "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
     sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
@@ -2797,7 +2797,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
 ):
     pagure_pr_comment_added["pullrequest"]["comments"][0][
         "comment"
-    ] = "/packit pull-from-upstream --with-pr-config --resolved-bugs rhbz#123,rhbz#124"
+    ] = "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
     sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
