@@ -62,6 +62,9 @@ class VMImageBuildHandler(
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (
             HasAuthorWriteAccess,
+            # [NOTE] We require Copr repository being present for the VM image
+            # builds via Packit Service as there are no common use cases that
+            # would benefit from relaxing this condition.
             IsCoprBuildForChrootOk,
         )
 
