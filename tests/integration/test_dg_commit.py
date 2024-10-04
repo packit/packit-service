@@ -286,6 +286,9 @@ def test_downstream_koji_build(sidetag_group):
         from_upstream=False,
         koji_target=koji_target if sidetag_group else None,
     ).and_return("")
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
     processing_results = SteveJobs().process_message(distgit_commit_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -373,6 +376,9 @@ def test_downstream_koji_build_failure_no_issue():
         from_upstream=False,
         koji_target=None,
     ).and_raise(PackitException, "Some error")
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     pagure_project_mock.should_receive("get_issue_list").times(0)
     pagure_project_mock.should_receive("create_issue").times(0)
@@ -463,6 +469,9 @@ def test_downstream_koji_build_failure_issue_created():
         from_upstream=False,
         koji_target=None,
     ).and_raise(PackitException, "Some error")
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     issue_project_mock = flexmock(GithubProject)
     issue_project_mock.should_receive("get_issue_list").and_return([]).once()
@@ -561,6 +570,9 @@ def test_downstream_koji_build_failure_issue_comment():
         from_upstream=False,
         koji_target=None,
     ).and_raise(PackitException, "Some error")
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     issue_project_mock = flexmock(GithubProject)
     issue_project_mock.should_receive("get_issue_list").and_return(
@@ -747,6 +759,9 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         from_upstream=False,
         koji_target=None,
     ).once().and_return("")
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
     assert len(processing_results) == 1

@@ -2434,6 +2434,9 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     )
 
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "is_already_triggered"
+    ).and_return(False)
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(celery_group).should_receive("apply_async").once()
