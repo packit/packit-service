@@ -72,6 +72,7 @@ from packit_service.worker.handlers.distgit import (
     PullFromUpstreamHandler,
     DownstreamKojiBuildHandler,
     RetriggerDownstreamKojiBuildHandler,
+    TagIntoSidetagHandler,
 )
 from packit_service.worker.helpers.build import (
     CoprBuildJobHelper,
@@ -319,6 +320,7 @@ class SteveJobs:
             BodhiUpdateHandler,
             RetriggerBodhiUpdateHandler,
             RetriggerDownstreamKojiBuildHandler,
+            TagIntoSidetagHandler,
         ):
             self.report_task_accepted_for_downstream_retrigger_comments(handler_kls)
         if handler_kls not in (
