@@ -1354,6 +1354,10 @@ class Parser:
             if (raw_new := event.get("new")) is not None
             else None
         )
+        if new_state == KojiBuildState.deleted:
+            logger.debug("We are not interested in deleted builds.")
+            return None
+
         old_state = (
             KojiBuildState.from_number(raw_old)
             if (raw_old := event.get("old")) is not None
