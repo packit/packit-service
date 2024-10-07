@@ -42,7 +42,7 @@ beat_schedule = {
     "database-maintenance": {
         "task": "packit_service.worker.tasks.database_maintenance",
         "schedule": crontab(minute=0, hour=1),  # nightly at 1AM
-        "options": {"queue": "long-running"},
+        "options": {"queue": "long-running", "time_limit": 1800},
     },
     "check-onboarded-projects": {
         "task": "packit_service.worker.tasks.run_check_onboarded_projects",
