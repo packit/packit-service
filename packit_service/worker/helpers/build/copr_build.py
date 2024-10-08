@@ -893,108 +893,125 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 "Copr owner not set. Use Copr config file or `--owner` when calling packit CLI."
             )
 
-        try:
-            overwrite_booleans = owner == self.service_config.fas_user
-            self.api.copr_helper.create_or_update_copr_project(
-                project=self.job_project,
-                chroots=list(self.build_targets_all),
-                owner=owner,
-                description=None,
-                instructions=None,
-                list_on_homepage=self.list_on_homepage if overwrite_booleans else None,
-                preserve_project=self.preserve_project if overwrite_booleans else None,
-                additional_repos=self.additional_repos,
-                bootstrap=self.bootstrap,
-                request_admin_if_needed=True,
-                targets_dict=self.job_config.targets_dict,
-                module_hotfixes=self.module_hotfixes if overwrite_booleans else None,
-            )
-        except PackitCoprSettingsException as ex:
-            # notify user first, PR if exists, commit comment otherwise
-            table = (
-                "| field | old value | new value |\n"
-                "| ----- | --------- | --------- |\n"
-            )
-            for field, (old, new) in ex.fields_to_change.items():
-                table += f"| {field} | {old} | {new} |\n"
+        attempts = 0
+        while attempts < 2:
+            try:
+                overwrite_booleans = owner == self.service_config.fas_user
+                self.api.copr_helper.create_or_update_copr_project(
+                    project=self.job_project,
+                    chroots=list(self.build_targets_all),
+                    owner=owner,
+                    description=None,
+                    instructions=None,
+                    list_on_homepage=(
+                        self.list_on_homepage if overwrite_booleans else None
+                    ),
+                    preserve_project=(
+                        self.preserve_project if overwrite_booleans else None
+                    ),
+                    additional_repos=self.additional_repos,
+                    bootstrap=self.bootstrap,
+                    request_admin_if_needed=True,
+                    targets_dict=self.job_config.targets_dict,
+                    module_hotfixes=(
+                        self.module_hotfixes if overwrite_booleans else None
+                    ),
+                )
+                break
+            except PackitCoprSettingsException as ex:
+                # notify user first, PR if exists, commit comment otherwise
+                table = (
+                    "| field | old value | new value |\n"
+                    "| ----- | --------- | --------- |\n"
+                )
+                for field, (old, new) in ex.fields_to_change.items():
+                    table += f"| {field} | {old} | {new} |\n"
 
-            chroots_diff = ""
-            if "chroots" in ex.fields_to_change:
-                old_chroots, new_chroots = ex.fields_to_change["chroots"]
-                chroots_diff = self._visualize_chroots_diff(old_chroots, new_chroots)
+                chroots_diff = ""
+                if "chroots" in ex.fields_to_change:
+                    old_chroots, new_chroots = ex.fields_to_change["chroots"]
+                    chroots_diff = self._visualize_chroots_diff(
+                        old_chroots, new_chroots
+                    )
 
-            if owner == self.service_config.fas_user:
-                # the problem is on our side and user cannot fix it
-                self._report_copr_chroot_change_problem(owner, chroots_diff, table)
+                if owner == self.service_config.fas_user:
+                    # the problem is on our side and user cannot fix it
+                    self._report_copr_chroot_change_problem(owner, chroots_diff, table)
+                    raise ex
+
+                boolean_note = ""
+                if "unlisted_on_hp" in ex.fields_to_change:
+                    boolean_note += (
+                        "The `unlisted_on_hp` field is represented as `list_on_homepage`"
+                        " in the packit config."
+                        "By default we create projects with `list_on_homepage: False`.\n"
+                    )
+
+                if "delete_after_days" in ex.fields_to_change:
+                    boolean_note += (
+                        "The `delete_after_days` field is represented as `preserve_project`"
+                        " in the packit config (`True` is `-1` and `False` is `60`)."
+                        "By default we create projects with `preserve: True` "
+                        "which means `delete_after_days=60`.\n"
+                    )
+
+                permissions_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project, section="permissions"
+                )
+                settings_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project
+                )
+
+                msg = (
+                    "Based on your Packit configuration the settings "
+                    f"of the {owner}/{self.job_project} "
+                    "Copr project would need to be updated as follows:\n"
+                    "\n"
+                    f"{table}"
+                    "\n"
+                    f"{chroots_diff}"
+                    f"{boolean_note}"
+                    "\n"
+                    "Packit was unable to update the settings above as it is missing `admin` "
+                    f"permissions on the {owner}/{self.job_project} Copr project.\n"
+                    "\n"
+                    "To fix this you can do one of the following:\n"
+                    "\n"
+                    f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
+                    f"Copr project on the [permissions page]({permissions_url}).\n"
+                    "- Change the above Copr project settings manually "
+                    f"on the [settings page]({settings_url}) "
+                    "to match the Packit configuration.\n"
+                    "- Update the Packit configuration to match the Copr project settings.\n"
+                    "\n"
+                    "Please retrigger the build, once the issue above is fixed.\n"
+                )
+                self.status_reporter.comment(body=msg)
                 raise ex
-
-            boolean_note = ""
-            if "unlisted_on_hp" in ex.fields_to_change:
-                boolean_note += (
-                    "The `unlisted_on_hp` field is represented as `list_on_homepage`"
-                    " in the packit config."
-                    "By default we create projects with `list_on_homepage: False`.\n"
+            except PackitCoprProjectException as ex:
+                if (
+                    f"{self.job_project}' already exists. Copr HTTP response is 400 BAD REQUEST."
+                    in str(ex)
+                ):
+                    attempts += 1  # try again, the project should exist now
+                    continue
+                msg = (
+                    "We were not able to find or create Copr project"
+                    f" `{owner}/{self.job_project}` "
+                    "specified in the config with the following error:\n"
+                    f"```\n{str(ex)}\n```\n---\n"
+                    "Unless the HTTP status code above is >= 500, "
+                    " please check your configuration for:\n\n"
+                    "1. typos in owner and project name (groups need to be prefixed with `@`)\n"
+                    "2. whether the project name doesn't contain not allowed characters "
+                    "(only letters, digits, underscores, dashes and dots must be used)\n"
+                    "3. whether the project itself exists (Packit creates projects"
+                    " only in its own namespace)\n"
+                    "4. whether Packit is allowed to build in your Copr project\n"
+                    "5. whether your Copr project/group is not private"
                 )
-
-            if "delete_after_days" in ex.fields_to_change:
-                boolean_note += (
-                    "The `delete_after_days` field is represented as `preserve_project`"
-                    " in the packit config (`True` is `-1` and `False` is `60`)."
-                    "By default we create projects with `preserve: True` "
-                    "which means `delete_after_days=60`.\n"
-                )
-
-            permissions_url = self.api.copr_helper.get_copr_settings_url(
-                owner, self.job_project, section="permissions"
-            )
-            settings_url = self.api.copr_helper.get_copr_settings_url(
-                owner, self.job_project
-            )
-
-            msg = (
-                "Based on your Packit configuration the settings "
-                f"of the {owner}/{self.job_project} "
-                "Copr project would need to be updated as follows:\n"
-                "\n"
-                f"{table}"
-                "\n"
-                f"{chroots_diff}"
-                f"{boolean_note}"
-                "\n"
-                "Packit was unable to update the settings above as it is missing `admin` "
-                f"permissions on the {owner}/{self.job_project} Copr project.\n"
-                "\n"
-                "To fix this you can do one of the following:\n"
-                "\n"
-                f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
-                f"Copr project on the [permissions page]({permissions_url}).\n"
-                "- Change the above Copr project settings manually "
-                f"on the [settings page]({settings_url}) "
-                "to match the Packit configuration.\n"
-                "- Update the Packit configuration to match the Copr project settings.\n"
-                "\n"
-                "Please retrigger the build, once the issue above is fixed.\n"
-            )
-            self.status_reporter.comment(body=msg)
-            raise ex
-        except PackitCoprProjectException as ex:
-            msg = (
-                "We were not able to find or create Copr project"
-                f" `{owner}/{self.job_project}` "
-                "specified in the config with the following error:\n"
-                f"```\n{str(ex)}\n```\n---\n"
-                "Unless the HTTP status code above is >= 500, "
-                " please check your configuration for:\n\n"
-                "1. typos in owner and project name (groups need to be prefixed with `@`)\n"
-                "2. whether the project name doesn't contain not allowed characters (only letters, "
-                "digits, underscores, dashes and dots must be used)\n"
-                "3. whether the project itself exists (Packit creates projects"
-                " only in its own namespace)\n"
-                "4. whether Packit is allowed to build in your Copr project\n"
-                "5. whether your Copr project/group is not private"
-            )
-            self.status_reporter.comment(body=msg)
-            raise ex
+                self.status_reporter.comment(body=msg)
+                raise ex
 
         return owner
 
