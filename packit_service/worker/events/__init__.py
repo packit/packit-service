@@ -50,6 +50,8 @@ from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
 
 from packit_service.worker.events.vm_image import VMImageBuildResultEvent
 
+from packit_service.worker.events.openscanhub import OpenScanHubTaskFinishEvent
+
 __all__ = [
     Event.__name__,
     EventData.__name__,
@@ -86,4 +88,5 @@ __all__ = [
     ReleaseGitlabEvent.__name__,
     TagPushGitlabEvent.__name__,
     PullRequestFlagPagureEvent.__name__,
+    OpenScanHubTaskFinishEvent.__name__,
 ]

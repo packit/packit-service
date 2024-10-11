@@ -53,6 +53,7 @@ from packit_service.worker.events import (
     ReleaseGitlabEvent,
     TagPushGitlabEvent,
     VMImageBuildResultEvent,
+    OpenScanHubTaskFinishEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -115,6 +116,7 @@ class Parser:
             TagPushGitlabEvent,
             VMImageBuildResultEvent,
             AnityaVersionUpdateEvent,
+            OpenScanHubTaskFinishEvent,
         ]
     ]:
         """
@@ -160,6 +162,7 @@ class Parser:
                 Parser.parse_gitlab_release_event,
                 Parser.parse_gitlab_tag_push_event,
                 Parser.parse_anitya_version_update_event,
+                Parser.parse_openscanhub_task_finish_event,
             ),
         ):
             if response:
@@ -1651,6 +1654,24 @@ class Parser:
             anitya_project_name=anitya_project_name,
         )
 
+    @staticmethod
+    def parse_openscanhub_task_finish_event(
+        event,
+    ) -> Optional[OpenScanHubTaskFinishEvent]:
+
+        if "openscanhub.task.finish" not in event.get("topic", ""):
+            return None
+
+        task_id = event.get("task_id")
+        logger.info(f"OpenScanHub task: {task_id} finished")
+
+        return OpenScanHubTaskFinishEvent(
+            task_id=task_id,
+            issues_added_url=event.get("added.js"),
+            issues_fixed_url=event.get("fixed.js"),
+            scan_results_url=event.get("scan-results.js"),
+        )
+
     # The .__func__ are needed for Python < 3.10
     MAPPING = {
         "github": {
@@ -1684,6 +1705,7 @@ class Parser:
             "org.release-monitoring.prod.anitya.project.version.update.v2": (
                 parse_anitya_version_update_event.__func__  # type: ignore
             ),
+            "openscanhub.task.finish": parse_openscanhub_task_finish_event.__func__,  # type: ignore
         },
         "testing-farm": {
             "results": parse_testing_farm_results_event.__func__,  # type: ignore
