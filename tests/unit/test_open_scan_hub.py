@@ -1,0 +1,386 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
+import datetime
+import pytest
+import json
+from flexmock import flexmock
+from celery.canvas import group as celery_group
+
+from packit.api import PackitAPI
+from packit.config import (
+    JobType,
+    JobConfigTriggerType,
+    PackageConfig,
+    JobConfig,
+    CommonPackageConfig,
+)
+from packit_service.models import (
+    CoprBuildTargetModel,
+    ProjectEventModelType,
+    BuildStatus,
+    OSHScanModel,
+)
+from packit_service.worker.tasks import (
+    run_openscanhub_task_finished_handler,
+    run_openscanhub_task_started_handler,
+)
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting import BaseCommitStatus
+
+from packit_service.worker.events import (
+    AbstractCoprBuildEvent,
+    OpenScanHubTaskFinishedEvent,
+    OpenScanHubTaskStartedEvent,
+)
+from packit_service.worker.helpers import open_scan_hub
+from packit_service.worker.handlers.copr import OpenScanHubHelper
+from packit_service.worker.helpers.build import CoprBuildJobHelper
+
+from tests.spellbook import DATA_DIR, get_parameters_from_results
+
+
+@pytest.fixture()
+def openscanhub_task_finished_event():
+    with open(DATA_DIR / "fedmsg" / "open_scan_hub_task_finished.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def openscanhub_task_started_event():
+    with open(DATA_DIR / "fedmsg" / "open_scan_hub_task_started.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def prepare_openscanhub_db_and_handler(
+    add_pull_request_event_with_sha_123456,
+):
+    db_project_object, db_project_event = add_pull_request_event_with_sha_123456
+    db_build = (
+        flexmock(
+            build_id="55",
+            status="success",
+            build_submitted_time=datetime.datetime.utcnow(),
+            target="the-target",
+            owner="the-owner",
+            project_name="the-namespace-repo_name-5",
+            commit_sha="123456",
+            project_event=flexmock(),
+            srpm_build=flexmock(url=None)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock(),
+        )
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+        .should_receive("get_project_event_model")
+        .and_return(db_project_event)
+        .mock()
+    )
+
+    flexmock(celery_group).should_receive("apply_async")
+    scan_mock = flexmock(
+        copr_build_target=db_build,
+        url="https://openscanhub.fedoraproject.org/task/17514/",
+        set_issues_added_url=lambda _: None,
+        set_issues_fixed_url=lambda _: None,
+        set_scan_results_url=lambda _: None,
+    )
+    flexmock(OSHScanModel).should_receive("get_by_task_id").and_return(scan_mock)
+    flexmock(Pushgateway).should_receive("push").and_return()
+    yield scan_mock
+
+
+@pytest.mark.parametrize(
+    "build_models",
+    [
+        [("abcdef", [flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))])],
+        [
+            ("abcdef", []),
+            (
+                "fedcba",
+                [flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))],
+            ),
+        ],
+    ],
+)
+def test_handle_scan(build_models):
+    srpm_mock = flexmock(url="https://some-url/my-srpm.src.rpm")
+    flexmock(AbstractCoprBuildEvent).should_receive("from_event_dict").and_return(
+        flexmock(chroot="fedora-rawhide-x86_64", build_id="123", pr_id=12)
+    )
+    flexmock(open_scan_hub).should_receive("download_file").twice().and_return(True)
+
+    for commit_sha, models in build_models:
+        flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
+            commit_sha=commit_sha,
+            project_name="commit-project",
+            owner="user-123",
+            target="fedora-rawhide-x86_64",
+            status=BuildStatus.success,
+        ).and_return(models).once()
+
+    flexmock(PackitAPI).should_receive("run_osh_build").once().and_return(
+        'some\nmultiline\noutput\n{"id": 123}\nand\nmore\n{"url": "scan-url"}\n'
+    )
+
+    flexmock(CoprBuildJobHelper).should_receive("_report")
+    package_config = flexmock(
+        get_job_views=lambda: [
+            flexmock(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.commit,
+                branch="main",
+                project="commit-project",
+                owner="user-123",
+            )
+        ]
+    )
+
+    project = flexmock(
+        get_pr=lambda pr_id: flexmock(
+            target_branch="main", target_branch_head_commit="abcdef"
+        ),
+        get_commits=lambda ref: ["abcdef", "fedcba"],
+    )
+
+    OpenScanHubHelper(
+        build=flexmock(
+            id=1,
+            get_srpm_build=lambda: srpm_mock,
+            target="fedora-rawhide-x86_64",
+            get_project_event_model=lambda: flexmock(
+                type=ProjectEventModelType.pull_request,
+                get_project_event_object=lambda: flexmock(),
+            ),
+        ),
+        copr_build_helper=CoprBuildJobHelper(
+            service_config=flexmock(),
+            package_config=package_config,
+            project=project,
+            metadata=flexmock(pr_id=12),
+            db_project_event=flexmock(get_project_event_object=lambda: None),
+            job_config=flexmock(),
+        ),
+    ).handle_scan()
+
+
+@pytest.mark.parametrize(
+    "job_config_type,job_config_trigger,job_config_targets,scan_status,num_of_handlers",
+    [
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.commit,
+            ["fedora-rawhide-x86_64"],
+            OpenScanHubTaskFinishedEvent.Status.success,
+            0,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.pull_request,
+            ["fedora-stable"],
+            OpenScanHubTaskFinishedEvent.Status.success,
+            0,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.pull_request,
+            ["fedora-rawhide-x86_64"],
+            OpenScanHubTaskFinishedEvent.Status.success,
+            1,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.pull_request,
+            ["fedora-rawhide-x86_64"],
+            OpenScanHubTaskFinishedEvent.Status.fail,
+            1,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.pull_request,
+            ["fedora-rawhide-x86_64"],
+            OpenScanHubTaskFinishedEvent.Status.cancel,
+            1,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.commit,
+            ["fedora-rawhide-x86_64"],
+            OpenScanHubTaskFinishedEvent.Status.interrupt,
+            0,
+        ),
+    ],
+)
+def test_handle_scan_task_finished(
+    openscanhub_task_finished_event,
+    prepare_openscanhub_db_and_handler,
+    job_config_type,
+    job_config_trigger,
+    job_config_targets,
+    scan_status,
+    num_of_handlers,
+):
+
+    flexmock(OpenScanHubTaskFinishedEvent).should_receive(
+        "get_packages_config"
+    ).and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=job_config_type,
+                    trigger=job_config_trigger,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=job_config_targets,
+                            specfile_path="test.spec",
+                        )
+                    },
+                ),
+            ],
+            packages={"package": CommonPackageConfig()},
+        )
+    )
+
+    scan_mock = prepare_openscanhub_db_and_handler
+    openscanhub_task_finished_event["status"] = scan_status
+    processing_results = SteveJobs().process_message(openscanhub_task_finished_event)
+    assert len(processing_results) == num_of_handlers
+
+    if processing_results:
+
+        if scan_status == OpenScanHubTaskFinishedEvent.Status.success:
+            state = BaseCommitStatus.success
+            description = (
+                "Scan in OpenScanHub is finished. Check the URL for more details."
+            )
+            flexmock(scan_mock).should_receive("set_status").with_args(
+                "succeeded"
+            ).once()
+            links_to_external_services = {
+                "Added issues": (
+                    "http://openscanhub.fedoraproject.org/task/15649/log/added.js"
+                    "?format=raw"
+                ),
+                "Fixed issues": (
+                    "http://openscanhub.fedoraproject.org/task/15649/log/fixed.js"
+                    "?format=raw"
+                ),
+                "Scan results": (
+                    "http://openscanhub.fedoraproject.org/task/15649/log/gvisor-tap-vsock-"
+                    "0.7.5-1.20241007054606793155.pr405.23.g829aafd6/scan-results.js?format=raw"
+                ),
+            }
+        elif scan_status == OpenScanHubTaskFinishedEvent.Status.cancel:
+            state = BaseCommitStatus.neutral
+            description = f"Scan in OpenScanHub is finished in a {scan_status} state."
+            links_to_external_services = {}
+            flexmock(scan_mock).should_receive("set_status").with_args(
+                "canceled"
+            ).once()
+        else:
+            state = BaseCommitStatus.neutral
+            description = f"Scan in OpenScanHub is finished in a {scan_status} state."
+            links_to_external_services = {}
+            flexmock(scan_mock).should_receive("set_status").with_args("failed").once()
+        if num_of_handlers == 1:
+            # one handler is always skipped because it is for fedora-stable ->
+            # no rawhide build
+            flexmock(OpenScanHubHelper).should_receive("report").with_args(
+                state=state,
+                description=description,
+                url="https://openscanhub.fedoraproject.org/task/17514/",
+                links_to_external_services=links_to_external_services,
+            ).once().and_return()
+
+        for sub_results in processing_results:
+            event_dict, job, job_config, package_config = get_parameters_from_results(
+                [sub_results]
+            )
+            assert json.dumps(event_dict)
+
+            run_openscanhub_task_finished_handler(
+                package_config=package_config,
+                event=event_dict,
+                job_config=job_config,
+            )
+
+
+@pytest.mark.parametrize(
+    "job_config_type,job_config_trigger,job_config_targets,num_of_handlers",
+    [
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.commit,
+            ["fedora-rawhide-x86_64"],
+            0,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.pull_request,
+            ["fedora-stable"],
+            0,
+        ),
+        (
+            JobType.copr_build,
+            JobConfigTriggerType.pull_request,
+            ["fedora-rawhide-x86_64"],
+            1,
+        ),
+    ],
+)
+def test_handle_scan_task_started(
+    openscanhub_task_started_event,
+    prepare_openscanhub_db_and_handler,
+    job_config_type,
+    job_config_trigger,
+    job_config_targets,
+    num_of_handlers,
+):
+    flexmock(OpenScanHubTaskStartedEvent).should_receive(
+        "get_packages_config"
+    ).and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=job_config_type,
+                    trigger=job_config_trigger,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=job_config_targets,
+                            specfile_path="test.spec",
+                        )
+                    },
+                ),
+            ],
+            packages={"package": CommonPackageConfig()},
+        )
+    )
+
+    scan_mock = prepare_openscanhub_db_and_handler
+    processing_results = SteveJobs().process_message(openscanhub_task_started_event)
+    assert len(processing_results) == num_of_handlers
+
+    if processing_results:
+        if num_of_handlers == 1:
+            flexmock(scan_mock).should_receive("set_status").with_args("running").once()
+            flexmock(OpenScanHubHelper).should_receive("report").with_args(
+                state=BaseCommitStatus.running,
+                description="Scan in OpenScanHub has started.",
+                url="https://openscanhub.fedoraproject.org/task/17514/",
+            ).once().and_return()
+
+        for sub_results in processing_results:
+            event_dict, job, job_config, package_config = get_parameters_from_results(
+                [sub_results]
+            )
+            assert json.dumps(event_dict)
+
+            run_openscanhub_task_started_handler(
+                package_config=package_config,
+                event=event_dict,
+                job_config=job_config,
+            )

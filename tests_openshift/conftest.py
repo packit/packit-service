@@ -49,6 +49,7 @@ from packit_service.models import (
     BodhiUpdateTargetModel,
     BodhiUpdateGroupModel,
     SyncReleasePullRequestModel,
+    OSHScanModel,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -180,6 +181,7 @@ def global_service_config():
 def clean_db():
     with sa_session_transaction() as session:
         session.query(SourceGitPRDistGitPRModel).delete()
+        session.query(OSHScanModel).delete()
 
         session.query(AllowlistModel).delete()
         session.query(GithubInstallationModel).delete()
@@ -2431,3 +2433,14 @@ def multiple_bodhi_update_runs(branch_project_event_model):
             bodhi_update_group=group,
         ),
     ]
+
+
+@pytest.fixture()
+def a_scan(a_copr_build_for_pr):
+    scan = a_copr_build_for_pr.add_scan(123)
+    scan.status = "success"
+    scan.url = "task url"
+    scan.issues_added_url = "added issues"
+    scan.issues_fixed_url = "fixed issues"
+    scan.scan_results_url = "results"
+    yield scan
