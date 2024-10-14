@@ -571,12 +571,19 @@ class ScanHelper:
 
             logger.debug(f"Parsed dict from output: {response_dict} ")
 
+            if id := response_dict.get("id"):
+                self.build.add_scan(task_id=id)
+            else:
+                logger.debug(
+                    "It was not possible to get the Open Scan Hub task_id from the response."
+                )
+
             if not (url := response_dict.get("url")):
                 logger.debug("It was not possible to get the URL from the response.")
                 return
 
             self.copr_build_helper._report(
-                state=BaseCommitStatus.success,
+                state=BaseCommitStatus.progress,
                 description=(
                     "Scan in OpenScanHub submitted successfully. Check the URL for more details."
                 ),

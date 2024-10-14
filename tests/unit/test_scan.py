@@ -43,7 +43,7 @@ def test_handle_scan(build_models):
             project_name="commit-project",
             owner="user-123",
             target="fedora-rawhide-x86_64",
-            status=BuildStatus.success,
+            status=BuildStatus.progress,
         ).and_return(models).once()
 
     flexmock(PackitAPI).should_receive("run_osh_build").once().and_return(
