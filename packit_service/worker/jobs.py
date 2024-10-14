@@ -46,6 +46,7 @@ from packit_service.worker.events.event import (
     AbstractForgeIndependentEvent,
     AbstractResultEvent,
 )
+from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
@@ -798,7 +799,7 @@ class SteveJobs:
 
             if handlers_triggered_by_job and not isinstance(
                 self.event,
-                PullRequestCommentPagureEvent,
+                (PullRequestCommentPagureEvent, CommitCommentGitlabEvent),
             ):
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
 

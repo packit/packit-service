@@ -49,6 +49,8 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
 )
+from packit_service.worker.events.github import CommitCommentGithubEvent
+from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -357,6 +359,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 PushGitlabEvent.__name__,
                 PullRequestGithubEvent.__name__,
                 MergeRequestGitlabEvent.__name__,
+                CommitCommentGithubEvent.__name__,
+                CommitCommentGitlabEvent.__name__,
             )
             or self.is_copr_build_comment_event()
         )

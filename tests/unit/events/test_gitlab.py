@@ -9,6 +9,7 @@ from ogr.services.gitlab import GitlabProject
 
 from packit_service.config import PackageConfigGetter
 from packit_service.models import PullRequestModel
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.gitlab import (
     IssueCommentGitlabEvent,
@@ -84,6 +85,12 @@ def gitlab_tag_push():
 @pytest.fixture()
 def gitlab_release():
     with open(DATA_DIR / "webhooks" / "gitlab" / "release.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def gitlab_commit_comment():
+    with open(DATA_DIR / "webhooks" / "gitlab" / "commit_comment.json") as outfile:
         return json.load(outfile)
 
 
@@ -216,6 +223,34 @@ def test_parse_mr_comment(gitlab_mr_comment):
         project=event_object.project,
         pr_id=2,
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
+        fail_when_missing=False,
+    ).and_return(
+        flexmock(get_package_config_views=lambda: {}),
+    ).once()
+    assert event_object.packages_config
+
+
+def test_parse_commit_comment(gitlab_commit_comment):
+    event_object = Parser.parse_event(gitlab_commit_comment)
+
+    assert isinstance(event_object, CommitCommentEvent)
+    assert event_object.repo_namespace == "gitlabhq"
+    assert event_object.repo_name == "gitlab-test"
+    assert event_object.project_url == "http://gitlab.com/gitlabhq/gitlab-test"
+    assert event_object.actor == "root"
+    assert event_object.comment == "test commit comment"
+    assert event_object.commit_sha == "cfe32cf61b73a0d5e9f13e774abde7ff789b1660"
+
+    assert isinstance(event_object.project, GitlabProject)
+    assert event_object.project.full_repo_name == "gitlabhq/gitlab-test"
+
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo",
+    ).with_args(
+        base_project=None,
+        project=event_object.project,
+        reference="cfe32cf61b73a0d5e9f13e774abde7ff789b1660",
+        pr_id=None,
         fail_when_missing=False,
     ).and_return(
         flexmock(get_package_config_views=lambda: {}),

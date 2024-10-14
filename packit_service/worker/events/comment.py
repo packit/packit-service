@@ -4,12 +4,19 @@
 """
 abstract-comment event classes.
 """
+import re
 from logging import getLogger
-from typing import Optional
+from typing import Optional, Union
 
 from ogr.abstract import Comment, Issue
 
-from packit_service.models import BuildStatus, TestingFarmResult
+from packit_service.models import (
+    BuildStatus,
+    GitBranchModel,
+    ProjectEventModel,
+    ProjectReleaseModel,
+    TestingFarmResult,
+)
 from packit_service.service.db_project_events import (
     AddIssueEventToDb,
     AddPullRequestEventToDb,
@@ -182,4 +189,136 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         result["commit_sha"] = self.commit_sha
         result["issue_id"] = self.issue_id
         result.pop("_issue_object")
+        return result
+
+
+class CommitCommentEvent(AbstractCommentEvent):
+    _trigger: Union[GitBranchModel, ProjectReleaseModel] = None
+    _event: ProjectEventModel = None
+
+    def __init__(
+        self,
+        project_url: str,
+        comment: str,
+        comment_id: int,
+        commit_sha: str,
+        actor: str,
+        repo_name: str,
+        repo_namespace: str,
+    ) -> None:
+        super().__init__(
+            project_url=project_url,
+            comment=comment,
+            comment_id=comment_id,
+        )
+        self.repo_name = repo_name
+        self.repo_namespace = repo_namespace
+        self.actor = actor
+        self.commit_sha = commit_sha
+        self._tag_name: Optional[str] = None
+        self._branch: Optional[str] = None
+
+    @property
+    def identifier(self) -> Optional[str]:
+        return self.tag_name or self.branch
+
+    @property
+    def git_ref(self) -> Optional[str]:
+        return self.tag_name or self.branch
+
+    @property
+    def tag_name(self) -> Optional[str]:
+        if not self._tag_name and "--release" in self.comment:
+            release_match = re.search(r"--release[\s=](?P<release>\S+)", self.comment)
+            if release_match:
+                self._tag_name = release_match.group("release")
+        return self._tag_name
+
+    @property
+    def branch(self) -> Optional[str]:
+        if not self._branch and "--release" not in self.comment:
+            if "--commit" in self.comment:
+                commit_match = re.search(r"--commit[\s=](?P<commit>\S+)", self.comment)
+                if commit_match:
+                    self._branch = commit_match.group("commit")
+            else:
+                self._branch = self.project.default_branch
+        return self._branch
+
+    @property
+    def comment_object(self) -> Optional[Comment]:
+        if not self._comment_object:
+            self._comment_object = self.project.get_commit_comment(
+                self.commit_sha,
+                self.comment_id,
+            )
+        return self._comment_object
+
+    def _add_release_trigger(self):
+        try:
+            release = self.project.get_release(tag_name=self.tag_name)
+        except Exception:
+            logger.debug(f"Release with tag name {self.tag_name} not found.")
+            return
+
+        if not release or release.git_tag.commit_sha != self.commit_sha:
+            logger.debug(
+                "Release with tag name from comment doesn't exist or doesn't match "
+                "the commit SHA.",
+            )
+            return
+
+        self._trigger, self._event = ProjectEventModel.add_release_event(
+            tag_name=self.tag_name,
+            namespace=self.repo_namespace,
+            repo_name=self.repo_name,
+            project_url=self.project_url,
+            commit_hash=self.commit_sha,
+        )
+
+    def _add_commit_trigger(self):
+        try:
+            commits = self.project.get_commits(self.branch)
+        except Exception:
+            commits = []
+        if self.commit_sha not in commits:
+            logger.debug(
+                f"Branch {self.branch} doesn't exist or doesn't "
+                f"contain the commit where the comment was triggered on.",
+            )
+            return
+
+        self._trigger, self._event = ProjectEventModel.add_branch_push_event(
+            branch_name=self.branch,
+            namespace=self.repo_namespace,
+            repo_name=self.repo_name,
+            project_url=self.project_url,
+            commit_sha=self.commit_sha,
+        )
+
+    def _add_trigger_and_event(self):
+        if not self._event or not self._trigger:
+            if self.tag_name:
+                self._add_release_trigger()
+            elif self.branch:
+                self._add_commit_trigger()
+        return self._trigger, self._event
+
+    @property
+    def db_project_object(self) -> Union[GitBranchModel, ProjectReleaseModel]:
+        (trigger, _) = self._add_trigger_and_event()
+        return trigger
+
+    @property
+    def db_project_event(self) -> ProjectEventModel:
+        (_, event) = self._add_trigger_and_event()
+        return event
+
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
+        result = super().get_dict()  # type: ignore
+        result.pop("_trigger", None)
+        result.pop("_event", None)
+        result["git_ref"] = self.git_ref
+        result["identifier"] = self.identifier
+        result["tag_name"] = self.tag_name
         return result

@@ -15,9 +15,11 @@ from packit_service.models import (
     AllowlistStatus,
     GitBranchModel,
     ProjectEventModel,
+    ProjectEventModelType,
     ProjectReleaseModel,
     PullRequestModel,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestAction,
@@ -93,6 +95,12 @@ def github_pr_comment_created():
     with open(
         DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json",
     ) as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def commit_comment():
+    with open(DATA_DIR / "webhooks" / "github" / "commit_comment.json") as outfile:
         return json.load(outfile)
 
 
@@ -694,3 +702,135 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
 )
 def test_parse_check_name(check_name, db_project_object, result):
     assert Parser.parse_check_name(check_name, db_project_object) == result
+
+
+def test_parse_commit_comment(commit_comment):
+    event_object = Parser.parse_event(commit_comment)
+
+    assert isinstance(event_object, CommitCommentEvent)
+    assert event_object.commit_sha == "eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"
+    assert event_object.repo_namespace == "packit"
+    assert event_object.repo_namespace == "packit"
+    assert event_object.project_url == "https://github.com/packit/packit"
+    assert event_object.actor == "lbarcziova"
+    assert event_object.comment == "/packit build"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "packit/packit"
+
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo",
+    ).with_args(
+        base_project=None,
+        project=event_object.project,
+        reference="eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8",
+        pr_id=None,
+        fail_when_missing=False,
+    ).and_return(
+        flexmock(get_package_config_views=lambda: {}),
+    ).once()
+
+    assert event_object.packages_config
+
+
+def test_parse_commit_comment_commit(commit_comment):
+    event_object = Parser.parse_event(commit_comment)
+    event_object.comment = "/packit build --commit stable"
+    commit_sha = "eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"
+
+    assert isinstance(event_object, CommitCommentEvent)
+    assert event_object.commit_sha == commit_sha
+    assert event_object.repo_namespace == "packit"
+    assert event_object.repo_namespace == "packit"
+    assert event_object.project_url == "https://github.com/packit/packit"
+    assert event_object.actor == "lbarcziova"
+    assert event_object.git_ref == "stable"
+    assert event_object.identifier == "stable"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "packit/packit"
+
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo",
+    ).with_args(
+        base_project=None,
+        project=event_object.project,
+        reference=commit_sha,
+        pr_id=None,
+        fail_when_missing=False,
+    ).and_return(
+        flexmock(get_package_config_views=lambda: {}),
+    ).once()
+
+    flexmock(GithubProject).should_receive("get_commits").with_args(
+        "stable",
+    ).and_return([commit_sha])
+
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push,
+        event_id=123,
+        commit_sha=commit_sha,
+    ).and_return(flexmock())
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="stable",
+        namespace="packit",
+        project_url="https://github.com/packit/packit",
+        repo_name="packit",
+    ).and_return(
+        flexmock(project_event_model_type=ProjectEventModelType.branch_push, id=123),
+    )
+
+    assert event_object.packages_config
+    assert event_object.db_project_event
+
+
+def test_parse_commit_comment_release(commit_comment):
+    event_object = Parser.parse_event(commit_comment)
+    event_object.comment = "/packit build --release 1.0.0"
+    commit_sha = "eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"
+
+    assert isinstance(event_object, CommitCommentEvent)
+    assert event_object.commit_sha == commit_sha
+    assert event_object.repo_namespace == "packit"
+    assert event_object.repo_namespace == "packit"
+    assert event_object.project_url == "https://github.com/packit/packit"
+    assert event_object.actor == "lbarcziova"
+    assert event_object.git_ref == "1.0.0"
+    assert event_object.identifier == "1.0.0"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "packit/packit"
+
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo",
+    ).with_args(
+        base_project=None,
+        project=event_object.project,
+        reference=commit_sha,
+        pr_id=None,
+        fail_when_missing=False,
+    ).and_return(
+        flexmock(get_package_config_views=lambda: {}),
+    ).once()
+
+    flexmock(GithubProject).should_receive("get_release").and_return(
+        flexmock(git_tag=flexmock(commit_sha=commit_sha)),
+    )
+
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.release,
+        event_id=123,
+        commit_sha=commit_sha,
+    ).and_return(flexmock())
+    flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
+        tag_name="1.0.0",
+        namespace="packit",
+        repo_name="packit",
+        project_url="https://github.com/packit/packit",
+        commit_hash=commit_sha,
+    ).and_return(
+        flexmock(project_event_model_type=ProjectEventModelType.release, id=123),
+    )
+
+    assert event_object.packages_config
+    assert event_object.db_project_event
