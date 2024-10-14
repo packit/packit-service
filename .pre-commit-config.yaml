@@ -4,11 +4,11 @@
 
 repos:
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 24.10.0
     hooks:
       - id: black
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.17.0
+    rev: v3.18.0
     hooks:
       - id: pyupgrade
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -17,7 +17,7 @@ repos:
       - id: prettier
         exclude: tests_openshift/openshift_integration/test_data/
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -79,7 +79,7 @@ repos:
       - id: check-rebase
         args:
           - https://github.com/packit/packit-service.git
-        stages: [manual, push]
+        stages: [manual, pre-push]
   - repo: https://github.com/packit/requre
     rev: 0.8.4
     hooks:
@@ -104,16 +104,16 @@ repos:
         language: python
         types: [yaml]
         files: /tests_openshift.*\.yaml$
-        stages: [manual, push]
+        stages: [manual, pre-push]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.4
+    rev: v8.20.1
     hooks:
       - id: gitleaks
         # The hook runs 'gitleaks protect --staged' which parses output of
         # 'git diff --staged', i.e. always passes in pre-push/manual stage.
-        stages: [commit]
+        stages: [pre-commit]
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.29.2
+    rev: 0.29.4
     hooks:
       - id: check-github-workflows
         args: ["--verbose"]
