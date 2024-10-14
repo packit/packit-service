@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 import re
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Dict
 
 import pytest
 from flexmock import flexmock
@@ -365,7 +365,9 @@ def test_is_compose_matching(compose, composes, result):
         "tmt_plan,"
         "tf_post_install_script,"
         "tf_extra_params,"
-        "copr_rpms"
+        "copr_rpms,"
+        "comment,"
+        "expected_envs"
     ),
     [
         (
@@ -388,6 +390,8 @@ def test_is_compose_matching(compose, composes, result):
             "Fedora-Rawhide",
             "x86_64",
             [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
+            None,
             None,
             None,
             None,
@@ -417,6 +421,8 @@ def test_is_compose_matching(compose, composes, result):
             None,
             None,
             None,
+            None,
+            None,
         ),
         (
             "https://api.dev.testing-farm.io/v0.1/",
@@ -438,6 +444,8 @@ def test_is_compose_matching(compose, composes, result):
             "Fedora-Rawhide",
             "x86_64",
             [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
+            None,
             None,
             None,
             None,
@@ -474,6 +482,8 @@ def test_is_compose_matching(compose, composes, result):
             None,
             None,
             "cool-project-0:0.1.0-2.el8.x86_64",
+            None,
+            None,
         ),
         # Test tmt_plan and tf_post_install_script
         (
@@ -498,6 +508,8 @@ def test_is_compose_matching(compose, composes, result):
             [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
             "^packit",
             "echo 'hi packit'",
+            None,
+            None,
             None,
             None,
         ),
@@ -536,6 +548,8 @@ def test_is_compose_matching(compose, composes, result):
             None,
             None,
             "not-cool-project-0:0.1.0-2.el8.x86_64",
+            None,
+            None,
         ),
         # Testing built_packages for more builds (additional build from other PR) and more packages
         (
@@ -580,6 +594,8 @@ def test_is_compose_matching(compose, composes, result):
             None,
             "cool-project-0:0.1.0-2.el8.x86_64 cool-project-2-0:0.1.0-2.el8.x86_64 "
             "not-cool-project-0:0.1.0-2.el8.x86_64 not-cool-project-2-0:0.1.0-2.el8.x86_64",
+            None,
+            None,
         ),
         # Test that API key and notifications is not overriden by extra-params
         (
@@ -609,6 +625,101 @@ def test_is_compose_matching(compose, composes, result):
                 "notification": {"webhook": {"url": "https://malicious.net"}},
             },
             None,
+            None,
+            None,
+        ),
+        # Test that comment env vars are loaded properly to TF payload
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "",  # without internal TF configured
+            False,
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "1.0",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
+            None,
+            {
+                "api_key": "foo",
+                "notification": {"webhook": {"url": "https://malicious.net"}},
+            },
+            None,
+            "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env INSTALL_TYPE=bundle",
+            {"IP_FAMILY": "ipv6", "INSTALL_TYPE": "bundle"},
+        ),
+        # Test that comment env vars has the highest priority
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "",  # without internal TF configured
+            False,
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "1.0",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
+            None,
+            {
+                "api_key": "foo",
+                "notification": {"webhook": {"url": "https://malicious.net"}},
+            },
+            None,
+            "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env MY_ENV_VARIABLE=my-value2",
+            {"IP_FAMILY": "ipv6", "MY_ENV_VARIABLE": "my-value2"},
+        ),
+        # Test unseting the env variable
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "",  # without internal TF configured
+            False,
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "1.0",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
+            None,
+            {
+                "api_key": "foo",
+                "notification": {"webhook": {"url": "https://malicious.net"}},
+            },
+            None,
+            "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env MY_ENV_VARIABLE=",
+            {"IP_FAMILY": "ipv6", "MY_ENV_VARIABLE": ""},
         ),
     ],
 )
@@ -636,12 +747,15 @@ def test_payload(
     tf_post_install_script,
     tf_extra_params,
     copr_rpms,
+    comment,
+    expected_envs,
 ):
     service_config = ServiceConfig.get_service_config()
     service_config.testing_farm_api_url = tf_api
     service_config.testing_farm_secret = tf_token
     service_config.internal_testing_farm_secret = internal_tf_token
     service_config.deployment = ps_deployment
+    service_config.comment_command_prefix = "/packit"
 
     package_config = flexmock(jobs=[])
     pr = flexmock(
@@ -667,6 +781,7 @@ def test_payload(
         git_ref=git_ref,
         project_url=project_url,
         pr_id=123,
+        event_dict={"comment": comment},
     )
     db_project_object = flexmock()
 
@@ -692,6 +807,8 @@ def test_payload(
             },
         ),
     )
+    # Add custom env var to job_config
+    job_helper.job_config.env = {"MY_ENV_VARIABLE": "my-value"}
 
     token_to_use = internal_tf_token if use_internal_tf else tf_token
     assert job_helper.tft_token == token_to_use
@@ -768,6 +885,7 @@ def test_payload(
                 "PACKIT_TARGET_URL": "https://github.com/packit/packit",
                 "PACKIT_PR_ID": 123,
                 "PACKIT_COPR_PROJECT": "builder/some_package",
+                "MY_ENV_VARIABLE": "my-value",
             },
         }
     ]
@@ -778,6 +896,12 @@ def test_payload(
         expected_environments[0]["settings"] = {
             "provisioning": {"post_install_script": tf_post_install_script}
         }
+
+    if comment is not None:
+        expected_environments[0]["variables"].update(expected_envs)
+        # If MY_ENV_VARIABLE="" then it should be unset from payload and removed from expected envs
+        if expected_envs.get("MY_ENV_VARIABLE") == "":
+            expected_environments[0]["variables"].pop("MY_ENV_VARIABLE")
 
     assert payload["environments"] == expected_environments
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
@@ -874,10 +998,16 @@ def test_merge_payload_with_extra_params(payload, params, result):
 def test_merge_extra_params_with_install():
     tf_settings = {"provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}}
 
-    service_config = flexmock(testing_farm_secret="secret token", deployment="prod")
+    service_config = flexmock(
+        testing_farm_secret="secret token",
+        deployment="prod",
+        comment_command_prefix="/packit-dev",
+    )
     package_config = flexmock()
     project = flexmock(full_repo_name="test/merge")
-    metadata = flexmock(commit_sha="0000000", pr_id=None, tag_name=None)
+    metadata = flexmock(
+        commit_sha="0000000", pr_id=None, tag_name=None, event_dict={"comment": ""}
+    )
     db_project_event = (
         flexmock()
         .should_receive("get_project_event_object")
@@ -1020,6 +1150,7 @@ def test_test_repo(
     service_config.testing_farm_api_url = tf_api
     service_config.testing_farm_secret = tf_token
     service_config.deployment = ps_deployment
+    service_config.comment_command_prefix = "/packit-dev"
 
     package_config = flexmock(jobs=[])
     pr = flexmock(
@@ -1047,6 +1178,7 @@ def test_test_repo(
         git_ref=git_ref,
         project_url=source_project_url,
         pr_id=123,
+        event_dict={"comment": ""},
     )
     db_project_object = flexmock()
 
@@ -1905,37 +2037,66 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
 
 
 @pytest.mark.parametrize(
-    "comment,expected_identifier,expected_labels,expected_pr_arg",
+    "comment,expected_identifier,expected_labels,expected_pr_arg,expected_envs",
     [
         (
             "/packit-dev test --identifier my-id-1 --labels label1,label2 namespace-1/repo-1#33",
             "my-id-1",
             ["label1", "label2"],
             "namespace-1/repo-1#33",
+            None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --identifier my-id-2",
             "my-id-2",
             None,
             "namespace-2/repo-2#36",
+            None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --labels label1 --identifier my-id-2",
             "my-id-2",
             ["label1"],
             "namespace-2/repo-2#36",
+            None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --labels label1 --id my-id-2",
             "my-id-2",
             ["label1"],
             "namespace-2/repo-2#36",
+            None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --labels label1 -i my-id-2",
             "my-id-2",
             ["label1"],
             "namespace-2/repo-2#36",
+            None,
+        ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --labels label1 -i my-id-2 "
+            "--env IP_FAMILY=ipv6",
+            "my-id-2",
+            ["label1"],
+            "namespace-2/repo-2#36",
+            {"IP_FAMILY": "ipv6"},
+        ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --env INSTALL_TYPE=bundle --labels label1"
+            " -i my-id-2 --env IP_FAMILY=ipv6",
+            "my-id-2",
+            ["label1"],
+            "namespace-2/repo-2#36",
+            {"INSTALL_TYPE": "bundle", "IP_FAMILY": "ipv6"},
+        ),
+        (
+            "/packit-dev test namespace-2/repo-2#36 --env INSTALL_TYPE= --labels label1"
+            " -i my-id-2 --env IP_FAMILY=ipv6",
+            "my-id-2",
+            ["label1"],
+            "namespace-2/repo-2#36",
+            {"IP_FAMILY": "ipv6", "INSTALL_TYPE": ""},
         ),
     ],
 )
@@ -1944,6 +2105,7 @@ def test_parse_comment_arguments(
     expected_identifier: str,
     expected_labels: List[str],
     expected_pr_arg: str,
+    expected_envs: Dict[str, str],
 ):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
@@ -1973,3 +2135,4 @@ def test_parse_comment_arguments(
     assert helper.comment_arguments.pr_argument == expected_pr_arg
     assert helper.comment_arguments.identifier == expected_identifier
     assert helper.comment_arguments.labels == expected_labels
+    assert helper.comment_arguments.envs == expected_envs

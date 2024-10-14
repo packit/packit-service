@@ -507,27 +507,27 @@ def test_koji_branch_merge_queue():
     "comment, result",
     (
         pytest.param(
-            "/packit-dev test --identifier my-id-1",
+            "/packit test --identifier my-id-1",
             True,
             id="Matching identifier specified",
         ),
         pytest.param(
-            "/packit-dev test --id my-id-1",
+            "/packit test --id my-id-1",
             True,
             id="Matching identifier specified",
         ),
         pytest.param(
-            "/packit-dev test -i my-id-1",
+            "/packit test -i my-id-1",
             True,
             id="Matching identifier specified",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             True,
             id="No identifier specified",
         ),
         pytest.param(
-            "/packit-dev test --identifier my-id-2",
+            "/packit test --identifier my-id-2",
             False,
             id="Non-matching identifier specified",
         ),
@@ -582,35 +582,35 @@ def test_tf_comment_identifier(comment, result):
     "comment, default_identifier, job_identifier, result",
     (
         pytest.param(
-            "/packit-dev test --identifier my-id2",
+            "/packit test --identifier my-id2",
             "id1",
             "id1",
             False,
             id="Identifier specified in comment",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             None,
             "id1",
             True,
             id="No identifier specified, no default identifier",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             "id1",
             "id1",
             True,
             id="No identifier specified, default identifier matching",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             "id1",
             "id2",
             False,
             id="No identifier specified, default identifier not matching",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             "id1",
             None,
             False,
@@ -670,17 +670,17 @@ def test_tf_comment_default_identifier(
     "comment, result",
     (
         pytest.param(
-            "/packit-dev test --labels label1,label2",
+            "/packit test --labels label1,label2",
             True,
             id="Matching label specified",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             True,
             id="No labels specified",
         ),
         pytest.param(
-            "/packit-dev test --labels random-label1,random-label2",
+            "/packit test --labels random-label1,random-label2",
             False,
             id="Non-matching label specified",
         ),
@@ -736,35 +736,35 @@ def test_tf_comment_labels(comment, result):
     "comment, default_labels, job_labels, result",
     (
         pytest.param(
-            "/packit-dev test --labels label1,label2",
+            "/packit test --labels label1,label2",
             ["label3"],
             ["label3"],
             False,
             id="Labels specified in comment",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             None,
             ["label1"],
             True,
             id="No labels specified, no default labels",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             ["label2"],
             ["label1", "label2"],
             True,
             id="No labels specified, default labels matching",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             ["label3"],
             ["label1", "label2"],
             False,
             id="No labels specified, default labels not matching",
         ),
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             ["label3"],
             [],
             False,
@@ -829,12 +829,12 @@ def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
     "comment, result",
     (
         pytest.param(
-            "/packit-dev test",
+            "/packit test",
             True,
             id="No labels specified, none in config: should pass",
         ),
         pytest.param(
-            "/packit-dev test --labels should_fail,should_fail_hard",
+            "/packit test --labels should_fail,should_fail_hard",
             False,
             id="Labels specified, none in config: should fail",
         ),

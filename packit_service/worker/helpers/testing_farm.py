@@ -1,9 +1,10 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+import argparse
 import logging
 import re
 from re import Pattern
+import shlex
 from typing import Dict, Any, Optional, Set, List, Union, Tuple, Callable
 
 import requests
@@ -60,40 +61,92 @@ class CommentArguments:
     Parse arguments from trigger comment and provide the attributes to Testing Farm helper.
     """
 
-    packit_command: str = None
-    identifier: str = None
-    labels: List[str] = None
-    pr_argument: str = None
-
     def __init__(self, command_prefix: str, comment: str):
+        self._parser: argparse.ArgumentParser = None
+        self.packit_command: str = None
+        self.identifier: str = None
+        self.labels: List[str] = None
+        self.pr_argument: str = None
+        self.envs: Dict[str, str] = None
+
         if comment is None:
             return
 
-        # Try to parse identifier argument from comment
+        # Remove the command prefix from the comment
         logger.debug(f"Parsing comment -> {comment}")
         logger.debug(f"Used command prefix -> {command_prefix}")
 
-        match = re.search(
-            r"^" + re.escape(command_prefix) + r"\s(?P<packit_command>\S+)", comment
-        )
+        # Match the command prefix and extract the rest of the comment
+        match = re.match(r"^" + re.escape(command_prefix) + r"\s+(.*)", comment)
         if match:
-            self.packit_command = match.group("packit_command")
-            logger.debug(f"Parsed packit_command: {self.packit_command}")
+            arguments_str = match.group(1)
+        else:
+            # If the command prefix is not found, nothing to parse
+            logger.debug("Command prefix not found in the comment.")
+            return
 
-        match = re.search(r"(--identifier|--id|-i)[\s=](?P<identifier>\S+)", comment)
-        if match:
-            self.identifier = match.group("identifier")
-            logger.debug(f"Parsed test argument -> identifier: {self.identifier}")
+        # Use shlex to split the arguments string into a list
+        args_list = shlex.split(arguments_str)
+        logger.debug(f"Arguments list after shlex splitting: {args_list}")
 
-        match = re.search(r"--labels[\s=](?P<labels>\S+)", comment)
-        if match:
-            self.labels = match.group("labels").split(",")
-            logger.debug(f"Parsed test argument -> labels: {self.labels}")
+        # Parse known arguments
+        try:
+            args, unknown_args = self.parser.parse_known_args(args_list)
+            logger.debug(f"Parsed known args: {args}")
+            logger.debug(f"Unknown args: {unknown_args}")
+        except argparse.ArgumentError as e:
+            logger.error(f"Argument parsing error: {e}")
+            return
 
-        match = re.search(r"(?P<pr_arg>[^/\s]+/[^#]+#\d+)", comment)
-        if match:
-            self.pr_argument = match.group("pr_arg")
-            logger.debug(f"Parsed test argument -> pr_argument: {self.pr_argument}")
+        self.parse_known_arguments(args)
+        self.parse_unknown_arguments(unknown_args)
+
+    @property
+    def parser(self) -> argparse.ArgumentParser:
+        if self._parser is None:
+            # Set up argparse
+            self._parser = argparse.ArgumentParser()
+            self._parser.add_argument("packit_command")
+            self._parser.add_argument("--identifier", "--id", "-i")
+            self._parser.add_argument("--labels", type=lambda s: s.split(","))
+            # Allows multiple --env arguments
+            self._parser.add_argument("--env", action="append")
+
+        return self._parser
+
+    def parse_known_arguments(self, args: argparse.Namespace) -> None:
+        # Assign the parsed arguments to the class attributes
+        self.packit_command = args.packit_command
+        logger.debug(f"Parsed packit_command: {self.packit_command}")
+
+        self.identifier = args.identifier
+        logger.debug(f"Parsed identifier: {self.identifier}")
+
+        if args.labels:
+            self.labels = args.labels
+            logger.debug(f"Parsed labels: {self.labels}")
+
+        if args.env:
+            self.envs = {}
+            for env in args.env:
+                if "=" in env:
+                    key, value = env.split("=", 1)
+                    self.envs[key] = value
+                    logger.debug(f"Parsed env variable: {key}={value}")
+                else:
+                    logger.error(
+                        f"Invalid format for '--env' argument: '{env}'. Expected VAR_NAME=value."
+                    )
+                    continue
+
+    def parse_unknown_arguments(self, unknown_args: List[str]) -> None:
+        # Process unknown_args to find pr_argument
+        pr_argument_pattern = re.compile(r"^[^/\s]+/[^#\s]+#\d+$")
+        for arg in unknown_args:
+            if pr_argument_pattern.match(arg):
+                self.pr_argument = arg
+                logger.debug(f"Parsed pr_argument: {self.pr_argument}")
+                break
 
 
 class TestingFarmJobHelper(CoprBuildJobHelper):
@@ -522,6 +575,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         # User-defined variables have priority
         env_variables = self.job_config.env if hasattr(self.job_config, "env") else {}
         predefined_environment.update(env_variables)
+
+        # User-defined variables from comments have priority
+        if self.is_comment_event and self.comment_arguments.envs is not None:
+            for k, v in self.comment_arguments.envs.items():
+                # Set env variable
+                logger.debug(f"Key: {k} -> Value: '{v}'")
+                if v is not None and v != "":
+                    predefined_environment[k] = v
+                # Unset env variable if it doesn't have value
+                else:
+                    predefined_environment.pop(k, None)
 
         environment: Dict[str, Any] = {
             "arch": arch,
