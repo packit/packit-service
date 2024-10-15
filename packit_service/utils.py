@@ -122,6 +122,9 @@ def gather_packit_logs_to_buffer(
     packit_logger = logging.getLogger("packit")
     packit_logger.setLevel(logging_level)
     packit_logger.addHandler(handler)
+    git_logger = logging.getLogger("git")
+    git_logger.setLevel(logging_level)
+    git_logger.addHandler(handler)
     handler.setFormatter(PackitFormatter())
     return buffer, handler
 
@@ -143,6 +146,8 @@ def collect_packit_logs(buffer: StringIO, handler: StreamHandler) -> str:
     """
     packit_logger = logging.getLogger("packit")
     packit_logger.removeHandler(handler)
+    git_logger = logging.getLogger("git")
+    git_logger.removeHandler(handler)
     buffer.seek(0)
     return buffer.read()
 
