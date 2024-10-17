@@ -3328,6 +3328,45 @@ def test_handler_doesnt_match_to_job(
             ],
             {},
         ),
+        pytest.param(
+            PullRequestCommentPagureEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                    sidetag_group="test",
+                    packages={"package": CommonPackageConfig()},
+                ),
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.koji_build,
+                    sidetag_group="test",
+                    packages={"package": CommonPackageConfig()},
+                ),
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.koji_build,
+                    sidetag_group="test",
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                    sidetag_group="test",
+                    packages={"package": CommonPackageConfig()},
+                ),
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.koji_build,
+                    sidetag_group="test",
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {},
+        ),
     ],
 )
 def test_get_jobs_matching_trigger(
