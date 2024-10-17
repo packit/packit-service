@@ -640,7 +640,16 @@ class SteveJobs:
         Returns:
             List of job configs.
         """
-        matching_jobs = []
+
+        def compare_jobs_without_triggers(a, b):
+            # check if two jobs are the same or differ only in trigger
+            ad = dict(a.__dict__)
+            ad.pop("trigger")
+            bd = dict(b.__dict__)
+            bd.pop("trigger")
+            return ad == bd
+
+        matching_jobs: List[JobConfig] = []
         if isinstance(self.event, PullRequestCommentPagureEvent):
             for job in self.event.packages_config.get_job_views():
                 if (
@@ -650,9 +659,15 @@ class SteveJobs:
                     and self.event.job_config_trigger_type
                     == JobConfigTriggerType.pull_request
                 ):
-                    # A koji_build or bodhi_update job with comment or koji_build trigger
-                    # can be re-triggered by a Pagure comment in a PR
-                    matching_jobs.append(job)
+                    # avoid having duplicate koji_build jobs
+                    if job.type != JobType.koji_build or not any(
+                        j
+                        for j in matching_jobs
+                        if compare_jobs_without_triggers(job, j)
+                    ):
+                        # A koji_build or bodhi_update job with comment or koji_build trigger
+                        # can be re-triggered by a Pagure comment in a PR
+                        matching_jobs.append(job)
                 elif (
                     job.type == JobType.pull_from_upstream
                     and job.trigger == JobConfigTriggerType.release
@@ -671,11 +686,17 @@ class SteveJobs:
                     and self.event.job_config_trigger_type
                     == JobConfigTriggerType.release
                 ):
-                    # A koji_build/bodhi_update can be re-triggered by a
-                    # comment in a issue in the repository issues
-                    # after a failed release event
-                    # (which has created the issue)
-                    matching_jobs.append(job)
+                    # avoid having duplicate koji_build jobs
+                    if job.type != JobType.koji_build or not any(
+                        j
+                        for j in matching_jobs
+                        if compare_jobs_without_triggers(job, j)
+                    ):
+                        # A koji_build/bodhi_update can be re-triggered by a
+                        # comment in a issue in the repository issues
+                        # after a failed release event
+                        # (which has created the issue)
+                        matching_jobs.append(job)
         elif isinstance(self.event, KojiBuildTagEvent):
             # create a virtual job config
             job_config = JobConfig(
