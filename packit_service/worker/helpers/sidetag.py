@@ -45,9 +45,9 @@ class Sidetag:
         for package in dependencies:
             latest_build = max(b for b in builds if b.name == package)
             latest_stable_nvr = self.koji_helper.get_latest_stable_nvr(
-                package, self.dist_git_branch, include_candidate=True
+                package, self.dist_git_branch
             )
-            # exclude NVRs that are already in stable or candidate tags - if a build
+            # exclude NVRs that are already in stable tags - if a build
             # has been manually tagged into the sidetag to satisfy dependencies,
             # we don't want it in the update
             if not latest_stable_nvr or latest_build > NEVR.from_string(

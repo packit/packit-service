@@ -955,12 +955,10 @@ def test_bodhi_update_from_sidetag(
     flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
         "python-specfile",
         "f40",
-        include_candidate=True,
     ).and_return("python-specfile-0.30.0-1.fc40")
     flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
         "packit",
         "f40",
-        include_candidate=True,
     ).and_return("packit-0.98.0-1.fc40")
 
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(

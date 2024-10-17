@@ -687,6 +687,9 @@ class SteveJobs:
                 if config.downstream_package_name == self.event.package_name:
                     job = JobConfigView(job_config, package)
                     matching_jobs.append(job)
+                    # if there are multiple packages with the same downstream_package_name,
+                    # choose any of them (the handler should ignore the config anyway)
+                    break
 
         return matching_jobs
 
