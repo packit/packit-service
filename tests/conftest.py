@@ -20,9 +20,9 @@ from packit_service.models import (
     PullRequestModel,
 )
 from packit_service.worker.events import (
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
+    GithubPullRequestEvent,
+    GithubPushEvent,
+    GithubReleaseEvent,
     MergeRequestGitlabEvent,
     PushPagureEvent,
 )
@@ -414,7 +414,7 @@ def github_release_webhook() -> dict:
 
 
 @pytest.fixture(scope="module")
-def release_event(github_release_webhook) -> ReleaseEvent:
+def release_event(github_release_webhook) -> GithubReleaseEvent:
     return Parser.parse_release_event(github_release_webhook)
 
 
@@ -439,12 +439,12 @@ def github_vm_image_build_comment():
 
 
 @pytest.fixture(scope="module")
-def github_pr_event(github_pr_webhook) -> PullRequestGithubEvent:
+def github_pr_event(github_pr_webhook) -> GithubPullRequestEvent:
     return Parser.parse_pr_event(github_pr_webhook)
 
 
 @pytest.fixture(scope="module")
-def github_push_event(github_push_webhook) -> PushGitHubEvent:
+def github_push_event(github_push_webhook) -> GithubPushEvent:
     return Parser.parse_github_push_event(github_push_webhook)
 
 

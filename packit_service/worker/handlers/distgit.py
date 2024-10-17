@@ -71,12 +71,12 @@ from packit_service.worker.checker.distgit import (
 )
 from packit_service.worker.events import (
     PushPagureEvent,
-    ReleaseEvent,
+    GithubReleaseEvent,
     ReleaseGitlabEvent,
     AbstractIssueCommentEvent,
     CheckRerunReleaseEvent,
     PullRequestCommentPagureEvent,
-    IssueCommentEvent,
+    GithubIssueCommentEvent,
     IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiBuildTagEvent
@@ -565,7 +565,7 @@ class AbortSyncRelease(Exception):
 @run_for_comment(command="propose-downstream")
 @run_for_comment(command="propose-update")  # deprecated
 @run_for_check_rerun(prefix="propose-downstream")
-@reacts_to(event=ReleaseEvent)
+@reacts_to(event=GithubReleaseEvent)
 @reacts_to(event=ReleaseGitlabEvent)
 @reacts_to(event=AbstractIssueCommentEvent)
 @reacts_to(event=CheckRerunReleaseEvent)
@@ -1034,7 +1034,7 @@ class DownstreamKojiBuildHandler(
 
 @configured_as(job_type=JobType.koji_build)
 @run_for_comment(command="koji-build")
-@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=GithubIssueCommentEvent)
 @reacts_to(event=IssueCommentGitlabEvent)
 class RetriggerDownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,

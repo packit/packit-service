@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import PickleType
 
 from packit_service.constants import ALLOWLIST_CONSTANTS
-from packit_service.worker.events import InstallationEvent
+from packit_service.worker.events import GithubInstallationEvent
 
 # revision identifiers, used by Alembic.
 revision = "c6250555a36c"
@@ -224,7 +224,7 @@ class RedisModel:
 
 class RedisInstallation(RedisModel):
     table_name = "github_installation"
-    event_data: InstallationEvent
+    event_data: GithubInstallationEvent
 
 
 class RedisBuild(RedisModel):

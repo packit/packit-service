@@ -28,10 +28,10 @@ from packit_service.models import (
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     EventData,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    ReleaseEvent,
+    GithubIssueCommentEvent,
+    GithubPullRequestCommentEvent,
+    GithubPullRequestEvent,
+    GithubReleaseEvent,
     AbstractGithubEvent,
 )
 from packit_service.worker.events.enums import (
@@ -231,7 +231,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
     "event, mocked_model, approved, user_namespace",
     [
         (
-            PullRequestCommentGithubEvent(
+            GithubPullRequestCommentEvent(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="base",
@@ -249,7 +249,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "github.com/bar",
         ),
         (
-            IssueCommentEvent(
+            GithubIssueCommentEvent(
                 action=IssueCommentAction.created,
                 issue_id=0,
                 repo_namespace="foo",
@@ -265,7 +265,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "github.com/baz",
         ),
         (
-            PullRequestCommentGithubEvent(
+            GithubPullRequestCommentEvent(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="foo",
@@ -283,7 +283,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "github.com/lojzo",
         ),
         (
-            IssueCommentEvent(
+            GithubIssueCommentEvent(
                 action=IssueCommentAction.created,
                 issue_id=0,
                 repo_namespace="packit-service/src",
@@ -302,7 +302,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "gitlab.com/lojzo",
         ),
         (
-            PullRequestCommentGithubEvent(
+            GithubPullRequestCommentEvent(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="banned_namespace",
@@ -336,7 +336,7 @@ def test_check_and_report_calls_method(
         False
     )
     mocked_pr_or_issue = flexmock(author=None)
-    if isinstance(event, IssueCommentEvent):
+    if isinstance(event, GithubIssueCommentEvent):
         flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
     else:
         flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
@@ -360,7 +360,7 @@ def test_check_and_report_calls_method(
 @pytest.mark.parametrize(
     "event",
     [
-        PullRequestCommentGithubEvent(
+        GithubPullRequestCommentEvent(
             action=PullRequestCommentAction.created,
             pr_id=0,
             base_repo_namespace="base",
@@ -373,7 +373,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        IssueCommentEvent(
+        GithubIssueCommentEvent(
             action=IssueCommentAction.created,
             issue_id=0,
             repo_namespace="foo",
@@ -384,7 +384,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        PullRequestCommentGithubEvent(
+        GithubPullRequestCommentEvent(
             action=PullRequestCommentAction.created,
             pr_id=0,
             base_repo_namespace="foo",
@@ -397,7 +397,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        IssueCommentEvent(
+        GithubIssueCommentEvent(
             action=IssueCommentAction.created,
             issue_id=0,
             repo_namespace="packit-service/src",
@@ -408,7 +408,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        PullRequestCommentGithubEvent(
+        GithubPullRequestCommentEvent(
             action=PullRequestCommentAction.created,
             pr_id=0,
             base_repo_namespace="banned_namespace",
@@ -428,7 +428,7 @@ def test_check_and_report_denied_project(allowlist, event):
     flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive("is_namespace_or_parent_denied").and_return(True)
     mocked_pr_or_issue = flexmock(author=None)
-    if isinstance(event, IssueCommentEvent):
+    if isinstance(event, GithubIssueCommentEvent):
         flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
     else:
         flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
@@ -455,7 +455,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
     """
     types = {
         "release": (
-            ReleaseEvent,
+            GithubReleaseEvent,
             lambda forge, namespace, repository: {
                 "repo_namespace": namespace,
                 "repo_name": repository,
@@ -464,7 +464,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "pr": (
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             lambda forge, namespace, repository: {
                 "action": PullRequestAction.opened,
                 "pr_id": 1,
@@ -479,7 +479,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "pr_comment": (
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             lambda forge, namespace, repository: {
                 "action": PullRequestCommentAction.created,
                 "pr_id": 1,
@@ -495,7 +495,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "issue_comment": (
-            IssueCommentEvent,
+            GithubIssueCommentEvent,
             lambda forge, namespace, repository: {
                 "action": IssueCommentAction.created,
                 "issue_id": 1,
@@ -509,7 +509,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "admin": (
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             lambda forge, namespace, repository: {
                 "action": PullRequestCommentAction.created,
                 "pr_id": 1,
@@ -619,7 +619,7 @@ def test_check_and_report(
             },
         )
     ]
-    flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
+    flexmock(GithubPullRequestEvent).should_receive("get_packages_config").and_return(
         flexmock(
             jobs=job_configs,
             get_package_config_for=lambda job_config: flexmock(
@@ -647,7 +647,7 @@ def test_check_and_report(
         flexmock(DBAllowlist).should_receive("get_namespace").with_args(
             actor_namespace
         ).and_return()
-        if isinstance(event, PullRequestGithubEvent) and not is_valid:
+        if isinstance(event, GithubPullRequestEvent) and not is_valid:
             notification_project_mock = flexmock()
             notification_project_mock.should_receive("get_issue_list").with_args(
                 author="packit-as-a-service[bot]"
@@ -720,7 +720,7 @@ def test_check_and_report(
 
 
 def test_check_and_report_actor_denied_issue(allowlist):
-    event = IssueCommentEvent(
+    event = GithubIssueCommentEvent(
         action=IssueCommentAction.created,
         issue_id=0,
         repo_namespace="foo",
@@ -779,7 +779,7 @@ def test_check_and_report_actor_denied_issue(allowlist):
 def test_check_and_report_actor_pull_request(
     allowlist, add_pull_request_event_with_empty_sha
 ):
-    event = PullRequestGithubEvent(
+    event = GithubPullRequestEvent(
         action=PullRequestAction.opened,
         pr_id=0,
         base_repo_namespace="base",
@@ -809,7 +809,7 @@ def test_check_and_report_actor_pull_request(
             },
         )
     ]
-    flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
+    flexmock(GithubPullRequestEvent).should_receive("get_packages_config").and_return(
         flexmock(
             jobs=job_configs,
             get_package_config_for=lambda job_config: flexmock(

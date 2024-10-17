@@ -42,7 +42,10 @@ from packit_service.models import (
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
+from packit_service.worker.events import (
+    GithubIssueCommentEvent,
+    IssueCommentGitlabEvent,
+)
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.distgit import (
     RetriggerDownstreamKojiBuildHandler,
@@ -149,7 +152,7 @@ jobs:
     [
         (
             (GithubProject, GithubRelease, "github", "phracek"),
-            IssueCommentEvent,
+            GithubIssueCommentEvent,
         ),
         (
             (GitlabProject, GitlabRelease, "gitlab", "shreyaspapi"),
@@ -341,7 +344,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
         job_config_trigger_type=JobConfigTriggerType.release,
         project_event_model_type=ProjectEventModelType.issue,
     )
-    flexmock(IssueCommentEvent).should_receive("db_project_object").and_return(
+    flexmock(GithubIssueCommentEvent).should_receive("db_project_object").and_return(
         db_project_object
     )
 

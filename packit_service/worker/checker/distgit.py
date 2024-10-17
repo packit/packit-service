@@ -14,7 +14,7 @@ from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
     PushPagureEvent,
-    IssueCommentEvent,
+    GithubIssueCommentEvent,
     IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
@@ -136,7 +136,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker):
 
     def _pre_check(self) -> bool:
         if self.data.event_type in (
-            IssueCommentEvent.__name__,
+            GithubIssueCommentEvent.__name__,
             IssueCommentGitlabEvent.__name__,
         ):
             logger.debug(

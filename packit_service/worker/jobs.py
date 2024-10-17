@@ -34,9 +34,9 @@ from packit_service.worker.events import (
     Event,
     EventData,
     PullRequestCommentPagureEvent,
-    InstallationEvent,
+    GithubInstallationEvent,
     CheckRerunEvent,
-    IssueCommentEvent,
+    GithubIssueCommentEvent,
 )
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
@@ -213,12 +213,12 @@ class SteveJobs:
 
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
-        if isinstance(self.event, InstallationEvent):
+        if isinstance(self.event, GithubInstallationEvent):
             GithubAppInstallationHandler.get_signature(
                 event=self.event, job=None
             ).apply_async()
         elif isinstance(
-            self.event, IssueCommentEvent
+            self.event, GithubIssueCommentEvent
         ) and self.is_fas_verification_comment(self.event.comment):
             if GithubFasVerificationHandler.pre_check(
                 package_config=None, job_config=None, event=self.event.get_dict()

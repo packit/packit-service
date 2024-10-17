@@ -11,7 +11,7 @@ from packit_service.models import SidetagModel
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
-    PullRequestGithubEvent,
+    GithubPullRequestEvent,
 )
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
@@ -35,7 +35,7 @@ class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
             return False
 
         if self.data.event_type in (
-            PullRequestGithubEvent.__name__,
+            GithubPullRequestEvent.__name__,
             MergeRequestGitlabEvent.__name__,
         ):
             user_can_merge_pr = self.project.can_merge_pr(self.data.actor)

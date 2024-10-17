@@ -20,7 +20,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.copr import AbstractCoprBuildEvent
-from packit_service.worker.events.github import PullRequestCommentGithubEvent
+from packit_service.worker.events.github import GithubPullRequestCommentEvent
 from packit_service.worker.events.gitlab import MergeRequestCommentGitlabEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.abstract import CeleryTask
@@ -489,7 +489,7 @@ class GetGithubCommentEvent(Protocol):
 class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigFromEventMixin):
     def is_comment_event(self) -> bool:
         return self.data.event_type in (
-            PullRequestCommentGithubEvent.__name__,
+            GithubPullRequestCommentEvent.__name__,
             MergeRequestCommentGitlabEvent.__name__,
             PullRequestCommentPagureEvent.__name__,
         )

@@ -40,12 +40,12 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
+    GithubPullRequestEvent,
+    GithubPushEvent,
     PushGitlabEvent,
     MergeRequestGitlabEvent,
     AbstractPRCommentEvent,
-    ReleaseEvent,
+    GithubReleaseEvent,
     ReleaseGitlabEvent,
 )
 from packit_service.worker.handlers import JobHandler
@@ -75,10 +75,10 @@ logger = logging.getLogger(__name__)
 @run_for_comment(command="copr-build")
 @run_for_comment(command="retest-failed")
 @run_for_check_rerun(prefix="testing-farm")
-@reacts_to(ReleaseEvent)
+@reacts_to(GithubReleaseEvent)
 @reacts_to(ReleaseGitlabEvent)
-@reacts_to(PullRequestGithubEvent)
-@reacts_to(PushGitHubEvent)
+@reacts_to(GithubPullRequestEvent)
+@reacts_to(GithubPushEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
 @reacts_to(AbstractPRCommentEvent)
