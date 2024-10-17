@@ -59,6 +59,7 @@ from packit_service.worker.handlers import (
     TestingFarmResultsHandler,
     VMImageBuildHandler,
     VMImageBuildResultHandler,
+    OpenScanHubTaskFinishHandler,
 )
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import (
@@ -600,6 +601,19 @@ def run_tag_into_sidetag_handler(
     self, event: dict, package_config: dict, job_config: dict
 ):
     handler = TagIntoSidetagHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(bind=True, name=TaskName.openscanhub_task_finish, base=TaskWithRetry)
+def run_openscanhub_task_finish_handler(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = OpenScanHubTaskFinishHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

@@ -41,6 +41,7 @@ from packit_service.worker.events import (
     ReleaseEvent,
     TestingFarmResultsEvent,
     CheckRerunEvent,
+    OpenScanHubTaskFinishEvent,
 )
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
@@ -485,6 +486,7 @@ class Allowlist:
                 KojiBuildTagEvent,
                 CheckRerunEvent,
                 NewHotnessUpdateEvent,
+                OpenScanHubTaskFinishEvent,
             ): self._check_unchecked_event,
             (
                 ReleaseEvent,
