@@ -151,10 +151,10 @@ class EventData:
         # TODO, do a better job
         # Probably, try to recreate original classes.
         if self.event_type in {
-            "PullRequestGithubEvent",
+            "GithubPullRequestEvent",
             "PullRequestPagureEvent",
             "MergeRequestGitlabEvent",
-            "PullRequestCommentGithubEvent",
+            "GithubPullRequestCommentEvent",
             "MergeRequestCommentGitlabEvent",
             "PullRequestCommentPagureEvent",
             "PullRequestFlagPagureEvent",
@@ -171,7 +171,7 @@ class EventData:
                 commit_sha=self.commit_sha,
             )
         elif self.event_type in {
-            "PushGitHubEvent",
+            "GithubPushEvent",
             "PushGitlabEvent",
             "PushPagureEvent",
             "CheckRerunCommitEvent",
@@ -188,7 +188,7 @@ class EventData:
             )
 
         elif self.event_type in {
-            "ReleaseEvent",
+            "GithubReleaseEvent",
             "ReleaseGitlabEvent",
             "CheckRerunReleaseEvent",
         }:
@@ -235,7 +235,7 @@ class EventData:
                 commit_hash=self.commit_sha,
             )
         elif self.event_type in {
-            "IssueCommentEvent",
+            "GithubIssueCommentEvent",
             "IssueCommentGitlabEvent",
         }:
             (

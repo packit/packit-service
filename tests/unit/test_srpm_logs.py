@@ -20,10 +20,10 @@ from packit.config import (
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
 from packit_service.worker.events.github import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
+    GithubPullRequestEvent,
+    GithubPullRequestCommentEvent,
+    GithubPushEvent,
+    GithubReleaseEvent,
 )
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
@@ -32,10 +32,10 @@ logger = logging.getLogger(__name__)
 
 def build_helper(
     event: Union[
-        PullRequestGithubEvent,
-        PullRequestCommentGithubEvent,
-        PushGitHubEvent,
-        ReleaseEvent,
+        GithubPullRequestEvent,
+        GithubPullRequestCommentEvent,
+        GithubPushEvent,
+        GithubReleaseEvent,
     ],
     _targets=None,
     scratch=None,

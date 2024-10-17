@@ -14,7 +14,7 @@ from packit_service.models import (
 from packit_service.worker.result import TaskResults
 from packit_service.worker.events import VMImageBuildResultEvent
 from packit_service.worker.events.github import (
-    PullRequestCommentGithubEvent,
+    GithubPullRequestCommentEvent,
 )
 from packit_service.worker.handlers.vm_image import (
     GetVMImageBuildReporterFromJobHelperMixin,
@@ -122,7 +122,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         package_config,
         job_config,
         {
-            "event_type": PullRequestCommentGithubEvent.__name__,
+            "event_type": GithubPullRequestCommentEvent.__name__,
             "project_url": "https://github.com/majamassarini/knx-stack",
             "commit_sha": "4321aa",
             "pr_id": 21,

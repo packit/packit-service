@@ -93,9 +93,9 @@ def reacts_to(event: Type["Event"]):
 
     Example:
     ```
-    @reacts_to(ReleaseEvent)
-    @reacts_to(PullRequestGithubEvent)
-    @reacts_to(PushGitHubEvent)
+    @reacts_to(GithubReleaseEvent)
+    @reacts_to(GithubPullRequestEvent)
+    @reacts_to(GithubPushEvent)
     class CoprBuildHandler(JobHandler):
     ```
     """
@@ -123,8 +123,8 @@ def run_for_comment(command: str):
     @configured_as(job_type=JobType.propose_downstream)
     @run_for_comment(command="propose-downstream")
     @run_for_comment(command="propose-update")
-    @reacts_to(event=ReleaseEvent)
-    @reacts_to(event=IssueCommentEvent)
+    @reacts_to(event=GithubReleaseEvent)
+    @reacts_to(event=GithubIssueCommentEvent)
     class ProposeDownstreamHandler(JobHandler):
     ```
     """

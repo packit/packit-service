@@ -46,13 +46,13 @@ from packit_service.worker.checker.vm_image import (
     HasAuthorWriteAccess,
 )
 from packit_service.worker.events import (
-    PullRequestGithubEvent,
+    GithubPullRequestEvent,
     AbstractCoprBuildEvent,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github import (
-    PushGitHubEvent,
-    PullRequestCommentGithubEvent,
+    GithubPushEvent,
+    GithubPullRequestCommentEvent,
 )
 from packit_service.worker.events.gitlab import MergeRequestGitlabEvent, PushGitlabEvent
 from packit_service.worker.events.pagure import PushPagureEvent
@@ -83,7 +83,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=GithubPullRequestEvent.__name__),
             True,
             False,
             JobConfigTriggerType.pull_request,
@@ -107,7 +107,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             True,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=GithubPullRequestEvent.__name__),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -174,7 +174,7 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
     (
         pytest.param(
             False,
-            construct_dict(event=PushGitHubEvent.__name__),
+            construct_dict(event=GithubPushEvent.__name__),
             JobConfigTriggerType.commit,
             id="GitHub push to non-configured branch is ignored",
         ),
@@ -241,14 +241,14 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
         pytest.param(
             "the-branch",
             True,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=GithubPullRequestEvent.__name__),
             JobConfigTriggerType.pull_request,
             id="GitHub PR target branch matches",
         ),
         pytest.param(
             "the-other-branch",
             False,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=GithubPullRequestEvent.__name__),
             JobConfigTriggerType.pull_request,
             id="GitHub PR target branch does not match",
         ),
@@ -358,7 +358,7 @@ def test_vm_image_is_copr_build_ok_for_chroot(
     checker = IsCoprBuildForChrootOk(
         package_config,
         job_config,
-        {"event_type": PullRequestCommentGithubEvent.__name__, "commit_sha": "1"},
+        {"event_type": GithubPullRequestCommentEvent.__name__, "commit_sha": "1"},
     )
     checker.data._db_project_object = flexmock(id=1)
     checker.data._db_project_event = (
@@ -439,7 +439,7 @@ def test_vm_image_has_author_write_access(
         package_config,
         job_config,
         {
-            "event_type": PullRequestCommentGithubEvent.__name__,
+            "event_type": GithubPullRequestCommentEvent.__name__,
             "actor": actor,
             "project_url": project_url,
         },
@@ -476,7 +476,7 @@ def test_koji_branch_merge_queue():
     )
 
     event = construct_dict(
-        event=PushGitHubEvent.__name__,
+        event=GithubPushEvent.__name__,
         git_ref="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
     )
 
@@ -550,7 +550,7 @@ def test_tf_comment_identifier(comment, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": GithubPullRequestCommentEvent.__name__,
         "comment": comment,
     }
 
@@ -639,7 +639,7 @@ def test_tf_comment_default_identifier(
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": GithubPullRequestCommentEvent.__name__,
         "comment": comment,
     }
 
@@ -704,7 +704,7 @@ def test_tf_comment_labels(comment, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": GithubPullRequestCommentEvent.__name__,
         "comment": comment,
     }
 
@@ -792,7 +792,7 @@ def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": GithubPullRequestCommentEvent.__name__,
         "comment": comment,
     }
 
@@ -855,7 +855,7 @@ def test_tf_comment_labels_none_in_config(comment, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": GithubPullRequestCommentEvent.__name__,
         "comment": comment,
     }
 

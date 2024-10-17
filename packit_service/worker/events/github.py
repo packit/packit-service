@@ -43,7 +43,7 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
         )
 
 
-class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
+class GithubReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
     ):
@@ -68,7 +68,7 @@ class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
         return result
 
 
-class PushGitHubEvent(AddBranchPushEventToDb, AbstractGithubEvent):
+class GithubPushEvent(AddBranchPushEventToDb, AbstractGithubEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -85,7 +85,7 @@ class PushGitHubEvent(AddBranchPushEventToDb, AbstractGithubEvent):
         self.identifier = git_ref
 
 
-class PullRequestGithubEvent(AddPullRequestEventToDb, AbstractGithubEvent):
+class GithubPullRequestEvent(AddPullRequestEventToDb, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -120,7 +120,7 @@ class PullRequestGithubEvent(AddPullRequestEventToDb, AbstractGithubEvent):
         return None  # With Github app, we cannot work with fork repo
 
 
-class PullRequestCommentGithubEvent(AbstractPRCommentEvent, AbstractGithubEvent):
+class GithubPullRequestCommentEvent(AbstractPRCommentEvent, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -164,7 +164,7 @@ class PullRequestCommentGithubEvent(AbstractPRCommentEvent, AbstractGithubEvent)
         return None  # With Github app, we cannot work with fork repo
 
 
-class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
+class GithubIssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
     def __init__(
         self,
         action: IssueCommentAction,
@@ -347,7 +347,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
         self.identifier = tag_name
 
 
-class InstallationEvent(Event):
+class GithubInstallationEvent(Event):
     def __init__(
         self,
         installation_id: int,
@@ -378,7 +378,7 @@ class InstallationEvent(Event):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        return InstallationEvent(
+        return GithubInstallationEvent(
             installation_id=event.get("installation_id"),
             account_login=event.get("account_login"),
             account_id=event.get("account_id"),

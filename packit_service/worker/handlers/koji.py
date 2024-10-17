@@ -49,10 +49,10 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     KojiTaskEvent,
     MergeRequestGitlabEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
+    GithubPullRequestEvent,
+    GithubPushEvent,
     PushGitlabEvent,
-    ReleaseEvent,
+    GithubReleaseEvent,
     AbstractPRCommentEvent,
     ReleaseGitlabEvent,
 )
@@ -84,10 +84,10 @@ logger = logging.getLogger(__name__)
 @run_for_comment(command="upstream-koji-build")
 @run_for_check_rerun(prefix="production-build")
 @run_for_check_rerun(prefix="koji-build")
-@reacts_to(ReleaseEvent)
+@reacts_to(GithubReleaseEvent)
 @reacts_to(ReleaseGitlabEvent)
-@reacts_to(PullRequestGithubEvent)
-@reacts_to(PushGitHubEvent)
+@reacts_to(GithubPullRequestEvent)
+@reacts_to(GithubPushEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
 @reacts_to(AbstractPRCommentEvent)

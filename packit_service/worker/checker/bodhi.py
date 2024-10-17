@@ -25,7 +25,7 @@ from packit_service.worker.mixin import (
 )
 from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
-    IssueCommentEvent,
+    GithubIssueCommentEvent,
     IssueCommentGitlabEvent,
 )
 
@@ -120,7 +120,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
     def _pre_check(self) -> bool:
         has_write_access = self.project.has_write_access(user=self.actor)
         if self.data.event_type in (
-            IssueCommentEvent.__name__,
+            GithubIssueCommentEvent.__name__,
             IssueCommentGitlabEvent.__name__,
         ):
             logger.debug(

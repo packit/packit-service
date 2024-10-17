@@ -41,12 +41,12 @@ from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
     EventData,
-    PullRequestCommentGithubEvent,
+    GithubPullRequestCommentEvent,
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
-    PushGitHubEvent,
+    GithubPushEvent,
     PushGitlabEvent,
-    PullRequestGithubEvent,
+    GithubPullRequestEvent,
     MergeRequestGitlabEvent,
 )
 from packit_service.worker.helpers.build import CoprBuildJobHelper
@@ -323,7 +323,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def is_comment_event(self) -> bool:
         return self.metadata.event_type in (
-            PullRequestCommentGithubEvent.__name__,
+            GithubPullRequestCommentEvent.__name__,
             MergeRequestCommentGitlabEvent.__name__,
             PullRequestCommentPagureEvent.__name__,
         )
@@ -354,9 +354,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # for comment event requesting copr build
             self.metadata.event_type
             in (
-                PushGitHubEvent.__name__,
+                GithubPushEvent.__name__,
                 PushGitlabEvent.__name__,
-                PullRequestGithubEvent.__name__,
+                GithubPullRequestEvent.__name__,
                 MergeRequestGitlabEvent.__name__,
             )
             or self.is_copr_build_comment_event()

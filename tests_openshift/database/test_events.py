@@ -18,10 +18,10 @@ from packit_service.models import (
     filter_most_recent_target_names_by_status,
 )
 from packit_service.worker.events import (
-    ReleaseEvent,
-    PushGitHubEvent,
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
+    GithubReleaseEvent,
+    GithubPushEvent,
+    GithubPullRequestEvent,
+    GithubPullRequestCommentEvent,
     TestingFarmResultsEvent,
     MergeRequestGitlabEvent,
     KojiTaskEvent,
@@ -44,7 +44,7 @@ def test_release_event_existing_release(
     )
 
     event_object = Parser.parse_event(release_event_dict)
-    assert isinstance(event_object, ReleaseEvent)
+    assert isinstance(event_object, GithubReleaseEvent)
 
     assert event_object.identifier == "v1.0.2"
     assert event_object.git_ref == "v1.0.2"
@@ -67,7 +67,7 @@ def test_release_event_non_existing_release(clean_before_and_after, release_even
     )
 
     event_object = Parser.parse_event(release_event_dict)
-    assert isinstance(event_object, ReleaseEvent)
+    assert isinstance(event_object, GithubReleaseEvent)
 
     assert event_object.identifier == "v1.0.2"
     assert event_object.git_ref == "v1.0.2"
@@ -87,7 +87,7 @@ def test_push_branch_event_existing_branch(
     clean_before_and_after, branch_model, push_branch_event_dict
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
-    assert isinstance(event_object, PushGitHubEvent)
+    assert isinstance(event_object, GithubPushEvent)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -106,7 +106,7 @@ def test_push_branch_event_non_existing_branch(
     clean_before_and_after, push_branch_event_dict
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
-    assert isinstance(event_object, PushGitHubEvent)
+    assert isinstance(event_object, GithubPushEvent)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -122,7 +122,7 @@ def test_push_branch_event_non_existing_branch(
 
 def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, PullRequestGithubEvent)
+    assert isinstance(event_object, GithubPullRequestEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -194,7 +194,7 @@ def test_push_gitlab_event(
 
 def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, PullRequestGithubEvent)
+    assert isinstance(event_object, GithubPullRequestEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -213,7 +213,7 @@ def test_pr_comment_event_existing_pr(
     clean_before_and_after, pr_model, pr_comment_event_dict_packit_build
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
-    assert isinstance(event_object, PullRequestCommentGithubEvent)
+    assert isinstance(event_object, GithubPullRequestCommentEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -238,7 +238,7 @@ def test_pr_comment_event_non_existing_pr(
     clean_before_and_after, pr_comment_event_dict_packit_build
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
-    assert isinstance(event_object, PullRequestCommentGithubEvent)
+    assert isinstance(event_object, GithubPullRequestCommentEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None

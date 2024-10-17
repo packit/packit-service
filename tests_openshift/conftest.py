@@ -50,7 +50,7 @@ from packit_service.models import (
     BodhiUpdateGroupModel,
     SyncReleasePullRequestModel,
 )
-from packit_service.worker.events import InstallationEvent
+from packit_service.worker.events import GithubInstallationEvent
 
 
 class SampleValues:
@@ -1355,7 +1355,7 @@ def new_allowlist_entry(clean_before_and_after):
 @pytest.fixture()
 def installation_events():
     return [
-        InstallationEvent(
+        GithubInstallationEvent(
             installation_id=3767734,
             account_login="teg",
             account_id=5409,
@@ -1366,7 +1366,7 @@ def installation_events():
             sender_id=5409,
             sender_login="teg",
         ),
-        InstallationEvent(
+        GithubInstallationEvent(
             installation_id=6813698,
             account_login="Pac23",
             account_id=11048203,

@@ -26,17 +26,17 @@ from packit_service.worker.events import (
     AbstractPRCommentEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
-    IssueCommentEvent,
+    GithubIssueCommentEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
+    GithubPullRequestCommentEvent,
     PullRequestCommentPagureEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
+    GithubPullRequestEvent,
+    GithubPushEvent,
     PushGitlabEvent,
     PushPagureEvent,
-    ReleaseEvent,
+    GithubReleaseEvent,
     TestingFarmResultsEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
@@ -77,7 +77,7 @@ from packit_service.worker.result import TaskResults
     [
         # Single job defined:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -87,10 +87,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&PullRequestGithubEvent",
+            id="config=build_for_pr&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -100,10 +100,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=copr_build_for_pr&pull_request&PullRequestGithubEvent",
+            id="config=copr_build_for_pr&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -113,11 +113,11 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr&pull_request&PullRequestGithubEvent",
+            id="config=test_for_pr&pull_request&GithubPullRequestEvent",
         ),
         # Not matching event:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -127,7 +127,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             set(),
-            id="config=build_for_commit&pull_request&PullRequestGithubEvent",
+            id="config=build_for_commit&pull_request&GithubPullRequestEvent",
         ),
         # Matching events:
         pytest.param(
@@ -144,7 +144,7 @@ from packit_service.worker.result import TaskResults
             id="config=build_for_pr&pull_request&MergeRequestGitlabEvent",
         ),
         pytest.param(
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -154,7 +154,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_push&commit&PushGitHubEvent",
+            id="config=build_for_push&commit&GithubPushEvent",
         ),
         pytest.param(
             PushGitlabEvent,
@@ -170,7 +170,7 @@ from packit_service.worker.result import TaskResults
             id="config=build_for_push&commit&PushGitlabEvent",
         ),
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -180,10 +180,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_release&release&ReleaseEvent",
+            id="config=build_for_release&release&GithubReleaseEvent",
         ),
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -193,7 +193,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_release&release&ReleaseEvent",
+            id="config=test_for_release&release&GithubReleaseEvent",
         ),
         pytest.param(
             ReleaseGitlabEvent,
@@ -251,7 +251,7 @@ from packit_service.worker.result import TaskResults
         ),
         # Koji:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -261,7 +261,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {KojiBuildHandler},
-            id="config=production_build_for_pr&pull_request&PullRequestGithubEvent",
+            id="config=production_build_for_pr&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
             MergeRequestGitlabEvent,
@@ -277,7 +277,7 @@ from packit_service.worker.result import TaskResults
             id="config=production_build_for_pr&pull_request&MergeRequestGitlabEvent",
         ),
         pytest.param(
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -287,7 +287,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {KojiBuildHandler},
-            id="config=production_build_for_commit&commit&PushGitHubEvent",
+            id="config=production_build_for_commit&commit&GithubPushEvent",
         ),
         pytest.param(
             PushGitlabEvent,
@@ -303,7 +303,7 @@ from packit_service.worker.result import TaskResults
             id="config=production_build_for_commit&commit&PushGitlabEvent",
         ),
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -313,7 +313,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {KojiBuildHandler},
-            id="config=production_build_for_release&commit&ReleaseEvent",
+            id="config=production_build_for_release&commit&GithubReleaseEvent",
         ),
         pytest.param(
             KojiTaskEvent,
@@ -330,7 +330,7 @@ from packit_service.worker.result import TaskResults
         ),
         # Build and test:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -345,7 +345,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler, TestingFarmHandler},
-            id="config=build_for_pr+test_for_pr&pull_request&PullRequestGithubEvent",
+            id="config=build_for_pr+test_for_pr&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildStartEvent,
@@ -403,7 +403,7 @@ from packit_service.worker.result import TaskResults
         ),
         # Multiple triggers for copr-build:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -424,10 +424,10 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler},
             id="config=build_for_pr+build_for_commit+build_for_release"
-            "&pull_request&PullRequestGithubEvent",
+            "&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -447,10 +447,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr+build_for_commit+build_for_release&commit&PushGitHubEvent",
+            id="config=build_for_pr+build_for_commit+build_for_release&commit&GithubPushEvent",
         ),
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -470,11 +470,11 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr+build_for_commit+build_for_release&release&ReleaseEvent",
+            id="config=build_for_pr+build_for_commit+build_for_release&release&GithubReleaseEvent",
         ),
         # No matching job for multiple triggers:
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -489,11 +489,11 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             set(),
-            id="config=build_for_pr+build_for_commit&release&ReleaseEvent",
+            id="config=build_for_pr+build_for_commit&release&GithubReleaseEvent",
         ),
         # multiple events for build but test only for push:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -519,10 +519,10 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler, TestingFarmHandler},
             id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
-            "&pull_request&PullRequestGithubEvent",
+            "&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -536,10 +536,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr_skip_build" "&pull_request&PullRequestGithubEvent",
+            id="config=test_for_pr_skip_build" "&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -559,10 +559,10 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler, TestingFarmHandler},
             id="config=copr_build_for_pr+test_for_pr_skip_build"
-            "&pull_request&PullRequestGithubEvent",
+            "&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -588,7 +588,7 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler},
             id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
-            "&commit&PushGitHubEvent",
+            "&commit&GithubPushEvent",
         ),
         pytest.param(
             CoprBuildStartEvent,
@@ -708,7 +708,7 @@ from packit_service.worker.result import TaskResults
         ),
         # build for commit and release, test only for push:
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -729,10 +729,10 @@ from packit_service.worker.result import TaskResults
             ],
             {TestingFarmHandler},
             id="config=test_for_pr+build_for_commit+build_for_release"
-            "&pull_request&PullRequestGithubEvent",
+            "&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -753,7 +753,7 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler},
             id="config=test_for_pr+build_for_commit+build_for_release"
-            "&commit&PushGitHubEvent",
+            "&commit&GithubPushEvent",
         ),
         pytest.param(
             TestingFarmResultsEvent,
@@ -805,7 +805,7 @@ from packit_service.worker.result import TaskResults
         ),
         # copr and koji build combination
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -821,7 +821,7 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler, KojiBuildHandler},
             id="config=build_for_pr+production_build_for_pr"
-            "&pull_request&PullRequestGithubEvent",
+            "&pull_request&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildStartEvent,
@@ -972,7 +972,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
     "event_cls, comment, packit_comment_command_prefix, db_project_object, jobs, result",
     [
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -984,11 +984,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             set(),
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&empty_comment",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "",
             "/packit-stg",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1000,11 +1000,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             set(),
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&empty_comment&stg",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit build",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1016,11 +1016,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_build",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit build",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1032,11 +1032,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=copr_build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=copr_build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_build",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit copr-build",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1048,11 +1048,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_copr-build",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit build",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1064,11 +1064,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=test_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_build",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit test",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1080,11 +1080,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=test_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_test",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit production-build",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1096,11 +1096,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {KojiBuildHandler},
-            id="config=production_build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=production_build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_production-build",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit build",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1116,11 +1116,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr_skip_build&pull_request&PullRequestCommentGithubEvent"
+            id="config=test_for_pr_skip_build&pull_request&GithubPullRequestCommentEvent"
             "&packit_build",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit test",
             "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1136,11 +1136,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr_skip_build&pull_request&PullRequestCommentGithubEvent"
+            id="config=test_for_pr_skip_build&pull_request&GithubPullRequestCommentEvent"
             "&packit_test",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit build",
             "/packit-stg",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1152,11 +1152,11 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             set(),
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_build&stg",
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit-stg build",
             "/packit-stg",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
@@ -1168,7 +1168,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            id="config=build_for_pr&pull_request&GithubPullRequestCommentEvent"
             "&packit_stg_build&stg",
         ),
     ],
@@ -1407,7 +1407,7 @@ def test_get_handlers_for_check_rerun_event(
         # Basic copr build:
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1423,7 +1423,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+            id="build_for_pr&CoprBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildStartHandler,
@@ -1468,7 +1468,7 @@ def test_get_handlers_for_check_rerun_event(
         # Test only for pr:
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1478,12 +1478,12 @@ def test_get_handlers_for_check_rerun_event(
                 )
             ],
             [],
-            id="tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+            id="tests_for_pr&CoprBuildHandler&GithubPullRequestEvent",
         ),
         # Both test and build for pr:
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1504,11 +1504,11 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="build_for_pr+tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+            id="build_for_pr+tests_for_pr&CoprBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 # Reverse order:
@@ -1530,12 +1530,12 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="test_for_pr+build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+            id="test_for_pr+build_for_pr&CoprBuildHandler&GithubPullRequestEvent",
         ),
         # Multiple builds for pr:
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1577,12 +1577,12 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="build_for_pr_twice&CoprBuildHandler&PullRequestGithubEvent",
+            id="build_for_pr_twice&CoprBuildHandler&GithubPullRequestEvent",
         ),
         # Multiple triggers for build:
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1625,11 +1625,11 @@ def test_get_handlers_for_check_rerun_event(
                 )
             ],
             id="build_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PullRequestGithubEvent",
+            "&CoprBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -1672,11 +1672,11 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="build_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PushGitHubEvent",
+            "&CoprBuildHandler&GithubPushEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -1719,12 +1719,12 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="build_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&ReleaseEvent",
+            "&CoprBuildHandler&GithubReleaseEvent",
         ),
         # Build for commit and release, test for pr
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1757,11 +1757,11 @@ def test_get_handlers_for_check_rerun_event(
             ],
             [],
             id="tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PullRequestGithubEvent",
+            "&CoprBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -1804,11 +1804,11 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PushGitHubEvent",
+            "&CoprBuildHandler&GithubPushEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -1851,7 +1851,7 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&ReleaseEvent",
+            "&CoprBuildHandler&GithubReleaseEvent",
         ),
         pytest.param(
             TestingFarmResultsHandler,
@@ -1903,7 +1903,7 @@ def test_get_handlers_for_check_rerun_event(
         # Build for pr, commit and release, test for pr
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1955,11 +1955,11 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PullRequestGithubEvent",
+            "&CoprBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            PushGitHubEvent,
+            GithubPushEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -2011,11 +2011,11 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PushGitHubEvent",
+            "&CoprBuildHandler&GithubPushEvent",
         ),
         pytest.param(
             CoprBuildHandler,
-            ReleaseEvent,
+            GithubReleaseEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -2067,7 +2067,7 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&ReleaseEvent",
+            "&CoprBuildHandler&GithubReleaseEvent",
         ),
         pytest.param(
             CoprBuildStartHandler,
@@ -2240,7 +2240,7 @@ def test_get_handlers_for_check_rerun_event(
         # copr build and koji build:
         pytest.param(
             CoprBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -2261,11 +2261,11 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="build_for_pr+production_build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+            id="build_for_pr+production_build_for_pr&CoprBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             KojiBuildHandler,
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -2286,7 +2286,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="build_for_pr+production_build_for_pr&KojiBuildHandler&PullRequestGithubEvent",
+            id="build_for_pr+production_build_for_pr&KojiBuildHandler&GithubPullRequestEvent",
         ),
         pytest.param(
             KojiTaskReportHandler,
@@ -2316,7 +2316,7 @@ def test_get_handlers_for_check_rerun_event(
         # comments:
         pytest.param(
             CoprBuildHandler,
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -2332,7 +2332,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="build_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
+            id="build_for_pr&CoprBuildHandler&GithubPullRequestCommentEvent",
         ),
         pytest.param(
             CoprBuildHandler,
@@ -2377,7 +2377,7 @@ def test_get_handlers_for_check_rerun_event(
         # Build comment for test defined:
         pytest.param(
             CoprBuildHandler,
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -2387,12 +2387,12 @@ def test_get_handlers_for_check_rerun_event(
                 )
             ],
             [],
-            id="tests_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
+            id="tests_for_pr&CoprBuildHandler&GithubPullRequestCommentEvent",
         ),
         # Testing farm on comment:
         pytest.param(
             TestingFarmHandler,
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -2408,12 +2408,12 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="tests_for_pr&TestingFarmHandler&PullRequestCommentGithubEvent",
+            id="tests_for_pr&TestingFarmHandler&GithubPullRequestCommentEvent",
         ),
         # Propose update retrigger:
         pytest.param(
             ProposeDownstreamHandler,
-            IssueCommentEvent,
+            GithubIssueCommentEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
@@ -2429,7 +2429,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 )
             ],
-            id="propose_downstream_for_release&TestingFarmHandler&PullRequestCommentGithubEvent",
+            id="propose_downstream_for_release&TestingFarmHandler&GithubPullRequestCommentEvent",
         ),
         pytest.param(
             DownstreamKojiBuildHandler,
@@ -2540,49 +2540,49 @@ def test_get_config_for_handler_kls(
     "event_kls,comment,packit_comment_command_prefix,result",
     [
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit build",
             "/packit",
             {CoprBuildHandler, TestingFarmHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit-stg build",
             "/packit-stg",
             {CoprBuildHandler, TestingFarmHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit test",
             "/packit",
             {TestingFarmHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit-stg test",
             "/packit-stg",
             {TestingFarmHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit propose-downstream",
             "/packit",
             {ProposeDownstreamHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit-stg propose-downstream",
             "/packit-stg",
             {ProposeDownstreamHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit production-build",
             "/packit",
             {KojiBuildHandler},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             "/packit-stg production-build",
             "/packit-stg",
             {KojiBuildHandler},
@@ -2647,7 +2647,7 @@ def test_get_handlers_triggered_by_check_rerun(event_kls, check_name_job, result
     "event_kls,handler,allowed_handlers",
     [
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             CoprBuildHandler,
             {CoprBuildHandler, KojiBuildHandler},
         ),
@@ -2657,7 +2657,7 @@ def test_get_handlers_triggered_by_check_rerun(event_kls, check_name_job, result
             {CoprBuildHandler, KojiBuildHandler},
         ),
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             ProposeDownstreamHandler,
             {KojiBuildHandler, ProposeDownstreamHandler},
         ),
@@ -2703,7 +2703,7 @@ def test_handler_doesnt_match_to_job(
     [
         # GitHub comment event tests
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.pull_request,
             [
                 JobConfig(
@@ -2727,7 +2727,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -2751,7 +2751,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -2780,7 +2780,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -2798,7 +2798,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.pull_request,
             [
                 JobConfig(
@@ -2824,7 +2824,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.pull_request,
             [
                 JobConfig(
@@ -2845,7 +2845,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestCommentGithubEvent,
+            GithubPullRequestCommentEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -2866,7 +2866,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            PullRequestGithubEvent,
+            GithubPullRequestEvent,
             JobConfigTriggerType.pull_request,
             [
                 JobConfig(
@@ -2893,7 +2893,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            ReleaseEvent,
+            GithubReleaseEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -3157,7 +3157,7 @@ def test_handler_doesnt_match_to_job(
             {},
         ),
         pytest.param(
-            IssueCommentEvent,
+            GithubIssueCommentEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -3176,7 +3176,7 @@ def test_handler_doesnt_match_to_job(
             {"issue_id": 1},
         ),
         pytest.param(
-            IssueCommentEvent,
+            GithubIssueCommentEvent,
             JobConfigTriggerType.release,
             [
                 JobConfig(
@@ -3504,7 +3504,7 @@ def test_monorepo_jobs_matching_event():
     ]
     packages_config = PackageConfig(packages=packages, jobs=jobs)
 
-    class Event(ReleaseEvent):
+    class Event(GithubReleaseEvent):
         def __init__(self):
             self._package_config_searched = None
             self._package_config = packages_config

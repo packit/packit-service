@@ -38,12 +38,12 @@ from packit_service.worker.events import (
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PushGitlabEvent,
-    InstallationEvent,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
+    GithubInstallationEvent,
+    GithubIssueCommentEvent,
+    GithubPullRequestCommentEvent,
+    GithubPullRequestEvent,
+    GithubPushEvent,
+    GithubReleaseEvent,
     TestingFarmResultsEvent,
     PullRequestCommentPagureEvent,
     PipelineGitlabEvent,
@@ -88,14 +88,14 @@ class Parser:
         event: dict,
     ) -> Optional[
         Union[
-            PullRequestGithubEvent,
-            InstallationEvent,
-            ReleaseEvent,
+            GithubPullRequestEvent,
+            GithubInstallationEvent,
+            GithubReleaseEvent,
             TestingFarmResultsEvent,
-            PullRequestCommentGithubEvent,
-            IssueCommentEvent,
+            GithubPullRequestCommentEvent,
+            GithubIssueCommentEvent,
             AbstractCoprBuildEvent,
-            PushGitHubEvent,
+            GithubPushEvent,
             MergeRequestGitlabEvent,
             KojiTaskEvent,
             KojiBuildEvent,
@@ -252,7 +252,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_pr_event(event) -> Optional[PullRequestGithubEvent]:
+    def parse_pr_event(event) -> Optional[GithubPullRequestEvent]:
         """Look into the provided event and see if it's one for a new github PR."""
         if not event.get("pull_request"):
             return None
@@ -294,7 +294,7 @@ class Parser:
 
         commit_sha = nested_get(event, "pull_request", "head", "sha")
         https_url = event["repository"]["html_url"]
-        return PullRequestGithubEvent(
+        return GithubPullRequestEvent(
             action=PullRequestAction[action],
             pr_id=pr_id,
             base_repo_namespace=base_repo_namespace,
@@ -485,7 +485,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_github_push_event(event) -> Optional[PushGitHubEvent]:
+    def parse_github_push_event(event) -> Optional[GithubPushEvent]:
         """
         Look into the provided event and see if it's one for a new push to the github branch.
         """
@@ -529,7 +529,7 @@ class Parser:
 
         repo_url = nested_get(event, "repository", "html_url")
 
-        return PushGitHubEvent(
+        return GithubPushEvent(
             repo_namespace=repo_namespace,
             repo_name=repo_name,
             git_ref=ref,
@@ -540,7 +540,7 @@ class Parser:
     @staticmethod
     def parse_github_comment_event(
         event,
-    ) -> Optional[Union[PullRequestCommentGithubEvent, IssueCommentEvent]]:
+    ) -> Optional[Union[GithubPullRequestCommentEvent, GithubIssueCommentEvent]]:
         """Check whether the comment event from GitHub comes from a PR or issue,
         and parse accordingly.
         """
@@ -552,7 +552,7 @@ class Parser:
     @staticmethod
     def parse_pull_request_comment_event(
         event,
-    ) -> Optional[PullRequestCommentGithubEvent]:
+    ) -> Optional[GithubPullRequestCommentEvent]:
         """Look into the provided event and see if it is Github PR comment event."""
         # This check is redundant when the method is called from parse_github_comment_event(),
         # but it's needed when called from parse_event().
@@ -589,7 +589,7 @@ class Parser:
 
         logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
         https_url = event["repository"]["html_url"]
-        return PullRequestCommentGithubEvent(
+        return GithubPullRequestCommentEvent(
             action=PullRequestCommentAction[action],
             pr_id=pr_id,
             base_repo_namespace=base_repo_namespace,
@@ -604,7 +604,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_issue_comment_event(event) -> Optional[IssueCommentEvent]:
+    def parse_issue_comment_event(event) -> Optional[GithubIssueCommentEvent]:
         """Look into the provided event and see if it is Github issue comment event."""
         # This check is redundant when the method is called from parse_github_comment_event(),
         # but it's needed when called from parse_event().
@@ -637,7 +637,7 @@ class Parser:
         target_repo = nested_get(event, "repository", "full_name")
         logger.info(f"Target repo: {target_repo}.")
         https_url = nested_get(event, "repository", "html_url")
-        return IssueCommentEvent(
+        return GithubIssueCommentEvent(
             IssueCommentAction[action],
             issue_id,
             base_repo_namespace,
@@ -1004,7 +1004,7 @@ class Parser:
         return event
 
     @staticmethod
-    def parse_installation_event(event) -> Optional[InstallationEvent]:
+    def parse_installation_event(event) -> Optional[GithubInstallationEvent]:
         """Look into the provided event and see if it is Github App installation details."""
         # Check if installation key in JSON isn't enough, we have to check the account as well
         if not nested_get(event, "installation", "account"):
@@ -1036,7 +1036,7 @@ class Parser:
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
 
-        return InstallationEvent(
+        return GithubInstallationEvent(
             installation_id,
             account_login,
             account_id,
@@ -1049,7 +1049,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_release_event(event) -> Optional[ReleaseEvent]:
+    def parse_release_event(event) -> Optional[GithubReleaseEvent]:
         """
         https://developer.github.com/v3/activity/events/types/#releaseevent
         https://developer.github.com/v3/repos/releases/#get-a-single-release
@@ -1079,7 +1079,7 @@ class Parser:
             f"New release event {release_ref!r} for repo {repo_namespace}/{repo_name}."
         )
         https_url = event["repository"]["html_url"]
-        return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
+        return GithubReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
     def parse_pagure_push_event(event) -> Optional[PushPagureEvent]:

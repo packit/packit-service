@@ -26,8 +26,8 @@ from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import IsIssueInNotificationRepoChecker
 from packit_service.worker.events import (
-    InstallationEvent,
-    IssueCommentEvent,
+    GithubInstallationEvent,
+    GithubIssueCommentEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -40,7 +40,7 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-@reacts_to(event=InstallationEvent)
+@reacts_to(event=GithubInstallationEvent)
 class GithubAppInstallationHandler(
     JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
 ):
@@ -60,7 +60,7 @@ class GithubAppInstallationHandler(
             event=event,
         )
 
-        self.installation_event = InstallationEvent.from_event_dict(event)
+        self.installation_event = GithubInstallationEvent.from_event_dict(event)
         self.account_type = self.installation_event.account_type
         self.account_login = self.installation_event.account_login
         self.sender_login = self.installation_event.sender_login
@@ -151,7 +151,7 @@ class GithubAppInstallationHandler(
         return TaskResults(success=True, details={"msg": msg})
 
 
-@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=GithubIssueCommentEvent)
 class GithubFasVerificationHandler(
     JobHandler, PackitAPIWithDownstreamMixin, GetIssueMixin
 ):

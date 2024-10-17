@@ -25,20 +25,20 @@ from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
     EventData,
     AbstractCoprBuildEvent,
-    InstallationEvent,
-    IssueCommentEvent,
+    GithubInstallationEvent,
+    GithubIssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
+    GithubPullRequestCommentEvent,
     PullRequestCommentPagureEvent,
-    PullRequestGithubEvent,
+    GithubPullRequestEvent,
     PullRequestPagureEvent,
-    PushGitHubEvent,
+    GithubPushEvent,
     PushGitlabEvent,
     PushPagureEvent,
-    ReleaseEvent,
+    GithubReleaseEvent,
     TestingFarmResultsEvent,
     CheckRerunEvent,
 )
@@ -57,7 +57,7 @@ UncheckedEvent = Union[
     PullRequestCommentPagureEvent,
     AbstractCoprBuildEvent,
     TestingFarmResultsEvent,
-    InstallationEvent,
+    GithubInstallationEvent,
     KojiTaskEvent,
     KojiBuildEvent,
     CheckRerunEvent,
@@ -298,7 +298,7 @@ class Allowlist:
 
     def _check_release_push_event(
         self,
-        event: Union[ReleaseEvent, PushGitHubEvent, PushGitlabEvent],
+        event: Union[GithubReleaseEvent, GithubPushEvent, PushGitlabEvent],
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
@@ -319,8 +319,8 @@ class Allowlist:
     def _check_pr_event(
         self,
         event: Union[
-            PullRequestGithubEvent,
-            PullRequestCommentGithubEvent,
+            GithubPullRequestEvent,
+            GithubPullRequestCommentEvent,
             MergeRequestGitlabEvent,
             MergeRequestCommentGitlabEvent,
         ],
@@ -365,7 +365,7 @@ class Allowlist:
 
         logger.debug(msg)
         if isinstance(
-            event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
+            event, (GithubPullRequestCommentEvent, MergeRequestCommentGitlabEvent)
         ):
             project.get_pr(event.pr_id).comment(msg)
         else:
@@ -424,7 +424,7 @@ class Allowlist:
 
     def _check_issue_comment_event(
         self,
-        event: Union[IssueCommentEvent, IssueCommentGitlabEvent],
+        event: Union[GithubIssueCommentEvent, IssueCommentGitlabEvent],
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
@@ -479,7 +479,7 @@ class Allowlist:
                 PullRequestCommentPagureEvent,
                 AbstractCoprBuildEvent,
                 TestingFarmResultsEvent,
-                InstallationEvent,
+                GithubInstallationEvent,
                 KojiTaskEvent,
                 KojiBuildEvent,
                 KojiBuildTagEvent,
@@ -487,19 +487,19 @@ class Allowlist:
                 NewHotnessUpdateEvent,
             ): self._check_unchecked_event,
             (
-                ReleaseEvent,
+                GithubReleaseEvent,
                 ReleaseGitlabEvent,
-                PushGitHubEvent,
+                GithubPushEvent,
                 PushGitlabEvent,
             ): self._check_release_push_event,
             (
-                PullRequestGithubEvent,
-                PullRequestCommentGithubEvent,
+                GithubPullRequestEvent,
+                GithubPullRequestCommentEvent,
                 MergeRequestGitlabEvent,
                 MergeRequestCommentGitlabEvent,
             ): self._check_pr_event,
             (
-                IssueCommentEvent,
+                GithubIssueCommentEvent,
                 IssueCommentGitlabEvent,
             ): self._check_issue_comment_event,
         }

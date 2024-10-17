@@ -26,10 +26,10 @@ from packit_service.models import (
     BuildStatus,
 )
 from packit_service.worker.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
+    GithubPullRequestEvent,
+    GithubPullRequestCommentEvent,
+    GithubPushEvent,
+    GithubReleaseEvent,
     KojiTaskEvent,
 )
 from packit_service.service.urls import (
@@ -43,10 +43,10 @@ from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 def build_helper(
     event: Union[
-        PullRequestGithubEvent,
-        PullRequestCommentGithubEvent,
-        PushGitHubEvent,
-        ReleaseEvent,
+        GithubPullRequestEvent,
+        GithubPullRequestCommentEvent,
+        GithubPushEvent,
+        GithubReleaseEvent,
     ],
     _targets=None,
     owner=None,
