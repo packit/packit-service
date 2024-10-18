@@ -2587,6 +2587,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     data = Column(JSON)
 
     sidetag = Column(String)
+    nvr = Column(String)
 
     # it is a scratch build?
     scratch = Column(Boolean)
@@ -2708,6 +2709,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         scratch: bool,
         koji_build_group: "KojiBuildGroupModel",
         sidetag: Optional[str] = None,
+        nvr: Optional[str] = None,
     ) -> "KojiBuildTargetModel":
         with sa_session_transaction(commit=True) as session:
             build = cls()
@@ -2717,6 +2719,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             build.target = target
             build.scratch = scratch
             build.sidetag = sidetag
+            build.nvr = nvr
             session.add(build)
 
             koji_build_group.koji_build_targets.append(build)
@@ -2737,6 +2740,24 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             f"KojiBuildTargetModel(id={self.id}, "
             f"build_submitted_time={self.build_submitted_time})"
         )
+
+    @classmethod
+    def get_all_successful_or_in_progress_by_nvr(
+        cls,
+        nvr: str,
+    ) -> set["KojiBuildTargetModel"]:
+        with sa_session_transaction() as session:
+            return set(
+                session.query(KojiBuildTargetModel)
+                .filter(
+                    KojiBuildTargetModel.nvr == nvr,
+                    KojiBuildTargetModel.scratch == False,  # noqa
+                    KojiBuildTargetModel.status.in_(
+                        ("queued", "pending", "retry", "running", "success"),
+                    ),
+                )
+                .all(),
+            )
 
     @classmethod
     def get_all_projects(cls) -> set["GitProjectModel"]:

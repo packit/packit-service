@@ -823,6 +823,7 @@ class AbstractDownstreamKojiBuildHandler(
                 status="queued",
                 scratch=self.job_config.scratch,
                 sidetag=sidetag.koji_name if sidetag else None,
+                nvr=self.packit_api.dg.get_nvr(branch),
                 koji_build_group=group,
             )
 
@@ -832,12 +833,11 @@ class AbstractDownstreamKojiBuildHandler(
     def get_branches(self) -> list[str]:
         """Get a list of branch (names) to be built in koji"""
 
-    def is_already_triggered(self, branch: str) -> bool:
+    def is_already_triggered(self, nvr: str) -> bool:
         """
         Check if the build was already triggered
         (building or completed state).
         """
-        nvr = self.packit_api.dg.get_nvr(branch)
         existing_build = self.koji_helper.get_build_info(nvr)
 
         if existing_build:
@@ -872,13 +872,21 @@ class AbstractDownstreamKojiBuildHandler(
                 )
                 continue
 
-            if not self.job_config.scratch and self.is_already_triggered(branch):
-                logger.info(
-                    f"Skipping downstream Koji build for branch {branch} "
-                    f"that was already triggered.",
+            if not self.job_config.scratch:
+                existing_models = (
+                    KojiBuildTargetModel.get_all_successful_or_in_progress_by_nvr(
+                        koji_build_model.nvr,
+                    )
                 )
-                koji_build_model.set_status("skipped")
-                continue
+                if existing_models - {koji_build_model} or self.is_already_triggered(
+                    koji_build_model.nvr,
+                ):
+                    logger.info(
+                        f"Skipping downstream Koji build {koji_build_model.nvr} "
+                        f"for branch {branch} that was already triggered.",
+                    )
+                    koji_build_model.set_status("skipped")
+                    continue
 
             logger.debug(f"Running downstream Koji build for {branch}")
             koji_build_model.set_status("pending")
