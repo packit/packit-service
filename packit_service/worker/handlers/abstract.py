@@ -191,6 +191,8 @@ class TaskName(str, enum.Enum):
     check_onboarded_projects = "task.check_onboarded_projects"
     koji_build_tag = "task.koji_build_tag"
     tag_into_sidetag = "task.tag_into_sidetag"
+    openscanhub_task_finished = "task.openscanhub_task_finished"
+    openscanhub_task_started = "task.openscanhub_task_started"
 
 
 class Handler(PackitAPIProtocol, Config):

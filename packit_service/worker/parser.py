@@ -53,6 +53,8 @@ from packit_service.worker.events import (
     ReleaseGitlabEvent,
     TagPushGitlabEvent,
     VMImageBuildResultEvent,
+    OpenScanHubTaskFinishedEvent,
+    OpenScanHubTaskStartedEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -115,6 +117,8 @@ class Parser:
             TagPushGitlabEvent,
             VMImageBuildResultEvent,
             AnityaVersionUpdateEvent,
+            OpenScanHubTaskFinishedEvent,
+            OpenScanHubTaskStartedEvent,
         ]
     ]:
         """
@@ -160,6 +164,8 @@ class Parser:
                 Parser.parse_gitlab_release_event,
                 Parser.parse_gitlab_tag_push_event,
                 Parser.parse_anitya_version_update_event,
+                Parser.parse_openscanhub_task_finished_event,
+                Parser.parse_openscanhub_task_started_event,
             ),
         ):
             if response:
@@ -1651,6 +1657,41 @@ class Parser:
             anitya_project_name=anitya_project_name,
         )
 
+    @staticmethod
+    def parse_openscanhub_task_finished_event(
+        event,
+    ) -> Optional[OpenScanHubTaskFinishedEvent]:
+
+        if "openscanhub.task.finished" not in event.get("topic", ""):
+            return None
+
+        task_id = event.get("task_id")
+        status = event.get("status")
+        logger.info(f"OpenScanHub task: {task_id} finished with status {status}.")
+
+        return OpenScanHubTaskFinishedEvent(
+            task_id=task_id,
+            status=status,
+            issues_added_url=event.get("added.js", ""),
+            issues_fixed_url=event.get("fixed.js", ""),
+            scan_results_url=event.get("scan-results.js", ""),
+        )
+
+    @staticmethod
+    def parse_openscanhub_task_started_event(
+        event,
+    ) -> Optional[OpenScanHubTaskStartedEvent]:
+
+        if "openscanhub.task.started" not in event.get("topic", ""):
+            return None
+
+        task_id = event.get("task_id")
+        logger.info(f"OpenScanHub task: {task_id} started.")
+
+        return OpenScanHubTaskStartedEvent(
+            task_id=task_id,
+        )
+
     # The .__func__ are needed for Python < 3.10
     MAPPING = {
         "github": {
@@ -1683,6 +1724,12 @@ class Parser:
             "hotness.update.bug.file": parse_new_hotness_update_event.__func__,  # type: ignore
             "org.release-monitoring.prod.anitya.project.version.update.v2": (
                 parse_anitya_version_update_event.__func__  # type: ignore
+            ),
+            "openscanhub.task.started": (
+                parse_openscanhub_task_started_event.__func__,  # type: ignore
+            ),
+            "openscanhub.task.finished": (
+                parse_openscanhub_task_finished_event.__func__,  # type: ignore
             ),
         },
         "testing-farm": {
