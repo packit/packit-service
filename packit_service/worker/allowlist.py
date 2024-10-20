@@ -45,6 +45,7 @@ from packit_service.worker.events import (
     ReleaseEvent,
     TestingFarmResultsEvent,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
@@ -439,6 +440,33 @@ class Allowlist:
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
+        return self._check_issue_and_commit_comment_event(
+            event=event,
+            project=project,
+            comment_fn=lambda msg: project.get_issue(event.issue_id).comment(msg),
+        )
+
+    def _check_commit_comment_event(
+        self,
+        event: CommitCommentEvent,
+        project: GitProject,
+        job_configs: Iterable[JobConfig],
+    ) -> bool:
+        return self._check_issue_and_commit_comment_event(
+            event=event,
+            project=project,
+            comment_fn=lambda msg: project.commit_comment(
+                commit=event.commit_sha,
+                body=msg,
+            ),
+        )
+
+    def _check_issue_and_commit_comment_event(
+        self,
+        event: Union[CommitCommentEvent, IssueCommentEvent, IssueCommentGitlabEvent],
+        project: GitProject,
+        comment_fn: Callable[[str], Any],
+    ) -> bool:
         actor_name = event.actor
         if not actor_name:
             raise KeyError(f"Failed to get login of the actor from {type(event)}")
@@ -452,7 +480,6 @@ class Allowlist:
         else:
             namespace_approved = self.is_namespace_or_parent_approved(project_url)
             user_approved = project.can_merge_pr(actor_name)
-            # TODO: clear failing check when present
             if namespace_approved and user_approved:
                 return True
             msg = (
@@ -465,7 +492,7 @@ class Allowlist:
             )
 
         logger.debug(msg)
-        project.get_issue(event.issue_id).comment(msg)
+        comment_fn(msg)
         return False
 
     def check_and_report(
@@ -516,6 +543,7 @@ class Allowlist:
                 IssueCommentEvent,
                 IssueCommentGitlabEvent,
             ): self._check_issue_comment_event,
+            (CommitCommentEvent): self._check_commit_comment_event,
         }
 
         # Administrators
