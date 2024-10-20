@@ -32,7 +32,7 @@
     "created_at": "2024-10-14T10:36:16Z",
     "updated_at": "2024-10-14T10:36:16Z",
     "author_association": "MEMBER",
-    "body": "test comment",
+    "body": "/packit build",
     "reactions": {
       "url": "https://api.github.com/repos/packit/packit/comments/147909067/reactions",
       "total_count": 0,

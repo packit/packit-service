@@ -48,6 +48,7 @@ from packit_service.worker.events import (
     ReleaseGitlabEvent,
     TestingFarmResultsEvent,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
@@ -84,6 +85,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(AbstractPRCommentEvent)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
+@reacts_to(CommitCommentEvent)
 @configured_as(job_type=JobType.tests)
 class TestingFarmHandler(
     RetriableJobHandler,
