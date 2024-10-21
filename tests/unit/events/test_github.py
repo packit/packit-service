@@ -23,7 +23,7 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.github import (
+from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,

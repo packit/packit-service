@@ -13,8 +13,8 @@ from packit_service.models import (
 )
 from packit_service.worker.result import TaskResults
 from packit_service.worker.events import VMImageBuildResultEvent
-from packit_service.worker.events.github import (
-    PullRequestCommentGithubEvent,
+from packit_service.worker.events.github.pr import (
+    Comment as PullRequestCommentGithubEvent,
 )
 from packit_service.worker.handlers.vm_image import (
     GetVMImageBuildReporterFromJobHelperMixin,

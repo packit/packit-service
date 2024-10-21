@@ -4,6 +4,7 @@
 """
 Generic/abstract event classes.
 """
+from abc import ABC, abstractmethod
 import copy
 from datetime import datetime, timezone
 from logging import getLogger
@@ -316,7 +317,7 @@ class EventData:
         )
 
 
-class Event:
+class Event(ABC):
     task_accepted_time: Optional[datetime] = None
     actor: Optional[str]
 
@@ -406,12 +407,18 @@ class Event:
 
         return d
 
+    # [XXX] Are these supposed to be abstract methods?
+    # Also, if they're abstract (and cached, based on the commits from blame),
+    # why don't we just use cachedproperty after abstractmethod? Having these
+    # return ‹None› by default »can« result in unimplemented override somewhere
+    # down the chain.
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return None
 
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
         return None
 
+    # [XXX] Cache me up inside, related to the comment right above.
     @property
     def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         if not self._db_project_object:
@@ -447,18 +454,6 @@ class Event:
         return self.db_project_object.job_config_trigger_type
 
     @property
-    def project(self):
-        raise NotImplementedError("Please implement me!")
-
-    @property
-    def base_project(self):
-        raise NotImplementedError("Please implement me!")
-
-    @property
-    def packages_config(self):
-        raise NotImplementedError("Please implement me!")
-
-    @property
     def build_targets_override(self) -> Optional[Set[str]]:
         """
         Return the targets to use for building of the all targets from config
@@ -482,20 +477,35 @@ class Event:
         """
         return None
 
-    def get_packages_config(self):
-        raise NotImplementedError("Please implement me!")
+    @property
+    @abstractmethod
+    def project(self): ...
 
-    def get_project(self) -> GitProject:
-        raise NotImplementedError("Please implement me!")
+    @property
+    @abstractmethod
+    def base_project(self): ...
+
+    @property
+    @abstractmethod
+    def packages_config(self): ...
 
     def pre_check(self) -> bool:
         """
         Implement this method for those events, where you want to check if event properties are
         correct. If this method returns False during runtime, execution of service code is skipped.
 
-        :return: False if we can ignore the event
+        Returns:
+            `False` when we can ignore the event, `True` otherwise (for handling).
         """
         return True
+
+    @abstractmethod
+    def get_packages_config(self): ...
+
+    # [XXX] This seems to be used only by .project property, and also
+    # in a caching way… not sure why do we need two doing the same thing…
+    @abstractmethod
+    def get_project(self) -> GitProject: ...
 
     def __str__(self):
         return str(self.get_dict())

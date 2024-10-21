@@ -19,12 +19,12 @@ from packit.config import (
 )
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
-from packit_service.worker.events.github import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
+from packit_service.worker.events.github.pr import (
+    Synchronize as PullRequestGithubEvent,
+    Comment as PullRequestCommentGithubEvent,
 )
+from packit_service.worker.events.github.push import Push as PushGitHubEvent
+from packit_service.worker.events.github.release import Release as ReleaseEvent
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
 logger = logging.getLogger(__name__)
