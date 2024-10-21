@@ -16,19 +16,33 @@ from packit_service.worker.events.event import (
     Event,
     EventData,
 )
-from packit_service.worker.events.github import (
-    AbstractGithubEvent,
-    CheckRerunCommitEvent,
-    CheckRerunEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    InstallationEvent,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
+from packit_service.worker.events.github.abstract import (
+    GithubEvent as AbstractGithubEvent,
 )
+from packit_service.worker.events.github.check import (
+    Commit as CheckRerunCommitEvent,
+)
+from packit_service.worker.events.github.check import (
+    PullRequest as CheckRerunPullRequestEvent,
+)
+from packit_service.worker.events.github.check import (
+    Release as CheckRerunReleaseEvent,
+)
+from packit_service.worker.events.github.check import (
+    Rerun as CheckRerunEvent,
+)
+from packit_service.worker.events.github.installation import (
+    Installation as InstallationEvent,
+)
+from packit_service.worker.events.github.issue import Comment as IssueCommentEvent
+from packit_service.worker.events.github.pr import (
+    Comment as PullRequestCommentGithubEvent,
+)
+from packit_service.worker.events.github.pr import (
+    Synchronize as PullRequestGithubEvent,
+)
+from packit_service.worker.events.github.push import Push as PushGitHubEvent
+from packit_service.worker.events.github.release import Release as ReleaseEvent
 from packit_service.worker.events.gitlab import (
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,

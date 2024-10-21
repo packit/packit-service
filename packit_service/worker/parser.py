@@ -36,7 +36,6 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
-    InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
@@ -56,6 +55,7 @@ from packit_service.worker.events import (
     TagPushGitlabEvent,
     TestingFarmResultsEvent,
     VMImageBuildResultEvent,
+    github,
 )
 from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.enums import (
@@ -64,7 +64,7 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.github import CommitCommentGithubEvent
+from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
 from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import (
@@ -98,7 +98,7 @@ class Parser:
     ) -> Optional[
         Union[
             PullRequestGithubEvent,
-            InstallationEvent,
+            github.installation.Installation,
             ReleaseEvent,
             TestingFarmResultsEvent,
             PullRequestCommentGithubEvent,
@@ -1116,7 +1116,7 @@ class Parser:
         return event
 
     @staticmethod
-    def parse_installation_event(event) -> Optional[InstallationEvent]:
+    def parse_installation_event(event) -> Optional[github.installation.Installation]:
         """Look into the provided event and see if it is Github App installation details."""
         # Check if installation key in JSON isn't enough, we have to check the account as well
         if not nested_get(event, "installation", "account"):
@@ -1148,7 +1148,7 @@ class Parser:
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
 
-        return InstallationEvent(
+        return github.installation.Installation(
             installation_id,
             account_login,
             account_id,

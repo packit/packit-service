@@ -56,7 +56,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     sa_session_transaction,
 )
-from packit_service.worker.events import InstallationEvent
+from packit_service.worker.events import github
 
 
 class SampleValues:
@@ -1397,7 +1397,7 @@ def new_allowlist_entry(clean_before_and_after):
 @pytest.fixture()
 def installation_events():
     return [
-        InstallationEvent(
+        github.installation.Installation(
             installation_id=3767734,
             account_login="teg",
             account_id=5409,
@@ -1408,7 +1408,7 @@ def installation_events():
             sender_id=5409,
             sender_login="teg",
         ),
-        InstallationEvent(
+        github.installation.Installation(
             installation_id=6813698,
             account_login="Pac23",
             account_id=11048203,
