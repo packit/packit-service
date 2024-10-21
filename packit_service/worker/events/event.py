@@ -547,7 +547,8 @@ class Event(ABC):
         Implement this method for those events, where you want to check if event properties are
         correct. If this method returns False during runtime, execution of service code is skipped.
 
-        :return: False if we can ignore the event
+        Returns:
+            `False` when we can ignore the event, `True` otherwise (for handling).
         """
         return True
 
