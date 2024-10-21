@@ -65,3 +65,14 @@ class Installation(Event):
 
     def get_project(self):
         return None
+
+    # [SAFETY] There is no base project associated with the GitHub Installation.
+    @property
+    def base_project(self):
+        return None
+
+    # [SAFETY] We only register installation in the database, there are no
+    # actions being done, other than creating an issue in our »own« repository
+    # to verify the user.
+    def get_packages_config(self):
+        return None
