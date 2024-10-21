@@ -313,13 +313,18 @@ class Allowlist:
         if not project_url:
             raise KeyError(f"Failed to get namespace from {type(event)!r}")
         if self.is_namespace_or_parent_denied(project_url):
-            logger.info("Refusing release event on denied repo namespace.")
+            msg = f"{project_url} or parent namespaces denied!"
+            project.commit_comment(event.commit_sha, msg)
             return False
 
         if self.is_namespace_or_parent_approved(project_url):
             return True
 
-        logger.info("Refusing release event on not allowlisted repo namespace.")
+        msg = (
+            f"Project {project_url} is not on our allowlist! "
+            "See https://packit.dev/docs/guide/#2-approval"
+        )
+        project.commit_comment(event.commit_sha, msg)
         return False
 
     def _check_pr_event(

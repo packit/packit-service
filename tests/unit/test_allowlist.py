@@ -677,6 +677,9 @@ def test_check_and_report(
         flexmock(DBAllowlist).should_receive("get_namespace").with_args(
             actor_namespace,
         ).and_return()
+        if isinstance(event, ReleaseEvent) and not is_valid:
+            flexmock(git_project).should_receive("get_sha_from_tag")
+            flexmock(git_project).should_receive("commit_comment")
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
             notification_project_mock = flexmock()
             notification_project_mock.should_receive("get_issue_list").with_args(
