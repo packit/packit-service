@@ -49,7 +49,7 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
 )
-from packit_service.worker.events.github import CommitCommentGithubEvent
+from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
 from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
