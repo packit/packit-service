@@ -475,6 +475,7 @@ class Event(ABC):
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
         return None
 
+    # [XXX] Cache me up inside, related to the comment right above.
     @property
     def db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         if not self._db_project_object:
@@ -559,6 +560,8 @@ class Event(ABC):
     @abstractmethod
     def get_packages_config(self): ...
 
+    # [XXX] This seems to be used only by .project property, and also
+    # in a caching way… not sure why do we need two doing the same thing…
     @abstractmethod
     def get_project(self) -> GitProject: ...
 
