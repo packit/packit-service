@@ -27,7 +27,6 @@ from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     CheckRerunEvent,
     EventData,
-    InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
@@ -44,6 +43,7 @@ from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
+    github,
 )
 from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
@@ -61,7 +61,7 @@ UncheckedEvent = Union[
     PullRequestCommentPagureEvent,
     AbstractCoprBuildEvent,
     TestingFarmResultsEvent,
-    InstallationEvent,
+    github.installation.Installation,
     KojiTaskEvent,
     KojiBuildEvent,
     CheckRerunEvent,
@@ -518,7 +518,7 @@ class Allowlist:
                 PullRequestCommentPagureEvent,
                 AbstractCoprBuildEvent,
                 TestingFarmResultsEvent,
-                InstallationEvent,
+                github.installation.Installation,
                 KojiTaskEvent,
                 KojiBuildEvent,
                 KojiBuildTagEvent,
