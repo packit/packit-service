@@ -50,10 +50,10 @@ from packit_service.worker.events import (
     AbstractCoprBuildEvent,
 )
 from packit_service.worker.events.event import EventData
-from packit_service.worker.events.github import (
-    PushGitHubEvent,
-    PullRequestCommentGithubEvent,
+from packit_service.worker.events.github.pr import (
+    Comment as PullRequestCommentGithubEvent,
 )
+from packit_service.worker.events.github.push import Push as PushGitHubEvent
 from packit_service.worker.events.gitlab import MergeRequestGitlabEvent, PushGitlabEvent
 from packit_service.worker.events.pagure import PushPagureEvent
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
