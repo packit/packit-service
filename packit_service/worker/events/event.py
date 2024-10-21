@@ -4,6 +4,7 @@
 """
 Generic/abstract event classes.
 """
+from abc import ABC, abstractmethod
 import copy
 from datetime import datetime, timezone
 from logging import getLogger
@@ -316,7 +317,7 @@ class EventData:
         )
 
 
-class Event:
+class Event(ABC):
     task_accepted_time: Optional[datetime] = None
     actor: Optional[str]
 
@@ -406,6 +407,11 @@ class Event:
 
         return d
 
+    # [XXX] Are these supposed to be abstract methods?
+    # Also, if they're abstract (and cached, based on the commits from blame),
+    # why don't we just use cachedproperty after abstractmethod? Having these
+    # return ‹None› by default »can« result in unimplemented override somewhere
+    # down the chain.
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return None
 
@@ -447,18 +453,6 @@ class Event:
         return self.db_project_object.job_config_trigger_type
 
     @property
-    def project(self):
-        raise NotImplementedError("Please implement me!")
-
-    @property
-    def base_project(self):
-        raise NotImplementedError("Please implement me!")
-
-    @property
-    def packages_config(self):
-        raise NotImplementedError("Please implement me!")
-
-    @property
     def build_targets_override(self) -> Optional[Set[str]]:
         """
         Return the targets to use for building of the all targets from config
@@ -482,11 +476,17 @@ class Event:
         """
         return None
 
-    def get_packages_config(self):
-        raise NotImplementedError("Please implement me!")
+    @property
+    @abstractmethod
+    def project(self): ...
 
-    def get_project(self) -> GitProject:
-        raise NotImplementedError("Please implement me!")
+    @property
+    @abstractmethod
+    def base_project(self): ...
+
+    @property
+    @abstractmethod
+    def packages_config(self): ...
 
     def pre_check(self) -> bool:
         """
@@ -496,6 +496,12 @@ class Event:
         :return: False if we can ignore the event
         """
         return True
+
+    @abstractmethod
+    def get_packages_config(self): ...
+
+    @abstractmethod
+    def get_project(self) -> GitProject: ...
 
     def __str__(self):
         return str(self.get_dict())
