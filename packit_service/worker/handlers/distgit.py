@@ -799,12 +799,31 @@ class AbstractDownstreamKojiBuildHandler(
         )
 
         for branch in self.get_branches():
+            sidetag = None
+            if self.job_config.sidetag_group:
+                # we need Kerberos ticket to create a new sidetag
+                self.packit_api.init_kerberos_ticket()
+                sidetag = SidetagHelper.get_or_create_sidetag(
+                    self.job_config.sidetag_group,
+                    branch,
+                )
+                # check if dependencies are satisfied within the sidetag
+                dependencies = set(self.job_config.dependencies or [])
+                if missing_dependencies := sidetag.get_missing_dependencies(
+                    dependencies,
+                ):
+                    raise PackitException(
+                        f"Missing dependencies for Koji build: {missing_dependencies}",
+                    )
+
             KojiBuildTargetModel.create(
                 task_id=None,
                 web_url=None,
                 target=branch,
                 status="queued",
                 scratch=self.job_config.scratch,
+                sidetag=sidetag.koji_name if sidetag else None,
+                nvr=self.packit_api.dg.get_nvr(branch),
                 koji_build_group=group,
             )
 
@@ -814,12 +833,11 @@ class AbstractDownstreamKojiBuildHandler(
     def get_branches(self) -> list[str]:
         """Get a list of branch (names) to be built in koji"""
 
-    def is_already_triggered(self, branch: str) -> bool:
+    def is_already_triggered(self, nvr: str) -> bool:
         """
         Check if the build was already triggered
         (building or completed state).
         """
-        nvr = self.packit_api.dg.get_nvr(branch)
         existing_build = self.koji_helper.get_build_info(nvr)
 
         if existing_build:
@@ -836,9 +854,13 @@ class AbstractDownstreamKojiBuildHandler(
         return False
 
     def run(self) -> TaskResults:
-        errors = {}
+        try:
+            group = self._get_or_create_koji_group_model()
+        except PackitException as ex:
+            logger.debug(f"Koji build failed to be submitted: {ex}")
+            return TaskResults(success=True, details={})
 
-        group = self._get_or_create_koji_group_model()
+        errors = {}
         for koji_build_model in group.grouped_targets:
             branch = koji_build_model.target
 
@@ -850,45 +872,32 @@ class AbstractDownstreamKojiBuildHandler(
                 )
                 continue
 
-            if not self.job_config.scratch and self.is_already_triggered(branch):
-                logger.info(
-                    f"Skipping downstream Koji build for branch {branch} "
-                    f"that was already triggered.",
+            if not self.job_config.scratch:
+                existing_models = (
+                    KojiBuildTargetModel.get_all_successful_or_in_progress_by_nvr(
+                        koji_build_model.nvr,
+                    )
                 )
-                koji_build_model.set_status("skipped")
-                continue
+                if existing_models - {koji_build_model} or self.is_already_triggered(
+                    koji_build_model.nvr,
+                ):
+                    logger.info(
+                        f"Skipping downstream Koji build {koji_build_model.nvr} "
+                        f"for branch {branch} that was already triggered.",
+                    )
+                    koji_build_model.set_status("skipped")
+                    continue
 
             logger.debug(f"Running downstream Koji build for {branch}")
             koji_build_model.set_status("pending")
 
             try:
-                sidetag = None
-                if self.job_config.sidetag_group:
-                    # we need Kerberos ticket to create a new sidetag
-                    self.packit_api.init_kerberos_ticket()
-                    sidetag = SidetagHelper.get_or_create_sidetag(
-                        self.job_config.sidetag_group,
-                        branch,
-                    )
-                    # skip submitting build for a branch if dependencies
-                    # are not satisfied within a sidetag
-                    dependencies = set(self.job_config.dependencies or [])
-                    if missing_dependencies := sidetag.get_missing_dependencies(
-                        dependencies,
-                    ):
-                        logger.debug(
-                            f"Skipping downstream Koji build for branch {branch}, "
-                            f"missing dependencies: {missing_dependencies}",
-                        )
-                        koji_build_model.set_status("skipped")
-                        continue
-
                 stdout = self.packit_api.build(
                     dist_git_branch=koji_build_model.target,
                     scratch=self.job_config.scratch,
                     nowait=True,
                     from_upstream=False,
-                    koji_target=sidetag.koji_name if sidetag else None,
+                    koji_target=koji_build_model.sidetag,
                 )
                 if stdout:
                     task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)

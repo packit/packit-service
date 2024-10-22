@@ -8,7 +8,6 @@ from celery.canvas import group
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
-from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
@@ -165,9 +164,14 @@ def test_koji_build_error_msg(distgit_push_packit):
         db_project_event,
     )
     flexmock(PipelineModel).should_receive("create")
+
+    nvr = "package-1.2.3-1.fc40"
+
     koji_build = flexmock(
         target="f36",
         status="queued",
+        sidetag=None,
+        nvr=nvr,
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
@@ -176,6 +180,9 @@ def test_koji_build_error_msg(distgit_push_packit):
     )
 
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvr",
+    ).and_return({koji_build})
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(
         flexmock(grouped_targets=[koji_build]),
     )
@@ -193,6 +200,7 @@ def test_koji_build_error_msg(distgit_push_packit):
     flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
     error_msg = "error abc"
     dg = flexmock(local_project=flexmock(git_url="an url"))
+    dg.should_receive("get_nvr").and_return(nvr)
     packit_api = (
         flexmock(dg=dg)
         .should_receive("build")
@@ -224,9 +232,6 @@ def test_koji_build_error_msg(distgit_push_packit):
         message=msg,
         comment_to_existing=msg,
     ).once()
-    flexmock(DownstreamKojiBuildHandler).should_receive(
-        "is_already_triggered",
-    ).and_return(False)
 
     run_downstream_koji_build(
         package_config=package_config,
@@ -245,9 +250,6 @@ def test_koji_build_error_msg(distgit_push_packit):
     ],
 )
 def test_is_already_triggered(build_info, result):
-    flexmock(PackitAPI).should_receive("dg").and_return(
-        flexmock(get_nvr=lambda branch: "some-nvr"),
-    )
     flexmock(KojiHelper).should_receive("get_build_info").and_return(build_info)
 
     assert (
