@@ -3,49 +3,48 @@
 import datetime
 
 import pytest
-from flexmock import Mock
-from flexmock import flexmock
+from flexmock import Mock, flexmock
+from packit.config.job_config import JobConfigTriggerType
 from requests import HTTPError
 
 import packit_service
-from packit.config.job_config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    VMImageBuildTargetModel,
-    VMImageBuildStatus,
     ProjectEventModelType,
+    VMImageBuildStatus,
+    VMImageBuildTargetModel,
 )
 from packit_service.worker.events import VMImageBuildResultEvent
 from packit_service.worker.handlers import VMImageBuildResultHandler
 from packit_service.worker.helpers.build.babysit import (
+    UpdateImageBuildHelper,
     check_pending_vm_image_builds,
     update_vm_image_build,
-    UpdateImageBuildHelper,
 )
 from packit_service.worker.monitoring import Pushgateway
 
 
 def test_check_pending_vm_image_builds():
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_status").with_args(
-        VMImageBuildStatus.pending
+        VMImageBuildStatus.pending,
     ).and_return(
         [
             flexmock(
                 build_id=1,
                 build_submitted_time=datetime.datetime.utcnow()
                 - datetime.timedelta(days=1),
-            )
-        ]
+            ),
+        ],
     )
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
-        "update_vm_image_build"
+        "update_vm_image_build",
     ).with_args(1, Mock)
     check_pending_vm_image_builds()
 
 
 def test_check_pending_vm_image_builds_timeout():
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_status").with_args(
-        VMImageBuildStatus.pending
+        VMImageBuildStatus.pending,
     ).and_return(
         [
             flexmock(
@@ -54,21 +53,21 @@ def test_check_pending_vm_image_builds_timeout():
                 - datetime.timedelta(weeks=2),
             )
             .should_receive("set_status")
-            .mock()
-        ]
+            .mock(),
+        ],
     )
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
-        "update_vm_image_build"
+        "update_vm_image_build",
     ).never()
     check_pending_vm_image_builds()
 
 
 def test_check_no_pending_vm_image_builds():
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_status").with_args(
-        VMImageBuildStatus.pending
+        VMImageBuildStatus.pending,
     ).and_return([])
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
-        "update_vm_image_build"
+        "update_vm_image_build",
     ).never()
     check_pending_vm_image_builds()
 
@@ -102,7 +101,7 @@ def test_check_no_pending_vm_image_builds():
                             "region": "eu-west-1",
                         },
                     },
-                }
+                },
             },
             id="Successfull build",
         ),
@@ -125,7 +124,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
             flexmock()
             .should_receive("image_builder_request")
             .and_raise(HTTPError("unknown ex"))
-            .mock()
+            .mock(),
         )
     else:
         flexmock(UpdateImageBuildHelper).should_receive("vm_image_builder").and_return(
@@ -135,12 +134,12 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                 flexmock()
                 .should_receive("json")
                 .and_return(vm_image_builder_result)
-                .mock()
+                .mock(),
             )
-            .mock()
+            .mock(),
         )
     flexmock(VMImageBuildResultEvent).should_receive(
-        "job_config_trigger_type"
+        "job_config_trigger_type",
     ).and_return(JobConfigTriggerType.pull_request)
     vm_image_model = (
         flexmock(
@@ -152,14 +151,14 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
                             "downstream_package_name": "package",
                             "specfile_path": "path",
                             "jobs": [
-                                {"job": "vm_image_build", "trigger": "pull_request"}
+                                {"job": "vm_image_build", "trigger": "pull_request"},
                             ],
-                        }
-                    )
+                        },
+                    ),
                 )
                 .should_receive("get_project_event_object")
                 .and_return(db_project_object)
-                .mock()
+                .mock(),
             ],
         )
         .should_receive("set_status")
@@ -167,10 +166,10 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
         .mock()
     )
     flexmock(VMImageBuildTargetModel).should_receive("get_by_build_id").with_args(
-        1
+        1,
     ).and_return(vm_image_model)
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_build_id").with_args(
-        1
+        1,
     ).and_return([vm_image_model])
 
     flexmock(VMImageBuildResultHandler).should_receive("report_status")

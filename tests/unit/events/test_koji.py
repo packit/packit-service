@@ -2,23 +2,23 @@
 # SPDX-License-Identifier: MIT
 
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import KojiBuildTargetModel
 from packit_service.worker.events.koji import (
     KojiBuildEvent,
-    KojiTaskEvent,
     KojiBuildTagEvent,
+    KojiTaskEvent,
 )
 from packit_service.worker.parser import Parser
 
 
 def test_parse_koji_build_scratch_event_start(koji_build_scratch_start, koji_build_pr):
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
-        koji_build_pr
+        koji_build_pr,
     )
 
     event_object = Parser.parse_event(koji_build_scratch_start)
@@ -34,7 +34,7 @@ def test_parse_koji_build_scratch_event_start(koji_build_scratch_start, koji_bui
 
 def test_parse_koji_build_scratch_event_end(koji_build_scratch_end, koji_build_pr):
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
-        koji_build_pr
+        koji_build_pr,
     )
 
     event_object = Parser.parse_event(koji_build_scratch_end)
@@ -44,18 +44,19 @@ def test_parse_koji_build_scratch_event_end(koji_build_scratch_end, koji_build_p
     assert event_object.state == KojiTaskState.closed
     assert event_object.rpm_build_task_ids == {"noarch": 45270227}
     assert event_object.get_koji_build_rpm_tasks_logs_urls() == {
-        "noarch": "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log"
+        "noarch": "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log",
     }
 
     flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=123).and_return(
-        flexmock(author="the-fork")
+        flexmock(author="the-fork"),
     )
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "foo/bar"
 
 
 def test_parse_koji_build_event_start_old_format(
-    koji_build_start_old_format, mock_config
+    koji_build_start_old_format,
+    mock_config,
 ):
     event_object = Parser.parse_event(koji_build_start_old_format)
 
@@ -87,7 +88,8 @@ def test_parse_koji_build_event_start_old_format(
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -127,7 +129,8 @@ def test_parse_koji_build_event_start_rawhide(koji_build_start_rawhide, mock_con
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -167,7 +170,8 @@ def test_parse_koji_build_event_start_f36(koji_build_start_f36, mock_config):
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -207,14 +211,16 @@ def test_parse_koji_build_event_start_epel8(koji_build_start_epel8, mock_config)
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
 
 
 def test_parse_koji_build_event_completed_old_format(
-    koji_build_completed_old_format, mock_config
+    koji_build_completed_old_format,
+    mock_config,
 ):
     event_object = Parser.parse_event(koji_build_completed_old_format)
 
@@ -246,14 +252,16 @@ def test_parse_koji_build_event_completed_old_format(
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
 
 
 def test_parse_koji_build_event_completed_rawhide(
-    koji_build_completed_rawhide, mock_config
+    koji_build_completed_rawhide,
+    mock_config,
 ):
     event_object = Parser.parse_event(koji_build_completed_rawhide)
 
@@ -288,7 +296,8 @@ def test_parse_koji_build_event_completed_rawhide(
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -329,14 +338,16 @@ def test_parse_koji_build_event_completed_f36(koji_build_completed_f36, mock_con
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
 
 
 def test_parse_koji_build_event_completed_epel8(
-    koji_build_completed_epel8, mock_config
+    koji_build_completed_epel8,
+    mock_config,
 ):
     event_object = Parser.parse_event(koji_build_completed_epel8)
 
@@ -372,7 +383,8 @@ def test_parse_koji_build_event_completed_epel8(
         ref="rawhide",
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="rawhide"
+        path=".packit.yaml",
+        ref="rawhide",
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -380,7 +392,7 @@ def test_parse_koji_build_event_completed_epel8(
 
 def test_parse_koji_tag_event(koji_build_tagged):
     flexmock(KojiHelper).should_receive("get_build_info").with_args(1234567).and_return(
-        {"task_id": 7654321}
+        {"task_id": 7654321},
     )
 
     event_object = Parser.parse_event(koji_build_tagged)

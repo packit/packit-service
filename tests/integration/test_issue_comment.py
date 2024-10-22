@@ -8,9 +8,7 @@ from datetime import datetime
 import pytest
 from celery.canvas import group
 from flexmock import flexmock
-
-from ogr.abstract import GitTag
-from ogr.abstract import PRStatus
+from ogr.abstract import GitTag, PRStatus
 from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
@@ -21,23 +19,24 @@ from packit.distgit import DistGit
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
-from packit_service.config import ServiceConfig, PackageConfigGetter
+
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
     IssueModel,
-    ProjectEventModelType,
-    ProjectEventModel,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
     PipelineModel,
+    ProjectEventModel,
+    ProjectEventModelType,
+    SyncReleaseJobType,
     SyncReleaseModel,
+    SyncReleasePullRequestModel,
     SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseJobType,
-    KojiBuildGroupModel,
-    KojiBuildTargetModel,
-    BodhiUpdateGroupModel,
-    BodhiUpdateTargetModel,
-    SyncReleasePullRequestModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
@@ -54,16 +53,16 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import (
+    run_issue_comment_retrigger_bodhi_update,
     run_propose_downstream_handler,
     run_retrigger_downstream_koji_build,
-    run_issue_comment_retrigger_bodhi_update,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
 def issue_comment_propose_downstream_event(forge):
     return json.loads(
-        (DATA_DIR / "webhooks" / forge / "issue_propose_downstream.json").read_text()
+        (DATA_DIR / "webhooks" / forge / "issue_propose_downstream.json").read_text(),
     )
 
 
@@ -108,7 +107,7 @@ jobs:
     )
     issue = flexmock(
         description="Packit failed on creating pull-requests in dist-git "
-        "(https://src.fedoraproject.org/rpms/packit.git):"
+        "(https://src.fedoraproject.org/rpms/packit.git):",
     )
     flexmock(SteveJobs).should_receive("search_distgit_config_in_issue").never()
     flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").with_args(
@@ -199,7 +198,7 @@ def test_issue_comment_propose_downstream_handler(
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
-        )
+        ),
     )
 
     db_project_object = flexmock(
@@ -208,7 +207,7 @@ def test_issue_comment_propose_downstream_handler(
         project_event_model_type=ProjectEventModelType.issue,
     )
     flexmock(IssueCommentGitlabEvent).should_receive("db_project_object").and_return(
-        db_project_object
+        db_project_object,
     )
     db_project_event = (
         flexmock(
@@ -220,7 +219,9 @@ def test_issue_comment_propose_downstream_handler(
         .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.issue, event_id=123, commit_sha=None
+        type=ProjectEventModelType.issue,
+        event_id=123,
+        commit_sha=None,
     ).and_return(db_project_event)
     flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
 
@@ -241,31 +242,32 @@ def test_issue_comment_propose_downstream_handler(
     ).and_return(sync_release_pr_model)
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
-        status=SyncReleaseTargetStatus.queued, branch="main"
+        status=SyncReleaseTargetStatus.queued,
+        branch="main",
     ).and_return(model).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=SyncReleaseTargetStatus.running
+        status=SyncReleaseTargetStatus.running,
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
-        downstream_pr_url="https://xyz"
+        downstream_pr_url="https://xyz",
     )
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=sync_release_pr_model
+        downstream_pr=sync_release_pr_model,
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=SyncReleaseTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted,
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=SyncReleaseStatus.finished
+        status=SyncReleaseStatus.finished,
     ).once()
 
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_all"
+        "report_status_to_all",
     ).with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -278,7 +280,7 @@ def test_issue_comment_propose_downstream_handler(
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_for_branch"
+        "report_status_for_branch",
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -287,7 +289,7 @@ def test_issue_comment_propose_downstream_handler(
     )
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_for_branch"
+        "report_status_for_branch",
     ).with_args(
         branch="main",
         description="Propose downstream finished successfully.",
@@ -297,7 +299,7 @@ def test_issue_comment_propose_downstream_handler(
 
     processing_results = SteveJobs().process_message(comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -315,22 +317,31 @@ def mock_repository_issue_retriggering():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     issue = flexmock(
-        description="""
-Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
-| dist-git branch | error |
-| --------------- | ----- |
-| `f37` | `` |
-| `f38` | `` |
-You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
-        """,
-        get_comments=lambda: [],
+        description="\n".join(
+            (
+                (
+                    "Packit failed on creating pull-requests in dist-git"
+                    " (https://src.fedoraproject.org/rpms/python-teamcity-messages):"
+                ),
+                "| dist-git branch | error |",
+                "| --------------- | ----- |",
+                "| `f37` | `` |",
+                "| `f38` | `` |",
+                (
+                    "You can retrigger the update by adding a comment"
+                    " (`/packit propose-downstream`) into this issue."
+                ),
+            ),
+        ),
+        get_comments=list,
         comment=lambda message: None,
     )
     project = (
         flexmock(GithubProject).should_receive("get_issue").and_return(issue).mock()
     )
     flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").with_args(
-        project=PagureProject, fail_when_missing=False
+        project=PagureProject,
+        fail_when_missing=False,
     ).and_return(PackageConfig)
 
     project.should_receive("get_releases").and_return([flexmock(tag_name="123")])
@@ -342,7 +353,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
         project_event_model_type=ProjectEventModelType.issue,
     )
     flexmock(IssueCommentEvent).should_receive("db_project_object").and_return(
-        db_project_object
+        db_project_object,
     )
 
     db_project_event = (
@@ -354,7 +365,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
 
     flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
     flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
-        db_project_event
+        db_project_event,
     )
     flexmock(PipelineModel).should_receive("create")
     koji_build_f37 = flexmock(
@@ -379,7 +390,7 @@ You can retrigger the update by adding a comment (`/packit propose-downstream`) 
 
     flexmock(KojiBuildTargetModel).should_receive("create")
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(
-        flexmock(grouped_targets=[koji_build_f38, koji_build_f37])
+        flexmock(grouped_targets=[koji_build_f38, koji_build_f37]),
     )
 
     comment = flexmock()
@@ -398,7 +409,7 @@ def github_repository_issue_comment_retrigger_bodhi_update():
             / "webhooks"
             / "github"
             / "repository_issue_comment_retrigger_bodhi_update.json"
-        ).read_text()
+        ).read_text(),
     )
 
 
@@ -407,10 +418,10 @@ def test_issue_comment_retrigger_bodhi_update_handler(
     github_repository_issue_comment_retrigger_bodhi_update,
 ):
     processing_results = SteveJobs().process_message(
-        github_repository_issue_comment_retrigger_bodhi_update
+        github_repository_issue_comment_retrigger_bodhi_update,
     )
     event_dict, _, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -422,14 +433,15 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         alias=None,
     ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
-        "python-teamcity-messages", "f38"
+        "python-teamcity-messages",
+        "f38",
     ).and_return(
         {
             "nvr": "python-teamcity-messages.fc38",
             "build_id": 2,
             "state": 1,
             "task_id": 123,
-        }
+        },
     )
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f37",
@@ -439,14 +451,15 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         alias=None,
     ).and_return(("alias", "url"))
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
-        "python-teamcity-messages", "f37"
+        "python-teamcity-messages",
+        "f37",
     ).and_return(
         {
             "nvr": "python-teamcity-messages.fc37",
             "build_id": 1,
             "state": 1,
             "task_id": 123,
-        }
+        },
     )
 
     run_model_flexmock = flexmock()
@@ -509,7 +522,7 @@ def github_repository_issue_comment_retrigger_koji_build():
             / "webhooks"
             / "github"
             / "repository_issue_comment_retrigger_koji_build.json"
-        ).read_text()
+        ).read_text(),
     )
 
 
@@ -518,10 +531,10 @@ def test_issue_comment_retrigger_koji_build_handler(
     github_repository_issue_comment_retrigger_koji_build,
 ):
     processing_results = SteveJobs().process_message(
-        github_repository_issue_comment_retrigger_koji_build
+        github_repository_issue_comment_retrigger_koji_build,
     )
     event_dict, _, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -540,10 +553,10 @@ def test_issue_comment_retrigger_koji_build_handler(
         koji_target=None,
     ).and_return("")
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
-        "local_project"
+        "local_project",
     ).and_return(flexmock())
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
-        "is_already_triggered"
+        "is_already_triggered",
     ).and_return(False)
 
     results = run_retrigger_downstream_koji_build(
@@ -560,10 +573,10 @@ def test_issue_comment_retrigger_koji_build_error_msg(
     github_repository_issue_comment_retrigger_koji_build,
 ):
     processing_results = SteveJobs().process_message(
-        github_repository_issue_comment_retrigger_koji_build
+        github_repository_issue_comment_retrigger_koji_build,
     )
     event_dict, _, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -589,7 +602,7 @@ def test_issue_comment_retrigger_koji_build_error_msg(
     #  "a repo"
     # )
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
-        "packit_api"
+        "packit_api",
     ).and_return(packit_api)
     msg = (
         "Packit failed on creating Koji build in dist-git (an url):"
@@ -609,7 +622,7 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         comment_to_existing=msg,
     ).once()
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
-        "is_already_triggered"
+        "is_already_triggered",
     ).and_return(False)
 
     run_retrigger_downstream_koji_build(

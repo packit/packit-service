@@ -2,35 +2,39 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict, Type
+from collections.abc import Iterable
+from typing import Any, Callable, Optional, Union
 from urllib.parse import urlparse
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config.job_config import JobConfig, JobType
-from packit.exceptions import PackitException, PackitCommandFailedError
+from packit.exceptions import PackitCommandFailedError, PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DENIED_MSG,
+    DOCS_APPROVAL_URL,
     FASJSON_URL,
     NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
     NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS,
     NOTIFICATION_REPO,
-    DOCS_APPROVAL_URL,
-    DENIED_MSG,
 )
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
-    EventData,
     AbstractCoprBuildEvent,
+    CheckRerunEvent,
+    EventData,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    OpenScanHubTaskFinishedEvent,
+    OpenScanHubTaskStartedEvent,
     PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
     PullRequestGithubEvent,
@@ -40,9 +44,6 @@ from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
-    CheckRerunEvent,
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
 )
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
@@ -97,7 +98,8 @@ class Allowlist:
         try:
             logger.debug("Initialising Kerberos ticket so that we can use fasjson API.")
             PackitAPI(
-                config=self.service_config, package_config=None
+                config=self.service_config,
+                package_config=None,
             ).init_kerberos_ticket()
         except PackitCommandFailedError as ex:
             msg = f"Kerberos authentication error: {ex.stderr_output}"
@@ -125,7 +127,7 @@ class Allowlist:
 
         logger.info(
             f"Going to check match for Github username from FAS account {fas_account} and"
-            f" Github account {sender_login}."
+            f" Github account {sender_login}.",
         )
         client = Client(FASJSON_URL)
         try:
@@ -143,7 +145,7 @@ class Allowlist:
         github_username = user_info.get("github_username")
         if github_username:
             logger.debug(
-                f"github_username from FAS account {fas_account}: {github_username}"
+                f"github_username from FAS account {fas_account}: {github_username}",
             )
             return github_username == sender_login
 
@@ -160,7 +162,8 @@ class Allowlist:
                 `github.com/namespace/repository.git`.
         """
         AllowlistModel.add_namespace(
-            namespace=namespace, status=AllowlistStatus.approved_manually.value
+            namespace=namespace,
+            status=AllowlistStatus.approved_manually.value,
         )
 
         logger.info(f"Account {namespace!r} approved successfully.")
@@ -263,13 +266,13 @@ class Allowlist:
         return True
 
     @staticmethod
-    def get_namespaces_by_status(status: AllowlistStatus) -> List[str]:
+    def get_namespaces_by_status(status: AllowlistStatus) -> list[str]:
         return [
             account.namespace for account in AllowlistModel.get_by_status(status.value)
         ]
 
     @staticmethod
-    def waiting_namespaces() -> List[str]:
+    def waiting_namespaces() -> list[str]:
         """
         Get namespaces waiting for approval.
 
@@ -279,7 +282,7 @@ class Allowlist:
         return Allowlist.get_namespaces_by_status(AllowlistStatus.waiting)
 
     @staticmethod
-    def denied_namespaces() -> List[str]:
+    def denied_namespaces() -> list[str]:
         """
         Get denied namespace.
 
@@ -367,7 +370,8 @@ class Allowlist:
 
         logger.debug(msg)
         if isinstance(
-            event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
+            event,
+            (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent),
         ):
             project.get_pr(event.pr_id).comment(msg)
         else:
@@ -381,10 +385,15 @@ class Allowlist:
         return False
 
     def _check_pr_report_status(
-        self, job_configs, event, project, user_or_project_denied, short_msg
+        self,
+        job_configs,
+        event,
+        project,
+        user_or_project_denied,
+        short_msg,
     ):
         for job_config in job_configs:
-            job_helper_kls: Type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
+            job_helper_kls: type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
             if job_config.type == JobType.tests:
                 job_helper_kls = TestingFarmJobHelper
             else:
@@ -393,7 +402,7 @@ class Allowlist:
             job_helper = job_helper_kls(
                 service_config=self.service_config,
                 package_config=event.get_packages_config().get_package_config_for(
-                    job_config
+                    job_config,
                 ),
                 project=project,
                 metadata=EventData.from_event_dict(event.get_dict()),
@@ -411,11 +420,11 @@ class Allowlist:
                 markdown_content = NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION.format(
                     instructions=(
                         NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
-                            issue_url=issue_url
+                            issue_url=issue_url,
                         )
                         if issue_url
                         else ""
-                    )
+                    ),
                 )
             job_helper.report_status_to_configured_job(
                 description=short_msg,
@@ -472,8 +481,9 @@ class Allowlist:
         :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
         :return:
         """
-        CALLBACKS: Dict[
-            Union[type, Tuple[Union[type, Tuple[Any, ...]], ...]], Callable
+        CALLBACKS: dict[
+            Union[type, tuple[Union[type, tuple[Any, ...]], ...]],
+            Callable,
         ] = {
             (  # events that are not checked against allowlist
                 PushPagureEvent,
@@ -510,7 +520,9 @@ class Allowlist:
 
         # Administrators
         user_login = getattr(  # some old events with user_login can still be there
-            event, "user_login", None
+            event,
+            "user_login",
+            None,
         ) or getattr(event, "actor", None)
 
         if user_login and user_login in self.service_config.admins:
@@ -527,7 +539,7 @@ class Allowlist:
 
     def get_approval_issue(self, namespace) -> Optional[str]:
         for issue in self.service_config.get_project(
-            url=NOTIFICATION_REPO
+            url=NOTIFICATION_REPO,
         ).get_issue_list(author=self.service_config.get_github_account_name()):
             if issue.title.strip().endswith(f" {namespace} needs to be approved."):
                 return issue.url

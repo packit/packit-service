@@ -7,7 +7,7 @@
 Generator of webhooks
 """
 import json
-from typing import Union, Dict
+from typing import Union
 
 import click
 import ogr
@@ -32,7 +32,7 @@ class PRWebhookPayload:
         self.pr_id = pr_id
         self.github_token = github_token
 
-    def generate(self) -> Dict:
+    def generate(self) -> dict:
         s = ogr.GithubService(token=self.github_token)
         project = s.get_project(namespace=self.namespace, repo=self.project_name)
         pr_info = project.get_pr(self.pr_id)
@@ -90,12 +90,14 @@ class PRWebhookPayload:
 )
 @click.option("--pr", help="ID of the pull request.", default=None, type=int)
 @click.argument(
-    "project", default="packit-service/hello-world", metavar="<NAMESPACE/PROJECT>"
+    "project",
+    default="packit-service/hello-world",
+    metavar="<NAMESPACE/PROJECT>",
 )
 def run(hostname, pr, project, github_token):
     if "/" not in project:
         click.echo(
-            'project should be specified as "PROJECT/NAMESPACE", e.g. "packit-service/ogr"'
+            'project should be specified as "PROJECT/NAMESPACE", e.g. "packit-service/ogr"',
         )
         return 1
     if pr is not None:
@@ -104,9 +106,13 @@ def run(hostname, pr, project, github_token):
         j = p.generate()
         print(json.dumps(j, indent=2))
         response = requests.post(
-            f"https://{hostname}/api/webhooks/github", json=j, verify=False
+            f"https://{hostname}/api/webhooks/github",
+            json=j,
+            verify=False,
         )
         print(response.text)
+        return None
+    return None
 
 
 if __name__ == "__main__":

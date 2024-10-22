@@ -2,42 +2,41 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
-import pytest
 import json
-from flexmock import flexmock
-from celery.canvas import group as celery_group
 
+import pytest
+from celery.canvas import group as celery_group
+from flexmock import flexmock
 from packit.api import PackitAPI
 from packit.config import (
-    JobType,
-    JobConfigTriggerType,
-    PackageConfig,
-    JobConfig,
     CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
 )
-from packit_service.models import (
-    CoprBuildTargetModel,
-    ProjectEventModelType,
-    BuildStatus,
-    OSHScanModel,
-)
-from packit_service.worker.tasks import (
-    run_openscanhub_task_finished_handler,
-    run_openscanhub_task_started_handler,
-)
-from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus
 
+from packit_service.models import (
+    BuildStatus,
+    CoprBuildTargetModel,
+    OSHScanModel,
+    ProjectEventModelType,
+)
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
 )
-from packit_service.worker.helpers import open_scan_hub
 from packit_service.worker.handlers.copr import OpenScanHubHelper
+from packit_service.worker.helpers import open_scan_hub
 from packit_service.worker.helpers.build import CoprBuildJobHelper
-
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.tasks import (
+    run_openscanhub_task_finished_handler,
+    run_openscanhub_task_started_handler,
+)
 from tests.spellbook import DATA_DIR, get_parameters_from_results
 
 
@@ -110,7 +109,7 @@ def prepare_openscanhub_db_and_handler(
 def test_handle_scan(build_models):
     srpm_mock = flexmock(url="https://some-url/my-srpm.src.rpm")
     flexmock(AbstractCoprBuildEvent).should_receive("from_event_dict").and_return(
-        flexmock(chroot="fedora-rawhide-x86_64", build_id="123", pr_id=12)
+        flexmock(chroot="fedora-rawhide-x86_64", build_id="123", pr_id=12),
     )
     flexmock(open_scan_hub).should_receive("download_file").twice().and_return(True)
 
@@ -124,7 +123,7 @@ def test_handle_scan(build_models):
         ).and_return(models).once()
 
     flexmock(PackitAPI).should_receive("run_osh_build").once().and_return(
-        'some\nmultiline\noutput\n{"id": 123}\nand\nmore\n{"url": "scan-url"}\n'
+        'some\nmultiline\noutput\n{"id": 123}\nand\nmore\n{"url": "scan-url"}\n',
     )
 
     flexmock(CoprBuildJobHelper).should_receive("_report")
@@ -136,13 +135,14 @@ def test_handle_scan(build_models):
                 branch="main",
                 project="commit-project",
                 owner="user-123",
-            )
-        ]
+            ),
+        ],
     )
 
     project = flexmock(
         get_pr=lambda pr_id: flexmock(
-            target_branch="main", target_branch_head_commit="abcdef"
+            target_branch="main",
+            target_branch_head_commit="abcdef",
         ),
         get_commits=lambda ref: ["abcdef", "fedcba"],
     )
@@ -226,7 +226,7 @@ def test_handle_scan_task_finished(
 ):
 
     flexmock(OpenScanHubTaskFinishedEvent).should_receive(
-        "get_packages_config"
+        "get_packages_config",
     ).and_return(
         PackageConfig(
             jobs=[
@@ -237,12 +237,12 @@ def test_handle_scan_task_finished(
                         "package": CommonPackageConfig(
                             _targets=job_config_targets,
                             specfile_path="test.spec",
-                        )
+                        ),
                     },
                 ),
             ],
             packages={"package": CommonPackageConfig()},
-        )
+        ),
     )
 
     scan_mock = prepare_openscanhub_db_and_handler
@@ -258,7 +258,7 @@ def test_handle_scan_task_finished(
                 "Scan in OpenScanHub is finished. Check the URL for more details."
             )
             flexmock(scan_mock).should_receive("set_status").with_args(
-                "succeeded"
+                "succeeded",
             ).once()
             links_to_external_services = {
                 "Added issues": (
@@ -279,7 +279,7 @@ def test_handle_scan_task_finished(
             description = f"Scan in OpenScanHub is finished in a {scan_status} state."
             links_to_external_services = {}
             flexmock(scan_mock).should_receive("set_status").with_args(
-                "canceled"
+                "canceled",
             ).once()
         else:
             state = BaseCommitStatus.neutral
@@ -298,7 +298,7 @@ def test_handle_scan_task_finished(
 
         for sub_results in processing_results:
             event_dict, job, job_config, package_config = get_parameters_from_results(
-                [sub_results]
+                [sub_results],
             )
             assert json.dumps(event_dict)
 
@@ -341,7 +341,7 @@ def test_handle_scan_task_started(
     num_of_handlers,
 ):
     flexmock(OpenScanHubTaskStartedEvent).should_receive(
-        "get_packages_config"
+        "get_packages_config",
     ).and_return(
         PackageConfig(
             jobs=[
@@ -352,12 +352,12 @@ def test_handle_scan_task_started(
                         "package": CommonPackageConfig(
                             _targets=job_config_targets,
                             specfile_path="test.spec",
-                        )
+                        ),
                     },
                 ),
             ],
             packages={"package": CommonPackageConfig()},
-        )
+        ),
     )
 
     scan_mock = prepare_openscanhub_db_and_handler
@@ -375,7 +375,7 @@ def test_handle_scan_task_started(
 
         for sub_results in processing_results:
             event_dict, job, job_config, package_config = get_parameters_from_results(
-                [sub_results]
+                [sub_results],
             )
             assert json.dumps(event_dict)
 

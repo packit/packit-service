@@ -13,43 +13,44 @@ $ alembic upgrade head
 ```
 """
 import datetime
+from typing import ClassVar
 
 import pytest
-
 from ogr import GithubService, GitlabService, PagureService
+
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    CoprBuildTargetModel,
-    CoprBuildGroupModel,
-    ProjectEventModel,
-    sa_session_transaction,
-    SRPMBuildModel,
-    PullRequestModel,
-    GitProjectModel,
     AllowlistModel,
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
+    BuildStatus,
+    CoprBuildGroupModel,
+    CoprBuildTargetModel,
     GitBranchModel,
-    ProjectReleaseModel,
-    IssueModel,
-    PipelineModel,
-    ProjectEventModelType,
-    KojiBuildTargetModel,
-    KojiBuildGroupModel,
-    TFTTestRunTargetModel,
-    TFTTestRunGroupModel,
-    TestingFarmResult,
     GithubInstallationModel,
+    GitProjectModel,
+    IssueModel,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
+    OSHScanModel,
+    PipelineModel,
     ProjectAuthenticationIssueModel,
+    ProjectEventModel,
+    ProjectEventModelType,
+    ProjectReleaseModel,
+    PullRequestModel,
+    SourceGitPRDistGitPRModel,
+    SRPMBuildModel,
+    SyncReleaseJobType,
+    SyncReleaseModel,
+    SyncReleasePullRequestModel,
+    SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseModel,
-    SyncReleaseStatus,
-    SourceGitPRDistGitPRModel,
-    BuildStatus,
-    SyncReleaseJobType,
-    BodhiUpdateTargetModel,
-    BodhiUpdateGroupModel,
-    SyncReleasePullRequestModel,
-    OSHScanModel,
+    TestingFarmResult,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
+    sa_session_transaction,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -102,8 +103,11 @@ class SampleValues:
     status_waiting_for_srpm = BuildStatus.waiting_for_srpm
     target = "fedora-42-x86_64"
     different_target = "fedora-43-x86_64"
-    chroots = ["fedora-43-x86_64", "fedora-42-x86_64"]
-    status_per_chroot = {"fedora-43-x86_64": "success", "fedora-42-x86_64": "pending"}
+    chroots: ClassVar[list[str]] = ["fedora-43-x86_64", "fedora-42-x86_64"]
+    status_per_chroot: ClassVar[dict[str, str]] = {
+        "fedora-43-x86_64": "success",
+        "fedora-42-x86_64": "pending",
+    }
     copr_web_url = "https://copr.something.somewhere/123456"
     koji_web_url = "https://koji.something.somewhere/123456"
     srpm_logs = "some\nboring\nlogs"
@@ -122,7 +126,7 @@ class SampleValues:
     # Issues
     issue_id = 2020
     different_issue_id = 987
-    built_packages = [
+    built_packages: ClassVar[list[dict]] = [
         {
             "arch": "noarch",
             "epoch": 0,
@@ -336,7 +340,8 @@ def branch_model_gitlab():
 @pytest.fixture()
 def propose_model():
     yield SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.running, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.running,
+        branch=SampleValues.branch,
     )
 
 
@@ -359,7 +364,8 @@ def pull_from_upstream_target_model(release_project_event_model):
     )
 
     target_model = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.submitted,
+        branch=SampleValues.branch,
     )
     sync_release_pull_request_model = SyncReleasePullRequestModel.get_or_create(
         SampleValues.downstream_pr_id,
@@ -385,7 +391,8 @@ def pull_from_upstream_target_model_non_git(anitya_version_project_event_model):
     )
 
     target_model = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.submitted,
+        branch=SampleValues.branch,
     )
     sync_release_pull_request_model = SyncReleasePullRequestModel.get_or_create(
         SampleValues.downstream_pr_id,
@@ -411,7 +418,8 @@ def pull_from_upstream_target_model_without_pr_model(release_project_event_model
     )
 
     target_model = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.submitted,
+        branch=SampleValues.branch,
     )
     target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
     target_model.set_logs(logs="random logs")
@@ -433,7 +441,8 @@ def propose_downstream_model_issue(an_issue_project_event_model):
 @pytest.fixture()
 def propose_model_submitted():
     propose_downstream_target = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.submitted,
+        branch=SampleValues.branch,
     )
     sync_release_pull_request_model = SyncReleasePullRequestModel.get_or_create(
         SampleValues.downstream_pr_id,
@@ -442,11 +451,11 @@ def propose_model_submitted():
         SampleValues.downstream_project_url,
     )
     propose_downstream_target.set_downstream_pr_url(
-        downstream_pr_url=SampleValues.downstream_pr_url
+        downstream_pr_url=SampleValues.downstream_pr_url,
     )
     propose_downstream_target.set_downstream_pr(sync_release_pull_request_model)
     propose_downstream_target.set_finished_time(
-        finished_time=datetime.datetime.utcnow()
+        finished_time=datetime.datetime.utcnow(),
     )
     propose_downstream_target.set_logs(logs="random logs")
 
@@ -455,7 +464,8 @@ def propose_model_submitted():
 
 @pytest.fixture()
 def propose_model_submitted_release(
-    propose_downstream_model_release, propose_model_submitted
+    propose_downstream_model_release,
+    propose_model_submitted,
 ):
     propose_downstream = propose_downstream_model_release
     propose_downstream_target = propose_model_submitted
@@ -465,7 +475,8 @@ def propose_model_submitted_release(
 
 @pytest.fixture()
 def propose_model_submitted_issue(
-    propose_downstream_model_issue, propose_model_submitted
+    propose_downstream_model_issue,
+    propose_model_submitted,
 ):
     propose_downstream = propose_downstream_model_issue
     propose_downstream_target = propose_model_submitted
@@ -557,7 +568,7 @@ def srpm_build_model_with_new_run_and_tf_for_branch(
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_branch(branch_project_event_model):
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=branch_project_event_model
+        project_event_model=branch_project_event_model,
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status(BuildStatus.success)
@@ -576,7 +587,7 @@ def srpm_build_model_with_new_run_and_tf_for_release(
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_release(release_project_event_model):
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=release_project_event_model
+        project_event_model=release_project_event_model,
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status(BuildStatus.success)
@@ -640,7 +651,7 @@ def a_copr_build_for_pr(srpm_build_model_with_new_run_for_pr):
         copr_build_group=group,
     )
     copr_build_model.set_build_logs_url(
-        "https://copr.somewhere/results/owner/package/target/build.logs"
+        "https://copr.somewhere/results/owner/package/target/build.logs",
     )
     copr_build_model.set_built_packages(SampleValues.built_packages)
     yield copr_build_model
@@ -662,7 +673,7 @@ def a_copr_build_for_pr_different_commit(
         copr_build_group=group,
     )
     copr_build_model.set_build_logs_url(
-        "https://copr.somewhere/results/owner/package/target/build.logs"
+        "https://copr.somewhere/results/owner/package/target/build.logs",
     )
     copr_build_model.set_built_packages(SampleValues.built_packages)
     yield copr_build_model
@@ -682,7 +693,7 @@ def a_copr_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
         copr_build_group=group,
     )
     copr_build_model.set_build_logs_url(
-        "https://copr.somewhere/results/owner/package/target/build.logs"
+        "https://copr.somewhere/results/owner/package/target/build.logs",
     )
     yield copr_build_model
 
@@ -701,7 +712,7 @@ def a_copr_build_for_release(srpm_build_model_with_new_run_for_release):
         copr_build_group=group,
     )
     copr_build_model.set_build_logs_url(
-        "https://copr.somewhere/results/owner/package/target/build.logs"
+        "https://copr.somewhere/results/owner/package/target/build.logs",
     )
     yield copr_build_model
 
@@ -720,7 +731,7 @@ def a_copr_build_waiting_for_srpm(srpm_build_in_copr_model):
         copr_build_group=group,
     )
     copr_build_model.set_build_logs_url(
-        "https://copr.somewhere/results/owner/package/target/build.logs"
+        "https://copr.somewhere/results/owner/package/target/build.logs",
     )
     copr_build_model.set_built_packages(SampleValues.built_packages)
     yield copr_build_model
@@ -729,15 +740,15 @@ def a_copr_build_waiting_for_srpm(srpm_build_in_copr_model):
 @pytest.fixture()
 def multiple_copr_builds(pr_project_event_model, different_pr_project_event_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_project_event_model
+        project_event_model=different_pr_project_event_model,
     )
     group_for_a_different_pr = CoprBuildGroupModel.create(run_model_for_a_different_pr)
 
@@ -790,18 +801,18 @@ def too_many_copr_builds(pr_project_event_model, different_pr_project_event_mode
     builds_list = []
     for i in range(20):
         _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-            project_event_model=pr_project_event_model
+            project_event_model=pr_project_event_model,
         )
         group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
         _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-            project_event_model=pr_project_event_model
+            project_event_model=pr_project_event_model,
         )
         group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
         _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-            project_event_model=different_pr_project_event_model
+            project_event_model=different_pr_project_event_model,
         )
         group_for_a_different_pr = CoprBuildGroupModel.create(
-            run_model_for_a_different_pr
+            run_model_for_a_different_pr,
         )
 
         builds_list += [
@@ -908,7 +919,7 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
         koji_build_group=group,
     )
     koji_build_model.set_build_logs_urls(
-        {"x86_64": "https://koji.somewhere/results/owner/package/target/build.logs"}
+        {"x86_64": "https://koji.somewhere/results/owner/package/target/build.logs"},
     )
     yield koji_build_model
 
@@ -916,7 +927,7 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
 @pytest.fixture()
 def a_koji_build_for_pr_non_scratch(branch_project_event_model):
     group_for_nonscratch_build = KojiBuildGroupModel.create(
-        run_model=PipelineModel.create(project_event=branch_project_event_model)
+        run_model=PipelineModel.create(project_event=branch_project_event_model),
     )
     koji_build_model = KojiBuildTargetModel.create(
         task_id=SampleValues.build_id,
@@ -927,7 +938,7 @@ def a_koji_build_for_pr_non_scratch(branch_project_event_model):
         koji_build_group=group_for_nonscratch_build,
     )
     koji_build_model.set_build_logs_urls(
-        {"x86_64": "https://koji.somewhere/results/owner/package/target/build.logs"}
+        {"x86_64": "https://koji.somewhere/results/owner/package/target/build.logs"},
     )
     yield koji_build_model
 
@@ -965,20 +976,20 @@ def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
 @pytest.fixture()
 def multiple_koji_builds(pr_project_event_model, different_pr_project_event_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     group_for_pr = KojiBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     group_for_same_pr = KojiBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_project_event_model
+        project_event_model=different_pr_project_event_model,
     )
     group_for_a_different_pr = KojiBuildGroupModel.create(run_model_for_a_different_pr)
 
     group_for_nonscratch_build = KojiBuildGroupModel.create(
-        run_model=PipelineModel.create(project_event=different_pr_project_event_model)
+        run_model=PipelineModel.create(project_event=different_pr_project_event_model),
     )
 
     yield [
@@ -1044,7 +1055,8 @@ def a_new_test_run_pr(srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr)
 
 @pytest.fixture()
 def a_new_test_run_branch_push(
-    srpm_build_model_with_new_run_for_branch, a_copr_build_for_branch_push
+    srpm_build_model_with_new_run_for_branch,
+    a_copr_build_for_branch_push,
 ):
     _, run_model = srpm_build_model_with_new_run_for_branch
     group = TFTTestRunGroupModel.create([run_model])
@@ -1060,23 +1072,23 @@ def a_new_test_run_branch_push(
 @pytest.fixture()
 def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     test_group_for_pr = TFTTestRunGroupModel.create([run_model_for_pr])
     build_group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     test_group_for_same_pr = TFTTestRunGroupModel.create([run_model_for_same_pr])
     build_group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_project_event_model
+        project_event_model=different_pr_project_event_model,
     )
     build_group_for_a_different_pr = CoprBuildGroupModel.create(
-        run_model_for_a_different_pr
+        run_model_for_a_different_pr,
     )
     test_group_for_different_pr = TFTTestRunGroupModel.create(
-        [run_model_for_a_different_pr]
+        [run_model_for_a_different_pr],
     )
 
     CoprBuildTargetModel.create(
@@ -1148,7 +1160,8 @@ def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_mo
 
 @pytest.fixture()
 def multiple_propose_downstream_runs_release_trigger(
-    release_project_event_model, different_release_project_event_model
+    release_project_event_model,
+    different_release_project_event_model,
 ):
     propose_downstream_model1, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
@@ -1181,7 +1194,8 @@ def multiple_propose_downstream_runs_release_trigger(
 
 @pytest.fixture()
 def multiple_pull_from_upstream_runs(
-    release_project_event_model, different_release_project_event_model
+    release_project_event_model,
+    different_release_project_event_model,
 ):
     pull_from_upstream_model1, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
@@ -1214,7 +1228,8 @@ def multiple_pull_from_upstream_runs(
 
 @pytest.fixture()
 def multiple_propose_downstream_runs_issue_trigger(
-    an_issue_project_event_model, different_issue_project_event_model
+    an_issue_project_event_model,
+    different_issue_project_event_model,
 ):
     propose_downstream_model1, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
@@ -1254,14 +1269,15 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_release_tri
         SyncReleaseTargetModel.create(
             status=SyncReleaseTargetStatus.queued,
             branch=SampleValues.different_branch,
-        )
+        ),
     )
 
     propose_downstream_target = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.running, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.running,
+        branch=SampleValues.branch,
     )
     propose_downstream_models_release[0].sync_release_targets.append(
-        propose_downstream_target
+        propose_downstream_target,
     )
 
     yield [
@@ -1281,11 +1297,12 @@ def multiple_pull_from_upstream_runs_with_targets_release_trigger(
         SyncReleaseTargetModel.create(
             status=SyncReleaseTargetStatus.queued,
             branch=SampleValues.different_branch,
-        )
+        ),
     )
 
     propose_downstream_target = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.running, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.running,
+        branch=SampleValues.branch,
     )
     pull_from_upstream_runs[0].sync_release_targets.append(propose_downstream_target)
 
@@ -1303,17 +1320,19 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_issue_trigg
 ):
     propose_downstream_models_issue = multiple_propose_downstream_runs_issue_trigger
     propose_downstream_target = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.retry, branch=SampleValues.branch
+        status=SyncReleaseTargetStatus.retry,
+        branch=SampleValues.branch,
     )
     propose_downstream_models_issue[0].sync_release_targets.append(
-        propose_downstream_target
+        propose_downstream_target,
     )
 
     propose_downstream_target = SyncReleaseTargetModel.create(
-        status=SyncReleaseTargetStatus.error, branch=SampleValues.different_branch
+        status=SyncReleaseTargetStatus.error,
+        branch=SampleValues.different_branch,
     )
     propose_downstream_models_issue[0].sync_release_targets.append(
-        propose_downstream_target
+        propose_downstream_target,
     )
 
     yield [
@@ -1328,17 +1347,21 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_issue_trigg
 def multiple_allowlist_entries():
     yield [
         AllowlistModel.add_namespace(
-            namespace=SampleValues.account_name, status="approved_manually"
+            namespace=SampleValues.account_name,
+            status="approved_manually",
         ),
         AllowlistModel.add_namespace(
-            namespace=SampleValues.different_account_name, status="approved_manually"
+            namespace=SampleValues.different_account_name,
+            status="approved_manually",
         ),
         # Not a typo, account_name repeated intentionally to check behaviour
         AllowlistModel.add_namespace(
-            namespace=SampleValues.different_account_name, status="waiting"
+            namespace=SampleValues.different_account_name,
+            status="waiting",
         ),
         AllowlistModel.add_namespace(
-            namespace=SampleValues.another_different_acount_name, status="waiting"
+            namespace=SampleValues.another_different_acount_name,
+            status="waiting",
         ),
         AllowlistModel.add_namespace(
             namespace=SampleValues.yet_another_different_acount_name,
@@ -1350,7 +1373,8 @@ def multiple_allowlist_entries():
 @pytest.fixture()
 def new_allowlist_entry(clean_before_and_after):
     yield AllowlistModel.add_namespace(
-        namespace=SampleValues.account_name, status="approved_manually"
+        namespace=SampleValues.account_name,
+        status="approved_manually",
     )
 
 
@@ -1401,16 +1425,24 @@ def multiple_installation_entries(installation_events):
 def multiple_forge_projects():
     yield [
         GitProjectModel.get_or_create(
-            "namespace", "repo", "https://github.com/namespace/repo"
+            "namespace",
+            "repo",
+            "https://github.com/namespace/repo",
         ),
         GitProjectModel.get_or_create(
-            "namespace", "different-repo", "https://github.com/namespace/different-repo"
+            "namespace",
+            "different-repo",
+            "https://github.com/namespace/different-repo",
         ),
         GitProjectModel.get_or_create(
-            "namespace", "repo", "https://gitlab.com/namespace/repo"
+            "namespace",
+            "repo",
+            "https://gitlab.com/namespace/repo",
         ),
         GitProjectModel.get_or_create(
-            "namespace", "repo", "https://git.stg.centos.org/namespace/repo"
+            "namespace",
+            "repo",
+            "https://git.stg.centos.org/namespace/repo",
         ),
     ]
 
@@ -1546,7 +1578,7 @@ def push_branch_event_dict():
                 "added": [],
                 "removed": [],
                 "modified": [".packit.yaml"],
-            }
+            },
         ],
         "head_commit": {
             "id": "04885ff850b0fa0e206cd09db73565703d48f99b",
@@ -1732,7 +1764,7 @@ def push_gitlab_event_dict():
                 "added": [],
                 "modified": ["README.md"],
                 "removed": [],
-            }
+            },
         ],
         "total_commits_count": 1,
         "push_options": {},
@@ -2206,7 +2238,7 @@ def koji_build_scratch_end_dict():
 @pytest.fixture()
 def few_runs(pr_project_event_model, different_pr_project_event_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_project_event_model
+        project_event_model=pr_project_event_model,
     )
     build_group = CoprBuildGroupModel.create(run_model_for_pr)
     TFTTestRunGroupModel.create([run_model_for_pr])
@@ -2231,7 +2263,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
         )
 
     _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
-        project_event_model=different_pr_project_event_model
+        project_event_model=different_pr_project_event_model,
     )
     TFTTestRunGroupModel.create([run_model_for_different_pr])
     build_group = CoprBuildGroupModel.create(run_model_for_different_pr)
@@ -2257,7 +2289,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
             test_run_group=runs[-1].test_run_group,
         )
 
-    for i, target in enumerate((SampleValues.target, SampleValues.different_target)):
+    for _i, target in enumerate((SampleValues.target, SampleValues.different_target)):
         TFTTestRunTargetModel.create(
             pipeline_id=SampleValues.pipeline_id,
             web_url=SampleValues.testing_farm_url,
@@ -2272,11 +2304,11 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
 @pytest.fixture()
 def runs_without_build(pr_project_event_model, branch_project_event_model):
     run_model_for_pr_only_test = PipelineModel.create(
-        project_event=pr_project_event_model
+        project_event=pr_project_event_model,
     )
     TFTTestRunGroupModel.create([run_model_for_pr_only_test])
     run_model_for_branch_only_test = PipelineModel.create(
-        project_event=branch_project_event_model
+        project_event=branch_project_event_model,
     )
     TFTTestRunGroupModel.create([run_model_for_branch_only_test])
 
@@ -2286,7 +2318,7 @@ def runs_without_build(pr_project_event_model, branch_project_event_model):
         target=SampleValues.target,
         status=TestingFarmResult.new,
         test_run_group=run_model_for_pr_only_test.test_run_group,
-    ),
+    )
     TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
         web_url=SampleValues.testing_farm_url,
@@ -2400,7 +2432,7 @@ def source_git_dist_git_pr_new_relationship():
 @pytest.fixture()
 def bodhi_update_model(branch_project_event_model):
     group = BodhiUpdateGroupModel.create(
-        run_model=PipelineModel.create(project_event=branch_project_event_model)
+        run_model=PipelineModel.create(project_event=branch_project_event_model),
     )
     model = BodhiUpdateTargetModel.create(
         target=SampleValues.dist_git_branch,
@@ -2417,7 +2449,7 @@ def bodhi_update_model(branch_project_event_model):
 @pytest.fixture()
 def multiple_bodhi_update_runs(branch_project_event_model):
     group = BodhiUpdateGroupModel.create(
-        run_model=PipelineModel.create(project_event=branch_project_event_model)
+        run_model=PipelineModel.create(project_event=branch_project_event_model),
     )
     yield [
         BodhiUpdateTargetModel.create(

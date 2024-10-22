@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import pytest
 from datetime import datetime, timedelta
-from flexmock import flexmock
 
+import pytest
+from flexmock import flexmock
 from ogr.services.github import GithubProject
+
 from packit_service.config import PackageConfigGetter
 from packit_service.models import CoprBuildTargetModel, get_most_recent_targets
 from packit_service.worker.events.copr import AbstractCoprBuildEvent
@@ -37,7 +38,9 @@ def copr_models():
     copr.__class__ = CoprBuildTargetModel
 
     another_fake_copr = flexmock(
-        build_id="2", build_submitted_time=latest_time, target="target"
+        build_id="2",
+        build_submitted_time=latest_time,
+        target="target",
     )
     flexmock(CoprBuildTargetModel).new_instances(another_fake_copr)
     another_copr = CoprBuildTargetModel()
@@ -48,10 +51,12 @@ def copr_models():
 
 @pytest.mark.parametrize("build_id", (1044215, "1044215"))
 def test_parse_copr_build_event_start(
-    copr_build_results_start, copr_build_pr, build_id
+    copr_build_results_start,
+    copr_build_pr,
+    build_id,
 ):
     flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
-        copr_build_pr
+        copr_build_pr,
     )
 
     event_object = Parser.parse_event(copr_build_results_start)
@@ -81,7 +86,7 @@ def test_parse_copr_build_event_start(
     )
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -89,7 +94,7 @@ def test_parse_copr_build_event_start(
         reference="0011223344",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
 
     assert event_object.packages_config
@@ -97,7 +102,7 @@ def test_parse_copr_build_event_start(
 
 def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
     flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
-        copr_build_pr
+        copr_build_pr,
     )
 
     event_object = Parser.parse_event(copr_build_results_end)
@@ -115,7 +120,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
     assert event_object.git_ref == "0011223344"
 
     flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=123).and_return(
-        flexmock(author="the-fork")
+        flexmock(author="the-fork"),
     )
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/hello-world"
@@ -125,7 +130,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
     )
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -133,7 +138,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
         reference="0011223344",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
 
     assert event_object.packages_config
@@ -143,7 +148,7 @@ def test_get_most_recent_targets(copr_models, tf_models):
     latest_copr_models = get_most_recent_targets(copr_models)
     assert len(latest_copr_models) == 1
     assert datetime.utcnow() - latest_copr_models[0].build_submitted_time < timedelta(
-        seconds=2
+        seconds=2,
     )
 
     latest_tf_models = get_most_recent_targets(tf_models)

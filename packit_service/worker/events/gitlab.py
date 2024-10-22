@@ -1,11 +1,12 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from typing import Dict, Optional
+from typing import Optional
 
-from ogr.abstract import GitProject, Comment
+from ogr.abstract import Comment, GitProject
+
 from packit_service.service.db_project_events import (
-    AddPullRequestEventToDb,
     AddBranchPushEventToDb,
+    AddPullRequestEventToDb,
     AddReleaseEventToDb,
 )
 from packit_service.worker.events.comment import (
@@ -86,7 +87,7 @@ class MergeRequestGitlabEvent(AddPullRequestEventToDb, AbstractGitlabEvent):
         self.description = description
         self.url = url
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -132,7 +133,7 @@ class MergeRequestCommentGitlabEvent(AbstractPRCommentEvent, AbstractGitlabEvent
         self.actor = actor
         self.identifier = str(object_iid)
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -173,7 +174,7 @@ class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
         self.action = action
         self.actor = actor
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result

@@ -1,16 +1,17 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
+
 from packit_service.models import (
-    TestingFarmResult,
     AbstractProjectObjectDbType,
-    PullRequestModel,
-    TFTTestRunTargetModel,
     ProjectEventModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.events.event import AbstractResultEvent
 
@@ -55,23 +56,27 @@ class TestingFarmResultsEvent(AbstractResultEvent):
             self._pr_id = self.db_project_object.pr_id
         return self._pr_id
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
         result["pr_id"] = self.pr_id
         return result
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        run_model = TFTTestRunTargetModel.get_by_pipeline_id(
-            pipeline_id=self.pipeline_id
-        )
-        return run_model.get_project_event_object() if run_model else None
+        if run_model := TFTTestRunTargetModel.get_by_pipeline_id(
+            pipeline_id=self.pipeline_id,
+        ):
+            return run_model.get_project_event_object()
+
+        return None
 
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
-        run_model = TFTTestRunTargetModel.get_by_pipeline_id(
-            pipeline_id=self.pipeline_id
-        )
-        return run_model.get_project_event_model() if run_model else None
+        if run_model := TFTTestRunTargetModel.get_by_pipeline_id(
+            pipeline_id=self.pipeline_id,
+        ):
+            return run_model.get_project_event_model()
+
+        return None
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
@@ -82,6 +87,5 @@ class TestingFarmResultsEvent(AbstractResultEvent):
                     repo=self.project.repo,
                     is_fork=True,
                 )
-            else:
-                return None  # With Github app, we cannot work with fork repo
+            return None  # With Github app, we cannot work with fork repo
         return self.project

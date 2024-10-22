@@ -3,9 +3,9 @@
 
 import pytest
 from flexmock import flexmock
-
-from packit.config import CommonPackageConfig, PackageConfig, JobConfig, JobType
+from packit.config import CommonPackageConfig, JobConfig, JobType, PackageConfig
 from packit.config.job_config import JobConfigTriggerType
+
 from packit_service.config import ServiceConfig
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
@@ -23,7 +23,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                     packages={
                         "package": CommonPackageConfig(
                             dist_git_branches=["main", "f34"],
-                        )
+                        ),
                     },
                 ),
             ],
@@ -40,7 +40,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                     packages={
                         "package": CommonPackageConfig(
                             dist_git_branches=["f34", "main"],
-                        )
+                        ),
                     },
                 ),
             ],
@@ -57,7 +57,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                     packages={
                         "package": CommonPackageConfig(
                             dist_git_branches=["f35", "f34"],
-                        )
+                        ),
                     },
                 ),
             ],
@@ -91,7 +91,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                                 "f35": {},
                                 "f34": {},
                             },
-                        )
+                        ),
                     },
                 ),
             ],
@@ -110,10 +110,10 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                             # no sense but possible!
                             dist_git_branches={
                                 "fedora-branched": {
-                                    "fast_forward_merge_into": ["fedora-stable"]
-                                }
+                                    "fast_forward_merge_into": ["fedora-stable"],
+                                },
                             },
-                        )
+                        ),
                     },
                 ),
             ],
@@ -133,7 +133,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
                                 "f41": {"fast_forward_merge_into": ["f40", "f39"]},
                                 "f38": {"fast_forward_merge_into": ["f37"]},
                             },
-                        )
+                        ),
                     },
                 ),
             ],
@@ -159,7 +159,8 @@ def test_branches(
     propose_downstream_helper = ProposeDownstreamJobHelper(
         service_config=ServiceConfig(),
         package_config=PackageConfig(
-            jobs=jobs, packages={"package": CommonPackageConfig()}
+            jobs=jobs,
+            packages={"package": CommonPackageConfig()},
         ),
         job_config=jobs[0],
         project=flexmock(),

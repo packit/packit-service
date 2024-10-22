@@ -1,8 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from enum import Enum
-from typing import List
 from datetime import datetime, timedelta
+from enum import Enum
 
 CONTACTS_URL = "https://packit.dev/#contact"
 DOCS_URL = "https://packit.dev/docs"
@@ -260,12 +259,12 @@ GITLAB_ISSUE = (
 DASHBOARD_JOBS_TESTING_FARM_PATH = "/jobs/testing-farm-runs"
 
 # https://docs.testing-farm.io/general/0.1/test-environment.html#_supported_architectures
-PUBLIC_TF_ARCHITECTURE_LIST: List[str] = [
+PUBLIC_TF_ARCHITECTURE_LIST: list[str] = [
     "aarch64",
     "x86_64",
 ]
 
-INTERNAL_TF_ARCHITECTURE_LIST: List[str] = [
+INTERNAL_TF_ARCHITECTURE_LIST: list[str] = [
     "aarch64",
     "ppc64le",
     "s390x",

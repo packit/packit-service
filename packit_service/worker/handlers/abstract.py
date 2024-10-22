@@ -11,43 +11,41 @@ from collections import defaultdict
 from datetime import datetime
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, Set, Type, Tuple
+from typing import Optional
 
-from celery import Task
-from celery import signature
+from celery import Task, signature
 from celery.canvas import Signature
 from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
-from packit_service.config import ServiceConfig
 
+from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import Event, EventData
-from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.result import TaskResults
 from packit_service.worker.checker.abstract import Checker
-
+from packit_service.worker.events import Event, EventData
 from packit_service.worker.mixin import (
     Config,
     PackitAPIProtocol,
 )
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
-MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
-MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
-    set
+MAP_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(set)
+MAP_REQUIRED_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(
+    set,
 )
-SUPPORTED_EVENTS_FOR_HANDLER: Dict[Type["JobHandler"], Set[Type["Event"]]] = (
+SUPPORTED_EVENTS_FOR_HANDLER: dict[type["JobHandler"], set[type["Event"]]] = (
     defaultdict(set)
 )
-MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
-MAP_CHECK_PREFIX_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
+MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
+MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
 
 def configured_as(job_type: JobType):
@@ -76,14 +74,14 @@ def configured_as(job_type: JobType):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         MAP_JOB_TYPE_TO_HANDLER[job_type].add(kls)
         return kls
 
     return _add_to_mapping
 
 
-def reacts_to(event: Type["Event"]):
+def reacts_to(event: type["Event"]):
     """
     [class decorator]
     Specify an event for which we want to use this handler.
@@ -100,7 +98,7 @@ def reacts_to(event: Type["Event"]):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         SUPPORTED_EVENTS_FOR_HANDLER[kls].add(event)
         return kls
 
@@ -129,7 +127,7 @@ def run_for_comment(command: str):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         MAP_COMMENT_TO_HANDLER[command].add(kls)
         return kls
 
@@ -157,7 +155,7 @@ def run_for_check_rerun(prefix: str):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         MAP_CHECK_PREFIX_TO_HANDLER[prefix].add(kls)
         return kls
 
@@ -207,7 +205,7 @@ class Handler(PackitAPIProtocol, Config):
                 {
                     "repository": self.project.repo,
                     "namespace": self.project.namespace,
-                }
+                },
             )
         if "package_name" in self.data.event_dict:
             tags.update({"package_name": self.data.event_dict["package_name"]})
@@ -235,7 +233,7 @@ class Handler(PackitAPIProtocol, Config):
         # Do not clean dir if does not exist
         if not p.is_dir():
             logger.debug(
-                f"Directory {self.service_config.command_handler_work_dir!r} does not exist."
+                f"Directory {self.service_config.command_handler_work_dir!r} does not exist.",
             )
             return
 
@@ -252,7 +250,7 @@ class Handler(PackitAPIProtocol, Config):
                 shutil.rmtree(item)
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return ()
 
     @classmethod
@@ -323,9 +321,9 @@ class JobHandler(Handler):
         references which hold just a single package.
         """
         if len(self.package_config.packages) == 1:
-            return list(self.package_config.packages.keys())[0]
-        else:
-            return None
+            return next(iter(self.package_config.packages.keys()))
+
+        return None
 
     def run_job(self):
         """
@@ -335,8 +333,8 @@ class JobHandler(Handler):
         job_type = (
             self.job_config.type.value if self.job_config else self.task_name.value
         )
-        logger.debug(f"Running handler {str(self)} for {job_type}")
-        job_results: Dict[str, TaskResults] = {}
+        logger.debug(f"Running handler {self!s} for {job_type}")
+        job_results: dict[str, TaskResults] = {}
         current_time = datetime.now().strftime(DATETIME_FORMAT)
         result_key = f"{job_type}-{current_time}"
         job_results[result_key] = self.run_n_clean()
@@ -360,9 +358,11 @@ class JobHandler(Handler):
             cls.task_name.value,
             kwargs={
                 "package_config": dump_package_config(
-                    event.packages_config.get_package_config_for(job)
-                    if event.packages_config
-                    else None
+                    (
+                        event.packages_config.get_package_config_for(job)
+                        if event.packages_config
+                        else None
+                    ),
                 ),
                 "job_config": dump_job_config(job),
                 "event": event.get_dict(),
@@ -382,7 +382,9 @@ class RetriableJobHandler(JobHandler):
         celery_task: Task,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
         )
         self.celery_task = CeleryTask(celery_task)
 

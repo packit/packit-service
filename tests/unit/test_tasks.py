@@ -7,14 +7,14 @@ from celery.app.task import Task
 from copr.v3 import CoprRequestException
 from flexmock import flexmock
 
-from packit_service.worker.tasks import run_copr_build_handler
 from packit_service.worker.handlers import CoprBuildHandler
+from packit_service.worker.tasks import run_copr_build_handler
 
 
 def test_autoretry():
     flexmock(prometheus_client).should_receive("push_to_gateway")
     flexmock(CoprBuildHandler).should_receive("run_job").and_raise(
-        CoprRequestException
+        CoprRequestException,
     ).once()
 
     # verify that retry is called automatically

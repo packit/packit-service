@@ -2,21 +2,20 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-
 from flexmock import flexmock
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 
 from packit_service.worker.checker.bodhi import (
     HasIssueCommenterRetriggeringPermissions,
     IsAuthorAPackager,
 )
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
-from packit.config import (
-    JobConfig,
-    JobConfigTriggerType,
-    JobType,
-    PackageConfig,
-    CommonPackageConfig,
-)
 
 
 @pytest.mark.parametrize(
@@ -40,13 +39,15 @@ from packit.config import (
     ],
 )
 def test_check_has_author_write_access(
-    event_type: str, has_write_access: bool, result: bool
+    event_type: str,
+    has_write_access: bool,
+    result: bool,
 ):
     package_config = PackageConfig(
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
         jobs=[
             JobConfig(
@@ -55,7 +56,7 @@ def test_check_has_author_write_access(
                 packages={
                     "package": CommonPackageConfig(
                         identifier="first",
-                    )
+                    ),
                 },
             ),
         ],
@@ -66,14 +67,14 @@ def test_check_has_author_write_access(
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
     )
-    data = dict(
-        event_type=event_type,
-        actor="happy-packit-user",
-        pr_id=123,
-    )
+    data = {
+        "event_type": event_type,
+        "actor": "happy-packit-user",
+        "pr_id": 123,
+    }
     project = flexmock(
         has_write_access=lambda user: has_write_access,
         repo="playground-for-pencils",
@@ -109,7 +110,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
         jobs=[
             JobConfig(
@@ -118,7 +119,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
                 packages={
                     "package": CommonPackageConfig(
                         identifier="first",
-                    )
+                    ),
                 },
             ),
         ],
@@ -129,19 +130,19 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
     )
-    data = dict(
-        event_type="PullRequestCommentPagureEvent",
-        actor=author_name,
-        pr_id=123,
-    )
+    data = {
+        "event_type": "PullRequestCommentPagureEvent",
+        "actor": author_name,
+        "pr_id": 123,
+    }
     project = flexmock(
         repo="playground-for-pencils",
     )
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
-        is_packager
+        is_packager,
     )
 
     checker = IsAuthorAPackager(package_config, job_config, data)

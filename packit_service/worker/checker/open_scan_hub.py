@@ -6,6 +6,7 @@ import logging
 from packit.config import (
     aliases,
 )
+
 from packit_service.worker.checker.abstract import Checker
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class RawhideX86Target(
         )
         if "fedora-rawhide-x86_64" not in branches:
             logger.debug(
-                "Skipping job configuration with no fedora-rawhide-x86_64 target."
+                "Skipping job configuration with no fedora-rawhide-x86_64 target.",
             )
             return False
         return True

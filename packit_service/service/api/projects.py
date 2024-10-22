@@ -14,7 +14,8 @@ from packit_service.service.urls import get_srpm_build_info_url
 logger = getLogger("packit_service")
 
 ns = Namespace(
-    "projects", description="Repositories which have Packit Service enabled."
+    "projects",
+    description="Repositories which have Packit Service enabled.",
 )
 
 
@@ -119,7 +120,10 @@ class ProjectsNamespace(Resource):
         first, last = indices()
 
         for project in GitProjectModel.get_by_forge_namespace(
-            first, last, forge, namespace
+            first,
+            last,
+            forge,
+            namespace,
         ):
             project_info = {
                 "namespace": project.namespace,
@@ -147,7 +151,8 @@ class ProjectsNamespace(Resource):
 class ProjectsPRs(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(
-        HTTPStatus.PARTIAL_CONTENT.value, "Project PRs handled by Packit Service follow"
+        HTTPStatus.PARTIAL_CONTENT.value,
+        "Project PRs handled by Packit Service follow",
     )
     @ns.response(HTTPStatus.OK.value, "OK")
     def get(self, forge, namespace, repo_name):
@@ -157,7 +162,11 @@ class ProjectsPRs(Resource):
         first, last = indices()
 
         for pr in GitProjectModel.get_project_prs(
-            first, last, forge, namespace, repo_name
+            first,
+            last,
+            forge,
+            namespace,
+            repo_name,
         ):
             pr_info = {
                 "pr_id": pr.pr_id,
@@ -220,7 +229,8 @@ class ProjectsPRs(Resource):
 class ProjectIssues(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(
-        HTTPStatus.OK.value, "OK, project issues handled by Packit Service follow"
+        HTTPStatus.OK.value,
+        "OK, project issues handled by Packit Service follow",
     )
     def get(self, forge, namespace, repo_name):
         """Project issues"""
@@ -229,7 +239,11 @@ class ProjectIssues(Resource):
         issues = [
             issue.issue_id
             for issue in GitProjectModel.get_project_issues(
-                first, last, forge, namespace, repo_name
+                first,
+                last,
+                forge,
+                namespace,
+                repo_name,
             )
         ]
 
@@ -249,7 +263,8 @@ class ProjectIssues(Resource):
 class ProjectReleases(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(
-        HTTPStatus.OK.value, "OK, project releases handled by Packit Service follow"
+        HTTPStatus.OK.value,
+        "OK, project releases handled by Packit Service follow",
     )
     def get(self, forge, namespace, repo_name):
         """Project releases"""
@@ -257,7 +272,11 @@ class ProjectReleases(Resource):
         first, last = indices()
 
         for release in GitProjectModel.get_project_releases(
-            first, last, forge, namespace, repo_name
+            first,
+            last,
+            forge,
+            namespace,
+            repo_name,
         ):
             release_info = {
                 "tag_name": release.tag_name,
@@ -281,7 +300,8 @@ class ProjectReleases(Resource):
 class ProjectBranches(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(
-        HTTPStatus.OK.value, "OK, project branches handled by Packit Service follow"
+        HTTPStatus.OK.value,
+        "OK, project branches handled by Packit Service follow",
     )
     def get(self, forge, namespace, repo_name):
         """Project branches"""
@@ -289,7 +309,11 @@ class ProjectBranches(Resource):
         first, last = indices()
 
         for branch in GitProjectModel.get_project_branches(
-            first, last, forge, namespace, repo_name
+            first,
+            last,
+            forge,
+            namespace,
+            repo_name,
         ):
             branch_info = {
                 "branch": branch.name,

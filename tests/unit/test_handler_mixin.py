@@ -2,15 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 from typing import Optional
-from flexmock import flexmock
 
+from flexmock import flexmock
 from ogr.abstract import GitProject
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import KojiBuildState
 from packit_service.worker.handlers.mixin import (
-    GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildDataFromKojiBuildEventMixin,
+    GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildDataFromKojiServiceMultipleBranches,
 )
 
@@ -19,12 +20,14 @@ def test_GetKojiBuildDataFromKojiServiceMixin():
     class Test(GetKojiBuildDataFromKojiServiceMixin):
         def __init__(self):
             self._project = flexmock(
-                repo="a_repo", get_pr=lambda pr_id: flexmock(target_branch="a_branch")
+                repo="a_repo",
+                get_pr=lambda pr_id: flexmock(target_branch="a_branch"),
             )
             self.data = flexmock(pr_id="123")
 
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
-        "a_repo", "a_branch"
+        "a_repo",
+        "a_branch",
     ).and_return({"nvr": "1.0.0", "state": 1, "build_id": 123, "task_id": 321})
     mixin = Test()
     data = []
@@ -86,10 +89,12 @@ def test_GetKojiBuildDataFromKojiServiceMultipleBranches():
             return ["f37", "f38"]
 
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
-        "a repo", "f37"
+        "a repo",
+        "f37",
     ).and_return({"nvr": "1.0.1", "state": 1, "build_id": 123, "task_id": 321})
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").with_args(
-        "a repo", "f38"
+        "a repo",
+        "f38",
     ).and_return({"nvr": "1.0.2", "state": 1, "build_id": 1234, "task_id": 4321})
 
     mixin = Test()

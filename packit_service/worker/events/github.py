@@ -1,35 +1,35 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Dict, Optional, Union, List, Set
+from typing import Optional, Union
 
-from ogr.abstract import GitProject, Comment
+from ogr.abstract import Comment, GitProject
 
 from packit_service.models import (
+    AbstractProjectObjectDbType,
     AllowlistStatus,
     GitBranchModel,
+    ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
-    ProjectEventModel,
-    AbstractProjectObjectDbType,
 )
 from packit_service.service.db_project_events import (
-    AddPullRequestEventToDb,
     AddBranchPushEventToDb,
+    AddPullRequestEventToDb,
     AddReleaseEventToDb,
 )
 from packit_service.worker.events.comment import (
-    AbstractPRCommentEvent,
     AbstractIssueCommentEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.worker.events.enums import (
     IssueCommentAction,
-    PullRequestCommentAction,
     PullRequestAction,
+    PullRequestCommentAction,
 )
 from packit_service.worker.events.event import (
-    Event,
     AbstractForgeIndependentEvent,
+    Event,
 )
 
 
@@ -45,7 +45,11 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
 
 class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
     def __init__(
-        self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
+        self,
+        repo_namespace: str,
+        repo_name: str,
+        tag_name: str,
+        project_url: str,
     ):
         super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
@@ -62,7 +66,7 @@ class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
             self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
         return self._commit_sha
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["commit_sha"] = self.commit_sha
         return result
@@ -111,7 +115,7 @@ class PullRequestGithubEvent(AddPullRequestEventToDb, AbstractGithubEvent):
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -155,7 +159,7 @@ class PullRequestCommentGithubEvent(AbstractPRCommentEvent, AbstractGithubEvent)
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -200,7 +204,7 @@ class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
         self.target_repo = target_repo
         self.identifier = str(issue_id)
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -234,19 +238,19 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.job_identifier = job_identifier
 
     @property
-    def build_targets_override(self) -> Optional[Set[str]]:
+    def build_targets_override(self) -> Optional[set[str]]:
         if self.check_name_job in {"rpm-build", "production-build", "koji-build"}:
             return {self.check_name_target}
         return None
 
     @property
-    def tests_targets_override(self) -> Optional[Set[str]]:
+    def tests_targets_override(self) -> Optional[set[str]]:
         if self.check_name_job == "testing-farm":
             return {self.check_name_target}
         return None
 
     @property
-    def branches_override(self) -> Optional[Set[str]]:
+    def branches_override(self) -> Optional[set[str]]:
         if self.check_name_job == "propose-downstream":
             return {self.check_name_target}
         return None
@@ -356,7 +360,7 @@ class InstallationEvent(Event):
         account_url: str,
         account_type: str,
         created_at: Union[int, float, str],
-        repositories: List[str],
+        repositories: list[str],
         sender_id: int,
         sender_login: str,
         status: AllowlistStatus = AllowlistStatus.waiting,
@@ -390,7 +394,7 @@ class InstallationEvent(Event):
             sender_login=event.get("sender_login"),
         )
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["status"] = result["status"].value
         return result

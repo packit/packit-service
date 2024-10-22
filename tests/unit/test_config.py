@@ -4,15 +4,15 @@
 import pytest
 from flexmock import flexmock
 from marshmallow import ValidationError
-
 from packit.exceptions import PackitConfigException
-from packit_service.config import (
-    ServiceConfig,
-    Deployment,
-    PackageConfigGetter,
-    MRTarget,
-)
+
 from packit_service import config
+from packit_service.config import (
+    Deployment,
+    MRTarget,
+    PackageConfigGetter,
+    ServiceConfig,
+)
 from packit_service.constants import TESTING_FARM_API_URL
 
 
@@ -92,7 +92,7 @@ def test_parse_optional_values(service_config_valid):
             **service_config_valid,
             "testing_farm_api_url": "https://other.url",
             "package_config_path_override": ".distro/source-git.yaml",
-        }
+        },
     )
     assert config.testing_farm_api_url == "https://other.url"
     assert config.package_config_path_override == ".distro/source-git.yaml"
@@ -106,7 +106,7 @@ def service_config_invalid():
             "github.com": {
                 "github_app_id": "11111",
                 "github_app_cert_path": "/path/lib",
-            }
+            },
         },
         "webhook_secret": "secret",
         "command_handler_work_dir": "/sandcastle",
@@ -196,7 +196,7 @@ def test_get_package_config_from_repo(
     package_config_path,
 ):
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        flexmock(package_config_path_override=package_config_path)
+        flexmock(package_config_path_override=package_config_path),
     ).once()
     flexmock(config).should_receive("get_package_config_from_repo").with_args(
         project=(base_project or project),
@@ -224,7 +224,9 @@ def test_get_package_config_from_repo_not_found_exception_pr():
     """
     project = flexmock(full_repo_name="packit/packit")
     flexmock(config).should_receive("get_package_config_from_repo").with_args(
-        project=project, ref=None, package_config_path=None
+        project=project,
+        ref=None,
+        package_config_path=None,
     ).once().and_return(None)
     pr = flexmock()
     project.should_receive("get_pr").with_args(2).once().and_return(pr)
@@ -240,7 +242,7 @@ def test_get_package_config_from_repo_not_found_exception_pr():
 def test_get_package_config_from_repo_not_found():
     """Don't fail when config is not found."""
     flexmock(config).should_receive("get_package_config_from_repo").once().and_return(
-        None
+        None,
     )
     assert (
         PackageConfigGetter.get_package_config_from_repo(
@@ -255,10 +257,14 @@ def test_get_package_config_from_repo_not_found():
 def test_get_package_config_from_repo_not_found_exception_create_issue():
     project = flexmock(full_repo_name="packit/packit")
     flexmock(config).should_receive("get_package_config_from_repo").with_args(
-        project=project, ref=None, package_config_path=None
+        project=project,
+        ref=None,
+        package_config_path=None,
     ).once().and_return(None)
     flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").with_args(
-        project, title=str, message=str
+        project,
+        title=str,
+        message=str,
     ).once()
     with pytest.raises(PackitConfigException):
         PackageConfigGetter.get_package_config_from_repo(
@@ -325,7 +331,11 @@ def test_get_package_config_from_repo_not_found_exception_create_issue():
     ],
 )
 def test_create_issue_if_needed(
-    issues, create_new, title, message, comment_to_existing
+    issues,
+    create_new,
+    title,
+    message,
+    comment_to_existing,
 ):
     project = flexmock()
     check = lambda value: value is None  # noqa
@@ -333,17 +343,23 @@ def test_create_issue_if_needed(
 
     if create_new:
         issue_mock = flexmock(
-            id=3, title="new issue", url="https://github.com/namespace/project/issues/3"
+            id=3,
+            title="new issue",
+            url="https://github.com/namespace/project/issues/3",
         )
         issue_mock.should_receive("comment").times(0)
 
         project.should_receive("create_issue").with_args(
-            title=f"[packit] {title}", body=message
+            title=f"[packit] {title}",
+            body=message,
         ).and_return(issue_mock).once()
 
         check = lambda value: value.title == "new issue"  # noqa
 
     issue_created = PackageConfigGetter.create_issue_if_needed(
-        project, title, message, comment_to_existing
+        project,
+        title,
+        message,
+        comment_to_existing,
     )
     assert check(issue_created)

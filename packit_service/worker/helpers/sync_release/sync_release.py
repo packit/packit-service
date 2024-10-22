@@ -2,12 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, List, Set
+from typing import Optional
 
 from ogr.abstract import GitProject
+from packit.config import (
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+    aliases,
+)
 
-from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerType
-from packit.config import aliases
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.trigger_mapping import are_job_types_same
@@ -29,7 +34,7 @@ class SyncReleaseHelper(BaseJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        branches_override: Optional[Set[str]] = None,
+        branches_override: Optional[set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -40,7 +45,7 @@ class SyncReleaseHelper(BaseJobHelper):
             job_config=job_config,
         )
         self.branches_override = branches_override
-        self._check_names: Optional[List[str]] = None
+        self._check_names: Optional[list[str]] = None
         self._default_dg_branch: Optional[str] = None
         self._job: Optional[JobConfig] = None
 
@@ -51,7 +56,7 @@ class SyncReleaseHelper(BaseJobHelper):
         """
         raise NotImplementedError("Use subclass.")
 
-    def _filter_override_branches(self, branches: Set[str]) -> Set[str]:
+    def _filter_override_branches(self, branches: set[str]) -> set[str]:
         """
         If a branch has been overriden filter it out.
         If we re-run the job in a subset of branches
@@ -64,7 +69,7 @@ class SyncReleaseHelper(BaseJobHelper):
         return branches
 
     @property
-    def branches(self) -> Set[str]:
+    def branches(self) -> set[str]:
         """
         Return all valid branches from config.
         """
@@ -75,7 +80,7 @@ class SyncReleaseHelper(BaseJobHelper):
         )
         return self._filter_override_branches(branches)
 
-    def get_fast_forward_merge_branches_for(self, source_branch: str) -> Set[str]:
+    def get_fast_forward_merge_branches_for(self, source_branch: str) -> set[str]:
         """
         Returns a list of branches that can be fast forwarded merging
         the specified source_branch. They are listed in the config.
@@ -96,7 +101,7 @@ class SyncReleaseHelper(BaseJobHelper):
         :return: JobConfig or None
         """
         if not self._job:
-            for job in [self.job_config] + self.package_config.jobs:
+            for job in [self.job_config, *self.package_config.jobs]:
                 if are_job_types_same(job.type, self.job_type) and (
                     self._db_project_object
                     and (

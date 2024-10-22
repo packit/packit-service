@@ -5,7 +5,6 @@ from typing import Union
 
 import pytest
 from flexmock import flexmock
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -17,28 +16,29 @@ from packit.config import (
 )
 from packit.exceptions import PackitCommandFailedError
 from packit.upstream import GitUpstream
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    SRPMBuildModel,
-    KojiBuildTargetModel,
-    KojiBuildGroupModel,
     BuildStatus,
-)
-from packit_service.worker.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    KojiTaskEvent,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
+    SRPMBuildModel,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
+from packit_service.worker.events import (
+    KojiTaskEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    ReleaseEvent,
+)
 from packit_service.worker.helpers.build import koji_build
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 
 def build_helper(
@@ -77,9 +77,9 @@ def build_helper(
                     _targets=_targets,
                     owner=owner,
                     scratch=scratch,
-                )
+                ),
             },
-        )
+        ),
     )
 
     pkg_conf = PackageConfig(
@@ -105,7 +105,8 @@ def build_helper(
 
 
 def test_koji_build_check_names(
-    github_pr_event, add_pull_request_event_with_sha_528b80
+    github_pr_event,
+    add_pull_request_event_with_sha_528b80,
 ):
     _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
@@ -115,7 +116,7 @@ def test_koji_build_check_names(
         db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
-        ["dark-past", "bright-future"]
+        ["dark-past", "bright-future"],
     ).once()
 
     koji_build_url = get_koji_build_info_url(1)
@@ -137,7 +138,7 @@ def test_koji_build_check_names(
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -155,7 +156,7 @@ def test_koji_build_check_names(
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
@@ -163,7 +164,7 @@ def test_koji_build_check_names(
         .should_receive("set_task_id")
         .mock()
         .should_receive("set_web_url")
-        .mock()
+        .mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -173,7 +174,7 @@ def test_koji_build_check_names(
         ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
         "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
         "Created task: 43429338\n"
-        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n",
     )
 
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").once()
@@ -182,7 +183,8 @@ def test_koji_build_check_names(
 
 
 def test_koji_build_failed_kerberos(
-    github_pr_event, add_pull_request_event_with_sha_528b80
+    github_pr_event,
+    add_pull_request_event_with_sha_528b80,
 ):
     _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
@@ -192,7 +194,7 @@ def test_koji_build_failed_kerberos(
         db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
-        ["dark-past", "bright-future"]
+        ["dark-past", "bright-future"],
     ).never()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
@@ -213,7 +215,7 @@ def test_koji_build_failed_kerberos(
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -231,7 +233,7 @@ def test_koji_build_failed_kerberos(
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -246,13 +248,14 @@ def test_koji_build_failed_kerberos(
     response = helper.run_koji_build()
     assert not response["success"]
     assert (
-        "Kerberos authentication error: the bad authentication error"
-        == response["details"]["msg"]
+        response["details"]["msg"]
+        == "Kerberos authentication error: the bad authentication error"
     )
 
 
 def test_koji_build_target_not_supported(
-    github_pr_event, add_pull_request_event_with_sha_528b80
+    github_pr_event,
+    add_pull_request_event_with_sha_528b80,
 ):
     _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
@@ -262,7 +265,7 @@ def test_koji_build_target_not_supported(
         db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
-        ["dark-past", "bright-future"]
+        ["dark-past", "bright-future"],
     ).once()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
@@ -283,7 +286,7 @@ def test_koji_build_target_not_supported(
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -301,7 +304,7 @@ def test_koji_build_target_not_supported(
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
@@ -310,13 +313,14 @@ def test_koji_build_target_not_supported(
     response = helper.run_koji_build()
     assert not response["success"]
     assert (
-        "Target not supported: nonexisting-target"
-        == response["details"]["errors"]["nonexisting-target"]
+        response["details"]["errors"]["nonexisting-target"]
+        == "Target not supported: nonexisting-target"
     )
 
 
 def test_koji_build_with_multiple_targets(
-    github_pr_event, add_pull_request_event_with_sha_528b80
+    github_pr_event,
+    add_pull_request_event_with_sha_528b80,
 ):
     _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
@@ -326,14 +330,14 @@ def test_koji_build_with_multiple_targets(
         db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
-        ["dark-past", "bright-future"]
+        ["dark-past", "bright-future"],
     ).once()
 
     # 2x SRPM + 2x RPM
     flexmock(StatusReporter).should_receive("set_status").and_return().times(4)
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -351,7 +355,7 @@ def test_koji_build_with_multiple_targets(
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
@@ -359,13 +363,13 @@ def test_koji_build_with_multiple_targets(
         .should_receive("set_task_id")
         .mock()
         .should_receive("set_web_url")
-        .mock()
+        .mock(),
     ).and_return(
         flexmock(id=2)
         .should_receive("set_task_id")
         .mock()
         .should_receive("set_web_url")
-        .mock()
+        .mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -375,13 +379,13 @@ def test_koji_build_with_multiple_targets(
         ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
         "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
         "Created task: 43429338\n"
-        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n",
     ).and_return(
         "Uploading srpm: /python-ogr-0.11.1"
         ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
         "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
         "Created task: 43429339\n"
-        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429339\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429339\n",
     )
 
     assert helper.run_koji_build()["success"]
@@ -396,7 +400,7 @@ def test_koji_build_failed(github_pr_event, add_pull_request_event_with_sha_528b
         db_project_event=db_project_event,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
-        ["dark-past", "bright-future"]
+        ["dark-past", "bright-future"],
     ).once()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
@@ -419,7 +423,7 @@ def test_koji_build_failed(github_pr_event, add_pull_request_event_with_sha_528b
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -437,18 +441,19 @@ def test_koji_build_failed(github_pr_event, add_pull_request_event_with_sha_528b
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
-        flexmock(id=1).should_receive("set_status").with_args("error").mock()
+        flexmock(id=1).should_receive("set_status").with_args("error").mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # koji build
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(GitUpstream).should_receive("koji_build").and_raise(
-        Exception, "some error"
+        Exception,
+        "some error",
     )
 
     result = helper.run_koji_build()
@@ -458,7 +463,8 @@ def test_koji_build_failed(github_pr_event, add_pull_request_event_with_sha_528b
 
 
 def test_koji_build_failed_srpm(
-    github_pr_event, add_pull_request_event_with_sha_528b80
+    github_pr_event,
+    add_pull_request_event_with_sha_528b80,
 ):
     _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
@@ -486,7 +492,7 @@ def test_koji_build_failed_srpm(
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(PackitAPI).should_receive("create_srpm").and_raise(Exception, "some error")
@@ -505,7 +511,7 @@ def test_koji_build_failed_srpm(
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildTargetModel).should_receive("create").never()
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
@@ -516,7 +522,8 @@ def test_koji_build_failed_srpm(
 
 
 def test_koji_build_targets_override(
-    github_pr_event, add_pull_request_event_with_sha_528b80
+    github_pr_event,
+    add_pull_request_event_with_sha_528b80,
 ):
     _, db_project_event = add_pull_request_event_with_sha_528b80
     helper = build_helper(
@@ -527,14 +534,14 @@ def test_koji_build_targets_override(
         build_targets_override={"bright-future"},
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
-        ["dark-past", "bright-future"]
+        ["dark-past", "bright-future"],
     ).once()
 
     # SRPM + RPM
     flexmock(StatusReporter).should_receive("set_status").and_return().times(2)
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -552,7 +559,7 @@ def test_koji_build_targets_override(
             .should_receive("set_end_time")
             .mock(),
             flexmock(),
-        )
+        ),
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
@@ -560,13 +567,13 @@ def test_koji_build_targets_override(
         .should_receive("set_task_id")
         .mock()
         .should_receive("set_web_url")
-        .mock()
+        .mock(),
     ).and_return(
         flexmock(id=2)
         .should_receive("set_task_id")
         .mock()
         .should_receive("set_web_url")
-        .mock()
+        .mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -581,7 +588,7 @@ def test_koji_build_targets_override(
         ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
         "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
         "Created task: 43429338\n"
-        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n",
     )
 
     assert helper.run_koji_build()["success"]

@@ -6,62 +6,62 @@ This file defines classes for job handlers specific for Testing farm
 """
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Dict, List, Tuple, Type
+from typing import Optional
 
 from celery import Task
-
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
+
 from packit_service.models import (
-    ProjectEventModel,
-    TFTTestRunTargetModel,
-    CoprBuildTargetModel,
     BuildStatus,
-    TestingFarmResult,
+    CoprBuildTargetModel,
     PipelineModel,
+    ProjectEventModel,
+    TestingFarmResult,
     TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.service.urls import (
-    get_testing_farm_info_url,
     get_copr_build_info_url,
+    get_testing_farm_info_url,
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
+    IsCoprBuildDefined,
     IsEventForJob,
     IsEventOk,
-    IsJobConfigTriggerMatching,
-    IsCoprBuildDefined,
     IsIdentifierFromCommentMatching,
+    IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
 )
 from packit_service.worker.events import (
-    TestingFarmResultsEvent,
+    AbstractPRCommentEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
+    MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
-    MergeRequestGitlabEvent,
-    AbstractPRCommentEvent,
     ReleaseEvent,
     ReleaseGitlabEvent,
+    TestingFarmResultsEvent,
 )
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
+    RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
-    RetriableJobHandler,
+    run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
+    GetGithubCommentEventMixin,
     GetTestingFarmJobHelperMixin,
 )
-from packit_service.worker.handlers.mixin import GetGithubCommentEventMixin
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus
@@ -121,7 +121,7 @@ class TestingFarmHandler(
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             IsJobConfigTriggerMatching,
             IsEventOk,
@@ -132,8 +132,9 @@ class TestingFarmHandler(
         )
 
     def _get_or_create_group(
-        self, builds: Dict[str, CoprBuildTargetModel]
-    ) -> Tuple[TFTTestRunGroupModel, List[TFTTestRunTargetModel]]:
+        self,
+        builds: dict[str, CoprBuildTargetModel],
+    ) -> tuple[TFTTestRunGroupModel, list[TFTTestRunTargetModel]]:
         """Creates a TFTTestRunGroup.
 
         If a group is already attached to this handler, it returns the
@@ -182,12 +183,12 @@ class TestingFarmHandler(
                     # In _payload() we ask TF to test commit_sha of fork (PR's source).
                     # Store original url. If this proves to work, make it a separate column.
                     data={"base_project_url": self.project.get_web_url()},
-                )
+                ),
             )
 
         return group, runs
 
-    def run_with_copr_builds(self, targets: List[str], failed: Dict):
+    def run_with_copr_builds(self, targets: list[str], failed: dict):
         targets_without_successful_builds = set()
         targets_with_builds = {}
 
@@ -197,7 +198,8 @@ class TestingFarmHandler(
                 copr_build = CoprBuildTargetModel.get_by_id(self.build_id)
             else:
                 copr_build = self.testing_farm_job_helper.get_latest_copr_build(
-                    target=chroot, commit_sha=self.data.commit_sha
+                    target=chroot,
+                    commit_sha=self.data.commit_sha,
                 )
 
             if copr_build and copr_build.status not in (
@@ -214,7 +216,7 @@ class TestingFarmHandler(
                 f"Missing successful Copr build for targets {targets_without_successful_builds} in "
                 f"{self.testing_farm_job_helper.job_owner}/"
                 f"{self.testing_farm_job_helper.job_project}"
-                f" and commit:{self.data.commit_sha}, tests won't be triggered for the target."
+                f" and commit:{self.data.commit_sha}, tests won't be triggered for the target.",
             )
 
             for missing_target in targets_without_successful_builds:
@@ -269,13 +271,14 @@ class TestingFarmHandler(
     def run_for_target(
         self,
         test_run: "TFTTestRunTargetModel",
-        failed: Dict,
+        failed: dict,
         build: Optional[CoprBuildTargetModel] = None,
     ):
         if self.celery_task.retries == 0:
             self.pushgateway.test_runs_queued.inc()
         result = self.testing_farm_job_helper.run_testing_farm(
-            test_run=test_run, build=build
+            test_run=test_run,
+            build=build,
         )
         if not result["success"]:
             failed[test_run.target] = result.get("details")
@@ -299,11 +302,11 @@ class TestingFarmHandler(
                 details={"msg": msg},
             )
 
-        failed: Dict[str, str] = {}
+        failed: dict[str, str] = {}
 
         if self.testing_farm_job_helper.skip_build:
             group, test_runs = self._get_or_create_group(
-                {target: None for target in targets}
+                {target: None for target in targets},
             )
             for test_run in test_runs:
                 # Only retry what's needed
@@ -358,14 +361,14 @@ class TestingFarmResultsHandler(
         self.created = event.get("created")
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (IsEventForJob,)
 
     @property
     def db_project_event(self) -> Optional[ProjectEventModel]:
         if not self._db_project_event:
             run_model = TFTTestRunTargetModel.get_by_pipeline_id(
-                pipeline_id=self.pipeline_id
+                pipeline_id=self.pipeline_id,
             )
             if run_model:
                 self._db_project_event = run_model.get_project_event_model()
@@ -375,7 +378,7 @@ class TestingFarmResultsHandler(
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
 
         test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(
-            pipeline_id=self.pipeline_id
+            pipeline_id=self.pipeline_id,
         )
         if not test_run_model:
             msg = f"Unknown pipeline_id received from the testing-farm: {self.pipeline_id}"
@@ -385,10 +388,11 @@ class TestingFarmResultsHandler(
         if test_run_model.status == self.result:
             logger.debug(
                 "Testing farm results already processed "
-                "(state in the DB is the same as the one about to report)."
+                "(state in the DB is the same as the one about to report).",
             )
             return TaskResults(
-                success=True, details={"msg": "Testing farm results already processed"}
+                success=True,
+                details={"msg": "Testing farm results already processed"},
             )
 
         failure = False
@@ -414,7 +418,8 @@ class TestingFarmResultsHandler(
         else:
             self.pushgateway.test_runs_finished.inc()
             test_run_time = elapsed_seconds(
-                begin=test_run_model.submitted_time, end=datetime.now(timezone.utc)
+                begin=test_run_model.submitted_time,
+                end=datetime.now(timezone.utc),
             )
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 

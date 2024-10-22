@@ -7,9 +7,9 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    optional_timestamp,
-    BodhiUpdateTargetModel,
     BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
+    optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -93,7 +93,8 @@ class BodhiUpdateItem(Resource):
 class BodhiUpdateGroup(Resource):
     @ns.response(HTTPStatus.OK, "OK, Bodhi update group details follow")
     @ns.response(
-        HTTPStatus.NOT_FOUND.value, "No info about Bodhi update group stored in DB"
+        HTTPStatus.NOT_FOUND.value,
+        "No info about Bodhi update group stored in DB",
     )
     def get(self, id):
         """A specific Bodhi update group details."""

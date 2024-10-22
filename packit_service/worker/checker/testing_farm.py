@@ -4,9 +4,9 @@
 import logging
 
 from packit_service.constants import (
+    DOCS_TESTING_FARM,
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
-    DOCS_TESTING_FARM,
 )
 from packit_service.worker.checker.abstract import (
     ActorChecker,
@@ -15,9 +15,9 @@ from packit_service.worker.checker.abstract import (
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
 from packit_service.worker.handlers.mixin import (
-    GetTestingFarmJobHelperMixin,
     GetCoprBuildMixin,
     GetGithubCommentEventMixin,
+    GetTestingFarmJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -27,12 +27,15 @@ logger = logging.getLogger(__name__)
 class IsJobConfigTriggerMatching(Checker, GetTestingFarmJobHelperMixin):
     def pre_check(self) -> bool:
         return self.testing_farm_job_helper.is_job_config_trigger_matching(
-            self.job_config
+            self.job_config,
         )
 
 
 class IsEventOk(
-    Checker, GetTestingFarmJobHelperMixin, GetCoprBuildMixin, GetGithubCommentEventMixin
+    Checker,
+    GetTestingFarmJobHelperMixin,
+    GetCoprBuildMixin,
+    GetGithubCommentEventMixin,
 ):
     def pre_check(self) -> bool:
         if (
@@ -57,7 +60,7 @@ class IsEventForJob(Checker):
             logger.debug(
                 f"Skipping reporting, identifiers don't match "
                 f"(identifier of the test job to report: {self.data.identifier}, "
-                f"identifier from job config: {self.job_config.identifier})."
+                f"identifier from job config: {self.job_config.identifier}).",
             )
             return False
         return True
@@ -93,7 +96,7 @@ class CanActorRunJob(ActorChecker, GetTestingFarmJobHelperMixin):
                 description=message[0].format(actor=self.actor),
                 state=BaseCommitStatus.neutral,
                 markdown_content=message[1].format(
-                    packit_comment_command_prefix=self.service_config.comment_command_prefix
+                    packit_comment_command_prefix=self.service_config.comment_command_prefix,
                 ),
             )
             return False
@@ -113,7 +116,7 @@ class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
         ):
             logger.info(
                 "Build required and no build job found in the configuration, "
-                "reporting and skipping."
+                "reporting and skipping.",
             )
             self.testing_farm_job_helper.report_status_to_tests(
                 description="Test job requires build job definition in the configuration.",
@@ -143,7 +146,7 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             and (default_identifier := self.job_config.test_command.default_identifier)
         ):
             logger.info(
-                f"Using the default identifier for test command: {default_identifier}"
+                f"Using the default identifier for test command: {default_identifier}",
             )
             return self.job_config.identifier == default_identifier
 
@@ -157,7 +160,7 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
         logger.info(
             f"Skipping running tests for the job, identifiers doesn't match "
             f"(job:{self.job_config.identifier} "
-            f"!= comment:${self.testing_farm_job_helper.comment_arguments.identifier})"
+            f"!= comment:${self.testing_farm_job_helper.comment_arguments.identifier})",
         )
         return False
 
@@ -193,6 +196,6 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
         logger.info(
             f"Skipping running tests for the job, labels don't match "
             f"(job:{self.job_config.labels} "
-            f"!= comment:${self.testing_farm_job_helper.comment_arguments.labels})"
+            f"!= comment:${self.testing_farm_job_helper.comment_arguments.labels})",
         )
         return False

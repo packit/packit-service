@@ -1,11 +1,11 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from typing import Union, Optional
+from typing import Optional, Union
 
 from packit_service.models import (
-    VMImageBuildTargetModel,
-    VMImageBuildStatus,
     ProjectEventModel,
+    VMImageBuildStatus,
+    VMImageBuildTargetModel,
 )
 from packit_service.worker.events.event import (
     AbstractProjectObjectDbType,

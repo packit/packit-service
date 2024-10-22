@@ -2,21 +2,22 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Dict
-
-from .base import StatusReporter
-from packit_service.worker.reporting.news import News
-from packit_service.worker.reporting.enums import BaseCommitStatus
+from typing import Optional
 
 from ogr.abstract import CommitStatus
 from ogr.exceptions import GithubAPIException
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
-    create_github_check_run_output,
     GithubCheckRunResult,
     GithubCheckRunStatus,
+    create_github_check_run_output,
 )
+
 from packit_service.constants import DOCS_URL, MSG_TABLE_HEADER_WITH_DETAILS
+from packit_service.worker.reporting.enums import BaseCommitStatus
+from packit_service.worker.reporting.news import News
+
+from .base import StatusReporter
 
 logger = logging.getLogger(__name__)
 
@@ -36,25 +37,30 @@ class StatusReporterGithubStatuses(StatusReporter):
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        markdown_content: str = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        markdown_content: Optional[str] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
-            f"Setting Github status '{state_to_set.name}' for check '{check_name}': {description}"
+            f"Setting Github status '{state_to_set.name}' for check '{check_name}': {description}",
         )
         if markdown_content:
             logger.debug(
-                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored.",
             )
         try:
             self.project_with_commit.set_commit_status(
-                self.commit_sha, state_to_set, url, description, check_name, trim=True
+                self.commit_sha,
+                state_to_set,
+                url,
+                description,
+                check_name,
+                trim=True,
             )
         except GithubAPIException as e:
             logger.debug(
                 f"Failed to set status for {self.commit_sha},"
-                f" commenting on commit as a fallback: {e}"
+                f" commenting on commit as a fallback: {e}",
             )
             self._add_commit_comment_with_status(state, description, check_name, url)
 
@@ -64,7 +70,8 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
 
     @staticmethod
     def _create_table(
-        url: str, links_to_external_services: Optional[Dict[str, str]]
+        url: str,
+        links_to_external_services: Optional[dict[str, str]],
     ) -> str:
         table_content = []
         if url:
@@ -94,14 +101,14 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        markdown_content: str = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        markdown_content: Optional[str] = None,
     ):
         markdown_content = markdown_content or ""
         state_to_set = self.get_check_run(state)
         logger.debug(
             f"Setting Github status check '{state_to_set.name}' for check '{check_name}':"
-            f" {description}"
+            f" {description}",
         )
 
         summary = (
@@ -134,6 +141,6 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             )
         except GithubAPIException as e:
             logger.debug(
-                f"Failed to set status check, setting status as a fallback: {str(e)}"
+                f"Failed to set status check, setting status as a fallback: {e!s}",
             )
             super().set_status(state, description, check_name, url)

@@ -8,14 +8,14 @@ from io import StringIO
 from logging import StreamHandler
 from pathlib import Path
 from re import search
-from typing import List, Tuple, Optional
+from typing import Optional
 
 import requests
-
 from ogr.abstract import PullRequest
 from packit.config import JobConfig, PackageConfig
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
+
 from packit_service import __version__ as ps_version
 
 logger = logging.getLogger(__name__)
@@ -35,12 +35,12 @@ class only_once:
     def __call__(self, *args, **kwargs):
         if self.configured:
             logger.debug(f"Function {self.func.__name__} already called. Skipping.")
-            return
+            return None
 
         self.configured = True
         logger.debug(
             f"Function {self.func.__name__} called for the first time with "
-            f"args: {args} and kwargs: {kwargs}"
+            f"args: {args} and kwargs: {kwargs}",
         )
         return self.func(*args, **kwargs)
 
@@ -65,7 +65,7 @@ def dump_job_config(job_config: JobConfig):
     return JobConfigSchema().dump(job_config) if job_config else None
 
 
-def get_package_nvrs(built_packages: List[dict]) -> List[str]:
+def get_package_nvrs(built_packages: list[dict]) -> list[str]:
     """
     Construct package NVRs for built packages except the SRPM.
 
@@ -80,12 +80,12 @@ def get_package_nvrs(built_packages: List[dict]) -> List[str]:
         epoch = f"{package['epoch']}:" if package["epoch"] else ""
 
         packages.append(
-            f"{package['name']}-{epoch}{package['version']}-{package['release']}.{package['arch']}"
+            f"{package['name']}-{epoch}{package['version']}-{package['release']}.{package['arch']}",
         )
     return packages
 
 
-def log_package_versions(package_versions: List[Tuple[str, str]]):
+def log_package_versions(package_versions: list[tuple[str, str]]):
     """
     It does the actual logging.
 
@@ -101,7 +101,7 @@ def log_package_versions(package_versions: List[Tuple[str, str]]):
 # https://stackoverflow.com/a/41215655/14294700
 def gather_packit_logs_to_buffer(
     logging_level: LoggingLevel,
-) -> Tuple[StringIO, StreamHandler]:
+) -> tuple[StringIO, StreamHandler]:
     """
     Redirect packit logs into buffer with a given logging level to collect them later.
 
@@ -199,8 +199,9 @@ def elapsed_seconds(begin: datetime, end: datetime) -> float:
 
 
 def get_packit_commands_from_comment(
-    comment: str, packit_comment_command_prefix: str
-) -> List[str]:
+    comment: str,
+    packit_comment_command_prefix: str,
+) -> list[str]:
     comment_parts = comment.strip()
 
     if not comment_parts:
@@ -250,7 +251,7 @@ def pr_labels_match_configuration(
     logger.info(
         f"About to check whether PR labels in PR {pull_request.id} "
         f"match to the labels configuration "
-        f"(label.present: {configured_labels_present}, label.absent: {configured_labels_absent})"
+        f"(label.present: {configured_labels_present}, label.absent: {configured_labels_absent})",
     )
 
     pr_labels = [label.name for label in pull_request.labels]

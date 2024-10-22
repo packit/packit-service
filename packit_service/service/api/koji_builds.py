@@ -8,9 +8,9 @@ from flask import request
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
+    KojiBuildGroupModel,
     KojiBuildTargetModel,
     optional_timestamp,
-    KojiBuildGroupModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -70,7 +70,8 @@ class KojiBuildsList(Resource):
 class KojiBuildItem(Resource):
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build details follow")
     @koji_builds_ns.response(
-        HTTPStatus.NOT_FOUND.value, "No info about build stored in DB"
+        HTTPStatus.NOT_FOUND.value,
+        "No info about build stored in DB",
     )
     def get(self, id):
         """A specific koji build details."""
@@ -109,7 +110,8 @@ class KojiBuildItem(Resource):
 class KojiBuildGroup(Resource):
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build group details follow")
     @koji_builds_ns.response(
-        HTTPStatus.NOT_FOUND.value, "No info about koji build group stored in DB"
+        HTTPStatus.NOT_FOUND.value,
+        "No info about koji build group stored in DB",
     )
     def get(self, id):
         """A specific test run details."""

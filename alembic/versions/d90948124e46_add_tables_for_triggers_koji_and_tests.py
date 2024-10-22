@@ -7,16 +7,18 @@ Create Date: 2020-03-27 16:22:45.721822
 """
 
 import enum
-from typing import TYPE_CHECKING, Optional, Iterable
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
-from alembic import op
 from flexmock import flexmock
-from sqlalchemy import Integer, String, ForeignKey, Enum, orm
+from sqlalchemy import Enum, ForeignKey, Integer, String, orm
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.testing import config
 from sqlalchemy.testing.schema import Column
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "d90948124e46"
@@ -26,11 +28,11 @@ depends_on = None
 
 # Very hacky but I cannot solve the problem, that `requirements` is None.
 flexmock(config).should_receive("requirements").and_return(
-    flexmock(foreign_key_ddl=flexmock(enabled_for_config=lambda config: True))
+    flexmock(foreign_key_ddl=flexmock(enabled_for_config=lambda config: True)),
 )
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()
@@ -53,7 +55,10 @@ class GitProjectUpgradeModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, namespace: str, repo_name: str, session: Session
+        cls,
+        namespace: str,
+        repo_name: str,
+        session: Session,
     ) -> "GitProjectUpgradeModel":
         project = (
             session.query(GitProjectUpgradeModel)
@@ -84,10 +89,16 @@ class PullRequestUpgradeModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, pr_id: int, namespace: str, repo_name: str, session: Session
+        cls,
+        pr_id: int,
+        namespace: str,
+        repo_name: str,
+        session: Session,
     ) -> "PullRequestUpgradeModel":
         project = GitProjectUpgradeModel.get_or_create(
-            namespace=namespace, repo_name=repo_name, session=session
+            namespace=namespace,
+            repo_name=repo_name,
+            session=session,
         )
         pr = (
             session.query(PullRequestUpgradeModel)
@@ -146,7 +157,10 @@ class JobTriggerUpgradeModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, type: JobTriggerModelType, trigger_id: int, session: Session
+        cls,
+        type: JobTriggerModelType,
+        trigger_id: int,
+        session: Session,
     ) -> "JobTriggerUpgradeModel":
         trigger = (
             session.query(JobTriggerUpgradeModel)
@@ -227,7 +241,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_koji_builds_build_id"), "koji_builds", ["build_id"], unique=False
+        op.f("ix_koji_builds_build_id"),
+        "koji_builds",
+        ["build_id"],
+        unique=False,
     )
     op.create_table(
         "project_issues",
@@ -241,7 +258,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_project_issues_issue_id"), "project_issues", ["issue_id"], unique=False
+        op.f("ix_project_issues_issue_id"),
+        "project_issues",
+        ["issue_id"],
+        unique=False,
     )
     op.create_table(
         "project_releases",
@@ -264,7 +284,12 @@ def upgrade():
         sa.Column(
             "status",
             sa.Enum(
-                "new", "passed", "failed", "error", "running", name="testingfarmresult"
+                "new",
+                "passed",
+                "failed",
+                "error",
+                "running",
+                name="testingfarmresult",
             ),
             nullable=True,
         ),
@@ -284,11 +309,16 @@ def upgrade():
         unique=False,
     )
     op.add_column(
-        "copr_builds", sa.Column("job_trigger_id", sa.Integer(), nullable=True)
+        "copr_builds",
+        sa.Column("job_trigger_id", sa.Integer(), nullable=True),
     )
     op.drop_constraint("copr_builds_pr_id_fkey1", "copr_builds", type_="foreignkey")
     op.create_foreign_key(
-        None, "copr_builds", "build_triggers", ["job_trigger_id"], ["id"]
+        None,
+        "copr_builds",
+        "build_triggers",
+        ["job_trigger_id"],
+        ["id"],
     )
 
     # ### start of data migration, pause the alembic auto-generate ###
@@ -321,7 +351,11 @@ def downgrade():
     )
     op.drop_constraint(None, "copr_builds", type_="foreignkey")
     op.create_foreign_key(
-        "copr_builds_pr_id_fkey1", "copr_builds", "pull_requests", ["pr_id"], ["id"]
+        "copr_builds_pr_id_fkey1",
+        "copr_builds",
+        "pull_requests",
+        ["pr_id"],
+        ["id"],
     )
     op.drop_column("copr_builds", "job_trigger_id")
     op.drop_index(op.f("ix_tft_test_runs_pipeline_id"), table_name="tft_test_runs")

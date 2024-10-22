@@ -57,7 +57,8 @@ github_webhook_calls = Counter(
 class GithubWebhook(Resource):
     @ns.response(HTTPStatus.OK.value, "Webhook accepted, returning reply")
     @ns.response(
-        HTTPStatus.ACCEPTED.value, "Webhook accepted, request is being processed"
+        HTTPStatus.ACCEPTED.value,
+        "Webhook accepted, request is being processed",
     )
     @ns.response(HTTPStatus.BAD_REQUEST.value, "Bad request data")
     @ns.response(HTTPStatus.UNAUTHORIZED.value, "X-Hub-Signature validation failed")
@@ -84,13 +85,15 @@ class GithubWebhook(Resource):
         except ValidationFailed as exc:
             logger.info(f"/webhooks/github {exc}")
             github_webhook_calls.labels(
-                result="invalid_signature", process_id=os.getpid()
+                result="invalid_signature",
+                process_id=os.getpid(),
             ).inc()
             return str(exc), HTTPStatus.UNAUTHORIZED
 
         if not self.interested():
             github_webhook_calls.labels(
-                result="not_interested", process_id=os.getpid()
+                result="not_interested",
+                process_id=os.getpid(),
             ).inc()
             return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
 
@@ -143,10 +146,10 @@ class GithubWebhook(Resource):
                 msg = "X-Hub-Signature-256 not in request.headers"
                 logger.warning(msg)
                 raise ValidationFailed(msg)
-            else:
-                # don't validate signatures when testing locally
-                logger.debug("Ain't validating signatures.")
-                return
+
+            # don't validate signatures when testing locally
+            logger.debug("Ain't validating signatures.")
+            return
 
         if not (webhook_secret := config.webhook_secret.encode()):
             msg = "'webhook_secret' not specified in the config."
@@ -159,7 +162,7 @@ class GithubWebhook(Resource):
             msg = "Payload signature validation failed."
             logger.warning(msg)
             logger.debug(
-                f"X-Hub-Signature-256: {signature!r} != computed: {data_hmac.hexdigest()}"
+                f"X-Hub-Signature-256: {signature!r} != computed: {data_hmac.hexdigest()}",
             )
             raise ValidationFailed(msg)
 
@@ -168,7 +171,8 @@ class GithubWebhook(Resource):
 class GitlabWebhook(Resource):
     @ns.response(HTTPStatus.OK.value, "Webhook accepted, returning reply")
     @ns.response(
-        HTTPStatus.ACCEPTED.value, "Webhook accepted, request is being processed"
+        HTTPStatus.ACCEPTED.value,
+        "Webhook accepted, request is being processed",
     )
     @ns.response(HTTPStatus.BAD_REQUEST.value, "Bad request data")
     @ns.response(HTTPStatus.UNAUTHORIZED.value, "X-Gitlab-Token validation failed")
@@ -271,10 +275,10 @@ class GitlabWebhook(Resource):
                 logger.info(msg)
                 self.create_confidential_issue_with_token()
                 raise ValidationFailed(msg)
-            else:
-                # don't validate signatures when testing locally
-                logger.debug("Ain't validating token.")
-                return
+
+            # don't validate signatures when testing locally
+            logger.debug("Ain't validating token.")
+            return
 
         token = request.headers["X-Gitlab-Token"]
 
@@ -286,7 +290,9 @@ class GitlabWebhook(Resource):
 
         try:
             token_decoded = jwt.decode(
-                token, config.gitlab_token_secret, algorithms=["HS256"]
+                token,
+                config.gitlab_token_secret,
+                algorithms=["HS256"],
             )
         except (
             jwt.exceptions.InvalidSignatureError,

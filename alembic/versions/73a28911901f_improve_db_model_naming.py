@@ -29,23 +29,23 @@ def upgrade():
     op.execute("ALTER SEQUENCE copr_builds_id_seq RENAME TO copr_build_targets_id_seq")
     op.execute("ALTER INDEX copr_builds_pkey RENAME TO copr_build_targets_pkey")
     op.execute(
-        "ALTER INDEX ix_copr_builds_build_id RENAME TO ix_copr_build_targets_build_id"
+        "ALTER INDEX ix_copr_builds_build_id RENAME TO ix_copr_build_targets_build_id",
     )
 
     op.rename_table("koji_builds", "koji_build_targets")
     op.execute("ALTER SEQUENCE koji_builds_id_seq RENAME TO koji_build_targets_id_seq")
     op.execute("ALTER INDEX koji_builds_pkey RENAME TO koji_build_targets_pkey")
     op.execute(
-        "ALTER INDEX ix_koji_builds_build_id RENAME TO ix_koji_build_targets_build_id"
+        "ALTER INDEX ix_koji_builds_build_id RENAME TO ix_koji_build_targets_build_id",
     )
 
     op.rename_table("tft_test_runs", "tft_test_run_targets")
     op.execute(
-        "ALTER SEQUENCE tft_test_runs_id_seq RENAME TO tft_test_run_targets_id_seq"
+        "ALTER SEQUENCE tft_test_runs_id_seq RENAME TO tft_test_run_targets_id_seq",
     )
     op.execute("ALTER INDEX tft_test_runs_pkey RENAME TO tft_test_run_targets_pkey")
     op.execute(
-        "ALTER INDEX ix_tft_test_runs_pipeline_id RENAME TO ix_tft_test_run_targets_pipeline_id"
+        "ALTER INDEX ix_tft_test_runs_pipeline_id RENAME TO ix_tft_test_run_targets_pipeline_id",
     )
 
 
@@ -63,21 +63,21 @@ def downgrade():
     op.execute("ALTER SEQUENCE copr_build_targets_id_seq RENAME TO copr_builds_id_seq")
     op.execute("ALTER INDEX copr_build_targets_pkey RENAME TO copr_builds_pkey")
     op.execute(
-        "ALTER INDEX ix_copr_build_targets_build_id RENAME TO ix_copr_builds_build_id"
+        "ALTER INDEX ix_copr_build_targets_build_id RENAME TO ix_copr_builds_build_id",
     )
 
     op.rename_table("koji_build_targets", "koji_builds")
     op.execute("ALTER SEQUENCE koji_build_targets_id_seq RENAME TO koji_builds_id_seq")
     op.execute("ALTER INDEX koji_build_targets_pkey RENAME TO koji_builds_pkey")
     op.execute(
-        "ALTER INDEX ix_koji_build_targets_build_id RENAME TO ix_koji_builds_build_id"
+        "ALTER INDEX ix_koji_build_targets_build_id RENAME TO ix_koji_builds_build_id",
     )
 
     op.rename_table("tft_test_run_targets", "tft_test_runs")
     op.execute(
-        "ALTER SEQUENCE tft_test_run_targets_id_seq RENAME TO tft_test_runs_id_seq"
+        "ALTER SEQUENCE tft_test_run_targets_id_seq RENAME TO tft_test_runs_id_seq",
     )
     op.execute("ALTER INDEX tft_test_run_targets_pkey RENAME TO tft_test_runs_pkey")
     op.execute(
-        "ALTER INDEX ix_tft_test_run_targets_pipeline_id RENAME TO ix_tft_test_runs_pipeline_id"
+        "ALTER INDEX ix_tft_test_run_targets_pipeline_id RENAME TO ix_tft_test_runs_pipeline_id",
     )

@@ -3,36 +3,37 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol, Iterator, Union
+from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Any, Optional, Protocol, Union
+
+from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitException
-from packit.config import PackageConfig, JobConfig
 from packit.utils.koji_helper import KojiHelper
 from packit.vm_image_build import ImageBuilder
-from packit_service.utils import get_packit_commands_from_comment
+
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (
-    ProjectEventModel,
-    CoprBuildTargetModel,
-    SRPMBuildModel,
     BuildStatus,
+    CoprBuildTargetModel,
+    ProjectEventModel,
+    SRPMBuildModel,
 )
-from packit_service.worker.events.event import EventData
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.events.copr import AbstractCoprBuildEvent
+from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github import PullRequestCommentGithubEvent
 from packit_service.worker.events.gitlab import MergeRequestCommentGitlabEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.abstract import CeleryTask
-from packit_service.worker.helpers.sidetag import SidetagHelper, Sidetag
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.sidetag import Sidetag, SidetagHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-
 from packit_service.worker.mixin import Config, ConfigFromEventMixin, GetBranches
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.monitoring import Pushgateway
-
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
     def koji_build_event(self):
         if not self._koji_build_event:
             self._koji_build_event = KojiBuildEvent.from_event_dict(
-                self.data.event_dict
+                self.data.event_dict,
             )
         return self._koji_build_event
 
@@ -180,7 +181,8 @@ class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEven
 
 
 class GetKojiBuildDataFromKojiBuildTagEventMixin(
-    ConfigFromEventMixin, GetKojiBuildData
+    ConfigFromEventMixin,
+    GetKojiBuildData,
 ):
     _koji_build_tag_event: Optional[KojiBuildTagEvent] = None
     _sidetag: Optional[Sidetag] = None
@@ -189,7 +191,7 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
     def koji_build_tag_event(self) -> KojiBuildTagEvent:
         if not self._koji_build_tag_event:
             self._koji_build_tag_event = KojiBuildTagEvent.from_event_dict(
-                self.data.event_dict
+                self.data.event_dict,
             )
         return self._koji_build_tag_event
 
@@ -197,7 +199,7 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
     def sidetag(self) -> Optional[Sidetag]:
         if not self._sidetag:
             self._sidetag = SidetagHelper.get_sidetag_by_koji_name(
-                self.koji_build_tag_event.tag_name
+                self.koji_build_tag_event.tag_name,
             )
         return self._sidetag
 
@@ -243,12 +245,13 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
     def _get_latest_build(self) -> dict:
         if not (
             build := self.koji_helper.get_latest_candidate_build(
-                self.project.repo, self._dist_git_branch
+                self.project.repo,
+                self._dist_git_branch,
             )
         ):
             raise PackitException(
                 f"No build found for package={self.project.repo} "
-                f"and branch={self._dist_git_branch}"
+                f"and branch={self._dist_git_branch}",
             )
         return build
 
@@ -276,7 +279,8 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
 
 
 class GetKojiBuildDataFromKojiServiceMixin(
-    ConfigFromEventMixin, GetKojiBuildDataFromKojiService
+    ConfigFromEventMixin,
+    GetKojiBuildDataFromKojiService,
 ):
     @property
     def _dist_git_branch(self) -> str:
@@ -288,7 +292,8 @@ class GetKojiBuildDataFromKojiServiceMixin(
 
 
 class GetKojiBuildDataFromKojiServiceMultipleBranches(
-    GetKojiBuildDataFromKojiService, GetBranches
+    GetKojiBuildDataFromKojiService,
+    GetBranches,
 ):
     @property
     def _dist_git_branch(self) -> str:
@@ -319,7 +324,7 @@ class GetCoprBuildEventMixin(ConfigFromEventMixin, GetCoprBuildEvent):
     def copr_event(self):
         if not self._copr_build_event:
             self._copr_build_event = AbstractCoprBuildEvent.from_event_dict(
-                self.data.event_dict
+                self.data.event_dict,
             )
         return self._copr_build_event
 
@@ -346,7 +351,8 @@ class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
                 self._build = SRPMBuildModel.get_by_copr_build_id(build_id)
             else:
                 self._build = CoprBuildTargetModel.get_by_build_id(
-                    build_id, self.copr_event.chroot
+                    build_id,
+                    self.copr_event.chroot,
                 )
         return self._build
 
@@ -415,7 +421,9 @@ class GetCoprBuildJobHelperMixin(Config, GetCoprBuildJobHelper):
 
 
 class GetCoprBuildJobHelperForIdMixin(
-    GetCoprBuildJobHelper, GetCoprSRPMBuildMixin, ConfigFromEventMixin
+    GetCoprBuildJobHelper,
+    GetCoprSRPMBuildMixin,
+    ConfigFromEventMixin,
 ):
     _copr_build_helper: Optional[CoprBuildJobHelper] = None
 
@@ -426,7 +434,7 @@ class GetCoprBuildJobHelperForIdMixin(
             {
                 build.target
                 for build in CoprBuildTargetModel.get_all_by_build_id(
-                    str(self.copr_event.build_id)
+                    str(self.copr_event.build_id),
                 )
             }
             if self.copr_event.chroot == COPR_SRPM_CHROOT
@@ -457,7 +465,9 @@ class GetTestingFarmJobHelper(Protocol):
 
 
 class GetTestingFarmJobHelperMixin(
-    GetTestingFarmJobHelper, GetCoprBuildMixin, ConfigFromEventMixin
+    GetTestingFarmJobHelper,
+    GetCoprBuildMixin,
+    ConfigFromEventMixin,
 ):
     _testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
@@ -528,11 +538,13 @@ class GetProjectToSyncMixin(ConfigFromEventMixin, GetProjectToSync):
 
     @property
     def project_to_sync(self) -> Optional[ProjectToSync]:
-        if self._project_to_sync is None:
-            if project_to_sync := self.service_config.get_project_to_sync(
-                dg_repo_name=self.dg_repo_name, dg_branch=self.dg_branch
-            ):
-                self._project_to_sync = project_to_sync
+        if self._project_to_sync is None and (
+            project_to_sync := self.service_config.get_project_to_sync(
+                dg_repo_name=self.dg_repo_name,
+                dg_branch=self.dg_branch,
+            )
+        ):
+            self._project_to_sync = project_to_sync
         return self._project_to_sync
 
 
@@ -583,7 +595,7 @@ class GetVMImageBuilderMixin(Config):
     def vm_image_builder(self):
         if not self._vm_image_builder:
             self._vm_image_builder = ImageBuilder(
-                self.service_config.redhat_api_refresh_token
+                self.service_config.redhat_api_refresh_token,
             )
         return self._vm_image_builder
 

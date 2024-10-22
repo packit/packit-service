@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, List, Set, Dict, Callable
+from typing import Callable, Optional
 
 from ogr.abstract import GitProject
+from packit.config import JobConfig, JobType, PackageConfig
 
-from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.worker.events import EventData
@@ -28,7 +28,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        branches_override: Optional[Set[str]] = None,
+        branches_override: Optional[set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -44,7 +44,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
     def default_dg_branch(self) -> str:
         if not self._default_dg_branch:
             git_project = self.service_config.get_project(
-                url=self.package_config.dist_git_package_url
+                url=self.package_config.dist_git_package_url,
             )
             self._default_dg_branch = git_project.default_branch
         return self._default_dg_branch
@@ -55,7 +55,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ):
         if self.job and branch in self.branches:
             cs = self.get_check(branch)
@@ -70,7 +70,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
     @classmethod
     def get_check_cls(
         cls,
-        branch: str = None,
+        branch: Optional[str] = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
     ) -> str:
@@ -83,7 +83,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{cls.status_name}{trigger_str}{branch_str}{optional_suffix}"
 
-    def get_check(self, branch: str = None) -> str:
+    def get_check(self, branch: Optional[str] = None) -> str:
         return self.get_check_cls(branch, identifier=self.job_config.identifier)
 
     @property
@@ -91,7 +91,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         return ""
 
     @property
-    def check_names(self) -> List[str]:
+    def check_names(self) -> list[str]:
         """
         List of full names of the commit statuses for propose-downstream job.
 
@@ -106,9 +106,9 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         if self.job_type:
             self._report(
@@ -126,9 +126,9 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ):
         self.report_status_to_all(
             description=description,

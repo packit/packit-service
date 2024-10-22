@@ -2,25 +2,25 @@
 # SPDX-License-Identifier: MIT
 
 from http import HTTPStatus
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from flask.json import jsonify
 
 from packit_service.models import (
-    CoprBuildTargetModel,
+    AnityaProjectModel,
+    BodhiUpdateTargetModel,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
     GitProjectModel,
-    KojiBuildTargetModel,
     KojiBuildGroupModel,
+    KojiBuildTargetModel,
     SRPMBuildModel,
-    TFTTestRunTargetModel,
-    TFTTestRunGroupModel,
     SyncReleaseModel,
     SyncReleaseTargetModel,
-    optional_timestamp,
-    BodhiUpdateTargetModel,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
     VMImageBuildTargetModel,
-    AnityaProjectModel,
+    optional_timestamp,
 )
 
 
@@ -43,8 +43,8 @@ def get_project_info_from_build(
         SyncReleaseModel,
         BodhiUpdateTargetModel,
         VMImageBuildTargetModel,
-    ]
-) -> Dict[str, Any]:
+    ],
+) -> dict[str, Any]:
     if not (project := build.get_project()):
         return {}
 

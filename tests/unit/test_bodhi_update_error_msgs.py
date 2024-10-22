@@ -3,15 +3,15 @@
 
 import pytest
 from flexmock import flexmock
-
 from packit.config import (
+    CommonPackageConfig,
     JobConfig,
     JobConfigTriggerType,
     JobType,
     PackageConfig,
-    CommonPackageConfig,
 )
 from packit.exceptions import PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
@@ -31,7 +31,7 @@ def package_config__job_config():
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
         jobs=[
             JobConfig(
@@ -40,7 +40,7 @@ def package_config__job_config():
                 packages={
                     "package": CommonPackageConfig(
                         identifier="first",
-                    )
+                    ),
                 },
             ),
         ],
@@ -51,7 +51,7 @@ def package_config__job_config():
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
     )
     return package_config, job_config
@@ -61,10 +61,10 @@ def package_config__job_config():
 def package_config__job_config__pull_request_event(package_config__job_config):
     package_config, job_config = package_config__job_config
     flexmock(PullRequestCommentPagureEvent).should_receive("commit_sha").and_return(
-        "abcdef"
+        "abcdef",
     )
     flexmock(PullRequestCommentPagureEvent).should_receive(
-        "get_packages_config"
+        "get_packages_config",
     ).and_return(package_config)
     data = PullRequestCommentPagureEvent(
         pr_id=123,
@@ -116,10 +116,10 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
         .mock()
     )
     flexmock(RetriggerBodhiUpdateHandler).should_receive("packit_api").and_return(
-        packit_api
+        packit_api,
     )
     flexmock(RetriggerBodhiUpdateHandler).should_receive(
-        "_get_or_create_bodhi_update_group_model"
+        "_get_or_create_bodhi_update_group_model",
     ).and_return(
         flexmock(
             grouped_targets=[
@@ -129,9 +129,9 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
                     sidetag=None,
                     set_status=lambda x: None,
                     set_data=lambda x: None,
-                )
-            ]
-        )
+                ),
+            ],
+        ),
     )
     flexmock(RetriggerBodhiUpdateHandler).should_receive("__next__").and_return(
         KojiBuildData(
@@ -140,7 +140,7 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
             nvr="a_package_1.f36",
             state=1,
             task_id=123,
-        )
+        ),
     )
     flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
     handler = RetriggerBodhiUpdateHandler(package_config, job_config, data, flexmock())

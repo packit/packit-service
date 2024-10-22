@@ -9,9 +9,10 @@ Create Date: 2020-04-27 11:46:17.288814
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import Column, Integer, String, orm
 from sqlalchemy.ext.declarative import declarative_base
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "f0abb806c3d4"
@@ -20,7 +21,7 @@ branch_labels = None
 depends_on = None
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()

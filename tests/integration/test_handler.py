@@ -5,7 +5,6 @@ import os
 
 import pytest
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
 from packit.config import (
     CommonPackageConfig,
@@ -14,25 +13,26 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import (
     GitBranchModel,
-    PullRequestModel,
     ProjectEventModel,
     ProjectEventModelType,
+    PullRequestModel,
 )
+from packit_service.worker.handlers import (
+    CoprBuildHandler,
+    JobHandler,
+    KojiBuildHandler,
+)
+from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.handlers import (
-    JobHandler,
-    CoprBuildHandler,
-    KojiBuildHandler,
-)
-from packit_service.worker.helpers.build import CoprBuildJobHelper
-from packit_service.worker.reporting import StatusReporterGithubChecks, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 
 
 @pytest.fixture()
@@ -44,7 +44,9 @@ def trick_p_s_with_k8s():
 
 def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
     class TestJobHandler(
-        JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+        JobHandler,
+        ConfigFromEventMixin,
+        PackitAPIWithDownstreamMixin,
     ):
         pass
 
@@ -125,7 +127,7 @@ def test_precheck(github_pr_event):
     event = github_pr_event.get_dict()
 
     flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
+        "is_custom_copr_project_defined",
     ).and_return(False).once()
     assert CoprBuildHandler.pre_check(package_config, job_config, event)
 
@@ -182,7 +184,7 @@ def test_precheck_gitlab(gitlab_mr_event):
     event = gitlab_mr_event.get_dict()
 
     flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
+        "is_custom_copr_project_defined",
     ).and_return(False).once()
     assert CoprBuildHandler.pre_check(package_config, job_config, event)
 
@@ -206,7 +208,7 @@ def test_precheck_push(github_push_event):
         commit_sha="04885ff850b0fa0e206cd09db73565703d48f99b",
     ).and_return(db_project_event)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        db_project_object
+        db_project_object,
     )
     jc = JobConfig(
         type=JobType.copr_build,
@@ -216,12 +218,13 @@ def test_precheck_push(github_push_event):
                 branch="build-branch",
                 owner="@foo",
                 project="bar",
-            )
+            ),
         },
     )
 
     package_config = PackageConfig(
-        jobs=[jc], packages={"package": CommonPackageConfig()}
+        jobs=[jc],
+        packages={"package": CommonPackageConfig()},
     )
     event = github_push_event.get_dict()
     api = flexmock(
@@ -230,11 +233,11 @@ def test_precheck_push(github_push_event):
                 config={"username": "nobody"},
                 project_proxy=flexmock(
                     get=lambda owner, project: {
-                        "packit_forge_projects_allowed": "github.com/packit-service/hello-world"
-                    }
+                        "packit_forge_projects_allowed": "github.com/packit-service/hello-world",
+                    },
                 ),
-            )
-        )
+            ),
+        ),
     )
     flexmock(CoprBuildJobHelper).should_receive("api").and_return(api)
 
@@ -261,7 +264,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         commit_sha="04885ff850b0fa0e206cd09db73565703d48f99b",
     ).and_return(db_project_event)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        db_project_object
+        db_project_object,
     )
 
     package_config = PackageConfig(
@@ -272,7 +275,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
                 packages={
                     "package": CommonPackageConfig(
                         branch="bad-branch",
-                    )
+                    ),
                 },
             ),
         ],
@@ -284,7 +287,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         packages={
             "package": CommonPackageConfig(
                 branch="bad-branch",
-            )
+            ),
         },
     )
     event = github_push_event.get_dict()
@@ -293,7 +296,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
 
 def test_precheck_push_actor_check(github_push_event):
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
+        flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit),
     )
 
     package_config = PackageConfig(
@@ -362,7 +365,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
                     "package": CommonPackageConfig(
                         _targets=["bright-future"],
                         scratch=False,
-                    )
+                    ),
                 },
             ),
         ],
@@ -375,7 +378,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
             "package": CommonPackageConfig(
                 _targets=["bright-future"],
                 scratch=False,
-            )
+            ),
         },
     )
     event = github_pr_event.get_dict()

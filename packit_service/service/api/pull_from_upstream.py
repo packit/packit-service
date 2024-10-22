@@ -7,15 +7,15 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    SyncReleaseTargetModel,
-    SyncReleaseModel,
     SyncReleaseJobType,
+    SyncReleaseModel,
+    SyncReleaseTargetModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
-    response_maker,
-    get_sync_release_target_info,
     get_sync_release_info,
+    get_sync_release_target_info,
+    response_maker,
 )
 
 logger = getLogger("packit_service")
@@ -30,12 +30,15 @@ class PullFromUpstreamList(Resource):
     def get(self):
         """List of all Pull from upstream results."""
 
-        result = []
         first, last = indices()
-        for pull_results in SyncReleaseModel.get_range(
-            first, last, job_type=SyncReleaseJobType.pull_from_upstream
-        ):
-            result.append(get_sync_release_info(pull_results))
+        result = [
+            get_sync_release_info(pull_results)
+            for pull_results in SyncReleaseModel.get_range(
+                first,
+                last,
+                job_type=SyncReleaseJobType.pull_from_upstream,
+            )
+        ]
 
         resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"pull-from-upstreams {first + 1}-{last}/*"
@@ -46,7 +49,8 @@ class PullFromUpstreamList(Resource):
 @ns.param("id", "Packit id of the pull from upstream run target")
 class PullResult(Resource):
     @ns.response(
-        HTTPStatus.OK.value, "OK, pull from upstream target details will follow"
+        HTTPStatus.OK.value,
+        "OK, pull from upstream target details will follow",
     )
     @ns.response(
         HTTPStatus.NOT_FOUND.value,

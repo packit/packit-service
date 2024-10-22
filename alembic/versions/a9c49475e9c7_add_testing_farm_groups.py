@@ -10,29 +10,29 @@ import collections
 import enum
 import itertools
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
-from packit_service.models import ProjectAndEventsConnector
-
-from alembic import op
 import sqlalchemy as sa
 import sqlalchemy.orm
 from sqlalchemy import (
+    JSON,
+    Boolean,
     Column,
-    Integer,
-    String,
     DateTime,
     Enum,
-    Table,
     ForeignKey,
-    JSON,
+    Integer,
+    String,
+    Table,
     Text,
-    Boolean,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-if TYPE_CHECKING:
+from alembic import op
+from packit_service.models import ProjectAndEventsConnector
+
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()
@@ -87,11 +87,15 @@ class PipelineModel(Base):
     test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"), index=True)
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
     test_run_group_id = Column(
-        Integer, ForeignKey("tft_test_run_groups.id"), index=True
+        Integer,
+        ForeignKey("tft_test_run_groups.id"),
+        index=True,
     )
     test_run_group = relationship("TFTTestRunGroupModel", back_populates="runs")
     sync_release_run_id = Column(
-        Integer, ForeignKey("sync_release_runs.id"), index=True
+        Integer,
+        ForeignKey("sync_release_runs.id"),
+        index=True,
     )
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
@@ -132,7 +136,8 @@ class TFTTestRunTargetModel(ProjectAndEventsConnector, Base):
 
     runs = relationship("PipelineModel", back_populates="test_run")
     group_of_targets = relationship(
-        "TFTTestRunGroupModel", back_populates="tft_test_run_targets"
+        "TFTTestRunGroupModel",
+        back_populates="tft_test_run_targets",
     )
 
 
@@ -262,7 +267,8 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"))
 
     sync_release = relationship(
-        "SyncReleaseModel", back_populates="sync_release_targets"
+        "SyncReleaseModel",
+        back_populates="sync_release_targets",
     )
 
 
@@ -283,12 +289,14 @@ class SyncReleaseModel(ProjectAndEventsConnector, Base):
     status = Column(Enum(SyncReleaseStatus))
     submitted_time = Column(DateTime, default=datetime.utcnow)
     job_type = Column(
-        Enum(SyncReleaseJobType), default=SyncReleaseJobType.propose_downstream
+        Enum(SyncReleaseJobType),
+        default=SyncReleaseJobType.propose_downstream,
     )
 
     runs = relationship("PipelineModel", back_populates="sync_release_run")
     sync_release_targets = relationship(
-        "SyncReleaseTargetModel", back_populates="sync_release"
+        "SyncReleaseTargetModel",
+        back_populates="sync_release",
     )
 
 
@@ -305,11 +313,12 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     runs = relationship("PipelineModel", back_populates="test_run_group")
     tft_test_run_targets = relationship(
-        "TFTTestRunTargetModel", back_populates="group_of_targets"
+        "TFTTestRunTargetModel",
+        back_populates="group_of_targets",
     )
 
     @property
-    def grouped_targets(self) -> List["TFTTestRunTargetModel"]:
+    def grouped_targets(self) -> list["TFTTestRunTargetModel"]:
         return self.tft_test_run_targets
 
 
@@ -334,10 +343,15 @@ def upgrade():
         ["id"],
     )
     op.add_column(
-        "pipelines", sa.Column("test_run_group_id", sa.Integer(), nullable=True)
+        "pipelines",
+        sa.Column("test_run_group_id", sa.Integer(), nullable=True),
     )
     op.create_foreign_key(
-        None, "pipelines", "tft_test_run_groups", ["test_run_group_id"], ["id"]
+        None,
+        "pipelines",
+        "tft_test_run_groups",
+        ["test_run_group_id"],
+        ["id"],
     )
 
     # We group by the same SRPM. If there is no SRPM (testing without building), we just
@@ -408,7 +422,8 @@ def downgrade():
     # Split the groups back, this may not fully produce the same thing.
     for group in session.query(TFTTestRunGroupModel):
         for pipeline, test_run in itertools.zip_longest(
-            group.runs, group.tft_test_run_targets
+            group.runs,
+            group.tft_test_run_targets,
         ):
             if not pipeline:
                 # Not enough pipelines, create a new one
@@ -419,7 +434,8 @@ def downgrade():
             session.add(pipeline)
 
     op.drop_constraint(
-        "tft_test_run_targets_tft_test_run_group_id_fkey", "tft_test_run_targets"
+        "tft_test_run_targets_tft_test_run_group_id_fkey",
+        "tft_test_run_targets",
     )
     op.drop_column("tft_test_run_targets", "tft_test_run_group_id")
     op.drop_constraint("pipelines_test_run_group_id_fkey", "pipelines")

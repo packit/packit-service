@@ -7,8 +7,8 @@
 CLI script to interact with our allowlist.
 """
 
-from urllib.parse import urlparse
 from typing import Optional
+from urllib.parse import urlparse
 
 import click
 
@@ -44,7 +44,7 @@ class RepoUrl(click.types.ParamType):
         return click.confirm(
             "Are you manipulating with a "
             + click.style(highlighted, fg="red", bold=True)
-            + f" ‹{path}›?"
+            + f" ‹{path}›?",
         )
 
     def convert(
@@ -77,7 +77,7 @@ def construct_path() -> str:
     namespace_or_repo = click.prompt(
         "(in case of specific repository, type the whole path suffixed with "
         "‹.git›, e.g. for ‹ogr› repository in ‹packit› namespace type "
-        "‹packit/ogr.git›)\nPlease input namespace"
+        "‹packit/ogr.git›)\nPlease input namespace",
     )
 
     return "/".join((domain, namespace_or_repo))

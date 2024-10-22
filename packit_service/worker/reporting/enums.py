@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from enum import Enum, auto
-from typing import Dict, Union
+from typing import Union
 
 from ogr.abstract import CommitStatus
 from ogr.services.github.check_run import (
@@ -31,7 +31,7 @@ class BaseCommitStatus(Enum):
     error = "error"
 
 
-MAP_TO_COMMIT_STATUS: Dict[BaseCommitStatus, CommitStatus] = {
+MAP_TO_COMMIT_STATUS: dict[BaseCommitStatus, CommitStatus] = {
     BaseCommitStatus.pending: CommitStatus.pending,
     BaseCommitStatus.running: CommitStatus.running,
     BaseCommitStatus.failure: CommitStatus.failure,
@@ -40,8 +40,9 @@ MAP_TO_COMMIT_STATUS: Dict[BaseCommitStatus, CommitStatus] = {
     BaseCommitStatus.error: CommitStatus.error,
 }
 
-MAP_TO_CHECK_RUN: Dict[
-    BaseCommitStatus, Union[GithubCheckRunResult, GithubCheckRunStatus]
+MAP_TO_CHECK_RUN: dict[
+    BaseCommitStatus,
+    Union[GithubCheckRunResult, GithubCheckRunStatus],
 ] = {
     BaseCommitStatus.pending: GithubCheckRunStatus.queued,
     BaseCommitStatus.running: GithubCheckRunStatus.in_progress,

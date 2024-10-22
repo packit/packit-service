@@ -4,7 +4,7 @@
 import logging
 import os
 
-from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
+from prometheus_client import CollectorRegistry, Counter, Histogram, push_to_gateway
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 class Pushgateway:
     def __init__(self):
         self.pushgateway_address = os.getenv(
-            "PUSHGATEWAY_ADDRESS", "http://pushgateway"
+            "PUSHGATEWAY_ADDRESS",
+            "http://pushgateway",
         )
         # so that workers don't overwrite each other's metrics,
         # the job name corresponds to worker name (e.g. packit-worker-0)
@@ -166,5 +167,7 @@ class Pushgateway:
 
         logger.info("Pushing the metrics to pushgateway.")
         push_to_gateway(
-            self.pushgateway_address, job=self.worker_name, registry=self.registry
+            self.pushgateway_address,
+            job=self.worker_name,
+            registry=self.registry,
         )

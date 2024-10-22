@@ -4,7 +4,6 @@ from datetime import datetime
 
 import pytest
 from flexmock import flexmock
-
 from ogr import GithubService, GitlabService, PagureService
 
 from packit_service.config import ServiceConfig
@@ -33,7 +32,9 @@ def tf_models():
     tf.__class__ = TFTTestRunTargetModel
 
     another_fake_tf = flexmock(
-        pipeline_id="2", submitted_time=latest_time, target="target"
+        pipeline_id="2",
+        submitted_time=latest_time,
+        target="target",
     )
     flexmock(TFTTestRunTargetModel).new_instances(another_fake_tf)
     another_tf = TFTTestRunTargetModel()

@@ -3,19 +3,19 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Union, Dict, Callable
-
-from packit_service.worker.reporting.enums import (
-    BaseCommitStatus,
-    MAP_TO_COMMIT_STATUS,
-    MAP_TO_CHECK_RUN,
-    DuplicateCheckMode,
-)
+from typing import Callable, Optional, Union
 
 from ogr.abstract import GitProject, PullRequest
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+
+from packit_service.worker.reporting.enums import (
+    MAP_TO_CHECK_RUN,
+    MAP_TO_COMMIT_STATUS,
+    BaseCommitStatus,
+    DuplicateCheckMode,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class StatusReporter:
         pr_id: Optional[int] = None,
     ):
         logger.debug(
-            f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}"
+            f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}",
         )
         self.project: GitProject = project
         self._project_with_commit: Optional[GitProject] = None
@@ -100,8 +100,8 @@ class StatusReporter:
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        markdown_content: str = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        markdown_content: Optional[str] = None,
     ):
         raise NotImplementedError()
 
@@ -110,10 +110,10 @@ class StatusReporter:
         state: BaseCommitStatus,
         description: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         """
         Set commit check status.
@@ -145,7 +145,7 @@ class StatusReporter:
             logger.warning("No checks to set status for.")
             return
 
-        elif isinstance(check_names, str):
+        if isinstance(check_names, str):
             check_names = [check_names]
 
         for check in check_names:
@@ -171,7 +171,11 @@ class StatusReporter:
         }
 
     def _add_commit_comment_with_status(
-        self, state: BaseCommitStatus, description: str, check_name: str, url: str = ""
+        self,
+        state: BaseCommitStatus,
+        description: str,
+        check_name: str,
+        url: str = "",
     ):
         """Add a comment with status to the commit.
 
@@ -183,7 +187,7 @@ class StatusReporter:
                     f"- name: {check_name}",
                     f"- state: {state.name}",
                     f"- url: {url or 'not provided'}",
-                ]
+                ],
             )
             + f"\n\n{description}"
         )
@@ -219,7 +223,10 @@ class StatusReporter:
         self.project_with_commit.get_commit_statuses(commit=self.commit_sha)
 
     def _has_identical_comment(
-        self, body: str, mode: DuplicateCheckMode, check_commit: bool = False
+        self,
+        body: str,
+        mode: DuplicateCheckMode,
+        check_commit: bool = False,
     ) -> bool:
         """Checks if the body is the same as the last or any (based on mode) comment.
 
@@ -237,7 +244,8 @@ class StatusReporter:
             if comment.author.startswith(self._packit_user):
                 if mode == DuplicateCheckMode.check_last_comment:
                     return body == comment.body
-                elif (
+
+                if (
                     mode == DuplicateCheckMode.check_all_comments
                     and body == comment.body
                 ):

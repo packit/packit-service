@@ -7,29 +7,29 @@ from ogr.services.github import GithubProject
 
 from packit_service.constants import KojiTaskState
 from packit_service.models import (
-    ProjectReleaseModel,
-    GitProjectModel,
-    GitBranchModel,
-    PullRequestModel,
-    CoprBuildTargetModel,
-    TFTTestRunTargetModel,
-    TestingFarmResult,
     BuildStatus,
+    CoprBuildTargetModel,
+    GitBranchModel,
+    GitProjectModel,
+    ProjectReleaseModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
 from packit_service.worker.events import (
-    ReleaseEvent,
-    PushGitHubEvent,
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    TestingFarmResultsEvent,
-    MergeRequestGitlabEvent,
-    KojiTaskEvent,
-    MergeRequestCommentGitlabEvent,
-    PushGitlabEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    KojiTaskEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    ReleaseEvent,
+    TestingFarmResultsEvent,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser
@@ -37,10 +37,12 @@ from tests_openshift.conftest import SampleValues
 
 
 def test_release_event_existing_release(
-    clean_before_and_after, release_model, release_event_dict
+    clean_before_and_after,
+    release_model,
+    release_event_dict,
 ):
     flexmock(GithubProject).should_receive("get_sha_from_tag").and_return(
-        SampleValues.commit_sha
+        SampleValues.commit_sha,
     )
 
     event_object = Parser.parse_event(release_event_dict)
@@ -63,7 +65,7 @@ def test_release_event_existing_release(
 
 def test_release_event_non_existing_release(clean_before_and_after, release_event_dict):
     flexmock(GithubProject).should_receive("get_sha_from_tag").and_return(
-        SampleValues.commit_sha
+        SampleValues.commit_sha,
     )
 
     event_object = Parser.parse_event(release_event_dict)
@@ -84,7 +86,9 @@ def test_release_event_non_existing_release(clean_before_and_after, release_even
 
 
 def test_push_branch_event_existing_branch(
-    clean_before_and_after, branch_model, push_branch_event_dict
+    clean_before_and_after,
+    branch_model,
+    push_branch_event_dict,
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
     assert isinstance(event_object, PushGitHubEvent)
@@ -103,7 +107,8 @@ def test_push_branch_event_existing_branch(
 
 
 def test_push_branch_event_non_existing_branch(
-    clean_before_and_after, push_branch_event_dict
+    clean_before_and_after,
+    push_branch_event_dict,
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
     assert isinstance(event_object, PushGitHubEvent)
@@ -174,7 +179,9 @@ def test_merge_request_comment_event(clean_before_and_after, mr_comment_event_di
 
 
 def test_push_gitlab_event(
-    clean_before_and_after, branch_model_gitlab, push_gitlab_event_dict
+    clean_before_and_after,
+    branch_model_gitlab,
+    push_gitlab_event_dict,
 ):
     event_object = Parser.parse_event(push_gitlab_event_dict)
     assert isinstance(event_object, PushGitlabEvent)
@@ -210,7 +217,9 @@ def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
 
 
 def test_pr_comment_event_existing_pr(
-    clean_before_and_after, pr_model, pr_comment_event_dict_packit_build
+    clean_before_and_after,
+    pr_model,
+    pr_comment_event_dict_packit_build,
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
     assert isinstance(event_object, PullRequestCommentGithubEvent)
@@ -221,7 +230,7 @@ def test_pr_comment_event_existing_pr(
     assert event_object.project_url == "https://github.com/the-namespace/the-repo-name"
 
     flexmock(GithubProject).should_receive("get_pr").with_args(342).and_return(
-        flexmock(head_commit="12345")
+        flexmock(head_commit="12345"),
     )
     assert event_object.commit_sha == "12345"
 
@@ -235,7 +244,8 @@ def test_pr_comment_event_existing_pr(
 
 
 def test_pr_comment_event_non_existing_pr(
-    clean_before_and_after, pr_comment_event_dict_packit_build
+    clean_before_and_after,
+    pr_comment_event_dict_packit_build,
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
     assert isinstance(event_object, PullRequestCommentGithubEvent)
@@ -245,7 +255,7 @@ def test_pr_comment_event_non_existing_pr(
     assert event_object.pr_id == 342
 
     flexmock(GithubProject).should_receive("get_pr").with_args(342).and_return(
-        flexmock(head_commit="12345")
+        flexmock(head_commit="12345"),
     )
     assert event_object.commit_sha == "12345"
 
@@ -258,10 +268,14 @@ def test_pr_comment_event_non_existing_pr(
 
 
 def test_testing_farm_response_existing_pr(
-    clean_before_and_after, pr_model, a_new_test_run_pr, tf_notification, tf_result
+    clean_before_and_after,
+    pr_model,
+    a_new_test_run_pr,
+    tf_notification,
+    tf_result,
 ):
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        SampleValues.pipeline_id
+        SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
     assert isinstance(event_object, TestingFarmResultsEvent)
@@ -278,10 +292,12 @@ def test_testing_farm_response_existing_pr(
 
 
 def test_testing_farm_response_non_existing_pr(
-    clean_before_and_after, tf_notification, tf_result
+    clean_before_and_after,
+    tf_notification,
+    tf_result,
 ):
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        SampleValues.pipeline_id
+        SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
     assert isinstance(event_object, TestingFarmResultsEvent)
@@ -299,7 +315,7 @@ def test_testing_farm_response_existing_branch_push(
     tf_result,
 ):
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        SampleValues.pipeline_id
+        SampleValues.pipeline_id,
     ).and_return(tf_result)
     branch_model = branch_project_event_model.get_project_event_object()
     event_object = Parser.parse_event(tf_notification)
@@ -317,10 +333,12 @@ def test_testing_farm_response_existing_branch_push(
 
 
 def test_testing_farm_response_non_existing_branch_push(
-    clean_before_and_after, tf_notification, tf_result
+    clean_before_and_after,
+    tf_notification,
+    tf_result,
 ):
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        SampleValues.pipeline_id
+        SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
 
@@ -333,7 +351,10 @@ def test_testing_farm_response_non_existing_branch_push(
 
 
 def test_koji_build_scratch_start(
-    clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_start_dict
+    clean_before_and_after,
+    pr_model,
+    a_koji_build_for_pr,
+    koji_build_scratch_start_dict,
 ):
     event_object = Parser.parse_event(koji_build_scratch_start_dict)
     assert isinstance(event_object, KojiTaskEvent)
@@ -351,7 +372,10 @@ def test_koji_build_scratch_start(
 
 
 def test_koji_build_scratch_end(
-    clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_end_dict
+    clean_before_and_after,
+    pr_model,
+    a_koji_build_for_pr,
+    koji_build_scratch_end_dict,
 ):
     event_object = Parser.parse_event(koji_build_scratch_end_dict)
     assert isinstance(event_object, KojiTaskEvent)
@@ -375,7 +399,7 @@ def test_parse_check_rerun_commit(
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        branch_project_event_model.id
+        branch_project_event_model.id,
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
@@ -402,7 +426,7 @@ def test_parse_check_rerun_pull_request(
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        pr_project_event_model.id
+        pr_project_event_model.id,
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
@@ -430,7 +454,7 @@ def test_parse_check_rerun_release(
     check_rerun_event_dict_commit,
 ):
     check_rerun_event_dict_commit["check_run"]["external_id"] = str(
-        release_project_event_model.id
+        release_project_event_model.id,
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
@@ -453,13 +477,14 @@ def test_parse_check_rerun_release(
 
 
 def test_filter_failed_models_targets_copr(
-    clean_before_and_after, multiple_copr_builds
+    clean_before_and_after,
+    multiple_copr_builds,
 ):
     builds_list = list(
         CoprBuildTargetModel.get_all_by(
             project_name=SampleValues.project,
             commit_sha=SampleValues.ref,
-        )
+        ),
     )
     assert len(builds_list) == 3
 
@@ -482,12 +507,13 @@ def test_filter_failed_models_targets_copr(
 
 
 def test_filter_failed_models_targets_tf(
-    clean_before_and_after, multiple_new_test_runs
+    clean_before_and_after,
+    multiple_new_test_runs,
 ):
     test_list = list(
         TFTTestRunTargetModel.get_all_by_commit_target(
-            commit_sha=SampleValues.commit_sha
-        )
+            commit_sha=SampleValues.commit_sha,
+        ),
     )
     assert len(test_list) == 3
 

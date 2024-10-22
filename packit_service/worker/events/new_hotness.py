@@ -4,14 +4,14 @@
 from abc import abstractmethod
 from functools import cached_property
 from logging import getLogger
-from typing import Optional, Dict
+from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
+from packit.config import JobConfigTriggerType, PackageConfig
 
-from packit.config import PackageConfig, JobConfigTriggerType
-from packit_service.config import ServiceConfig, PackageConfigGetter
-from packit_service.models import ProjectReleaseModel, ProjectEventModel
+from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.models import ProjectEventModel, ProjectReleaseModel
 from packit_service.worker.events import Event
 from packit_service.worker.events.event import use_for_job_config_trigger
 
@@ -53,7 +53,7 @@ class AnityaUpdateEvent(Event):
             return None
 
         return ServiceConfig.get_service_config().get_project(
-            url=self.distgit_project_url
+            url=self.distgit_project_url,
         )
 
     @property
@@ -81,9 +81,9 @@ class AnityaUpdateEvent(Event):
                 and self.project_url
             ):
                 logger.info(
-                    "Not going to create the DB project event, not valid arguments."
+                    "Not going to create the DB project event, not valid arguments.",
                 )
-                return None
+                return
 
             (
                 self._db_project_object,
@@ -118,15 +118,13 @@ class AnityaUpdateEvent(Event):
     def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(f"Getting package_config:\n" f"\tproject: {self.project}\n")
 
-        package_config = PackageConfigGetter.get_package_config_from_repo(
+        return PackageConfigGetter.get_package_config_from_repo(
             base_project=None,
             project=self.project,
             pr_id=None,
             reference=None,
             fail_when_missing=False,
         )
-
-        return package_config
 
     @property
     def project_url(self) -> Optional[str]:
@@ -153,7 +151,7 @@ class AnityaUpdateEvent(Event):
 
         return self.packages_config.upstream_tag_template.format(version=self.version)
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__
         d["project_url"] = self.project_url
         d["tag_name"] = self.tag_name

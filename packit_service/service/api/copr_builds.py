@@ -7,10 +7,10 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildTargetModel,
-    optional_timestamp,
     BuildStatus,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
+    optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -52,7 +52,7 @@ class CoprBuildsList(Resource):
                 "status_per_chroot": {},
                 "packit_id_per_chroot": {},
                 "build_submitted_time": optional_timestamp(
-                    build_info.build_submitted_time
+                    build_info.build_submitted_time,
                 ),
                 "web_url": build_info.web_url,
                 "ref": build_info.commit_sha,
@@ -120,7 +120,8 @@ class CoprBuildItem(Resource):
 class CoprBuildGroup(Resource):
     @ns.response(HTTPStatus.OK, "OK, copr build group details follow")
     @ns.response(
-        HTTPStatus.NOT_FOUND.value, "No info about koji build group stored in DB"
+        HTTPStatus.NOT_FOUND.value,
+        "No info about koji build group stored in DB",
     )
     def get(self, id):
         """A specific test run details."""

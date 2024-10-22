@@ -7,8 +7,8 @@ import pytest
 from flexmock import flexmock
 
 from packit_service.models import (
-    filter_most_recent_target_models_by_status,
     TestingFarmResult,
+    filter_most_recent_target_models_by_status,
     filter_most_recent_target_names_by_status,
 )
 
@@ -50,11 +50,13 @@ def models():
 
 def test_filter_most_recent_target_models_by_status(models):
     assert filter_most_recent_target_models_by_status(
-        models, [TestingFarmResult.passed]
+        models,
+        [TestingFarmResult.passed],
     ) == {models[1]}
 
 
 def test_filter_most_recent_target_names_by_status(models):
     assert filter_most_recent_target_names_by_status(
-        models, [TestingFarmResult.passed]
+        models,
+        [TestingFarmResult.passed],
     ) == {"target-a"}

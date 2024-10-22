@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Set
+from typing import Optional
 
 from ogr.abstract import GitProject
+from packit.config import JobConfig, JobType, PackageConfig
 
-from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.worker.events import EventData
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
+from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        branches_override: Optional[Set[str]] = None,
+        branches_override: Optional[set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -48,7 +48,7 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
         if not self._default_dg_branch:
             if self.metadata.event_type in (NewHotnessUpdateEvent.__name__,):
                 distgit_project_url = self.metadata.event_dict.get(
-                    "distgit_project_url"
+                    "distgit_project_url",
                 )
             elif self.metadata.event_type in (PullRequestCommentPagureEvent.__name__,):
                 distgit_project_url = self.metadata.event_dict.get("project_url")

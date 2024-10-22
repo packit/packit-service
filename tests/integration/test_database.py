@@ -7,7 +7,7 @@ from pathlib import Path
 from boto3.s3.transfer import S3Transfer
 from flexmock import flexmock
 
-from packit_service.models import SRPMBuildModel, ProjectEventModel
+from packit_service.models import ProjectEventModel, SRPMBuildModel
 from packit_service.worker import database
 
 
@@ -16,7 +16,7 @@ def test_cleanup_old_srpm_build_logs():
     flexmock(srpm_build).should_receive("set_logs").with_args(None).once()
     flexmock(srpm_build).should_receive("set_url").with_args(None).once()
     flexmock(SRPMBuildModel).should_receive("get_older_than").and_return(
-        [srpm_build]
+        [srpm_build],
     ).once()
     database.discard_old_srpm_build_logs()
 
@@ -25,7 +25,7 @@ def test_discard_old_package_configs():
     event_model = flexmock(id=1)
     flexmock(event_model).should_receive("set_packages_config").with_args(None).once()
     flexmock(ProjectEventModel).should_receive(
-        "get_older_than_with_packages_config"
+        "get_older_than_with_packages_config",
     ).and_return([event_model]).once()
     database.discard_old_package_configs()
 

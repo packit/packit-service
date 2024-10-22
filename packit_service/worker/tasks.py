@@ -5,23 +5,23 @@ import logging
 import socket
 from datetime import timedelta
 from os import getenv
-from typing import List, Optional
+from typing import ClassVar, Optional
 
 from celery import Task
 from celery._state import get_current_task
 from celery.signals import after_setup_logger
 from ogr import __version__ as ogr_version
+from packit import __version__ as packit_version
+from packit.exceptions import PackitException
 from sqlalchemy import __version__ as sqlal_version
 from syslog_rfc5424_formatter import RFC5424Formatter
 
-from packit import __version__ as packit_version
-from packit.exceptions import PackitException
 from packit_service import __version__ as ps_version
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
-    DEFAULT_RETRY_LIMIT,
-    DEFAULT_RETRY_BACKOFF,
     CELERY_DEFAULT_MAIN_TASK_NAME,
+    DEFAULT_RETRY_BACKOFF,
+    DEFAULT_RETRY_LIMIT,
     USAGE_CURRENT_DATE,
     USAGE_DATE_IN_THE_PAST,
     USAGE_DATE_IN_THE_PAST_STR,
@@ -31,9 +31,9 @@ from packit_service.constants import (
     USAGE_PAST_YEAR_DATE_STR,
 )
 from packit_service.models import (
-    VMImageBuildTargetModel,
     GitProjectModel,
     SyncReleaseTargetModel,
+    VMImageBuildTargetModel,
     get_usage_data,
 )
 from packit_service.utils import (
@@ -42,37 +42,37 @@ from packit_service.utils import (
     log_package_versions,
 )
 from packit_service.worker.database import (
-    discard_old_srpm_build_logs,
     backup,
     discard_old_package_configs,
+    discard_old_srpm_build_logs,
 )
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
-    CoprBuildStartHandler,
-    KojiTaskReportHandler,
-    SyncFromDownstream,
     CoprBuildHandler,
+    CoprBuildStartHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
+    KojiTaskReportHandler,
+    OpenScanHubTaskFinishedHandler,
+    OpenScanHubTaskStartedHandler,
     ProposeDownstreamHandler,
+    SyncFromDownstream,
     TestingFarmHandler,
     TestingFarmResultsHandler,
     VMImageBuildHandler,
     VMImageBuildResultHandler,
-    OpenScanHubTaskFinishedHandler,
-    OpenScanHubTaskStartedHandler,
 )
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import (
-    CreateBodhiUpdateHandler,
     BodhiUpdateFromSidetagHandler,
-    RetriggerBodhiUpdateHandler,
+    CreateBodhiUpdateHandler,
     IssueCommentRetriggerBodhiUpdateHandler,
+    RetriggerBodhiUpdateHandler,
 )
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
-    RetriggerDownstreamKojiBuildHandler,
     PullFromUpstreamHandler,
+    RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
 )
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
@@ -80,17 +80,16 @@ from packit_service.worker.handlers.koji import (
     KojiBuildReportHandler,
     KojiBuildTagHandler,
 )
+from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
-    update_vm_image_build,
     check_pending_vm_image_builds,
+    update_vm_image_build,
 )
-from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
-
 
 logger = logging.getLogger(__name__)
 
@@ -130,8 +129,8 @@ def setup_loggers(logger, *args, **kwargs):
     # add task name and id to log messages from tasks
     logger.handlers[0].setFormatter(
         CustomFormatter(
-            "[%(asctime)s: %(levelname)s/%(processName)s]%(task_info)s %(message)s"
-        )
+            "[%(asctime)s: %(levelname)s/%(processName)s]%(task_info)s %(message)s",
+        ),
     )
 
     syslog_host = getenv("SYSLOG_HOST", "fluentd")
@@ -159,7 +158,7 @@ def setup_loggers(logger, *args, **kwargs):
 class TaskWithRetry(Task):
     autoretry_for = (Exception,)
     max_retries = int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
-    retry_kwargs = {"max_retries": max_retries}
+    retry_kwargs: ClassVar[dict] = {"max_retries": max_retries}
     retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))
     # https://docs.celeryq.dev/en/stable/userguide/tasks.html#Task.acks_late
     # retry if worker gets obliterated during execution
@@ -171,7 +170,10 @@ class BodhiTaskWithRetry(TaskWithRetry):
     max_retries = 5
     # also disable jitter for the same reason
     retry_jitter = False
-    retry_kwargs = {"max_retries": max_retries, "retry_jitter": retry_jitter}
+    retry_kwargs: ClassVar[dict] = {
+        "max_retries": max_retries,
+        "retry_jitter": retry_jitter,
+    }
 
 
 @celery_app.task(
@@ -183,8 +185,11 @@ class BodhiTaskWithRetry(TaskWithRetry):
     base=TaskWithRetry,
 )
 def process_message(
-    self, event: dict, source: Optional[str] = None, event_type: Optional[str] = None
-) -> List[TaskResults]:
+    self,
+    event: dict,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+) -> list[TaskResults]:
     """
     Main celery task for processing messages.
 
@@ -214,7 +219,7 @@ def babysit_copr_build(self, build_id: int):
     """check status of a copr build and update it in DB"""
     if not check_copr_build(build_id=build_id):
         raise PackitCoprBuildTimeoutException(
-            f"No feedback for copr build id={build_id} yet"
+            f"No feedback for copr build id={build_id} yet",
         )
 
 
@@ -240,7 +245,10 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
 
 
 @celery_app.task(
-    bind=True, name=TaskName.copr_build, base=TaskWithRetry, queue="long-running"
+    bind=True,
+    name=TaskName.copr_build,
+    base=TaskWithRetry,
+    queue="long-running",
 )
 def run_copr_build_handler(
     self,
@@ -262,17 +270,23 @@ def run_copr_build_handler(
 @celery_app.task(name=TaskName.installation, base=TaskWithRetry)
 def run_installation_handler(event: dict, package_config: dict, job_config: dict):
     handler = GithubAppInstallationHandler(
-        package_config=None, job_config=None, event=event
+        package_config=None,
+        job_config=None,
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
 
 @celery_app.task(name=TaskName.github_fas_verification, base=TaskWithRetry)
 def run_github_fas_verification_handler(
-    event: dict, package_config: dict, job_config: dict
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = GithubFasVerificationHandler(
-        package_config=None, job_config=None, event=event
+        package_config=None,
+        job_config=None,
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -299,7 +313,9 @@ def run_testing_farm_handler(
 
 @celery_app.task(name=TaskName.testing_farm_results, base=TaskWithRetry)
 def run_testing_farm_results_handler(
-    event: dict, package_config: dict, job_config: dict
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = TestingFarmResultsHandler(
         package_config=load_package_config(package_config),
@@ -356,7 +372,9 @@ def run_pull_from_upstream_handler(
 
 
 @celery_app.task(
-    name=TaskName.upstream_koji_build, base=TaskWithRetry, queue="long-running"
+    name=TaskName.upstream_koji_build,
+    base=TaskWithRetry,
+    queue="long-running",
 )
 def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildHandler(
@@ -378,10 +396,14 @@ def run_koji_build_report_handler(event: dict, package_config: dict, job_config:
 
 
 @celery_app.task(
-    name=TaskName.sync_from_downstream, base=TaskWithRetry, queue="long-running"
+    name=TaskName.sync_from_downstream,
+    base=TaskWithRetry,
+    queue="long-running",
 )
 def run_sync_from_downstream_handler(
-    event: dict, package_config: dict, job_config: dict
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = SyncFromDownstream(
         package_config=load_package_config(package_config),
@@ -439,7 +461,9 @@ def run_retrigger_downstream_koji_build(
 
 @celery_app.task(name=TaskName.downstream_koji_build_report, base=TaskWithRetry)
 def run_downstream_koji_build_report(
-    event: dict, package_config: dict, job_config: dict
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = KojiBuildReportHandler(
         package_config=load_package_config(package_config),
@@ -559,7 +583,10 @@ def run_vm_image_build(self, event: dict, package_config: dict, job_config: dict
 
 @celery_app.task(name=TaskName.vm_image_build_result, base=TaskWithRetry)
 def run_vm_image_build_result(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = VMImageBuildResultHandler(
         package_config=load_package_config(package_config),
@@ -583,7 +610,7 @@ def babysit_vm_image_build(self, build_id: int):
     model = VMImageBuildTargetModel.get_by_build_id(build_id)
     if not update_vm_image_build(build_id, model):
         raise PackitVMImageBuildTimeoutException(
-            f"No feedback for vm image build id={build_id} yet"
+            f"No feedback for vm image build id={build_id} yet",
         )
 
 
@@ -599,7 +626,10 @@ def run_koji_build_tag_handler(event: dict, package_config: dict, job_config: di
 
 @celery_app.task(bind=True, name=TaskName.tag_into_sidetag, base=TaskWithRetry)
 def run_tag_into_sidetag_handler(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = TagIntoSidetagHandler(
         package_config=load_package_config(package_config),
@@ -612,7 +642,10 @@ def run_tag_into_sidetag_handler(
 
 @celery_app.task(bind=True, name=TaskName.openscanhub_task_finished, base=TaskWithRetry)
 def run_openscanhub_task_finished_handler(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = OpenScanHubTaskFinishedHandler(
         package_config=load_package_config(package_config),
@@ -625,7 +658,10 @@ def run_openscanhub_task_finished_handler(
 
 @celery_app.task(bind=True, name=TaskName.openscanhub_task_started, base=TaskWithRetry)
 def run_openscanhub_task_started_handler(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = OpenScanHubTaskStartedHandler(
         package_config=load_package_config(package_config),
@@ -674,7 +710,7 @@ def run_check_onboarded_projects() -> None:
     known_onboarded_projects = GitProjectModel.get_known_onboarded_downstream_projects()
     downstream_synced_projects = SyncReleaseTargetModel.get_all_downstream_projects()
     almost_onboarded_projects = downstream_synced_projects.difference(
-        known_onboarded_projects
+        known_onboarded_projects,
     )
     check_onboarded_projects(almost_onboarded_projects)
 
@@ -688,7 +724,7 @@ def _get_usage_interval_data(days, hours, count) -> None:
     :param count: number of intervals
     """
     logger.debug(
-        f"Starting collecting statistics for days={days}, hours={hours}, count={count}"
+        f"Starting collecting statistics for days={days}, hours={hours}, count={count}",
     )
 
     delta = timedelta(days=days, hours=hours)
@@ -699,10 +735,12 @@ def _get_usage_interval_data(days, hours, count) -> None:
         current_date -= delta
 
     logger.debug(
-        f"Getting usage data datetime_from {USAGE_DATE_IN_THE_PAST} datetime_to {days_legend[-1]}"
+        f"Getting usage data datetime_from {USAGE_DATE_IN_THE_PAST} datetime_to {days_legend[-1]}",
     )
     get_usage_data(
-        datetime_from=USAGE_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
+        datetime_from=USAGE_DATE_IN_THE_PAST,
+        datetime_to=days_legend[-1],
+        top=100000,
     )
     logger.debug("Got usage data.")
 
@@ -715,7 +753,7 @@ def _get_usage_interval_data(days, hours, count) -> None:
         logger.warn("Got usage data.")
 
     logger.debug(
-        f"Done collecting statistics for days={days}, hours={hours}, count={count}"
+        f"Done collecting statistics for days={days}, hours={hours}, count={count}",
     )
 
 

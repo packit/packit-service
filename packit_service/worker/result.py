@@ -1,12 +1,12 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Any, Dict
+from typing import Any, Optional
 
 from packit.config import JobConfig
 
-from packit_service.worker.events import Event
 from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.worker.events import Event
 
 
 class TaskResults(dict):
@@ -15,7 +15,7 @@ class TaskResults(dict):
     Inherit from dict to be JSON serializable.
     """
 
-    def __init__(self, success: bool, details: Dict[str, Any] = None):
+    def __init__(self, success: bool, details: Optional[dict[str, Any]] = None):
         """
         Args:
             success: Represents the resulting state of the job handler.
@@ -29,7 +29,11 @@ class TaskResults(dict):
 
     @classmethod
     def create_from(
-        cls, success: bool, msg: str, event: Event, job_config: JobConfig = None
+        cls,
+        success: bool,
+        msg: str,
+        event: Event,
+        job_config: JobConfig = None,
     ):
         package_config = (
             event.packages_config.get_package_config_for(job_config)
@@ -46,7 +50,7 @@ class TaskResults(dict):
             {
                 "job": job_config.type.value if job_config else None,
                 "job_config": dump_job_config(job_config),
-            }
+            },
         )
 
         return cls(success=success, details=details)

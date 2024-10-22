@@ -1,14 +1,13 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Set
-
 from ogr.abstract import PRStatus
+
 from packit_service.config import ServiceConfig
 from packit_service.models import GitProjectModel
 
 
-def check_onboarded_projects(projects: Set[GitProjectModel]):
+def check_onboarded_projects(projects: set[GitProjectModel]):
     """For every given project check if it has a merged Packit PR.
 
     If yes it is onboarded: save the flag in the git projects table.
@@ -18,11 +17,11 @@ def check_onboarded_projects(projects: Set[GitProjectModel]):
         if downstream_project_url != "https://src.fedoraproject.org":
             continue
 
-        pagure_service = [
+        pagure_service = next(
             service
             for service in ServiceConfig.get_service_config().services
             if service.instance_url == downstream_project_url
-        ][0]
+        )
         ogr_project = pagure_service.get_project(
             namespace=project.namespace,
             repo=project.repo_name,

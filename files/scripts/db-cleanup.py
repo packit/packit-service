@@ -4,11 +4,12 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
-from sqlalchemy import create_engine, func, select, delete, distinct, union
+
+from sqlalchemy import create_engine, delete, distinct, func, select, union
+
 from packit_service.models import (
     CoprBuildGroupModel,
     CoprBuildTargetModel,
-    get_pg_url,
     GitBranchModel,
     GitProjectModel,
     IssueModel,
@@ -23,12 +24,12 @@ from packit_service.models import (
     SRPMBuildModel,
     SyncReleaseModel,
     SyncReleaseTargetModel,
-    tf_copr_association_table,
     TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     VMImageBuildTargetModel,
+    get_pg_url,
+    tf_copr_association_table,
 )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -37,7 +38,7 @@ Remove old data from the DB in order to speed up queries.
 
 Set POSTGRESQL_* environment variables to define the DB URL.
 See get_pg_url() for details.
-"""
+""",
     )
     parser.add_argument(
         "age",
@@ -88,7 +89,7 @@ See get_pg_url() for details.
             .filter(PipelineModel.id == None)  # noqa
         )
         stmt = delete(tf_copr_association_table).where(
-            tf_copr_association_table.c.copr_id.in_(orphaned)
+            tf_copr_association_table.c.copr_id.in_(orphaned),
         )
         conn.execute(stmt)
         stmt = delete(CoprBuildTargetModel).where(CoprBuildTargetModel.id.in_(orphaned))
@@ -210,6 +211,6 @@ See get_pg_url() for details.
             select(ProjectAuthenticationIssueModel.project_id),
         )
         stmt = delete(GitProjectModel).where(
-            GitProjectModel.id.not_in(referenced_projects)
+            GitProjectModel.id.not_in(referenced_projects),
         )
         conn.execute(stmt)

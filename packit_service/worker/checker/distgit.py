@@ -5,21 +5,22 @@ import logging
 import re
 
 from packit.config.aliases import get_branches
+
 from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.utils import (
-    pr_labels_match_configuration,
     get_packit_commands_from_comment,
+    pr_labels_match_configuration,
 )
-from packit_service.worker.checker.abstract import Checker, ActorChecker
+from packit_service.worker.checker.abstract import ActorChecker, Checker
 from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
-    PushPagureEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
+    PushPagureEvent,
 )
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
-from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
@@ -49,19 +50,18 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
         if self.data.event_type in (
             PushPagureEvent.__name__,
             KojiBuildTagEvent.__name__,
+        ) and self.data.git_ref not in (
+            configured_branches := get_branches(
+                *self.job_config.dist_git_branches,
+                default="main",
+                with_aliases=True,
+            )
         ):
-            if self.data.git_ref not in (
-                configured_branches := get_branches(
-                    *self.job_config.dist_git_branches,
-                    default="main",
-                    with_aliases=True,
-                )
-            ):
-                logger.info(
-                    f"Skipping build on '{self.data.git_ref}'. "
-                    f"Koji build configured only for '{configured_branches}'."
-                )
-                return False
+            logger.info(
+                f"Skipping build on '{self.data.git_ref}'. "
+                f"Koji build configured only for '{configured_branches}'.",
+            )
+            return False
 
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.pull_request:
@@ -75,12 +75,12 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     logger.info(
                         f"Push event {self.data.identifier} with corresponding PR created by"
                         f" {pr_author} that is not allowed in project "
-                        f"configuration: {self.job_config.allowed_pr_authors}."
+                        f"configuration: {self.job_config.allowed_pr_authors}.",
                     )
                     return False
             else:
                 logger.debug(
-                    "Not able to get the pull request, we are handling direct push."
+                    "Not able to get the pull request, we are handling direct push.",
                 )
                 committer = self.data.event_dict["committer"]
                 logger.debug(f"Committer: {committer}")
@@ -92,19 +92,20 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     logger.info(
                         f"Push event {self.data.identifier} done by "
                         f"{committer} that is not allowed in project "
-                        f"configuration: {self.job_config.allowed_committers}."
+                        f"configuration: {self.job_config.allowed_committers}.",
                     )
                     return False
         elif self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             comment = self.data.event_dict.get("comment", "")
             commands = get_packit_commands_from_comment(
-                comment, self.service_config.comment_command_prefix
+                comment,
+                self.service_config.comment_command_prefix,
             )
             command = commands[0] if commands else ""
             commenter = self.data.actor
             logger.debug(
                 f"{'Tagging' if command == 'koji-tag' else 'Triggering'} "
-                f"downstream koji build through comment by: {commenter}"
+                f"downstream koji build through comment by: {commenter}",
             )
             if not self.is_packager(commenter):
                 msg = (
@@ -142,7 +143,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker):
             logger.debug(
                 f"Re-triggering downstream koji-build through comment in "
                 f"repo {self.project.repo} and issue {self.data.issue_id} "
-                f"by {self.actor}."
+                f"by {self.actor}.",
             )
             if not self.project.has_write_access(user=self.actor):
                 msg = (
@@ -181,13 +182,12 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
     """
 
     def pre_check(self) -> bool:
-        if self.data.event_type in (KojiBuildTagEvent.__name__,):
-            if (
-                self.data.event_dict.get("package_name")
-                == self.job_config.downstream_package_name
-            ):
-                logger.info("Skipping build triggered by tagging a build of self.")
-                return False
+        if self.data.event_type in (KojiBuildTagEvent.__name__,) and (
+            self.data.event_dict.get("package_name")
+            == self.job_config.downstream_package_name
+        ):
+            logger.info("Skipping build triggered by tagging a build of self.")
+            return False
         return True
 
 
@@ -227,7 +227,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             commenter = self.data.actor
             logger.debug(
-                f"Triggering pull-from-upstream through comment by: {commenter}"
+                f"Triggering pull-from-upstream through comment by: {commenter}",
             )
             if not self.is_packager(commenter):
                 msg_to_report = (
@@ -267,7 +267,7 @@ class IsUpstreamTagMatchingConfig(Checker):
             if not matching_include_regex:
                 logger.info(
                     f"Tag {tag} doesn't match the upstream_tag_include {upstream_tag_include} "
-                    f"from the config. Skipping the syncing."
+                    f"from the config. Skipping the syncing.",
                 )
                 return False
 
@@ -276,7 +276,7 @@ class IsUpstreamTagMatchingConfig(Checker):
             if matching_exclude_regex:
                 logger.info(
                     f"Tag {tag} matches the upstream_tag_exclude {upstream_tag_exclude} "
-                    f"from the config. Skipping the syncing."
+                    f"from the config. Skipping the syncing.",
                 )
                 return False
 

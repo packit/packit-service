@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import Union
 import logging
 import re
+from typing import Union
 
 from flexmock import flexmock
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -17,11 +16,12 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
 from packit_service.worker.events.github import (
-    PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
 )
@@ -53,9 +53,9 @@ def build_helper(
                     _targets=_targets,
                     owner="nobody",
                     scratch=scratch,
-                )
+                ),
             },
-        )
+        ),
     )
 
     pkg_conf = PackageConfig(
@@ -88,7 +88,7 @@ def test_build_srpm_log_format(github_pr_event):
 
     def inspect_log_date_format(logs=None, **_):
         timestamp_reg = re.compile(
-            r"[0-9]+-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+\s.*"
+            r"[0-9]+-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+\s.*",
         )
 
         log_lines = 0
@@ -105,7 +105,8 @@ def test_build_srpm_log_format(github_pr_event):
         return (None, None)
 
     db_project_object = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, pr_id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=123,
     )
     helper = build_helper(
         event=github_pr_event,
@@ -118,7 +119,7 @@ def test_build_srpm_log_format(github_pr_event):
     )
 
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(target_branch="main")
+        flexmock(target_branch="main"),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     local_project = flexmock()
@@ -142,6 +143,6 @@ def test_build_srpm_log_format(github_pr_event):
         .mock()
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (srpm_model_mock(), None)
+        (srpm_model_mock(), None),
     )
     helper._create_srpm()

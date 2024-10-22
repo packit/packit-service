@@ -10,7 +10,6 @@ import enum
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -22,8 +21,9 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
+from alembic import op
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()
@@ -59,19 +59,27 @@ class PipelineModel(Base):
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
     copr_build_group_id = Column(
-        Integer, ForeignKey("copr_build_groups.id"), index=True
+        Integer,
+        ForeignKey("copr_build_groups.id"),
+        index=True,
     )
     copr_build_group = relationship("CoprBuildGroupModel", back_populates="runs")
     koji_build_group_id = Column(
-        Integer, ForeignKey("koji_build_groups.id"), index=True
+        Integer,
+        ForeignKey("koji_build_groups.id"),
+        index=True,
     )
     koji_build_group = relationship("KojiBuildGroupModel", back_populates="runs")
     vm_image_build_id = Column(
-        Integer, ForeignKey("vm_image_build_targets.id"), index=True
+        Integer,
+        ForeignKey("vm_image_build_targets.id"),
+        index=True,
     )
     vm_image_build = relationship("VMImageBuildTargetModel", back_populates="runs")
     test_run_group_id = Column(
-        Integer, ForeignKey("tft_test_run_groups.id"), index=True
+        Integer,
+        ForeignKey("tft_test_run_groups.id"),
+        index=True,
     )
     test_run_group = relationship("TFTTestRunGroupModel", back_populates="runs")
 
@@ -88,7 +96,8 @@ class KojiBuildGroupModel(Base):
     id = Column(Integer, primary_key=True)
     runs = relationship("PipelineModel", back_populates="koji_build_group")
     koji_build_targets = relationship(
-        "KojiBuildTargetModel", back_populates="group_of_targets"
+        "KojiBuildTargetModel",
+        back_populates="group_of_targets",
     )
 
 
@@ -98,7 +107,8 @@ class KojiBuildTargetModel(Base):
     commit_sha = Column(String)
     koji_build_group_id = Column(Integer, ForeignKey("koji_build_groups.id"))
     group_of_targets = relationship(
-        "KojiBuildGroupModel", back_populates="koji_build_targets"
+        "KojiBuildGroupModel",
+        back_populates="koji_build_targets",
     )
 
 
@@ -107,7 +117,8 @@ class CoprBuildGroupModel(Base):
     id = Column(Integer, primary_key=True)
     runs = relationship("PipelineModel", back_populates="copr_build_group")
     copr_build_targets = relationship(
-        "CoprBuildTargetModel", back_populates="group_of_targets"
+        "CoprBuildTargetModel",
+        back_populates="group_of_targets",
     )
 
 
@@ -116,10 +127,13 @@ class CoprBuildTargetModel(Base):
     id = Column(Integer, primary_key=True)
     commit_sha = Column(String)
     copr_build_group_id = Column(
-        Integer, ForeignKey("copr_build_groups.id"), index=True
+        Integer,
+        ForeignKey("copr_build_groups.id"),
+        index=True,
     )
     group_of_targets = relationship(
-        "CoprBuildGroupModel", back_populates="copr_build_targets"
+        "CoprBuildGroupModel",
+        back_populates="copr_build_targets",
     )
 
 
@@ -128,7 +142,8 @@ class TFTTestRunGroupModel(Base):
     id = Column(Integer, primary_key=True)
     runs = relationship("PipelineModel", back_populates="test_run_group")
     tft_test_run_targets = relationship(
-        "TFTTestRunTargetModel", back_populates="group_of_targets"
+        "TFTTestRunTargetModel",
+        back_populates="group_of_targets",
     )
 
 
@@ -138,7 +153,8 @@ class TFTTestRunTargetModel(Base):
     commit_sha = Column(String)
     tft_test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"))
     group_of_targets = relationship(
-        "TFTTestRunGroupModel", back_populates="tft_test_run_targets"
+        "TFTTestRunGroupModel",
+        back_populates="tft_test_run_targets",
     )
 
 
@@ -175,14 +191,15 @@ def upgrade():
             KojiBuildTargetModel.koji_build_group_id == KojiBuildGroupModel.id,
         )
         .join(
-            PipelineModel, PipelineModel.koji_build_group_id == KojiBuildGroupModel.id
+            PipelineModel,
+            PipelineModel.koji_build_group_id == KojiBuildGroupModel.id,
         )
         .all()
     )
     rows.extend(
         session.query(PipelineModel.project_event_id, SRPMBuildModel.commit_sha)
         .join(SRPMBuildModel, SRPMBuildModel.id == PipelineModel.srpm_build_id)
-        .all()
+        .all(),
     )
     rows.extend(
         session.query(PipelineModel.project_event_id, CoprBuildTargetModel.commit_sha)
@@ -191,9 +208,10 @@ def upgrade():
             CoprBuildTargetModel.copr_build_group_id == CoprBuildGroupModel.id,
         )
         .join(
-            PipelineModel, PipelineModel.copr_build_group_id == CoprBuildGroupModel.id
+            PipelineModel,
+            PipelineModel.copr_build_group_id == CoprBuildGroupModel.id,
         )
-        .all()
+        .all(),
     )
     rows.extend(
         session.query(PipelineModel.project_event_id, TFTTestRunTargetModel.commit_sha)
@@ -202,23 +220,24 @@ def upgrade():
             TFTTestRunTargetModel.tft_test_run_group_id == TFTTestRunGroupModel.id,
         )
         .join(PipelineModel, PipelineModel.test_run_group_id == TFTTestRunGroupModel.id)
-        .all()
+        .all(),
     )
     rows.extend(
         session.query(
-            PipelineModel.project_event_id, VMImageBuildTargetModel.commit_sha
+            PipelineModel.project_event_id,
+            VMImageBuildTargetModel.commit_sha,
         )
         .join(
             VMImageBuildTargetModel,
             VMImageBuildTargetModel.id == PipelineModel.vm_image_build_id,
         )
-        .all()
+        .all(),
     )
     for row in rows:
         bind.execute(
             update(ProjectEventModel)
             .where(ProjectEventModel.id == row[0])
-            .values(commit_sha=row[1])
+            .values(commit_sha=row[1]),
         )
 
     op.drop_index("ix_copr_build_targets_commit_sha", table_name="copr_build_targets")
@@ -227,7 +246,8 @@ def upgrade():
     op.drop_column("srpm_builds", "commit_sha")
     op.drop_column("tft_test_run_targets", "commit_sha")
     op.drop_index(
-        "ix_vm_image_build_targets_commit_sha", table_name="vm_image_build_targets"
+        "ix_vm_image_build_targets_commit_sha",
+        table_name="vm_image_build_targets",
     )
     op.drop_column("vm_image_build_targets", "commit_sha")
     # ### end Alembic commands ###
@@ -278,7 +298,8 @@ def downgrade():
             KojiBuildTargetModel.koji_build_group_id == KojiBuildGroupModel.id,
         )
         .join(
-            PipelineModel, PipelineModel.koji_build_group_id == KojiBuildGroupModel.id
+            PipelineModel,
+            PipelineModel.koji_build_group_id == KojiBuildGroupModel.id,
         )
         .join(ProjectEventModel, ProjectEventModel.id == PipelineModel.project_event_id)
         .all()
@@ -287,7 +308,7 @@ def downgrade():
         bind.execute(
             update(KojiBuildTargetModel)
             .where(KojiBuildTargetModel.id == row[0])
-            .values(commit_sha=row[1])
+            .values(commit_sha=row[1]),
         )
     rows = (
         session.query(SRPMBuildModel.id, ProjectEventModel.commit_sha)
@@ -299,7 +320,7 @@ def downgrade():
         bind.execute(
             update(SRPMBuildModel)
             .where(SRPMBuildModel.id == row[0])
-            .values(commit_sha=row[1])
+            .values(commit_sha=row[1]),
         )
     rows = (
         session.query(CoprBuildTargetModel.id, ProjectEventModel.commit_sha)
@@ -308,7 +329,8 @@ def downgrade():
             CoprBuildTargetModel.copr_build_group_id == CoprBuildGroupModel.id,
         )
         .join(
-            PipelineModel, PipelineModel.copr_build_group_id == CoprBuildGroupModel.id
+            PipelineModel,
+            PipelineModel.copr_build_group_id == CoprBuildGroupModel.id,
         )
         .join(ProjectEventModel, ProjectEventModel.id == PipelineModel.project_event_id)
         .all()
@@ -317,7 +339,7 @@ def downgrade():
         bind.execute(
             update(CoprBuildTargetModel)
             .where(CoprBuildTargetModel.id == row[0])
-            .values(commit_sha=row[1])
+            .values(commit_sha=row[1]),
         )
     rows = (
         session.query(TFTTestRunTargetModel.id, ProjectEventModel.commit_sha)
@@ -333,12 +355,13 @@ def downgrade():
         bind.execute(
             update(TFTTestRunTargetModel)
             .where(TFTTestRunTargetModel.id == row[0])
-            .values(commit_sha=row[1])
+            .values(commit_sha=row[1]),
         )
     rows = (
         session.query(VMImageBuildTargetModel.id, ProjectEventModel.commit_sha)
         .join(
-            PipelineModel, PipelineModel.vm_image_build_id == VMImageBuildTargetModel.id
+            PipelineModel,
+            PipelineModel.vm_image_build_id == VMImageBuildTargetModel.id,
         )
         .join(ProjectEventModel, ProjectEventModel.id == PipelineModel.project_event_id)
         .all()
@@ -347,7 +370,7 @@ def downgrade():
         bind.execute(
             update(VMImageBuildTargetModel)
             .where(VMImageBuildTargetModel.id == row[0])
-            .values(commit_sha=row[1])
+            .values(commit_sha=row[1]),
         )
 
     op.drop_index(op.f("ix_project_events_commit_sha"), table_name="project_events")

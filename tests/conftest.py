@@ -7,29 +7,29 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from deepdiff import DeepDiff
 from flexmock import flexmock
-
 from ogr import GithubService, GitlabService, PagureService
-from packit.config import JobConfigTriggerType, JobConfig, PackageConfig
+from packit.config import JobConfig, JobConfigTriggerType, PackageConfig
 from packit.config.common_package_config import Deployment
+
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    ProjectEventModelType,
-    ProjectEventModel,
     BuildStatus,
+    ProjectEventModel,
+    ProjectEventModelType,
     PullRequestModel,
 )
 from packit_service.worker.events import (
+    MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
-    ReleaseEvent,
-    MergeRequestGitlabEvent,
     PushPagureEvent,
+    ReleaseEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.parser import Parser
-from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
-from deepdiff import DeepDiff
+from tests.spellbook import DATA_DIR, SAVED_HTTPD_REQS, load_the_message_from_file
 
 
 @pytest.fixture(autouse=True)
@@ -155,7 +155,9 @@ def srpm_build_model(
     srpm_build.should_receive("get_project_event_model").and_return(project_event_model)
 
     run_model = flexmock(
-        id=3, job_project_event=project_event_model, srpm_build=srpm_build
+        id=3,
+        job_project_event=project_event_model,
+        srpm_build=srpm_build,
     )
     runs.append(run_model)
 
@@ -200,7 +202,10 @@ def copr_build_model(
 
     runs = []
     srpm_build = flexmock(
-        logs="asdsdf", url=None, runs=runs, status=BuildStatus.success
+        logs="asdsdf",
+        url=None,
+        runs=runs,
+        status=BuildStatus.success,
     )
     copr_group = flexmock(runs=runs)
     copr_build = flexmock(
@@ -222,7 +227,7 @@ def copr_build_model(
                 "release": "1",
                 "arch": "noarch",
                 "epoch": 0,
-            }
+            },
         ],
         task_accepted_time=datetime.now(),
         build_start_time=None,
@@ -272,7 +277,9 @@ def copr_build_pr():
 @pytest.fixture()
 def koji_build_pr():
     project_model = flexmock(
-        repo_name="bar", namespace="foo", project_url="https://github.com/foo/bar"
+        repo_name="bar",
+        namespace="foo",
+        project_url="https://github.com/foo/bar",
     )
     pr_model = flexmock(
         id=1,
@@ -305,7 +312,7 @@ def koji_build_pr():
     koji_build_model.get_project_event_object = lambda: pr_model
     koji_build_model.get_srpm_build = lambda: srpm_build
     koji_build_model.should_receive("get_project_event_model").and_return(
-        project_event_model
+        project_event_model,
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -363,10 +370,12 @@ def add_pull_request_event_with_pr_id_9():
         .mock()
     )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
-        db_project_object
+        db_project_object,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="12345"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="12345",
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -393,10 +402,12 @@ def add_pull_request_event_with_sha_0011223344():
         .mock()
     )
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(9).and_return(
-        db_project_object
+        db_project_object,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=9, commit_sha="0011223344"
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="0011223344",
     ).and_return(db_project_event)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -433,7 +444,7 @@ def github_push_webhook():
 @pytest.fixture(scope="module")
 def github_vm_image_build_comment():
     with open(
-        DATA_DIR / "webhooks" / "github" / "vm_image_build_comment.json"
+        DATA_DIR / "webhooks" / "github" / "vm_image_build_comment.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -480,7 +491,7 @@ def cache_clear(request):
     """
 
     if getattr(request.module, "CACHE_CLEAR", None):
-        [f.cache_clear() for f in getattr(request.module, "CACHE_CLEAR")]
+        [f.cache_clear() for f in request.module.CACHE_CLEAR]
 
 
 @pytest.fixture()
@@ -562,7 +573,8 @@ def pytest_assertrepr_compare(op, left, right):
 
         schema = JobConfigSchema()
         return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
-    elif (
+
+    if (
         isinstance(left, PackageConfig)
         and isinstance(right, PackageConfig)
         and op == "=="
@@ -571,6 +583,7 @@ def pytest_assertrepr_compare(op, left, right):
 
         schema = PackageConfigSchema()
         return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
+    return None
 
 
 @pytest.fixture()
@@ -599,5 +612,5 @@ def mock_get_fast_forward_aliases():
             "fedora-latest-stable": ["fedora-40"],
             "fedora-branched": ["fedora-39", "fedora-40"],
             "epel-all": ["epel-8", "epel-9"],
-        }
+        },
     )

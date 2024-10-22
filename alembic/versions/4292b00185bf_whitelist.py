@@ -6,9 +6,9 @@ Create Date: 2020-03-19 12:22:10.280477
 
 """
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "4292b00185bf"
@@ -36,7 +36,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_whitelist_account_name"), "whitelist", ["account_name"], unique=False
+        op.f("ix_whitelist_account_name"),
+        "whitelist",
+        ["account_name"],
+        unique=False,
     )
     # ### end Alembic commands ###
 

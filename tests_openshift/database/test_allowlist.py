@@ -4,7 +4,7 @@
 # Create multiple allowlist entries
 import pytest
 
-from packit_service.models import sa_session_transaction, AllowlistModel
+from packit_service.models import AllowlistModel, sa_session_transaction
 
 
 @pytest.fixture()
@@ -13,16 +13,19 @@ def multiple_allowlist_entries():
         session.query(AllowlistModel).delete()
         yield [
             AllowlistModel.add_namespace(
-                namespace="Rayquaza", status="approved_manually"
+                namespace="Rayquaza",
+                status="approved_manually",
             ),
             AllowlistModel.add_namespace(
-                namespace="Deoxys", status="approved_manually"
+                namespace="Deoxys",
+                status="approved_manually",
             ),
             # Not a typo, account_name repeated intentionally to check behaviour
             AllowlistModel.add_namespace(namespace="Deoxys", status="waiting"),
             AllowlistModel.add_namespace(namespace="Solgaleo", status="waiting"),
             AllowlistModel.add_namespace(
-                namespace="Zacian", status="approved_manually"
+                namespace="Zacian",
+                status="approved_manually",
             ),
         ]
 
@@ -33,7 +36,8 @@ def new_allowlist_entry():
     with sa_session_transaction() as session:
         session.query(AllowlistModel).delete()
         yield AllowlistModel.add_namespace(
-            namespace="Rayquaza", status="approved_manually"
+            namespace="Rayquaza",
+            status="approved_manually",
         )
 
 

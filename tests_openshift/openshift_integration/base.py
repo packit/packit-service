@@ -2,14 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 import os
-from shutil import copy
-from pathlib import Path
 import unittest
-from requre.constants import RELATIVE_TEST_DATA_DIRECTORY
-from requre.cassette import StorageMode
-from packit.config import RunCommandType
-from packit_service.worker.jobs import SteveJobs
 from glob import glob
+from pathlib import Path
+from shutil import copy
+
+from packit.config import RunCommandType
+from requre.cassette import StorageMode
+from requre.constants import RELATIVE_TEST_DATA_DIRECTORY
+
+from packit_service.worker.jobs import SteveJobs
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "tests" / "data"

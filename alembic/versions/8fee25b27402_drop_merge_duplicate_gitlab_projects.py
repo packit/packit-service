@@ -8,13 +8,14 @@ Create Date: 2021-08-26 15:19:49.615046
 
 from typing import TYPE_CHECKING
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
+from alembic import op
+
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()

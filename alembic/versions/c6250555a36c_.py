@@ -11,24 +11,24 @@ import json
 import logging
 from datetime import datetime, timezone
 from os import getenv
-from typing import TYPE_CHECKING, Union, List
+from typing import TYPE_CHECKING, Union
 
-from alembic import op
 from celery.backends.database import Task
 from redis import Redis
 from sqlalchemy import (
     Column,
+    DateTime,
+    Enum,
+    ForeignKey,
     Integer,
     String,
-    DateTime,
-    ForeignKey,
-    Enum,
     orm,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import PickleType
 
+from alembic import op
 from packit_service.constants import ALLOWLIST_CONSTANTS
 from packit_service.worker.events import InstallationEvent
 
@@ -38,7 +38,7 @@ down_revision = "d7c2f99cd14d"
 branch_labels = None
 depends_on = None
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()
@@ -239,7 +239,7 @@ class RedisCoprBuild(RedisBuild):
     table_name = "copr-builds"
     project: str
     owner: str
-    chroots: List[str]
+    chroots: list[str]
 
 
 # Postgres models
@@ -417,7 +417,10 @@ class JobTriggerUpgradeModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, session: Session, type: JobTriggerModelType, trigger_id: int
+        cls,
+        session: Session,
+        type: JobTriggerModelType,
+        trigger_id: int,
     ) -> "JobTriggerUpgradeModel":
         trigger = (
             session.query(JobTriggerUpgradeModel)
@@ -471,7 +474,9 @@ def upgrade():
 
         # our table
         TaskResultUpgradeModel.add_task_result(
-            session=session, task_id=task_id, task_result_dict=result
+            session=session,
+            task_id=task_id,
+            task_result_dict=result,
         )
         # celery table
         add_task_to_celery_table(
@@ -492,7 +497,9 @@ def upgrade():
         status = data.get("status")
         logger.info(f"Adding account {account} into WhitelistModel")
         WhitelistUpgradeModel.add_account(
-            session=session, account_name=account, status=status
+            session=session,
+            account_name=account,
+            status=status,
         )
 
     # installations

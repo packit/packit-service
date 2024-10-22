@@ -7,18 +7,16 @@ Create Date: 2020-11-05 11:33:02.769607
 """
 
 from typing import TYPE_CHECKING
-
 from urllib.parse import urlparse
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import orm
-
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, orm
 from sqlalchemy.ext.declarative import declarative_base
 
+from alembic import op
+
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()

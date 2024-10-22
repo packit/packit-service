@@ -7,15 +7,15 @@ Create Date: 2021-03-25 10:43:00.679552
 """
 
 import enum
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Column, Integer, String, Enum, orm
+from sqlalchemy import Column, Enum, Integer, String, orm
 
 # from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declarative_base
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "800abbbb23c9"
@@ -25,7 +25,7 @@ depends_on = None
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()
@@ -52,7 +52,7 @@ class AllowlistModel(Base):
     status = Column(Enum(AllowlistStatus))
     fas_account = Column(String)
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "namespace": self.namespace,
             "status": self.status,

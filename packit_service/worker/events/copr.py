@@ -2,17 +2,18 @@
 # SPDX-License-Identifier: MIT
 
 from logging import getLogger
-from typing import Optional, Dict, Union
+from typing import Optional, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
+
 from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
-    CoprBuildTargetModel,
-    ProjectEventModelType,
     AbstractProjectObjectDbType,
-    SRPMBuildModel,
+    CoprBuildTargetModel,
     ProjectEventModel,
+    ProjectEventModelType,
+    SRPMBuildModel,
 )
 from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.events.event import AbstractResultEvent
@@ -81,8 +82,8 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
                     repo=self.project.repo,
                     is_fork=True,
                 )
-            else:
-                return None  # With Github app, we cannot work with fork repo
+
+            return None  # With Github app, we cannot work with fork repo
         return self.project
 
     @classmethod
@@ -107,12 +108,20 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         if not build:
             logger.warning(
                 f"Build id {build_id} not in "
-                f"{'SRPMBuildDB' if chroot == COPR_SRPM_CHROOT else 'CoprBuildDB'}."
+                f"{'SRPMBuildDB' if chroot == COPR_SRPM_CHROOT else 'CoprBuildDB'}.",
             )
             return None
 
         return cls(
-            topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
+            topic,
+            build_id,
+            build,
+            chroot,
+            status,
+            owner,
+            project_name,
+            pkg,
+            timestamp,
         )
 
     @classmethod
@@ -136,9 +145,9 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         return True
 
     def get_non_serializable_attributes(self):
-        return super().get_non_serializable_attributes() + ["build"]
+        return [*super().get_non_serializable_attributes(), "build"]
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
         return result

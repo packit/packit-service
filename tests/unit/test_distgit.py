@@ -5,16 +5,16 @@ import json
 import pytest
 from fasjson_client import Client
 from flexmock import flexmock
-
 from ogr.services.github import GithubService
 from packit.api import PackitAPI
 from packit.config.notifications import NotificationsConfig
+
 from packit_service.config import PackageConfigGetter
 from packit_service.worker.events.event import EventData
 from packit_service.worker.handlers.distgit import (
-    ProposeDownstreamHandler,
-    DownstreamKojiBuildHandler,
     AbstractSyncReleaseHandler,
+    DownstreamKojiBuildHandler,
+    ProposeDownstreamHandler,
     PullFromUpstreamHandler,
 )
 
@@ -27,7 +27,7 @@ def test_create_one_issue_for_pr():
             event_id=1,
             project_url="a project url",
             tag_name="056",
-        )
+        ),
     )
     project = (
         flexmock()
@@ -45,24 +45,27 @@ def test_create_one_issue_for_pr():
             )
             .should_receive("comment")
             .once()
-            .mock()
-        ]
+            .mock(),
+        ],
     )
     flexmock(ProposeDownstreamHandler).should_receive("project").and_return(project)
     handler = ProposeDownstreamHandler(
-        None, flexmock(notifications=NotificationsConfig()), {}, flexmock()
+        None,
+        flexmock(notifications=NotificationsConfig()),
+        {},
+        flexmock(),
     )
     handler._report_errors_for_each_branch(
         {
             "f34": "Propose downstream failed for release 056",
             "f35": "Propose downstream failed for release 056",
-        }
+        },
     )
     handler._report_errors_for_each_branch(
         {
             "f34": "Propose downstream failed for release 056",
             "f35": "Propose downstream failed for release 056",
-        }
+        },
     )
 
 
@@ -88,17 +91,19 @@ def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_pass
     data_dict = json.loads(data)
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(None)
     flexmock(Client).should_receive("__getattr__").with_args(
-        "list_user_groups"
+        "list_user_groups",
     ).and_return(lambda username: user_groups)
 
     flexmock(DownstreamKojiBuildHandler).should_receive("service_config").and_return(
-        flexmock()
+        flexmock(),
     )
     if not check_passed:
         flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
 
     result = DownstreamKojiBuildHandler.pre_check(
-        None, flexmock(issue_repository=flexmock()), data_dict
+        None,
+        flexmock(issue_repository=flexmock()),
+        data_dict,
     )
     assert result == check_passed
 
@@ -126,7 +131,10 @@ def test_pull_from_upstream_auth_method():
         pass
 
     handler = Test(
-        None, flexmock(upstream_project_url="url"), {"event_type": "unknown"}, None
+        None,
+        flexmock(upstream_project_url="url"),
+        {"event_type": "unknown"},
+        None,
     )
     flexmock(GithubService).should_receive("set_auth_method").once()
     flexmock(AbstractSyncReleaseHandler).should_receive("run").once()

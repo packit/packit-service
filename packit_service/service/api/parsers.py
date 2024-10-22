@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 from flask import request
-
 from flask_restx import reqparse
 
 DEFAULT_PAGE = 1
@@ -10,7 +9,11 @@ DEFAULT_PER_PAGE = 10
 
 pagination_arguments = reqparse.RequestParser()
 pagination_arguments.add_argument(
-    "page", type=int, required=False, default=1, help="Page number"
+    "page",
+    type=int,
+    required=False,
+    default=1,
+    help="Page number",
 )
 pagination_arguments.add_argument(
     "per_page",

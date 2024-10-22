@@ -8,44 +8,43 @@ from celery import Task
 from celery.canvas import Signature, group
 from celery.exceptions import Retry
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
-from packit.exceptions import PackitException
-
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.koji_helper import KojiHelper
-from packit_service.config import ServiceConfig, PackageConfigGetter
+
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import (
-    GitBranchModel,
-    KojiBuildTargetModel,
-    PipelineModel,
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
-    ProjectEventModel,
+    GitBranchModel,
     KojiBuildTagModel,
-    SidetagModel,
-    SidetagGroupModel,
+    KojiBuildTargetModel,
+    PipelineModel,
+    ProjectEventModel,
     ProjectEventModelType,
+    SidetagGroupModel,
+    SidetagModel,
 )
 from packit_service.utils import (
-    load_job_config,
-    load_package_config,
     dump_job_config,
     dump_package_config,
+    load_job_config,
+    load_package_config,
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
+    BodhiTaskWithRetry,
     run_bodhi_update,
     run_bodhi_update_from_sidetag,
     run_koji_build_tag_handler,
-    BodhiTaskWithRetry,
 )
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
@@ -64,13 +63,16 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -93,10 +95,10 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     group_model = flexmock(
@@ -111,7 +113,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
                 set_update_creation_time=lambda x: None,
-            )
+            ),
         ],
     )
     flexmock(ProjectEventModel).should_receive("get_or_create")
@@ -137,7 +139,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
     results = run_bodhi_update(
@@ -163,13 +165,16 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
@@ -195,10 +200,10 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create")
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
@@ -212,7 +217,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
-            )
+            ),
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
@@ -236,7 +241,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     with pytest.raises(PackitException):
         run_bodhi_update(
@@ -263,13 +268,16 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -289,7 +297,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     issue_project_mock = flexmock(GithubProject)
     issue_project_mock.should_receive("get_issue_list").and_return([]).once()
     issue_project_mock.should_receive("create_issue").and_return(
-        flexmock(id=3, url="https://github.com/namespace/project/issues/3")
+        flexmock(id=3, url="https://github.com/namespace/project/issues/3"),
     ).once()
 
     # Database structure
@@ -300,10 +308,10 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(ProjectEventModel).should_receive("get_or_create")
@@ -316,8 +324,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
@@ -340,7 +348,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     CreateBodhiUpdateHandler(
         package_config=load_package_config(package_config),
@@ -371,13 +379,16 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -404,8 +415,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
             )
             .should_receive("comment")
             .once()
-            .mock()
-        ]
+            .mock(),
+        ],
     ).once()
     issue_project_mock.should_receive("create_issue").times(0)
 
@@ -417,10 +428,10 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(ProjectEventModel).should_receive("get_or_create")
@@ -433,8 +444,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
@@ -457,7 +468,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     CreateBodhiUpdateHandler(
         package_config=load_package_config(package_config),
@@ -490,13 +501,16 @@ def test_bodhi_update_build_not_tagged_yet(
         default_branch="main",
     )
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -527,8 +541,8 @@ def test_bodhi_update_build_not_tagged_yet(
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
@@ -543,17 +557,18 @@ def test_bodhi_update_build_not_tagged_yet(
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(
         flexmock(
             get_project_event_object=lambda: flexmock(
-                id=1, job_config_trigger_type=JobConfigTriggerType.commit
+                id=1,
+                job_config_trigger_type=JobConfigTriggerType.commit,
             ),
             group_of_targets=flexmock(runs=[flexmock()]),
-        )
+        ),
     )
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
 
@@ -565,7 +580,7 @@ def test_bodhi_update_build_not_tagged_yet(
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     celery_task = flexmock(CeleryTask)
     celery_task.should_receive("is_last_try").and_return(False)
@@ -582,7 +597,7 @@ def test_bodhi_update_build_not_tagged_yet(
         sidetag=None,
         alias=None,
     ).and_return(
-        None
+        None,
     )  # tagged now
     results = run_bodhi_update(
         package_config=package_config,
@@ -608,13 +623,16 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -634,8 +652,8 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
                 set_status=lambda x: None,
                 set_data=lambda x: None,
                 set_web_url=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
@@ -651,10 +669,10 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(ProjectEventModel).should_receive("get_or_create")
@@ -686,13 +704,16 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -717,8 +738,8 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
                 set_update_creation_time=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
@@ -730,14 +751,15 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
 
     # Database structure
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(
         flexmock(
             get_project_event_object=lambda: flexmock(
-                id=1, job_config_trigger_type=JobConfigTriggerType.commit
+                id=1,
+                job_config_trigger_type=JobConfigTriggerType.commit,
             ),
             group_of_targets=flexmock(runs=[flexmock()]),
-        )
+        ),
     )
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
@@ -745,7 +767,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
     results = run_bodhi_update(
@@ -771,13 +793,16 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -794,10 +819,10 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403
+        79721403,
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
+        git_branch_model_flexmock,
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(KojiBuildTargetModel).should_receive("create").with_args(
@@ -828,13 +853,16 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         default_branch="main",
     )
     pagure_project.should_receive("get_files").with_args(
-        ref="main", filter_regex=r".+\.spec$"
+        ref="main",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="main"
+        path=".packit.yaml",
+        ref="main",
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
-        ref="main", recursive=False
+        ref="main",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -861,8 +889,8 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
                 set_update_creation_time=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
@@ -872,14 +900,15 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         bodhi_update_group=group_model,
     ).and_return()
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        80860789
+        80860789,
     ).and_return(
         flexmock(
             get_project_event_object=lambda: flexmock(
-                id=1, job_config_trigger_type=JobConfigTriggerType.commit
+                id=1,
+                job_config_trigger_type=JobConfigTriggerType.commit,
             ),
             group_of_targets=flexmock(runs=[flexmock()]),
-        )
+        ),
     )
 
     processing_results = SteveJobs().process_message(koji_build_completed_f36)
@@ -887,7 +916,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     assert len(processing_results) == 2
     processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
     results = run_bodhi_update(
@@ -904,7 +933,9 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     [(False, None), (False, "FEDORA-2024-abcdef1234"), (True, None)],
 )
 def test_bodhi_update_from_sidetag(
-    koji_build_tagged, missing_dependency, existing_update
+    koji_build_tagged,
+    missing_dependency,
+    existing_update,
 ):
     """(Sidetag scenario.)"""
 
@@ -915,7 +946,7 @@ def test_bodhi_update_from_sidetag(
     sidetag_name = "f40-build-side-12345"
 
     flexmock(KojiHelper).should_receive("get_build_info").with_args(
-        build_id
+        build_id,
     ).and_return({"task_id": task_id})
 
     sidetag_group = flexmock(name=sidetag_group_name)
@@ -926,14 +957,14 @@ def test_bodhi_update_from_sidetag(
         delete=lambda: None,
     )
     sidetag_group.should_receive("get_sidetag_by_target").with_args(
-        dg_branch
+        dg_branch,
     ).and_return(sidetag)
 
     flexmock(SidetagGroupModel).should_receive("get_by_name").with_args(
-        sidetag_group_name
+        sidetag_group_name,
     ).and_return(sidetag_group)
     flexmock(SidetagModel).should_receive("get_by_koji_name").with_args(
-        sidetag_name
+        sidetag_name,
     ).and_return(sidetag)
 
     builds_in_sidetag = [
@@ -945,11 +976,11 @@ def test_bodhi_update_from_sidetag(
         builds_in_sidetag.pop()
 
     flexmock(KojiHelper).should_receive("get_tag_info").with_args(
-        sidetag_name
+        sidetag_name,
     ).and_return({"name": sidetag_name})
 
     flexmock(KojiHelper).should_receive("get_builds_in_tag").with_args(
-        sidetag_name
+        sidetag_name,
     ).and_return(builds_in_sidetag)
 
     flexmock(KojiHelper).should_receive("get_latest_stable_nvr").with_args(
@@ -962,13 +993,13 @@ def test_bodhi_update_from_sidetag(
     ).and_return("packit-0.98.0-1.fc40")
 
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        task_id=task_id
+        task_id=task_id,
     ).and_return(flexmock(target=dg_branch, get_project_event_model=lambda: None))
 
     flexmock(BodhiUpdateTargetModel).should_receive(
-        "get_first_successful_by_sidetag"
+        "get_first_successful_by_sidetag",
     ).with_args(sidetag_name).and_return(
-        flexmock(alias=existing_update) if existing_update else None
+        flexmock(alias=existing_update) if existing_update else None,
     )
 
     specfile_packit_yaml = (
@@ -985,20 +1016,24 @@ def test_bodhi_update_from_sidetag(
         default_branch="main",
     )
     specfile_pagure_project.should_receive("get_files").with_args(
-        ref=None, filter_regex=r".+\.spec$"
+        ref=None,
+        filter_regex=r".+\.spec$",
     ).and_return(["python-specfile.spec"])
     specfile_pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref=None
+        path=".packit.yaml",
+        ref=None,
     ).and_return(specfile_packit_yaml)
     specfile_pagure_project.should_receive("get_files").with_args(
-        ref=None, recursive=False
+        ref=None,
+        recursive=False,
     ).and_return(["python-specfile.spec", ".packit.yaml"])
 
     flexmock(ServiceConfig).should_receive("get_project").with_args(
-        url="https://src.fedoraproject.org/rpms/python-specfile"
+        url="https://src.fedoraproject.org/rpms/python-specfile",
     ).and_return(specfile_pagure_project)
     flexmock(ServiceConfig).should_receive("get_project").with_args(
-        url="https://src.fedoraproject.org/rpms/python-specfile", required=True
+        url="https://src.fedoraproject.org/rpms/python-specfile",
+        required=True,
     ).and_return(specfile_pagure_project)
 
     packit_packit_yaml = (
@@ -1015,17 +1050,20 @@ def test_bodhi_update_from_sidetag(
         default_branch="main",
     )
     packit_pagure_project.should_receive("get_files").with_args(
-        ref=None, filter_regex=r".+\.spec$"
+        ref=None,
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     packit_pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref=None
+        path=".packit.yaml",
+        ref=None,
     ).and_return(packit_packit_yaml)
     packit_pagure_project.should_receive("get_files").with_args(
-        ref=None, recursive=False
+        ref=None,
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(ServiceConfig).should_receive("get_project").with_args(
-        url="https://src.fedoraproject.org/rpms/packit"
+        url="https://src.fedoraproject.org/rpms/packit",
     ).and_return(packit_pagure_project)
 
     flexmock(group).should_receive("apply_async").once()
@@ -1041,7 +1079,9 @@ def test_bodhi_update_from_sidetag(
     ).and_return(flexmock(id=1, project_event_model_type="koji_build_tag"))
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type="koji_build_tag", event_id=1, commit_sha=None
+        type="koji_build_tag",
+        event_id=1,
+        commit_sha=None,
     ).and_return(flexmock())
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -1060,7 +1100,7 @@ def test_bodhi_update_from_sidetag(
         return "alias", "url"
 
     flexmock(PackitAPI).should_receive("create_update").replace_with(
-        _create_update
+        _create_update,
     ).times(0 if missing_dependency else 1)
 
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
@@ -1075,8 +1115,8 @@ def test_bodhi_update_from_sidetag(
                 set_web_url=lambda x: None,
                 set_alias=lambda x: None,
                 set_update_creation_time=lambda x: None,
-            )
-        ]
+            ),
+        ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
 
@@ -1094,7 +1134,7 @@ def test_bodhi_update_from_sidetag(
 
     processing_results = SteveJobs().process_message(koji_build_tagged)
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 

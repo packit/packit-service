@@ -6,9 +6,9 @@ Create Date: 2022-11-18 08:39:32.198275
 
 """
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "e907a93de3ef"
@@ -63,7 +63,8 @@ def upgrade():
         unique=False,
     )
     op.add_column(
-        "pipelines", sa.Column("vm_image_build_id", sa.Integer(), nullable=True)
+        "pipelines",
+        sa.Column("vm_image_build_id", sa.Integer(), nullable=True),
     )
     op.create_index(
         op.f("ix_pipelines_vm_image_build_id"),
@@ -72,7 +73,11 @@ def upgrade():
         unique=False,
     )
     op.create_foreign_key(
-        None, "pipelines", "vm_image_build_targets", ["vm_image_build_id"], ["id"]
+        None,
+        "pipelines",
+        "vm_image_build_targets",
+        ["vm_image_build_id"],
+        ["id"],
     )
     # ### end Alembic commands ###
 
@@ -87,7 +92,8 @@ def downgrade():
         table_name="vm_image_build_targets",
     )
     op.drop_index(
-        op.f("ix_vm_image_build_targets_build_id"), table_name="vm_image_build_targets"
+        op.f("ix_vm_image_build_targets_build_id"),
+        table_name="vm_image_build_targets",
     )
     op.drop_table("vm_image_build_targets")
     # ### end Alembic commands ###

@@ -6,11 +6,9 @@ Create Date: 2024-02-07 09:53:51.363885
 
 """
 
-import sqlalchemy as sa
-
-from alembic import op
 from typing import TYPE_CHECKING
 
+import sqlalchemy as sa
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -20,7 +18,9 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-if TYPE_CHECKING:
+from alembic import op
+
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()
@@ -40,7 +40,8 @@ class SyncReleaseTargetModel(Base):
     downstream_pr_id = Column(Integer, ForeignKey("sync_release_pull_request.id"))
 
     pull_request = relationship(
-        "SyncReleasePullRequestModel", back_populates="sync_release_targets"
+        "SyncReleasePullRequestModel",
+        back_populates="sync_release_targets",
     )
 
 
@@ -50,19 +51,26 @@ class GitProjectModel(Base):
     namespace = Column(String, index=True)
     repo_name = Column(String, index=True)
     sync_release_pull_requests = relationship(
-        "SyncReleasePullRequestModel", back_populates="project"
+        "SyncReleasePullRequestModel",
+        back_populates="project",
     )
     project_url = Column(String)
     instance_url = Column(String, nullable=False)
 
     @classmethod
     def get_or_create(
-        cls, namespace: str, repo_name: str, project_url: str, session: sa.orm.Session
+        cls,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        session: sa.orm.Session,
     ) -> "GitProjectModel":
         project = (
             session.query(GitProjectModel)
             .filter_by(
-                namespace=namespace, repo_name=repo_name, project_url=project_url
+                namespace=namespace,
+                repo_name=repo_name,
+                project_url=project_url,
             )
             .first()
         )
@@ -83,10 +91,12 @@ class SyncReleasePullRequestModel(Base):
     pr_id = Column(Integer, index=True)
     project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship(
-        "GitProjectModel", back_populates="sync_release_pull_requests"
+        "GitProjectModel",
+        back_populates="sync_release_pull_requests",
     )
     sync_release_targets = relationship(
-        "SyncReleaseTargetModel", back_populates="pull_request"
+        "SyncReleaseTargetModel",
+        back_populates="pull_request",
     )
 
     @classmethod
@@ -174,13 +184,17 @@ def upgrade():
                     (url.rfind("rpms/") + 5) : url.rfind("/pull-request")  # noqa[203]
                 ]
                 pull_request = SyncReleasePullRequestModel.get_or_create(
-                    pr_id, namespace, repo, project_url, session
+                    pr_id,
+                    namespace,
+                    repo,
+                    project_url,
+                    session,
                 )
                 sync_release.pull_request = pull_request
                 session.add(pull_request)
             except Exception as e:
                 print(
-                    f"Error creating SyncReleasePullRequestModel during migration {e}"
+                    f"Error creating SyncReleasePullRequestModel during migration {e}",
                 )
 
 

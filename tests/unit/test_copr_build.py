@@ -3,59 +3,58 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Optional, Type
+from typing import Optional
 
+import packit
 import pytest
 from celery import Celery
-from copr.v3 import Client
-from copr.v3 import CoprAuthException
+from copr.v3 import Client, CoprAuthException
 from copr.v3.proxies.build import BuildProxy
 from flexmock import flexmock
 from ogr.abstract import GitProject
 from ogr.exceptions import GitForgeInternalError, OgrNetworkError
 from ogr.services.github import GithubProject
-
-import packit
-import packit_service
 from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
     JobConfigTriggerType,
+    JobConfigView,
     JobType,
     PackageConfig,
-    JobConfigView,
 )
 from packit.copr_helper import CoprHelper
 from packit.exceptions import (
-    PackitCoprSettingsException,
     PackitCoprProjectException,
+    PackitCoprSettingsException,
 )
+
+import packit_service
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DASHBOARD_JOBS_TESTING_FARM_PATH,
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_LIMIT_OUTAGE,
-    DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
-    CoprBuildTargetModel,
+    BuildStatus,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
     GithubInstallationModel,
     GitProjectModel,
     ProjectEventModel,
     ProjectEventModelType,
-    SRPMBuildModel,
     PullRequestModel,
-    BuildStatus,
+    SRPMBuildModel,
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
 from packit_service.worker.events import (
+    EventData,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
-    EventData,
 )
 from packit_service.worker.handlers import CoprBuildHandler
 from packit_service.worker.helpers.build.copr_build import (
@@ -104,7 +103,7 @@ def build_helper(
     jobs=None,
     db_project_event=None,
     selected_job=None,
-    project_type: Type[GitProject] = GithubProject,
+    project_type: type[GitProject] = GithubProject,
     build_targets_override=None,
     task: Optional[CeleryTask] = None,
     copr_build_group_id: Optional[int] = None,
@@ -125,9 +124,9 @@ def build_helper(
                 "package": CommonPackageConfig(
                     _targets=_targets,
                     owner=owner,
-                )
+                ),
             },
-        )
+        ),
     ]
 
     pkg_conf = PackageConfig(
@@ -141,7 +140,8 @@ def build_helper(
         project=project_type(
             repo="the-example-repo",
             service=flexmock(
-                instance_url="git.instance.io", hostname="git.instance.io"
+                instance_url="git.instance.io",
+                hostname="git.instance.io",
             ),
             namespace="the/example/namespace",
         ),
@@ -182,7 +182,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
     # enforce that we are reporting on our own Copr project
     helper.job_build.owner = "packit"
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
-        {"f31", "f32"}
+        {"f31", "f32"},
     )
     flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_raise(
         PackitCoprSettingsException,
@@ -212,14 +212,14 @@ def test_copr_build_fails_chroot_update(github_pr_event):
             "```diff\n"
             "-f30\n"
             "+f32\n"
-            "```\n"
+            "```\n",
         )
         .and_return()
         .mock()
     )
 
     flexmock(BaseBuildJobHelper).should_receive("status_reporter").and_return(
-        status_reporter
+        status_reporter,
     )
     with pytest.raises(PackitCoprSettingsException):
         helper.create_or_update_copr_project()
@@ -233,7 +233,8 @@ def test_copr_build_fails_chroot_update(github_pr_event):
             id="new_installation",
         ),
         pytest.param(
-            [], id="explicitly_defined_empty_key"
+            [],
+            id="explicitly_defined_empty_key",
         ),  # user defines this key (it's None by default)
         pytest.param(
             ["make", "findutils"],
@@ -263,18 +264,18 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     helper.job_config.srpm_build_deps = srpm_build_deps
 
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        account_login="packit-service"
+        account_login="packit-service",
     ).and_return(
         flexmock(
             repositories=[flexmock(repo_name="packit")],
-        )
+        ),
     )
     flexmock(GitProjectModel).should_receive("get_by_id").and_return(
-        flexmock(repo_name="packit")
+        flexmock(repo_name="packit"),
     )
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
+        flexmock(source_project=flexmock(), target_branch="main"),
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
@@ -284,7 +285,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
             .should_receive("set_copr_web_url")
             .mock(),
             flexmock(),
-        )
+        ),
     )
 
     build = flexmock(id=1, status=BuildStatus.waiting_for_srpm)
@@ -295,15 +296,15 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build).times(4)
     flexmock(PullRequestGithubEvent).should_receive("db_project_object").and_return(
-        flexmock()
+        flexmock(),
     )
 
     # copr build
     flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_return(
-        None
+        None,
     )
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
-        "fedora-35-x86_64"
+        "fedora-35-x86_64",
     )
 
     flexmock(helper).should_call("run_copr_build_from_source_script").once()
@@ -318,14 +319,14 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                )
+                ),
             )
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
             .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
-        )
+        ),
     )
 
     flexmock(Celery).should_receive("send_task").once()
@@ -351,7 +352,12 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     ],
 )
 def test_run_copr_build_from_source_script_github_outage_retry(
-    github_pr_event, retry_number, interval, delay, retry, exc
+    github_pr_event,
+    retry_number,
+    interval,
+    delay,
+    retry,
+    exc,
 ):
     helper = build_helper(
         event=github_pr_event,
@@ -363,14 +369,14 @@ def test_run_copr_build_from_source_script_github_outage_retry(
                 id=123,
                 project_event_model_type=ProjectEventModelType.pull_request,
                 commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-            )
+            ),
         )
         .mock(),
         task=CeleryTask(
             flexmock(
                 request=flexmock(retries=retry_number, kwargs={}),
                 max_retries=DEFAULT_RETRY_LIMIT,
-            )
+            ),
         ),
         copr_build_group_id=1 if retry_number > 0 else None,
     )
@@ -384,7 +390,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             id=2,
             type=ProjectEventModelType.pull_request,
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-        )
+        ),
     )
     flexmock(GithubProject).should_receive("get_pr").and_raise(exc)
     srpm_model = flexmock(status="success", id=1)
@@ -392,18 +398,18 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         (
             srpm_model,
             flexmock(),
-        )
+        ),
     )
     flexmock(PullRequestGithubEvent).should_receive("db_project_object").and_return(
-        flexmock()
+        flexmock(),
     )
 
     # copr build
     flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_return(
-        None
+        None,
     )
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
-        "fedora-35-x86_64"
+        "fedora-35-x86_64",
     )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
@@ -415,14 +421,14 @@ def test_run_copr_build_from_source_script_github_outage_retry(
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                )
+                ),
             )
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
             .and_return({"bright-future-x86_64": "", "__proxy__": "something"})
             .mock(),
-        )
+        ),
     )
     build = flexmock(id=1)
     group = flexmock(id=1, grouped_targets=[build])
@@ -432,7 +438,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         flexmock(CoprBuildGroupModel).should_receive("create").never()
         # We set it to pending
         flexmock(build).should_receive("set_status").with_args(
-            BuildStatus.waiting_for_srpm
+            BuildStatus.waiting_for_srpm,
         )
     else:
         flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
@@ -480,12 +486,15 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     ],
 )
 def test_report_pending_build_and_test_on_build_submission(
-    github_pr_event, project, generic_statuses, sync_test_job_statuses_with_builds
+    github_pr_event,
+    project,
+    generic_statuses,
+    sync_test_job_statuses_with_builds,
 ):
     helper = CoprBuildJobHelper(
         package_config=None,
         job_config=flexmock(
-            sync_test_job_statuses_with_builds=sync_test_job_statuses_with_builds
+            sync_test_job_statuses_with_builds=sync_test_job_statuses_with_builds,
         ),
         service_config=ServiceConfig.get_service_config(),
         project=project,
@@ -501,7 +510,7 @@ def test_report_pending_build_and_test_on_build_submission(
             url=web_url,
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
-            "report_status_to_all_test_jobs"
+            "report_status_to_all_test_jobs",
         ).with_args(
             description="Job is in progress...",
             state=(
@@ -518,7 +527,7 @@ def test_report_pending_build_and_test_on_build_submission(
             url="/results/srpm-builds/1",
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
-            "report_status_to_all_test_jobs"
+            "report_status_to_all_test_jobs",
         ).with_args(
             description=(
                 "SRPM build in Copr was submitted..."
@@ -547,7 +556,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
     helper = CoprBuildJobHelper(
         package_config=None,
         job_config=flexmock(
-            sync_test_job_statuses_with_builds=sync_test_job_statuses_with_builds
+            sync_test_job_statuses_with_builds=sync_test_job_statuses_with_builds,
         ),
         service_config=ServiceConfig.get_service_config(),
         project=GithubProject(None, None, None),
@@ -558,7 +567,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
     chroot = "fedora-rawhide-x86_64"
     if sync_test_job_statuses_with_builds:
         flexmock(CoprBuildJobHelper).should_receive(
-            "report_status_to_build_for_chroot"
+            "report_status_to_build_for_chroot",
         ).with_args(
             description="Starting RPM build...",
             state=BaseCommitStatus.running,
@@ -568,7 +577,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
             update_feedback_time=None,
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
-            "report_status_to_all_test_jobs_for_chroot"
+            "report_status_to_all_test_jobs_for_chroot",
         ).with_args(
             description="Starting RPM build...",
             state=BaseCommitStatus.running,
@@ -580,7 +589,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
         ).once()
     else:
         flexmock(CoprBuildJobHelper).should_receive(
-            "report_status_to_build_for_chroot"
+            "report_status_to_build_for_chroot",
         ).with_args(
             description="Starting RPM build...",
             state=BaseCommitStatus.running,
@@ -588,7 +597,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
             chroot=chroot,
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
-            "report_status_to_all_test_jobs_for_chroot"
+            "report_status_to_all_test_jobs_for_chroot",
         ).never()
 
     target = flexmock(id=1, status=BuildStatus.pending, target=chroot)
@@ -601,10 +610,10 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
 
 def test_get_latest_fedora_stable_chroot(github_pr_event):
     flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
-        "get_aliases"
+        "get_aliases",
     ).and_return({"fedora-stable": ["fedora-34", "fedora-35"]})
     flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
-        "fedora-35"
+        "fedora-35",
     ).and_return({"fedora-35-x86_64"})
     assert (
         build_helper(github_pr_event).get_latest_fedora_stable_chroot()
@@ -624,7 +633,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
                         packages={
                             "package": CommonPackageConfig(
                                 _targets=["fedora-all"],
-                            )
+                            ),
                         },
                     ),
                     JobConfig(
@@ -641,7 +650,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
                 packages={
                     "package": CommonPackageConfig(
                         _targets=["fedora-all"],
-                    )
+                    ),
                 },
             ),
             0,
@@ -660,7 +669,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
                         packages={
                             "package": CommonPackageConfig(
                                 _targets=["fedora-all"],
-                            )
+                            ),
                         },
                     ),
                     JobConfig(
@@ -669,7 +678,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
                         packages={
                             "package": CommonPackageConfig(
                                 _targets=["fedora-all"],
-                            )
+                            ),
                         },
                     ),
                     JobConfig(
@@ -686,7 +695,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
                 packages={
                     "package": CommonPackageConfig(
                         _targets=["fedora-all"],
-                    )
+                    ),
                 },
             ),
             2,
@@ -732,14 +741,14 @@ def test_submit_copr_build(
     helper = build_helper(event=github_pr_event)
     flexmock(helper).should_receive("create_or_update_copr_project").and_return("")
     flexmock(helper).should_receive("is_custom_copr_project_defined").and_return(
-        is_custom_copr_project
+        is_custom_copr_project,
     )
     flexmock(helper).should_receive("job_project").and_return("")
     flexmock(helper).should_receive("srpm_path").and_return("")
     flexmock(helper).should_receive("forge_project").and_return("")
     flexmock(helper).should_receive("configured_copr_project").and_return("")
     flexmock(CoprHelper).should_receive("get_copr_settings_url").and_return(
-        "https://copr.fedorainfracloud.org/coprs//edit/"
+        "https://copr.fedorainfracloud.org/coprs//edit/",
     )
     flexmock(helper).should_receive("status_reporter").and_return(
         flexmock()
@@ -748,20 +757,25 @@ def test_submit_copr_build(
             body="Your git-forge project is not allowed to use the configured `` Copr project.\n\n"
             "Please, add this git-forge project `` to `Packit allowed forge projects`in the "
             "[Copr project settings]"
-            "(https://copr.fedorainfracloud.org/coprs//edit/#packit_forge_projects_allowed). "
+            "(https://copr.fedorainfracloud.org/coprs//edit/#packit_forge_projects_allowed). ",
         )
-        .mock()
+        .mock(),
     )
     if copr_server_raise_exc:
         flexmock(BuildProxy).should_receive("create_from_file").and_raise(
-            CoprAuthException("Forge project .... can't build in this Copr via Packit.")
+            CoprAuthException(
+                "Forge project .... can't build in this Copr via Packit.",
+            ),
         )
         with pytest.raises(CoprAuthException):
             helper.submit_copr_build()
 
     else:
         flexmock(BuildProxy).should_receive("create_from_file").with_args(
-            ownername="", projectname="", path="", buildopts=buildopts
+            ownername="",
+            projectname="",
+            path="",
+            buildopts=buildopts,
         ).and_return(flexmock(id=0))
         helper.submit_copr_build()
 
@@ -804,7 +818,7 @@ def test_default_copr_project_name_for_monorepos(github_pr_event):
                     },
                 ),
                 "package-a",
-            )
+            ),
         ],
     )
     assert helper.default_project_name == "the-example-namespace-the-example-repo-342"
@@ -822,14 +836,14 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 job_config_trigger_type=JobConfigTriggerType.pull_request,
                 id=123,
                 project_event_model_type=ProjectEventModelType.pull_request,
-            )
+            ),
         )
         .mock(),
     )
     # enforce that we are reporting on our own Copr project
     helper.job_build.owner = "packit"
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
-        {"f31", "f32"}
+        {"f31", "f32"},
     )
     flexmock(CoprHelper).should_receive("create_or_update_copr_project").and_raise(
         PackitCoprProjectException(
@@ -837,7 +851,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
             "packit-specfile-91-fedora+epel chroots=['fedora-rawhide-x86_64', "
             "'epel-9-x86_64', 'fedora-36-x86_64', 'fedora-35-x86_64']): name: "
             "Name must contain only letters, digits, underscores, dashes and dots.",
-        )
+        ),
     )
     expected_body = (
         "We were not able to find or create Copr project "
@@ -865,7 +879,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     )
 
     flexmock(CoprBuildJobHelper).should_receive("status_reporter").and_return(
-        status_reporter
+        status_reporter,
     )
     with pytest.raises(PackitCoprProjectException):
         helper.create_or_update_copr_project()
@@ -887,7 +901,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -907,7 +921,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             identifier="public",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -916,7 +930,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -936,7 +950,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             identifier="public",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -946,7 +960,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -967,7 +981,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             identifier="public",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -976,7 +990,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -995,15 +1009,17 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="abcdef"
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="abcdef",
     ).and_return(
         flexmock()
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
-        .mock()
+        .mock(),
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        db_project_object
+        db_project_object,
     )
 
     gh_project = flexmock(namespace="n", repo="r")

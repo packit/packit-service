@@ -7,15 +7,15 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    SyncReleaseTargetModel,
-    SyncReleaseModel,
     SyncReleaseJobType,
+    SyncReleaseModel,
+    SyncReleaseTargetModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
-    response_maker,
     get_sync_release_info,
     get_sync_release_target_info,
+    response_maker,
 )
 
 logger = getLogger("packit_service")
@@ -30,12 +30,15 @@ class ProposeDownstreamList(Resource):
     def get(self):
         """List of all Propose Downstreams results."""
 
-        result = []
         first, last = indices()
-        for propose_downstream_results in SyncReleaseModel.get_range(
-            first, last, job_type=SyncReleaseJobType.propose_downstream
-        ):
-            result.append(get_sync_release_info(propose_downstream_results))
+        result = [
+            get_sync_release_info(propose_downstream_results)
+            for propose_downstream_results in SyncReleaseModel.get_range(
+                first,
+                last,
+                job_type=SyncReleaseJobType.propose_downstream,
+            )
+        ]
 
         resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"propose-downstreams {first + 1}-{last}/*"
@@ -46,7 +49,8 @@ class ProposeDownstreamList(Resource):
 @ns.param("id", "Packit id of the propose downstream run target")
 class ProposeResult(Resource):
     @ns.response(
-        HTTPStatus.OK.value, "OK, propose downstream target details will follow"
+        HTTPStatus.OK.value,
+        "OK, propose downstream target details will follow",
     )
     @ns.response(
         HTTPStatus.NOT_FOUND.value,

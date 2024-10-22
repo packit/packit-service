@@ -1,59 +1,57 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from packit_service.worker.events.copr import (
-    AbstractCoprBuildEvent,
-    CoprBuildStartEvent,
-    CoprBuildEndEvent,
-)
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
-    AbstractPRCommentEvent,
     AbstractIssueCommentEvent,
+    AbstractPRCommentEvent,
+)
+from packit_service.worker.events.copr import (
+    AbstractCoprBuildEvent,
+    CoprBuildEndEvent,
+    CoprBuildStartEvent,
 )
 from packit_service.worker.events.event import (
-    EventData,
-    Event,
     AbstractForgeIndependentEvent,
+    Event,
+    EventData,
 )
 from packit_service.worker.events.github import (
+    AbstractGithubEvent,
+    CheckRerunCommitEvent,
+    CheckRerunEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
     InstallationEvent,
     IssueCommentEvent,
     PullRequestCommentGithubEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
-    AbstractGithubEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    CheckRerunEvent,
 )
 from packit_service.worker.events.gitlab import (
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
-    PushGitlabEvent,
     PipelineGitlabEvent,
+    PushGitlabEvent,
     ReleaseGitlabEvent,
     TagPushGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiTaskEvent
-from packit_service.worker.events.pagure import (
-    PullRequestPagureEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestFlagPagureEvent,
-    PushPagureEvent,
-    AbstractPagureEvent,
-)
-from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
-
-from packit_service.worker.events.vm_image import VMImageBuildResultEvent
-
 from packit_service.worker.events.open_scan_hub import (
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
 )
+from packit_service.worker.events.pagure import (
+    AbstractPagureEvent,
+    PullRequestCommentPagureEvent,
+    PullRequestFlagPagureEvent,
+    PullRequestPagureEvent,
+    PushPagureEvent,
+)
+from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
+from packit_service.worker.events.vm_image import VMImageBuildResultEvent
 
 __all__ = [
     Event.__name__,

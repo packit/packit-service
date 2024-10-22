@@ -6,12 +6,23 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from typing import Tuple, Type
 
 from packit.config import (
     JobType,
 )
+
+from packit_service.celerizer import celery_app
+from packit_service.models import (
+    PipelineModel,
+    VMImageBuildStatus,
+    VMImageBuildTargetModel,
+)
 from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.vm_image import (
+    GetVMImageBuildReporterFromJobHelperMixin,
+    HasAuthorWriteAccess,
+    IsCoprBuildForChrootOk,
+)
 from packit_service.worker.events import (
     AbstractPRCommentEvent,
     VMImageBuildResultEvent,
@@ -24,25 +35,13 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
 )
-from packit_service.worker.result import TaskResults
-from packit_service.worker.checker.vm_image import (
-    HasAuthorWriteAccess,
-    IsCoprBuildForChrootOk,
-    GetVMImageBuildReporterFromJobHelperMixin,
+from packit_service.worker.handlers.mixin import (
+    GetVMImageBuilderMixin,
 )
 from packit_service.worker.mixin import (
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.handlers.mixin import (
-    GetVMImageBuilderMixin,
-)
-from packit_service.models import (
-    VMImageBuildTargetModel,
-    VMImageBuildStatus,
-    PipelineModel,
-)
-
-from packit_service.celerizer import celery_app
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,7 @@ class VMImageBuildHandler(
     task_name = TaskName.vm_image_build
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             HasAuthorWriteAccess,
             # [NOTE] We require Copr repository being present for the VM image
@@ -73,7 +72,7 @@ class VMImageBuildHandler(
             return TaskResults(
                 success=False,
                 details={
-                    "msg": f"Job configuration not found for project {self.project.repo}"
+                    "msg": f"Job configuration not found for project {self.project.repo}",
                 },
             )
 
@@ -129,7 +128,7 @@ class VMImageBuildResultHandler(
     task_name = TaskName.vm_image_build_result
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return ()
 
     def run(self) -> TaskResults:
@@ -141,7 +140,7 @@ class VMImageBuildResultHandler(
             if model.status == status:
                 logger.debug(
                     "Status was already processed (status in the DB is the same "
-                    "as the one about to report)"
+                    "as the one about to report)",
                 )
                 return TaskResults(
                     success=True,

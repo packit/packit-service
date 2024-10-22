@@ -1,33 +1,28 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from abc import abstractmethod
 import logging
 import re
+from abc import abstractmethod
 from pathlib import Path
-from typing import Optional, Protocol, Union, List
+from typing import Optional, Protocol, Union
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
-
-from ogr.abstract import Issue
-
+from ogr.abstract import GitProject, Issue, PullRequest
 from packit.api import PackitAPI
-from packit.local_project import LocalProject, LocalProjectBuilder, CALCULATE
+from packit.local_project import CALCULATE, LocalProject, LocalProjectBuilder
 from packit.utils.repo import RepositoryCache
 
-from ogr.abstract import GitProject, PullRequest
-
 from packit_service.config import ServiceConfig
-from packit_service.worker.reporting import BaseCommitStatus
-from packit_service.worker.events import EventData
-from packit_service.worker.helpers.job_helper import BaseJobHelper
-
 from packit_service.constants import (
     FASJSON_URL,
-    SANDCASTLE_LOCAL_PROJECT_DIR,
     SANDCASTLE_DG_REPO_DIR,
+    SANDCASTLE_LOCAL_PROJECT_DIR,
 )
+from packit_service.worker.events import EventData
+from packit_service.worker.helpers.job_helper import BaseJobHelper
+from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +82,8 @@ class ConfigFromUrlMixin(Config):
     def project(self) -> Optional[GitProject]:
         if not self._project and self.project_url:
             self._project = self.service_config.get_project(
-                url=self.project_url, required=self._project_required
+                url=self.project_url,
+                required=self._project_required,
             )
         return self._project
 
@@ -173,7 +169,6 @@ class PackitAPIWithDownstreamMixin(PackitAPIWithDownstreamProtocol):
         """TODO: probably we should clean something even here
         but for now let it do the same as before the refactoring
         """
-        pass
 
 
 class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
@@ -232,19 +227,19 @@ class LocalProjectMixin(Config):
                     )
                     if self.service_config.repository_cache
                     else None
-                )
+                ),
             )
             working_dir = Path(
                 Path(self.service_config.command_handler_work_dir)
-                / SANDCASTLE_LOCAL_PROJECT_DIR
+                / SANDCASTLE_LOCAL_PROJECT_DIR,
             )
-            kwargs = dict(
-                repo_name=CALCULATE,
-                full_name=CALCULATE,
-                namespace=CALCULATE,
-                working_dir=working_dir,
-                git_repo=CALCULATE,
-            )
+            kwargs = {
+                "repo_name": CALCULATE,
+                "full_name": CALCULATE,
+                "namespace": CALCULATE,
+                "working_dir": working_dir,
+                "git_repo": CALCULATE,
+            }
 
             if self.project:
                 kwargs["git_project"] = self.project
@@ -270,13 +265,12 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
 
     @property
     def pull_request(self):
-        if not self._pull_request:
-            if self.data.pr_id is not None:
-                logger.debug(
-                    f"Getting pull request #{self.data.pr_id}"
-                    f"for repo {self.project.namespace}/{self.project.repo}"
-                )
-                self._pull_request = self.project.get_pr(self.data.pr_id)
+        if not self._pull_request and self.data.pr_id is not None:
+            logger.debug(
+                f"Getting pull request #{self.data.pr_id}"
+                f"for repo {self.project.namespace}/{self.project.repo}",
+            )
+            self._pull_request = self.project.get_pr(self.data.pr_id)
         return self._pull_request
 
     def get_pr_author(self):
@@ -303,23 +297,26 @@ class GetIssueMixin(GetIssue, ConfigFromEventMixin):
 class GetBranches(Protocol):
     @property
     @abstractmethod
-    def branches(self) -> List[str]: ...
+    def branches(self) -> list[str]: ...
 
 
 class GetBranchesFromIssueMixin(Config, GetBranches):
     @property
-    def branches(self) -> List[str]:
+    def branches(self) -> list[str]:
         """Get branches names from an issue comment like the following:
 
-
-        Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+        ```
+        Packit failed on creating pull-requests in dist-git
+            (https://src.fedoraproject.org/rpms/python-teamcity-messages):
 
         | dist-git branch | error |
         | --------------- | ----- |
         | `f37` | `` |
 
 
-        You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+        You can retrigger the update by adding a comment
+            (`/packit propose-downstream`) into this issue.
+        ```
         """
         branches = set()
         branch_regex = re.compile(r"\s*\| `(\S+)` \|")
@@ -342,7 +339,7 @@ class GetReporter(Protocol):
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ) -> None: ...
 
 
@@ -369,6 +366,6 @@ class GetReporterFromJobHelperMixin(Config):
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ) -> None:
         self.job_helper._report(state, description, url, check_names, markdown_content)

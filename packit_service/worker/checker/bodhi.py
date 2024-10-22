@@ -5,13 +5,18 @@ import logging
 
 from packit.config.aliases import get_branches
 
-from packit_service.constants import KojiBuildState, MSG_GET_IN_TOUCH
-
+from packit_service.constants import MSG_GET_IN_TOUCH, KojiBuildState
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
 from packit_service.worker.checker.helper import DistgitAccountsChecker
+from packit_service.worker.events import (
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
+    PullRequestCommentPagureEvent,
+)
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,
@@ -23,13 +28,6 @@ from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.events import (
-    PullRequestCommentPagureEvent,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-)
-
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.reporting import report_in_issue_repository
 
 logger = logging.getLogger(__name__)
@@ -53,7 +51,7 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
                     logger.debug(
                         f"Skipping build '{koji_build_data.build_id}' "
                         f"on '{koji_build_data.dist_git_branch}'. "
-                        f"Build not finished yet."
+                        f"Build not finished yet.",
                     )
                     return False
 
@@ -65,7 +63,7 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
                 ):
                     logger.info(
                         f"Skipping build on '{koji_build_data.dist_git_branch}'. "
-                        f"Bodhi update configured only for '{configured_branches}'."
+                        f"Bodhi update configured only for '{configured_branches}'.",
                     )
                     return False
 
@@ -87,7 +85,7 @@ class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
             ).check_allowed_accounts():
                 logger.info(
                     f"Owner of the build ({owner}) does not match the "
-                    f"configuration: {configured_builders}"
+                    f"configuration: {configured_builders}",
                 )
                 return False
 
@@ -108,7 +106,8 @@ class IsKojiBuildCompleteAndBranchConfiguredCheckSidetag(
 
 
 class IsKojiBuildCompleteAndBranchConfiguredCheckService(
-    IsKojiBuildCompleteAndBranchConfigured, GetKojiBuildDataFromKojiServiceMixin
+    IsKojiBuildCompleteAndBranchConfigured,
+    GetKojiBuildDataFromKojiServiceMixin,
 ): ...
 
 
@@ -126,7 +125,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
             logger.debug(
                 f"Re-triggering Bodhi update through comment in "
                 f"repo {self.project_url} and issue {self.data.issue_id} "
-                f"by {self.actor}."
+                f"by {self.actor}.",
             )
             if not has_write_access:
                 msg = (
@@ -151,7 +150,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
             logger.debug(
                 f"Re-triggering Bodhi update via dist-git comment in "
                 f"repo {self.project_url} and #PR {self.data.pr_id} "
-                f"by {self.actor}."
+                f"by {self.actor}.",
             )
             if not has_write_access:
                 msg = (
@@ -178,24 +177,23 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 
 class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
     def _pre_check(self) -> bool:
-        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
-            if not self.is_packager(user=self.actor):
-                title = (
-                    "Re-triggering Bodhi update through dist-git comment in PR failed"
-                )
-                msg = (
-                    f"Re-triggering Bodhi update via dist-git comment in **PR#{self.data.pr_id}**"
-                    f" and project **{self.project_url}** is not allowed, user *{self.actor}* "
-                    "is not a packager."
-                )
-                logger.info(msg)
-                report_in_issue_repository(
-                    issue_repository=self.job_config.issue_repository,
-                    service_config=self.service_config,
-                    title=title,
-                    message=msg + MSG_GET_IN_TOUCH,
-                    comment_to_existing=msg,
-                )
-                return False
+        if self.data.event_type not in (
+            PullRequestCommentPagureEvent.__name__,
+        ) or self.is_packager(user=self.actor):
+            return True
 
-        return True
+        title = "Re-triggering Bodhi update through dist-git comment in PR failed"
+        msg = (
+            f"Re-triggering Bodhi update via dist-git comment in **PR#{self.data.pr_id}**"
+            f" and project **{self.project_url}** is not allowed, user *{self.actor}* "
+            "is not a packager."
+        )
+        logger.info(msg)
+        report_in_issue_repository(
+            issue_repository=self.job_config.issue_repository,
+            service_config=self.service_config,
+            title=title,
+            message=msg + MSG_GET_IN_TOUCH,
+            comment_to_existing=msg,
+        )
+        return False

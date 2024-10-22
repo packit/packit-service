@@ -2,16 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 import json
+
 import pytest
 from flexmock import flexmock
-
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+
 from packit_service.config import PackageConfigGetter
 from packit_service.models import (
     ProjectEventModel,
-    ProjectReleaseModel,
     ProjectEventModelType,
+    ProjectReleaseModel,
 )
 from packit_service.worker.events.new_hotness import (
     AnityaVersionUpdateEvent,
@@ -91,7 +92,7 @@ def test_parse_new_hotness_update(
     event_object = Parser.parse_event(new_hotness_update)
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -103,11 +104,13 @@ def test_parse_new_hotness_update(
             upstream_project_url=upstream_project_url,
             upstream_tag_template=upstream_tag_template,
             get_packages_config=lambda: flexmock(),
-        )
+        ),
     ).once()
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release, event_id="123", commit_sha=None
+        type=ProjectEventModelType.release,
+        event_id="123",
+        commit_sha=None,
     ).and_return(flexmock())
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name=tag_name,
@@ -116,7 +119,7 @@ def test_parse_new_hotness_update(
         project_url=upstream_project_url,
         commit_hash=None,
     ).and_return(
-        flexmock(project_event_model_type=ProjectEventModelType.release, id="123")
+        flexmock(project_event_model_type=ProjectEventModelType.release, id="123"),
     )
 
     assert isinstance(event_object, NewHotnessUpdateEvent)
@@ -141,7 +144,7 @@ def test_parse_anitya_version_update(anitya_version_update):
     event = Parser.parse_event(anitya_version_update)
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event.project,
@@ -153,11 +156,13 @@ def test_parse_anitya_version_update(anitya_version_update):
             upstream_project_url="https://github.com/vemel/mypy_boto3",
             upstream_tag_template="{version}",
             get_packages_config=lambda: flexmock(),
-        )
+        ),
     ).once()
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release, event_id="123", commit_sha=None
+        type=ProjectEventModelType.release,
+        event_id="123",
+        commit_sha=None,
     ).and_return(flexmock())
 
     assert isinstance(event, AnityaVersionUpdateEvent)

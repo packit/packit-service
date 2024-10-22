@@ -3,26 +3,26 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Tuple, Type, Optional
+from typing import Optional
 
-from celery import signature, Task
-
+from celery import Task, signature
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import (
     JobConfig,
+    JobConfigTriggerType,
     JobType,
 )
-from packit.config import JobConfigTriggerType
 from packit.config.package_config import PackageConfig
+
 from packit_service import sentry_integration
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
 )
 from packit_service.models import (
-    CoprBuildTargetModel,
     BuildStatus,
+    CoprBuildTargetModel,
     ProjectEventModelType,
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
@@ -34,14 +34,18 @@ from packit_service.utils import (
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
-    CanActorRunTestsJob,
     AreOwnerAndProjectMatchingJob,
-    IsGitForgeProjectAndEventOk,
     BuildNotAlreadyStarted,
+    CanActorRunTestsJob,
+    IsGitForgeProjectAndEventOk,
     IsJobConfigTriggerMatching,
     IsPackageMatchingJobView,
 )
 from packit_service.worker.events import (
+    AbstractPRCommentEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     MergeRequestGitlabEvent,
@@ -49,26 +53,22 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
     ReleaseEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    AbstractPRCommentEvent,
     ReleaseGitlabEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
+    RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
-    RetriableJobHandler,
+    run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
+    ConfigFromEventMixin,
     GetCoprBuildEventMixin,
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
-    ConfigFromEventMixin,
 )
 from packit_service.worker.helpers.open_scan_hub import OpenScanHubHelper
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
@@ -119,7 +119,7 @@ class CoprBuildHandler(
         self._copr_build_group_id = copr_build_group_id
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             IsJobConfigTriggerMatching,
             IsGitForgeProjectAndEventOk,
@@ -137,7 +137,7 @@ class AbstractCoprBuildReportHandler(
     GetCoprBuildEventMixin,
 ):
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (AreOwnerAndProjectMatchingJob, IsPackageMatchingJobView)
 
 
@@ -149,8 +149,9 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     task_name = TaskName.copr_build_start
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
-        return super(CoprBuildStartHandler, CoprBuildStartHandler).get_checkers() + (
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (
+            *super(CoprBuildStartHandler, CoprBuildStartHandler).get_checkers(),
             BuildNotAlreadyStarted,
         )
 
@@ -252,7 +253,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             return
 
         srpm_url = self.copr_build_helper.get_build(
-            self.copr_event.build_id
+            self.copr_event.build_id,
         ).source_package.get("url")
 
         if srpm_url is not None:
@@ -269,7 +270,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     def measure_time_after_reporting(self):
         reported_time = datetime.now(timezone.utc)
         build_ended_on = self.copr_build_helper.get_build_chroot(
-            int(self.build.build_id), self.build.target
+            int(self.build.build_id),
+            self.build.target,
         ).ended_on
 
         reported_after_time = elapsed_seconds(
@@ -277,7 +279,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             end=reported_time,
         )
         logger.debug(
-            f"Copr build end reported after {reported_after_time / 60} minutes."
+            f"Copr build end reported after {reported_after_time / 60} minutes.",
         )
 
         self.pushgateway.copr_build_end_reported_after_time.observe(reported_after_time)
@@ -288,7 +290,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             return
 
         built_packages = self.copr_build_helper.get_built_packages(
-            int(self.build.build_id), self.build.target
+            int(self.build.build_id),
+            self.build.target,
         )
         self.build.set_built_packages(built_packages)
 
@@ -326,7 +329,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         # if the build is needed only for test, it doesn't have the task_accepted_time
         if self.build.task_accepted_time:
             copr_build_time = elapsed_seconds(
-                begin=self.build.task_accepted_time, end=datetime.now(timezone.utc)
+                begin=self.build.task_accepted_time,
+                end=datetime.now(timezone.utc),
             )
             self.pushgateway.copr_build_finished_time.observe(copr_build_time)
 
@@ -373,7 +377,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 sentry_integration.send_to_sentry(ex)
                 logger.debug(
                     f"Handling the scan raised an exception: {ex}. Skipping "
-                    f"as this is only experimental functionality for now."
+                    f"as this is only experimental functionality for now.",
                 )
 
         return TaskResults(success=True, details={})
@@ -397,7 +401,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
             self.copr_build_helper.status_reporter.comment(
-                msg, duplicate_check=DuplicateCheckMode.check_last_comment
+                msg,
+                duplicate_check=DuplicateCheckMode.check_last_comment,
             )
 
         url = get_copr_build_info_url(self.build.id)
@@ -433,12 +438,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             )
             self.build.set_status(BuildStatus.failure)
             self.copr_build_helper.monitor_not_submitted_copr_builds(
-                len(self.copr_build_helper.build_targets), "srpm_failure"
+                len(self.copr_build_helper.build_targets),
+                "srpm_failure",
             )
             return TaskResults(success=False, details={"msg": failed_msg})
 
         for build in CoprBuildTargetModel.get_all_by_build_id(
-            str(self.copr_event.build_id)
+            str(self.copr_event.build_id),
         ):
             # from waiting_for_srpm to pending
             build.set_status(BuildStatus.pending)
@@ -488,8 +494,9 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             ):
                 event_dict["tests_targets_override"] = list(
                     self.copr_build_helper.build_target2test_targets_for_test_job(
-                        self.copr_event.chroot, job_config
-                    )
+                        self.copr_event.chroot,
+                        job_config,
+                    ),
                 )
                 signature(
                     TaskName.testing_farm.value,

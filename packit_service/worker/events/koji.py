@@ -1,25 +1,26 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import logging
-from typing import Union, Optional, Dict
+from typing import Optional, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     AbstractProjectObjectDbType,
-    KojiBuildTargetModel,
-    PullRequestModel,
-    ProjectReleaseModel,
-    ProjectEventModel,
     GitBranchModel,
+    KojiBuildTargetModel,
+    ProjectEventModel,
+    ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.worker.events.event import (
-    use_for_job_config_trigger,
     AbstractResultEvent,
+    use_for_job_config_trigger,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     def __init__(
         self,
         task_id: int,
-        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -49,7 +50,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not self._build_model_searched and not self._build_model:
             self._build_model = KojiBuildTargetModel.get_by_task_id(
-                task_id=self.task_id
+                task_id=self.task_id,
             )
             self._build_model_searched = True
         return self._build_model
@@ -94,7 +95,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     def get_koji_build_rpm_tasks_logs_urls(
         self,
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Constructs the log URLs for all RPM subtasks of the Koji task.
         """
@@ -106,7 +107,7 @@ class AbstractKojiEvent(AbstractResultEvent):
             for arch, rpm_build_task_id in self.rpm_build_task_ids.items()
         }
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result.pop("_build_model")
         result.pop("_build_model_searched")
@@ -132,7 +133,7 @@ class KojiBuildEvent(AbstractKojiEvent):
         owner: str,
         web_url: Optional[str] = None,
         old_state: Optional[KojiBuildState] = None,
-        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -162,18 +163,16 @@ class KojiBuildEvent(AbstractKojiEvent):
         logger.debug(
             f"Getting packages_config:\n"
             f"\tproject: {self.project}\n"
-            f"\tdefault_branch: {self.project.default_branch}\n"
+            f"\tdefault_branch: {self.project.default_branch}\n",
         )
 
-        packages_config = PackageConfigGetter.get_package_config_from_repo(
+        return PackageConfigGetter.get_package_config_from_repo(
             base_project=None,
             project=self.project,
             pr_id=None,
             reference=self.project.default_branch,
             fail_when_missing=self.fail_when_config_file_missing,
         )
-
-        return packages_config
 
     @property
     def commit_sha(self) -> Optional[str]:  # type:ignore
@@ -192,7 +191,7 @@ class KojiBuildEvent(AbstractKojiEvent):
     def identifier(self) -> str:
         return self.branch_name
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
         result["old_state"] = result["old_state"].value if self.old_state else None
@@ -235,7 +234,7 @@ class KojiTaskEvent(AbstractKojiEvent):
         task_id: int,
         state: KojiTaskState,
         old_state: Optional[KojiTaskState] = None,
-        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -320,11 +319,10 @@ class KojiTaskEvent(AbstractKojiEvent):
                     repo=self.project.repo,
                     is_fork=True,
                 )
-            else:
-                return None  # With Github app, we cannot work with fork repo
+            return None  # With Github app, we cannot work with fork repo
         return self.project
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
         result["old_state"] = result["old_state"].value
@@ -397,4 +395,4 @@ class KojiBuildTagEvent(AbstractKojiEvent):
         )
 
     def get_non_serializable_attributes(self):
-        return super().get_non_serializable_attributes() + ["_koji_helper"]
+        return [*super().get_non_serializable_attributes(), "_koji_helper"]

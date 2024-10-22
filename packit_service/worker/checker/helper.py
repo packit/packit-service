@@ -3,7 +3,7 @@
 import logging
 from enum import Enum
 
-from ogr.abstract import GitProject, AccessLevel
+from ogr.abstract import AccessLevel, GitProject
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,10 @@ class DistgitAllowedAccountsAlias(Enum):
 
 class DistgitAccountsChecker:
     def __init__(
-        self, project: GitProject, accounts_list: list[str], account_to_check: str
+        self,
+        project: GitProject,
+        accounts_list: list[str],
+        account_to_check: str,
     ):
         self.project = project
         self.accounts_list = accounts_list
@@ -31,7 +34,7 @@ class DistgitAccountsChecker:
         (considering the groups and aliases).
         """
         logger.info(
-            f"Checking {self.account_to_check} in list of accounts: {self.accounts_list}"
+            f"Checking {self.account_to_check} in list of accounts: {self.accounts_list}",
         )
 
         direct_account_names = [
@@ -58,7 +61,7 @@ class DistgitAccountsChecker:
                     all_accounts.update(group.members)
                 except Exception as ex:
                     logger.debug(
-                        f"Exception while getting the members of group {value}: {ex!r}"
+                        f"Exception while getting the members of group {value}: {ex!r}",
                     )
                     continue
             else:
