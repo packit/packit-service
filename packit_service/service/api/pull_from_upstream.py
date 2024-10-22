@@ -30,14 +30,15 @@ class PullFromUpstreamList(Resource):
     def get(self):
         """List of all Pull from upstream results."""
 
-        result = []
         first, last = indices()
-        for pull_results in SyncReleaseModel.get_range(
-            first,
-            last,
-            job_type=SyncReleaseJobType.pull_from_upstream,
-        ):
-            result.append(get_sync_release_info(pull_results))
+        result = [
+            get_sync_release_info(pull_results)
+            for pull_results in SyncReleaseModel.get_range(
+                first,
+                last,
+                job_type=SyncReleaseJobType.pull_from_upstream,
+            )
+        ]
 
         resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"pull-from-upstreams {first + 1}-{last}/*"

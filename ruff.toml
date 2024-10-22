@@ -5,7 +5,7 @@ select = [
     "E",   # pycodestyle Error
     "F",   # Pyflakes
     "I",   # isort
-    # "PERF",# Perflint
+    "PERF",# Perflint
     "PIE", # flake8-pie
 #    "PT",  # flake8-pytest-style, would be nice to enable
     "RET", # flake8-return

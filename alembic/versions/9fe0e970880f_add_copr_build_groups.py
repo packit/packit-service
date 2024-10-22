@@ -383,7 +383,7 @@ def upgrade():
     for copr_build in session.query(CoprBuildTargetModel):
         groups[copr_build.build_id].append(copr_build.id)
 
-    for _, ids in groups.items():
+    for ids in groups.values():
         group = CoprBuildGroupModel()
 
         for copr_model_id in ids:

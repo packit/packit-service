@@ -901,18 +901,21 @@ class SteveJobs:
         """
         jobs_matching_trigger: list[JobConfig] = self.get_jobs_matching_event()
 
-        matching_jobs: list[JobConfig] = []
-        for job in jobs_matching_trigger:
-            if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]:
-                matching_jobs.append(job)
+        matching_jobs: list[JobConfig] = [
+            job
+            for job in jobs_matching_trigger
+            if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]
+        ]
 
         if not matching_jobs:
             logger.debug(
                 "No config found, let's see the jobs that requires this handler.",
             )
-            for job in jobs_matching_trigger:
-                if handler_kls in MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]:
-                    matching_jobs.append(job)
+            matching_jobs = [
+                job
+                for job in jobs_matching_trigger
+                if handler_kls in MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
+            ]
 
         if not matching_jobs:
             logger.warning(

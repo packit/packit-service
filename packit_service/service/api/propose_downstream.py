@@ -30,14 +30,15 @@ class ProposeDownstreamList(Resource):
     def get(self):
         """List of all Propose Downstreams results."""
 
-        result = []
         first, last = indices()
-        for propose_downstream_results in SyncReleaseModel.get_range(
-            first,
-            last,
-            job_type=SyncReleaseJobType.propose_downstream,
-        ):
-            result.append(get_sync_release_info(propose_downstream_results))
+        result = [
+            get_sync_release_info(propose_downstream_results)
+            for propose_downstream_results in SyncReleaseModel.get_range(
+                first,
+                last,
+                job_type=SyncReleaseJobType.propose_downstream,
+            )
+        ]
 
         resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"propose-downstreams {first + 1}-{last}/*"

@@ -1365,20 +1365,19 @@ def test_trigger_build(copr_build, wait_for_build):
             TaskResults(success=True, details={}),
         ).twice()
     targets = {"target-x86_64", "another-target-x86_64"}
-    tests = []
-    for target in targets:
-        tests.append(
-            flexmock(
-                copr_builds=[
-                    flexmock(
-                        id=1,
-                        status=copr_build.status if copr_build else BuildStatus.pending,
-                    ),
-                ],
-                target=target,
-                status=TestingFarmResult.new,
-            ),
+    tests = [
+        flexmock(
+            copr_builds=[
+                flexmock(
+                    id=1,
+                    status=copr_build.status if copr_build else BuildStatus.pending,
+                ),
+            ],
+            target=target,
+            status=TestingFarmResult.new,
         )
+        for target in targets
+    ]
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
         *tests,
     ).one_by_one()
@@ -1451,20 +1450,19 @@ def test_trigger_build_manual_tests_dont_report():
     flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
 
     targets = {"target-x86_64", "another-target-x86_64"}
-    tests = []
-    for target in targets:
-        tests.append(
-            flexmock(
-                copr_builds=[
-                    flexmock(
-                        id=1,
-                        status=copr_build.status if copr_build else BuildStatus.pending,
-                    ),
-                ],
-                target=target,
-                status=TestingFarmResult.new,
-            ),
+    tests = [
+        flexmock(
+            copr_builds=[
+                flexmock(
+                    id=1,
+                    status=copr_build.status if copr_build else BuildStatus.pending,
+                ),
+            ],
+            target=target,
+            status=TestingFarmResult.new,
         )
+        for target in targets
+    ]
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
         *tests,
     ).one_by_one()
