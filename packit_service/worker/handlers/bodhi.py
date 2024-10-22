@@ -169,12 +169,12 @@ class BodhiUpdateHandler(
                             "msg": f"There was an error: {ex}. Task will be retried.",
                         },
                     )
-                else:
-                    error = str(ex)
-                    errors[target_model.target] = error
 
-                    target_model.set_status("error")
-                    target_model.set_data({"error": error})
+                error = str(ex)
+                errors[target_model.target] = error
+
+                target_model.set_status("error")
+                target_model.set_data({"error": error})
 
         if errors:
             self.report_in_issue_repository(errors=errors)

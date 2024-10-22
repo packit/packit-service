@@ -602,15 +602,13 @@ class AbstractForgeIndependentEvent(Event):
             f"\tpr_id: {self.pr_id}",
         )
 
-        packages_config = PackageConfigGetter.get_package_config_from_repo(
+        return PackageConfigGetter.get_package_config_from_repo(
             base_project=self.base_project,
             project=self.project,
             reference=self.commit_sha,
             pr_id=self.pr_id,
             fail_when_missing=self.fail_when_config_file_missing,
         )
-
-        return packages_config
 
     def get_all_tf_targets_by_status(
         self,

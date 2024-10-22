@@ -322,8 +322,8 @@ class JobHandler(Handler):
         """
         if len(self.package_config.packages) == 1:
             return list(self.package_config.packages.keys())[0]
-        else:
-            return None
+
+        return None
 
     def run_job(self):
         """

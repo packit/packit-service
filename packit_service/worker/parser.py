@@ -375,7 +375,8 @@ class Parser:
 
         if not (ref and event.get("commits") and event.get("before") and actor):
             return False
-        elif event.get("after").startswith("0000000"):
+
+        if event.get("after").startswith("0000000"):
             logger.info(f"GitLab push event on '{ref}' by {actor} to delete branch/tag")
             return False
 
@@ -518,7 +519,8 @@ class Parser:
 
         if not (raw_ref and head_commit and before and pusher):
             return None
-        elif event.get("deleted"):
+
+        if event.get("deleted"):
             logger.info(
                 f"GitHub push event on '{raw_ref}' by {pusher} to delete branch",
             )
@@ -562,8 +564,7 @@ class Parser:
         """
         if nested_get(event, "issue", "pull_request"):
             return Parser.parse_pull_request_comment_event(event)
-        else:
-            return Parser.parse_issue_comment_event(event)
+        return Parser.parse_issue_comment_event(event)
 
     @staticmethod
     def parse_pull_request_comment_event(
@@ -674,8 +675,7 @@ class Parser:
         """
         if event.get("merge_request"):
             return Parser.parse_merge_request_comment_event(event)
-        else:
-            return Parser.parse_gitlab_issue_comment_event(event)
+        return Parser.parse_gitlab_issue_comment_event(event)
 
     @staticmethod
     def parse_gitlab_issue_comment_event(event) -> Optional[IssueCommentGitlabEvent]:

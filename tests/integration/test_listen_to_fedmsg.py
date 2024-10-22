@@ -327,21 +327,21 @@ def test_copr_build_end(
     pr_comment_exists,
 ):
     def get_comments(*args, **kwargs):
-        if pr_comment_exists:
-            return [
-                flexmock(
-                    author="packit-as-a-service[bot]",
-                    body="Congratulations! One of the builds has completed. :champagne:\n\n"
-                    "You can install the built RPMs by following these steps:\n\n* "
-                    "`sudo yum install -y dnf-plugins-core` on RHEL 8\n* "
-                    "`sudo dnf install -y dnf-plugins-core` on Fedora\n* "
-                    "`dnf copr enable packit/packit-service-hello-world-24`\n* "
-                    "And now you can install the packages.\n\n"
-                    "Please note that the RPMs should be used only in a testing environment.",
-                ),
-            ]
-        else:
+        if not pr_comment_exists:
             return []
+
+        return [
+            flexmock(
+                author="packit-as-a-service[bot]",
+                body="Congratulations! One of the builds has completed. :champagne:\n\n"
+                "You can install the built RPMs by following these steps:\n\n* "
+                "`sudo yum install -y dnf-plugins-core` on RHEL 8\n* "
+                "`sudo dnf install -y dnf-plugins-core` on Fedora\n* "
+                "`dnf copr enable packit/packit-service-hello-world-24`\n* "
+                "And now you can install the packages.\n\n"
+                "Please note that the RPMs should be used only in a testing environment.",
+            ),
+        ]
 
     pr = flexmock(source_project=flexmock(), get_comments=get_comments)
     flexmock(GithubProject).should_receive("is_private").and_return(False)

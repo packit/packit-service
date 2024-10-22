@@ -64,11 +64,10 @@ class OpenScanHubAbstractHandler(
             celery_task=self.celery_task,
         )
 
-        scan_helper = OpenScanHubHelper(
+        return OpenScanHubHelper(
             copr_build_helper=build_helper,
             build=self.event.build,
         )
-        return scan_helper
 
     def check_scan_and_build(self):
         task_id = self.data.event_dict["task_id"]
@@ -79,7 +78,8 @@ class OpenScanHubAbstractHandler(
                     "msg": f"Scan {task_id} not found or not associated with a Copr build",
                 },
             )
-        elif not self.job_config:
+
+        if not self.job_config:
             return TaskResults(
                 success=True,
                 details={
@@ -89,6 +89,8 @@ class OpenScanHubAbstractHandler(
                     ),
                 },
             )
+
+        return None
 
 
 @configured_as(job_type=JobType.copr_build)

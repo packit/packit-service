@@ -573,7 +573,8 @@ def pytest_assertrepr_compare(op, left, right):
 
         schema = JobConfigSchema()
         return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
-    elif (
+
+    if (
         isinstance(left, PackageConfig)
         and isinstance(right, PackageConfig)
         and op == "=="
@@ -582,6 +583,7 @@ def pytest_assertrepr_compare(op, left, right):
 
         schema = PackageConfigSchema()
         return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
+    return None
 
 
 @pytest.fixture()

@@ -63,16 +63,20 @@ class TestingFarmResultsEvent(AbstractResultEvent):
         return result
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
-        run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+        if run_model := TFTTestRunTargetModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id,
-        )
-        return run_model.get_project_event_object() if run_model else None
+        ):
+            return run_model.get_project_event_object()
+
+        return None
 
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
-        run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+        if run_model := TFTTestRunTargetModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id,
-        )
-        return run_model.get_project_event_model() if run_model else None
+        ):
+            return run_model.get_project_event_model()
+
+        return None
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
@@ -83,6 +87,5 @@ class TestingFarmResultsEvent(AbstractResultEvent):
                     repo=self.project.repo,
                     is_fork=True,
                 )
-            else:
-                return None  # With Github app, we cannot work with fork repo
+            return None  # With Github app, we cannot work with fork repo
         return self.project

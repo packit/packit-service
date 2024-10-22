@@ -35,7 +35,7 @@ class only_once:
     def __call__(self, *args, **kwargs):
         if self.configured:
             logger.debug(f"Function {self.func.__name__} already called. Skipping.")
-            return
+            return None
 
         self.configured = True
         logger.debug(

@@ -173,10 +173,7 @@ class SRPMBuildModel(Base):
 
     @classmethod
     def get_all(cls, session: Session):
-        srpm_builds = (
-            session.query(SRPMBuildModel).order_by(desc(SRPMBuildModel.id)).all()
-        )
-        return srpm_builds
+        return session.query(SRPMBuildModel).order_by(desc(SRPMBuildModel.id)).all()
 
     def __repr__(self):
         return f"SRPMBuildModel(id={self.id} trigger={self.job_trigger_id})"

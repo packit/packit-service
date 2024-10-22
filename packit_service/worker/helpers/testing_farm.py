@@ -249,8 +249,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # Otherwise sanitize the path
             path = path.removeprefix("./")
             path = path.removeprefix("/")
-            path = path.removesuffix("/")
-            return path
+            return path.removesuffix("/")
         return "."
 
     @property
@@ -1129,10 +1128,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             logger.error(msg)
             return {}
 
-        details = response.json()
+        return response.json()
         # logger.debug(f"Request/pipeline {request_id} details: {details}")
-
-        return details
 
     def _handle_tf_submit_successful(
         self,
@@ -1267,11 +1264,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             dict
         """
         parsed_pr_argument = self._parse_comment_pr_argument()
-
         if not parsed_pr_argument:
             return None
-        else:
-            namespace, repo, pr_id = parsed_pr_argument
+
+        namespace, repo, pr_id = parsed_pr_argument
 
         # for now let's default to github.com
         project_url = f"https://github.com/{namespace}/{repo}"

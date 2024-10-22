@@ -40,15 +40,13 @@ class AbstractPagureEvent(AbstractForgeIndependentEvent):
             f"\tdefault_branch: {self.project.default_branch}\n",
         )
 
-        packages_config = PackageConfigGetter.get_package_config_from_repo(
+        return PackageConfigGetter.get_package_config_from_repo(
             base_project=None,
             project=self.project,
             pr_id=None,
             reference=self.project.default_branch,
             fail_when_missing=self.fail_when_config_file_missing,
         )
-
-        return packages_config
 
 
 class PushPagureEvent(AddBranchPushEventToDb, AbstractPagureEvent):

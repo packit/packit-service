@@ -3859,7 +3859,7 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
     def get_all_by_commit(cls, commit_sha: str) -> Iterable["VMImageBuildTargetModel"]:
         """Returns all builds that match a given commit sha"""
         with sa_session_transaction() as session:
-            query = (
+            return (
                 session.query(VMImageBuildTargetModel)
                 .join(
                     PipelineModel,
@@ -3872,7 +3872,6 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
                 .filter(ProjectEventModel.commit_sha == commit_sha)
                 .order_by(VMImageBuildTargetModel.build_id.desc())
             )
-            return query
 
     @classmethod
     def create(

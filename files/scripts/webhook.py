@@ -111,6 +111,8 @@ def run(hostname, pr, project, github_token):
             verify=False,
         )
         print(response.text)
+        return None
+    return None
 
 
 if __name__ == "__main__":

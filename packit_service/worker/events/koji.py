@@ -166,15 +166,13 @@ class KojiBuildEvent(AbstractKojiEvent):
             f"\tdefault_branch: {self.project.default_branch}\n",
         )
 
-        packages_config = PackageConfigGetter.get_package_config_from_repo(
+        return PackageConfigGetter.get_package_config_from_repo(
             base_project=None,
             project=self.project,
             pr_id=None,
             reference=self.project.default_branch,
             fail_when_missing=self.fail_when_config_file_missing,
         )
-
-        return packages_config
 
     @property
     def commit_sha(self) -> Optional[str]:  # type:ignore
@@ -321,8 +319,7 @@ class KojiTaskEvent(AbstractKojiEvent):
                     repo=self.project.repo,
                     is_fork=True,
                 )
-            else:
-                return None  # With Github app, we cannot work with fork repo
+            return None  # With Github app, we cannot work with fork repo
         return self.project
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:

@@ -83,7 +83,7 @@ class AnityaUpdateEvent(Event):
                 logger.info(
                     "Not going to create the DB project event, not valid arguments.",
                 )
-                return None
+                return
 
             (
                 self._db_project_object,
@@ -118,15 +118,13 @@ class AnityaUpdateEvent(Event):
     def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(f"Getting package_config:\n" f"\tproject: {self.project}\n")
 
-        package_config = PackageConfigGetter.get_package_config_from_repo(
+        return PackageConfigGetter.get_package_config_from_repo(
             base_project=None,
             project=self.project,
             pr_id=None,
             reference=None,
             fail_when_missing=False,
         )
-
-        return package_config
 
     @property
     def project_url(self) -> Optional[str]:

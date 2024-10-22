@@ -74,10 +74,10 @@ class BaseJobHelper:
         Helpers should always have PackageConfigView(s)
         references which hold just a single package.
         """
-        if len(self.package_config.packages) == 1:
-            return list(self.package_config.packages.keys())[0]
-        else:
+        if len(self.package_config.packages) != 1:
             return None
+
+        return list(self.package_config.packages.keys())[0]
 
     @property
     def msg_retrigger(self) -> str:

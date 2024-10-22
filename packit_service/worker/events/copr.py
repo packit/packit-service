@@ -82,8 +82,8 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
                     repo=self.project.repo,
                     is_fork=True,
                 )
-            else:
-                return None  # With Github app, we cannot work with fork repo
+
+            return None  # With Github app, we cannot work with fork repo
         return self.project
 
     @classmethod

@@ -145,7 +145,7 @@ class StatusReporter:
             logger.warning("No checks to set status for.")
             return
 
-        elif isinstance(check_names, str):
+        if isinstance(check_names, str):
             check_names = [check_names]
 
         for check in check_names:
@@ -244,7 +244,8 @@ class StatusReporter:
             if comment.author.startswith(self._packit_user):
                 if mode == DuplicateCheckMode.check_last_comment:
                     return body == comment.body
-                elif (
+
+                if (
                     mode == DuplicateCheckMode.check_all_comments
                     and body == comment.body
                 ):

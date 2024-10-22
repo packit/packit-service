@@ -146,10 +146,10 @@ class GithubWebhook(Resource):
                 msg = "X-Hub-Signature-256 not in request.headers"
                 logger.warning(msg)
                 raise ValidationFailed(msg)
-            else:
-                # don't validate signatures when testing locally
-                logger.debug("Ain't validating signatures.")
-                return
+
+            # don't validate signatures when testing locally
+            logger.debug("Ain't validating signatures.")
+            return
 
         if not (webhook_secret := config.webhook_secret.encode()):
             msg = "'webhook_secret' not specified in the config."
@@ -275,10 +275,10 @@ class GitlabWebhook(Resource):
                 logger.info(msg)
                 self.create_confidential_issue_with_token()
                 raise ValidationFailed(msg)
-            else:
-                # don't validate signatures when testing locally
-                logger.debug("Ain't validating token.")
-                return
+
+            # don't validate signatures when testing locally
+            logger.debug("Ain't validating token.")
+            return
 
         token = request.headers["X-Gitlab-Token"]
 
