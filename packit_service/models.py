@@ -4123,73 +4123,73 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10) -> dict:
             # "type[ProjectAndEventsConnector]" has no attribute "__tablename__"
             continue
 
-        jobs[job_model.__tablename__] = dict(
-            job_runs=GitProjectModel.get_job_usage_numbers_count_all_project_events(
+        jobs[job_model.__tablename__] = {
+            "job_runs": GitProjectModel.get_job_usage_numbers_count_all_project_events(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 job_result_model=job_model,
             ),
-            top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers_all_project_events(
+            "top_projects_by_job_runs": GitProjectModel.get_job_usage_numbers_all_project_events(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
                 top=top,
                 job_result_model=job_model,
             ),
-        )
+        }
         jobs[job_model.__tablename__]["per_event"] = {
-            project_event_type.value: dict(
-                job_runs=GitProjectModel.get_job_usage_numbers_count(
+            project_event_type.value: {
+                "job_runs": GitProjectModel.get_job_usage_numbers_count(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     job_result_model=job_model,
                     project_event_type=project_event_type,
                 ),
-                top_projects_by_job_runs=GitProjectModel.get_job_usage_numbers(
+                "top_projects_by_job_runs": GitProjectModel.get_job_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=top,
                     job_result_model=job_model,
                     project_event_type=project_event_type,
                 ),
-            )
+            }
             for project_event_type in ProjectEventModelType
         }
 
-    return dict(
-        all_projects=dict(
-            project_count=GitProjectModel.get_project_count(),
-            instances=GitProjectModel.get_instance_numbers(),
-        ),
-        active_projects=dict(
-            project_count=GitProjectModel.get_active_projects_count(
+    return {
+        "all_projects": {
+            "project_count": GitProjectModel.get_project_count(),
+            "instances": GitProjectModel.get_instance_numbers(),
+        },
+        "active_projects": {
+            "project_count": GitProjectModel.get_active_projects_count(
                 datetime_from=datetime_from,
                 datetime_to=datetime_to,
             ),
-            top_projects_by_events_handled=GitProjectModel.get_active_projects_usage_numbers(
+            "top_projects_by_events_handled": GitProjectModel.get_active_projects_usage_numbers(
                 datetime_from=datetime_from, datetime_to=datetime_to, top=top
             ),
-            instances=GitProjectModel.get_instance_numbers_for_active_projects(
+            "instances": GitProjectModel.get_instance_numbers_for_active_projects(
                 datetime_from=datetime_from, datetime_to=datetime_to
             ),
-        ),
-        events={
-            project_event_type.value: dict(
-                events_handled=GitProjectModel.get_project_event_usage_count(
+        },
+        "events": {
+            project_event_type.value: {
+                "events_handled": GitProjectModel.get_project_event_usage_count(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     project_event_type=project_event_type,
                 ),
-                top_projects=GitProjectModel.get_project_event_usage_numbers(
+                "top_projects": GitProjectModel.get_project_event_usage_numbers(
                     datetime_from=datetime_from,
                     datetime_to=datetime_to,
                     top=top,
                     project_event_type=project_event_type,
                 ),
-            )
+            }
             for project_event_type in ProjectEventModelType
         },
-        jobs=jobs,
-    )
+        "jobs": jobs,
+    }
 
 
 @cached(cache=TTLCache(maxsize=1, ttl=(60 * 60 * 24)))

@@ -317,10 +317,10 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
         for project_event_type in ProjectEventModelType
     }
 
-    return dict(
-        events_handled=events_handled,
-        jobs=jobs,
-    )
+    return {
+        "events_handled": events_handled,
+        "jobs": jobs,
+    }
 
 
 def get_result_dictionary(

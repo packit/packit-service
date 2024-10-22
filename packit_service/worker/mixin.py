@@ -238,13 +238,13 @@ class LocalProjectMixin(Config):
                 Path(self.service_config.command_handler_work_dir)
                 / SANDCASTLE_LOCAL_PROJECT_DIR
             )
-            kwargs = dict(
-                repo_name=CALCULATE,
-                full_name=CALCULATE,
-                namespace=CALCULATE,
-                working_dir=working_dir,
-                git_repo=CALCULATE,
-            )
+            kwargs = {
+                "repo_name": CALCULATE,
+                "full_name": CALCULATE,
+                "namespace": CALCULATE,
+                "working_dir": working_dir,
+                "git_repo": CALCULATE,
+            }
 
             if self.project:
                 kwargs["git_project"] = self.project

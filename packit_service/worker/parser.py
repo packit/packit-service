@@ -137,9 +137,9 @@ class Parser:
             logger.warning("No event to process!")
             return None
 
-        for response in map(
-            lambda parser: parser(event),
-            (
+        for response in (
+            parser(event)
+            for parser in (
                 Parser.parse_pr_event,
                 Parser.parse_pull_request_comment_event,
                 Parser.parse_issue_comment_event,
@@ -166,7 +166,7 @@ class Parser:
                 Parser.parse_anitya_version_update_event,
                 Parser.parse_openscanhub_task_finished_event,
                 Parser.parse_openscanhub_task_started_event,
-            ),
+            )
         ):
             if response:
                 return response

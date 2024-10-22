@@ -69,11 +69,11 @@ def test_check_has_author_write_access(
             )
         },
     )
-    data = dict(
-        event_type=event_type,
-        actor="happy-packit-user",
-        pr_id=123,
-    )
+    data = {
+        "event_type": event_type,
+        "actor": "happy-packit-user",
+        "pr_id": 123,
+    }
     project = flexmock(
         has_write_access=lambda user: has_write_access,
         repo="playground-for-pencils",
@@ -132,11 +132,11 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
             )
         },
     )
-    data = dict(
-        event_type="PullRequestCommentPagureEvent",
-        actor=author_name,
-        pr_id=123,
-    )
+    data = {
+        "event_type": "PullRequestCommentPagureEvent",
+        "actor": author_name,
+        "pr_id": 123,
+    }
     project = flexmock(
         repo="playground-for-pencils",
     )

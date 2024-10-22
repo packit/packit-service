@@ -63,7 +63,7 @@ def _add_vm_image_build(run: VMImageBuildTargetModel, response_dict: Dict):
 
 
 def flatten_and_remove_none(ids):
-    return filter(None, map(lambda arr: arr[0], ids))
+    return filter(None, (arr[0] for arr in ids))
 
 
 def process_runs(runs):

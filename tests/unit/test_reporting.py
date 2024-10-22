@@ -271,7 +271,7 @@ def test_set_status_github_check(
             "https://api.packit.dev/build/111/logs",
             CommitStatus.success,
             GithubAPIException,
-            dict(),
+            {},
             StatusReporterGithubStatuses,
             id="GitHub PR",
         ),

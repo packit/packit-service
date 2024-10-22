@@ -249,25 +249,25 @@ class AbstractSyncReleaseHandler(
             is_pull_from_upstream_job = (
                 self.sync_release_job_type == SyncReleaseJobType.pull_from_upstream
             )
-            kwargs = dict(
-                dist_git_branch=branch,
-                create_pr=True,
-                local_pr_branch_suffix=branch_suffix,
-                use_downstream_specfile=is_pull_from_upstream_job,
-                sync_default_files=not is_pull_from_upstream_job,
-                add_pr_instructions=True,
-                resolved_bugs=self.get_resolved_bugs(),
-                release_monitoring_project_id=self.data.event_dict.get(
+            kwargs = {
+                "dist_git_branch": branch,
+                "create_pr": True,
+                "local_pr_branch_suffix": branch_suffix,
+                "use_downstream_specfile": is_pull_from_upstream_job,
+                "sync_default_files": not is_pull_from_upstream_job,
+                "add_pr_instructions": True,
+                "resolved_bugs": self.get_resolved_bugs(),
+                "release_monitoring_project_id": self.data.event_dict.get(
                     "anitya_project_id"
                 ),
-                sync_acls=True,
-                pr_description_footer=DistgitAnnouncement.get_announcement(),
+                "sync_acls": True,
+                "pr_description_footer": DistgitAnnouncement.get_announcement(),
                 # [TODO] Remove for CentOS support once it gets refined
-                add_new_sources=self.package_config.pkg_tool in (None, "fedpkg"),
-                fast_forward_merge_branches=self.helper.get_fast_forward_merge_branches_for(
+                "add_new_sources": self.package_config.pkg_tool in (None, "fedpkg"),
+                "fast_forward_merge_branches": self.helper.get_fast_forward_merge_branches_for(
                     branch
                 ),
-            )
+            }
             if not self.packit_api.non_git_upstream:
                 kwargs["tag"] = self.tag
             elif version := self.data.event_dict.get("version"):
