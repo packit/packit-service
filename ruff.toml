@@ -3,7 +3,7 @@ select = [
     "C4",  # flake8-comprehensions
     "COM", # flake8-commas
     # "E",   # pycodestyle Error
-    # "F",   # Pyflakes
+    "F",   # Pyflakes
     "I",   # isort
     # "PERF",# Perflint
     "PIE", # flake8-pie
@@ -15,9 +15,10 @@ select = [
     # "W",   # pycodestyle Warning
 ]
 ignore = [
-    "B017", # assert-raises-exception
-    "B022", # useless-contextlib-suppress
-    "RUF003"# Comment contains ambiguous character
+    "B017",    # assert-raises-exception
+    "B022",    # useless-contextlib-suppress
+    "RUF003",  # Comment contains ambiguous character
+    "E701",    # Multiple statements on one line (colon)
 ]
 
 line-length = 100
