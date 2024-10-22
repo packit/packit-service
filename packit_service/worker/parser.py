@@ -1741,10 +1741,10 @@ class Parser:
                 parse_anitya_version_update_event.__func__  # type: ignore
             ),
             "openscanhub.task.started": (
-                parse_openscanhub_task_started_event.__func__,  # type: ignore
+                parse_openscanhub_task_started_event.__func__  # type: ignore
             ),
             "openscanhub.task.finished": (
-                parse_openscanhub_task_finished_event.__func__,  # type: ignore
+                parse_openscanhub_task_finished_event.__func__  # type: ignore
             ),
         },
         "testing-farm": {
