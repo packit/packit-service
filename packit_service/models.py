@@ -1970,6 +1970,8 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         "CoprBuildGroupModel", back_populates="copr_build_targets"
     )
 
+    scan = relationship("OSHScanModel", back_populates="copr_build_target")
+
     def set_built_packages(self, built_packages):
         with sa_session_transaction(commit=True) as session:
             self.built_packages = built_packages
@@ -2194,6 +2196,13 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             f"CoprBuildTargetModel(id={self.id}, "
             f"build_submitted_time={self.build_submitted_time})"
         )
+
+    def add_scan(self, task_id: int) -> "OSHScanModel":
+        with sa_session_transaction(commit=True) as session:
+            scan = OSHScanModel.get_or_create(task_id)
+            scan.copr_build_target = self
+            session.add(scan)
+            return scan
 
 
 class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
@@ -3822,6 +3831,74 @@ class SidetagModel(Base):
     def get_by_koji_name(cls, koji_name: str) -> Optional["SidetagModel"]:
         with sa_session_transaction() as session:
             return session.query(SidetagModel).filter_by(koji_name=koji_name).first()
+
+
+class OSHScanStatus(str, enum.Enum):
+    """An enum of all possible build statuses"""
+
+    pending = "pending"
+    running = "running"
+    succeeded = "succeeded"
+    failed = "failed"
+    canceled = "canceled"
+
+
+class OSHScanModel(Base):
+    __tablename__ = "scans"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, unique=True)  # open scan hub id
+    status = Column(Enum(OSHScanStatus))
+    url = Column(String)
+    issues_added_url = Column(String)
+    issues_fixed_url = Column(String)
+    scan_results_url = Column(String)
+    copr_build_target_id = Column(
+        Integer, ForeignKey("copr_build_targets.id"), unique=True
+    )
+    copr_build_target = relationship(
+        "CoprBuildTargetModel", back_populates="scan", uselist=False
+    )
+
+    @classmethod
+    def get_or_create(cls, task_id: int) -> "OSHScanModel":
+        with sa_session_transaction(commit=True) as session:
+            scan = cls.get_by_task_id(task_id)
+            if not scan:
+                scan = cls()
+                scan.task_id = task_id
+                scan.status = OSHScanStatus.pending
+                session.add(scan)
+            return scan
+
+    def set_status(self, status: OSHScanStatus) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.status = status
+            session.add(self)
+
+    def set_url(self, url: str) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.url = url
+            session.add(self)
+
+    def set_issues_added_url(self, issues_added_url: str) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.issues_added_url = issues_added_url
+            session.add(self)
+
+    def set_issues_fixed_url(self, issues_fixed_url: str) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.issues_fixed_url = issues_fixed_url
+            session.add(self)
+
+    def set_scan_results_url(self, scan_results_url: str) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.scan_results_url = scan_results_url
+            session.add(self)
+
+    @classmethod
+    def get_by_task_id(cls, task_id: int) -> Optional["OSHScanModel"]:
+        with sa_session_transaction() as session:
+            return session.query(cls).filter_by(task_id=task_id).first()
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))

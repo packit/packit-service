@@ -1,0 +1,9 @@
+{
+  "added.js": "http://openscanhub.fedoraproject.org/task/15649/log/added.js?format=raw",
+  "fixed.js": "http://openscanhub.fedoraproject.org/task/15649/log/fixed.js?format=raw",
+  "scan-results.js": "http://openscanhub.fedoraproject.org/task/15649/log/gvisor-tap-vsock-0.7.5-1.20241007054606793155.pr405.23.g829aafd6/scan-results.js?format=raw",
+  "task_id": 15649,
+  "status": "success",
+  "topic": "org.fedoraproject.prod.openscanhub.task.finished",
+  "timestamp": 1728297198.032705
+}

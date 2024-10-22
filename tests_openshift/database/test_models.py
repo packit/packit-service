@@ -33,6 +33,7 @@ from packit_service.models import (
     Session,
     BuildStatus,
     SyncReleaseJobType,
+    OSHScanModel,
 )
 from tests_openshift.conftest import SampleValues
 
@@ -1065,3 +1066,19 @@ def test_project_event_get_older_than_with_packages_config(
         )
         == 0
     )
+
+
+def test_create_scan(clean_before_and_after, a_scan):
+    assert a_scan.task_id == 123
+    assert a_scan.status == "success"
+    assert a_scan.url == "task url"
+    assert a_scan.issues_added_url == "added issues"
+    assert a_scan.issues_fixed_url == "fixed issues"
+    assert a_scan.scan_results_url == "results"
+    assert a_scan.copr_build_target.build_id == "123456"
+
+
+def test_add_scan_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
+    a_copr_build_for_pr.add_scan(123)
+    scan = OSHScanModel.get_by_task_id(123)
+    assert scan.task_id == 123

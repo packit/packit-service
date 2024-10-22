@@ -141,6 +141,24 @@ class EventData:
             branches_override=branches_override,
         )
 
+    def to_event(self) -> "Event":
+        """
+        Create an instance of Event class from the data in this class.
+        """
+        mod = __import__("packit_service.worker.events", fromlist=[self.event_type])
+        kls = getattr(mod, self.event_type)
+        kwargs = copy.copy(self.event_dict)
+        # The following data should be reconstructed by the Event instance (when needed)
+        kwargs.pop("event_type", None)
+        kwargs.pop("event_id", None)
+        kwargs.pop("task_accepted_time", None)
+        kwargs.pop("build_targets_override", None)
+        kwargs.pop("tests_targets_override", None)
+        kwargs.pop("branches_override", None)
+        pr_id = kwargs.pop("_pr_id", None)
+        kwargs["pr_id"] = pr_id
+        return kls(**kwargs)
+
     @property
     def project(self):
         if not self._project:
@@ -367,12 +385,17 @@ class Event:
             self.db_project_event.set_packages_config(package_config_dict)
 
     def get_non_serializable_attributes(self):
+        """List here both non serializable attributes and attributes that
+        we want to skip from the dict because are not needed to re-create
+        the event.
+        """
         return [
             "_db_project_object",
             "_db_project_event",
             "_project",
             "_base_project",
             "_package_config",
+            "_package_config_searched",
         ]
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -618,10 +641,11 @@ class AbstractForgeIndependentEvent(Event):
             statuses_to_filter_with=statuses_to_filter_with,
         )
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        result = super().get_dict()
-        result.pop("_pull_request_object")
-        return result
+    def get_non_serializable_attributes(self):
+        return super().get_non_serializable_attributes() + [
+            "fail_when_config_file_missing",
+            "_pull_request_object",
+        ]
 
 
 class AbstractResultEvent(AbstractForgeIndependentEvent):

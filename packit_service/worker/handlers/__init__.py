@@ -38,6 +38,10 @@ from packit_service.worker.handlers.vm_image import (
     VMImageBuildHandler,
     VMImageBuildResultHandler,
 )
+from packit_service.worker.handlers.open_scan_hub import (
+    OpenScanHubTaskFinishedHandler,
+    OpenScanHubTaskStartedHandler,
+)
 
 __all__ = [
     Handler.__name__,
@@ -55,4 +59,6 @@ __all__ = [
     GithubFasVerificationHandler.__name__,
     VMImageBuildHandler.__name__,
     VMImageBuildResultHandler.__name__,
+    OpenScanHubTaskFinishedHandler.__name__,
+    OpenScanHubTaskStartedHandler.__name__,
 ]

@@ -339,7 +339,7 @@ def add_pull_request_event_with_sha_123456():
         id=123,
     )
     db_project_event = (
-        flexmock(type=ProjectEventModelType.pull_request)
+        flexmock(type=ProjectEventModelType.pull_request, commit_sha="123456")
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
