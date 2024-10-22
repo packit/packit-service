@@ -6,7 +6,7 @@ This file defines classes for job handlers specific for Testing farm
 """
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Dict, List, Tuple, Type
+from typing import Optional
 
 from celery import Task
 
@@ -121,7 +121,7 @@ class TestingFarmHandler(
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             IsJobConfigTriggerMatching,
             IsEventOk,
@@ -133,8 +133,8 @@ class TestingFarmHandler(
 
     def _get_or_create_group(
         self,
-        builds: Dict[str, CoprBuildTargetModel],
-    ) -> Tuple[TFTTestRunGroupModel, List[TFTTestRunTargetModel]]:
+        builds: dict[str, CoprBuildTargetModel],
+    ) -> tuple[TFTTestRunGroupModel, list[TFTTestRunTargetModel]]:
         """Creates a TFTTestRunGroup.
 
         If a group is already attached to this handler, it returns the
@@ -188,7 +188,7 @@ class TestingFarmHandler(
 
         return group, runs
 
-    def run_with_copr_builds(self, targets: List[str], failed: Dict):
+    def run_with_copr_builds(self, targets: list[str], failed: dict):
         targets_without_successful_builds = set()
         targets_with_builds = {}
 
@@ -271,7 +271,7 @@ class TestingFarmHandler(
     def run_for_target(
         self,
         test_run: "TFTTestRunTargetModel",
-        failed: Dict,
+        failed: dict,
         build: Optional[CoprBuildTargetModel] = None,
     ):
         if self.celery_task.retries == 0:
@@ -302,7 +302,7 @@ class TestingFarmHandler(
                 details={"msg": msg},
             )
 
-        failed: Dict[str, str] = {}
+        failed: dict[str, str] = {}
 
         if self.testing_farm_job_helper.skip_build:
             group, test_runs = self._get_or_create_group(
@@ -361,7 +361,7 @@ class TestingFarmResultsHandler(
         self.created = event.get("created")
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (IsEventForJob,)
 
     @property

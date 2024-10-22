@@ -5,7 +5,7 @@ import logging
 import re
 from re import Pattern
 import shlex
-from typing import Dict, Any, Optional, Set, List, Union, Tuple, Callable
+from typing import Any, Optional, Union, Callable
 
 import requests
 
@@ -65,9 +65,9 @@ class CommentArguments:
         self._parser: argparse.ArgumentParser = None
         self.packit_command: str = None
         self.identifier: str = None
-        self.labels: List[str] = None
+        self.labels: list[str] = None
         self.pr_argument: str = None
-        self.envs: Dict[str, str] = None
+        self.envs: dict[str, str] = None
 
         if comment is None:
             return
@@ -139,7 +139,7 @@ class CommentArguments:
                     )
                     continue
 
-    def parse_unknown_arguments(self, unknown_args: List[str]) -> None:
+    def parse_unknown_arguments(self, unknown_args: list[str]) -> None:
         # Process unknown_args to find pr_argument
         pr_argument_pattern = re.compile(r"^[^/\s]+/[^#\s]+#\d+$")
         for arg in unknown_args:
@@ -160,8 +160,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[Set[str]] = None,
-        tests_targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[set[str]] = None,
+        tests_targets_override: Optional[set[str]] = None,
         celery_task: Optional[CeleryTask] = None,
     ):
         super().__init__(
@@ -182,10 +182,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self._tft_api_url: str = ""
         self._tft_token: str = ""
         self.__pr = None
-        self._copr_builds_from_other_pr: Optional[Dict[str, CoprBuildTargetModel]] = (
+        self._copr_builds_from_other_pr: Optional[dict[str, CoprBuildTargetModel]] = (
             None
         )
-        self._test_check_names: Optional[List[str]] = None
+        self._test_check_names: Optional[list[str]] = None
         self._comment_arguments: Optional[CommentArguments] = None
 
     @property
@@ -365,7 +365,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     @property
     def copr_builds_from_other_pr(
         self,
-    ) -> Optional[Dict[str, CoprBuildTargetModel]]:
+    ) -> Optional[dict[str, CoprBuildTargetModel]]:
         """
         Dictionary containing copr build target model for each chroot
         if the testing farm was triggered by a comment with PR argument
@@ -379,7 +379,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self._copr_builds_from_other_pr
 
     @property
-    def available_composes(self) -> Optional[Set[str]]:
+    def available_composes(self) -> Optional[set[str]]:
         """
         Fetches available composes from the Testing Farm endpoint.
 
@@ -401,9 +401,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def _artifact(
         chroot: str,
         build_id: Optional[int],
-        built_packages: Optional[List[Dict]],
-    ) -> Dict[str, Union[List[str], str]]:
-        artifact: Dict[str, Union[List[str], str]] = {
+        built_packages: Optional[list[dict]],
+    ) -> dict[str, Union[list[str], str]]:
+        artifact: dict[str, Union[list[str], str]] = {
             "id": f"{build_id}:{chroot}",
             "type": "fedora-copr-build",
         }
@@ -414,7 +414,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return artifact
 
     @staticmethod
-    def _payload_without_token(payload: Dict) -> Dict:
+    def _payload_without_token(payload: dict) -> dict:
         """Return a copy of the payload with token/api_key removed."""
         payload_ = payload.copy()
         payload_.pop("api_key")
@@ -488,7 +488,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         target: str,
         compose: str,
-        artifacts: Optional[List[Dict[str, Union[List[str], str]]]] = None,
+        artifacts: Optional[list[dict[str, Union[list[str], str]]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
         additional_build: Optional["CoprBuildTargetModel"] = None,
     ) -> dict:
@@ -590,7 +590,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 else:
                     predefined_environment.pop(k, None)
 
-        environment: Dict[str, Any] = {
+        environment: dict[str, Any] = {
             "arch": arch,
             "os": {"compose": compose},
             "tmt": {
@@ -715,7 +715,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return False
 
     @staticmethod
-    def is_compose_matching(compose_to_check: str, composes: Set[Pattern]) -> bool:
+    def is_compose_matching(compose_to_check: str, composes: set[Pattern]) -> bool:
         """
         Check whether the compose matches any compose in the list of re-compiled
         composes.
@@ -882,7 +882,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         chroot: str,
         build: CoprBuildTargetModel,
         additional_build: Optional[CoprBuildTargetModel],
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get the artifacts list from the build (if the skip_build option is not defined)
         and additional build (from other PR) if present.
@@ -1108,7 +1108,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     @classmethod
-    def get_request_details(cls, request_id: str) -> Dict[str, Any]:
+    def get_request_details(cls, request_id: str) -> dict[str, Any]:
         """Testing Farm sends only request/pipeline id in a notification.
         We need to get more details ourselves."""
         self = cls(
@@ -1252,7 +1252,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def get_copr_builds_from_other_pr(
         self,
-    ) -> Optional[Dict[str, CoprBuildTargetModel]]:
+    ) -> Optional[dict[str, CoprBuildTargetModel]]:
         """
         Get additional Copr builds if there was a PR argument in the
         test comment command:
@@ -1302,7 +1302,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             successful_most_recent_builds,
         )
 
-    def _parse_comment_pr_argument(self) -> Optional[Tuple[str, str, str]]:
+    def _parse_comment_pr_argument(self) -> Optional[tuple[str, str, str]]:
         """
         Parse the PR argument from test comment command if there is any.
 
@@ -1342,7 +1342,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def _construct_copr_builds_from_other_pr_dict(
         self,
         successful_most_recent_builds,
-    ) -> Optional[Dict[str, CoprBuildTargetModel]]:
+    ) -> Optional[dict[str, CoprBuildTargetModel]]:
         """
         Construct a dictionary that will contain for each build target name
         a build target model from the given models if there is one
@@ -1354,7 +1354,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         Returns:
             dict
         """
-        result: Dict[str, CoprBuildTargetModel] = {}
+        result: dict[str, CoprBuildTargetModel] = {}
 
         for build_target in self.build_targets_for_tests:
             additional_build = [
@@ -1369,14 +1369,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return result
 
     @property
-    def configured_tests_targets(self) -> Set[str]:
+    def configured_tests_targets(self) -> set[str]:
         """
         Return the configured targets for the job.
         """
         return self.configured_targets_for_tests_job(self.job_config)
 
     @property
-    def tests_targets(self) -> Set[str]:
+    def tests_targets(self) -> set[str]:
         """
         Return valid test targets (mapped) to test in for the job
         (considering the overrides).
@@ -1393,7 +1393,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     @property
-    def test_check_names(self) -> List[str]:
+    def test_check_names(self) -> list[str]:
         """
         List of full names of the commit statuses.
 
@@ -1413,7 +1413,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.test_target2build_target_for_test_job(test_target, self.job_config)
 
     @property
-    def build_targets_for_tests(self) -> Set[str]:
+    def build_targets_for_tests(self) -> set[str]:
         """
         Return valid targets/chroots to build in needed to run the job.
         (considering the overrides).
@@ -1427,7 +1427,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         chroot: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
         if chroot in self.build_targets_for_tests:
@@ -1453,7 +1453,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         target: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
         if target in self.tests_targets:
@@ -1473,7 +1473,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         state,
         url: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
         self._report(
@@ -1492,7 +1492,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ):
         if self.job_config.manual_trigger and self.build_required():

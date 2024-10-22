@@ -3,7 +3,8 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol, Iterator, Union
+from typing import Any, Optional, Protocol, Union
+from collections.abc import Iterator
 from dataclasses import dataclass
 from packit.exceptions import PackitException
 from packit.config import PackageConfig, JobConfig

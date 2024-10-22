@@ -7,7 +7,7 @@ A book with our finest spells
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any
 from packit_service.worker.result import TaskResults
 
 TESTS_DIR = Path(__file__).parent
@@ -20,8 +20,8 @@ def first_dict_value(a_dict: dict) -> Any:
 
 
 def get_parameters_from_results(
-    results: List[TaskResults],
-) -> Tuple[dict, str, dict, dict]:
+    results: list[TaskResults],
+) -> tuple[dict, str, dict, dict]:
     assert len(results) == 1
 
     event_dict = results[0]["details"]["event"]

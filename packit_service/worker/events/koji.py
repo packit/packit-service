@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import logging
-from typing import Union, Optional, Dict
+from typing import Union, Optional
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
@@ -29,7 +29,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     def __init__(
         self,
         task_id: int,
-        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -94,7 +94,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     def get_koji_build_rpm_tasks_logs_urls(
         self,
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Constructs the log URLs for all RPM subtasks of the Koji task.
         """
@@ -106,7 +106,7 @@ class AbstractKojiEvent(AbstractResultEvent):
             for arch, rpm_build_task_id in self.rpm_build_task_ids.items()
         }
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result.pop("_build_model")
         result.pop("_build_model_searched")
@@ -132,7 +132,7 @@ class KojiBuildEvent(AbstractKojiEvent):
         owner: str,
         web_url: Optional[str] = None,
         old_state: Optional[KojiBuildState] = None,
-        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -192,7 +192,7 @@ class KojiBuildEvent(AbstractKojiEvent):
     def identifier(self) -> str:
         return self.branch_name
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
         result["old_state"] = result["old_state"].value if self.old_state else None
@@ -235,7 +235,7 @@ class KojiTaskEvent(AbstractKojiEvent):
         task_id: int,
         state: KojiTaskState,
         old_state: Optional[KojiTaskState] = None,
-        rpm_build_task_ids: Optional[Dict[str, int]] = None,
+        rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -324,7 +324,7 @@ class KojiTaskEvent(AbstractKojiEvent):
                 return None  # With Github app, we cannot work with fork repo
         return self.project
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
         result["old_state"] = result["old_state"].value

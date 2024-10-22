@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Union, Dict, Callable
+from typing import Optional, Union, Callable
 
 from packit_service.worker.reporting.enums import (
     BaseCommitStatus,
@@ -100,7 +100,7 @@ class StatusReporter:
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: str = None,
     ):
         raise NotImplementedError()
@@ -110,7 +110,7 @@ class StatusReporter:
         state: BaseCommitStatus,
         description: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         check_names: Union[str, list, None] = None,
         markdown_content: str = None,
         update_feedback_time: Callable = None,

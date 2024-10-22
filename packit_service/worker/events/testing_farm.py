@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
@@ -55,7 +55,7 @@ class TestingFarmResultsEvent(AbstractResultEvent):
             self._pr_id = self.db_project_object.pr_id
         return self._pr_id
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
         result["pr_id"] = self.pr_id

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Dict
+from typing import Optional
 
 from .base import StatusReporter
 from packit_service.worker.reporting.enums import BaseCommitStatus
@@ -28,7 +28,7 @@ class StatusReporterPagure(StatusReporter):
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: str = None,
     ):
         state_to_set = self.get_commit_status(state)

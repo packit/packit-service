@@ -8,7 +8,7 @@ from io import StringIO
 from logging import StreamHandler
 from pathlib import Path
 from re import search
-from typing import List, Tuple, Optional
+from typing import Optional
 
 import requests
 
@@ -65,7 +65,7 @@ def dump_job_config(job_config: JobConfig):
     return JobConfigSchema().dump(job_config) if job_config else None
 
 
-def get_package_nvrs(built_packages: List[dict]) -> List[str]:
+def get_package_nvrs(built_packages: list[dict]) -> list[str]:
     """
     Construct package NVRs for built packages except the SRPM.
 
@@ -85,7 +85,7 @@ def get_package_nvrs(built_packages: List[dict]) -> List[str]:
     return packages
 
 
-def log_package_versions(package_versions: List[Tuple[str, str]]):
+def log_package_versions(package_versions: list[tuple[str, str]]):
     """
     It does the actual logging.
 
@@ -101,7 +101,7 @@ def log_package_versions(package_versions: List[Tuple[str, str]]):
 # https://stackoverflow.com/a/41215655/14294700
 def gather_packit_logs_to_buffer(
     logging_level: LoggingLevel,
-) -> Tuple[StringIO, StreamHandler]:
+) -> tuple[StringIO, StreamHandler]:
     """
     Redirect packit logs into buffer with a given logging level to collect them later.
 
@@ -201,7 +201,7 @@ def elapsed_seconds(begin: datetime, end: datetime) -> float:
 def get_packit_commands_from_comment(
     comment: str,
     packit_comment_command_prefix: str,
-) -> List[str]:
+) -> list[str]:
     comment_parts = comment.strip()
 
     if not comment_parts:

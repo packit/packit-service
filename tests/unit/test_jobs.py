@@ -1,8 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Type
-
 import copy
 import celery
 import pytest
@@ -2525,7 +2523,7 @@ def test_get_handlers_for_check_rerun_event(
     ],
 )
 def test_get_config_for_handler_kls(
-    handler_kls: Type[JobHandler],
+    handler_kls: type[JobHandler],
     event_cls,
     db_project_object,
     jobs,
@@ -2681,7 +2679,7 @@ def test_get_handlers_triggered_by_check_rerun(event_kls, check_name_job, result
         ),
     ],
 )
-def test_handler_matches_to_job(event_kls, handler: Type[JobHandler], allowed_handlers):
+def test_handler_matches_to_job(event_kls, handler: type[JobHandler], allowed_handlers):
     class Event(event_kls):  # type: ignore
         def __init__(self):
             pass
@@ -2707,7 +2705,7 @@ def test_handler_matches_to_job(event_kls, handler: Type[JobHandler], allowed_ha
 )
 def test_handler_doesnt_match_to_job(
     event_kls,
-    handler: Type[JobHandler],
+    handler: type[JobHandler],
     allowed_handlers,
 ):
     class Event(event_kls):  # type: ignore

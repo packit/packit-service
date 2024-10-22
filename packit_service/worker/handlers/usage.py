@@ -1,14 +1,12 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Set
-
 from ogr.abstract import PRStatus
 from packit_service.config import ServiceConfig
 from packit_service.models import GitProjectModel
 
 
-def check_onboarded_projects(projects: Set[GitProjectModel]):
+def check_onboarded_projects(projects: set[GitProjectModel]):
     """For every given project check if it has a merged Packit PR.
 
     If yes it is onboarded: save the flag in the git projects table.

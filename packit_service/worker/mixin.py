@@ -5,7 +5,7 @@ from abc import abstractmethod
 import logging
 import re
 from pathlib import Path
-from typing import Optional, Protocol, Union, List
+from typing import Optional, Protocol, Union
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
@@ -304,12 +304,12 @@ class GetIssueMixin(GetIssue, ConfigFromEventMixin):
 class GetBranches(Protocol):
     @property
     @abstractmethod
-    def branches(self) -> List[str]: ...
+    def branches(self) -> list[str]: ...
 
 
 class GetBranchesFromIssueMixin(Config, GetBranches):
     @property
-    def branches(self) -> List[str]:
+    def branches(self) -> list[str]:
         """Get branches names from an issue comment like the following:
 
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Optional, Set
+from typing import Any, Optional
 
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
@@ -29,17 +29,17 @@ class Sidetag:
     def koji_name(self) -> str:
         return self.sidetag.koji_name
 
-    def get_builds(self) -> Set[NEVR]:
+    def get_builds(self) -> set[NEVR]:
         builds = self.koji_helper.get_builds_in_tag(self.koji_name)
         return {NEVR.from_string(b["nvr"]) for b in builds}
 
-    def get_packages(self) -> Set[str]:
+    def get_packages(self) -> set[str]:
         return {b.name for b in self.get_builds()}
 
-    def get_missing_dependencies(self, dependencies: Set[str]) -> Set[str]:
+    def get_missing_dependencies(self, dependencies: set[str]) -> set[str]:
         return dependencies - self.get_packages()
 
-    def get_builds_suitable_for_update(self, dependencies: Set[str]) -> Set[NEVR]:
+    def get_builds_suitable_for_update(self, dependencies: set[str]) -> set[NEVR]:
         builds = self.get_builds()
         result = set()
         for package in dependencies:

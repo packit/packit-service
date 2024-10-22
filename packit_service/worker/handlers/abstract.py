@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import datetime
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, Set, Type, Tuple
+from typing import Optional
 
 from celery import Task
 from celery import signature
@@ -39,15 +39,15 @@ from packit_service.worker.mixin import (
 
 logger = logging.getLogger(__name__)
 
-MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
-MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
+MAP_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(set)
+MAP_REQUIRED_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(
     set,
 )
-SUPPORTED_EVENTS_FOR_HANDLER: Dict[Type["JobHandler"], Set[Type["Event"]]] = (
+SUPPORTED_EVENTS_FOR_HANDLER: dict[type["JobHandler"], set[type["Event"]]] = (
     defaultdict(set)
 )
-MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
-MAP_CHECK_PREFIX_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
+MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
+MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
 
 def configured_as(job_type: JobType):
@@ -76,14 +76,14 @@ def configured_as(job_type: JobType):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         MAP_JOB_TYPE_TO_HANDLER[job_type].add(kls)
         return kls
 
     return _add_to_mapping
 
 
-def reacts_to(event: Type["Event"]):
+def reacts_to(event: type["Event"]):
     """
     [class decorator]
     Specify an event for which we want to use this handler.
@@ -100,7 +100,7 @@ def reacts_to(event: Type["Event"]):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         SUPPORTED_EVENTS_FOR_HANDLER[kls].add(event)
         return kls
 
@@ -129,7 +129,7 @@ def run_for_comment(command: str):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         MAP_COMMENT_TO_HANDLER[command].add(kls)
         return kls
 
@@ -157,7 +157,7 @@ def run_for_check_rerun(prefix: str):
     ```
     """
 
-    def _add_to_mapping(kls: Type["JobHandler"]):
+    def _add_to_mapping(kls: type["JobHandler"]):
         MAP_CHECK_PREFIX_TO_HANDLER[prefix].add(kls)
         return kls
 
@@ -252,7 +252,7 @@ class Handler(PackitAPIProtocol, Config):
                 shutil.rmtree(item)
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return ()
 
     @classmethod
@@ -336,7 +336,7 @@ class JobHandler(Handler):
             self.job_config.type.value if self.job_config else self.task_name.value
         )
         logger.debug(f"Running handler {str(self)} for {job_type}")
-        job_results: Dict[str, TaskResults] = {}
+        job_results: dict[str, TaskResults] = {}
         current_time = datetime.now().strftime(DATETIME_FORMAT)
         result_key = f"{job_type}-{current_time}"
         job_results[result_key] = self.run_n_clean()

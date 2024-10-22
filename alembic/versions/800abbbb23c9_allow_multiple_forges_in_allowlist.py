@@ -7,7 +7,7 @@ Create Date: 2021-03-25 10:43:00.679552
 """
 
 import enum
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from alembic import op
 import sqlalchemy as sa
@@ -52,7 +52,7 @@ class AllowlistModel(Base):
     status = Column(Enum(AllowlistStatus))
     fas_account = Column(String)
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "namespace": self.namespace,
             "status": self.status,

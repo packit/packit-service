@@ -6,7 +6,6 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from typing import Tuple, Type
 
 from packit.config import (
     JobType,
@@ -59,7 +58,7 @@ class VMImageBuildHandler(
     task_name = TaskName.vm_image_build
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             HasAuthorWriteAccess,
             # [NOTE] We require Copr repository being present for the VM image
@@ -129,7 +128,7 @@ class VMImageBuildResultHandler(
     task_name = TaskName.vm_image_build_result
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return ()
 
     def run(self) -> TaskResults:

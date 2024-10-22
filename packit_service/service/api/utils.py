@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from http import HTTPStatus
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from flask.json import jsonify
 
@@ -44,7 +44,7 @@ def get_project_info_from_build(
         BodhiUpdateTargetModel,
         VMImageBuildTargetModel,
     ],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if not (project := build.get_project()):
         return {}
 

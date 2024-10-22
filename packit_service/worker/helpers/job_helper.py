@@ -3,7 +3,7 @@
 
 import logging
 from functools import partial
-from typing import Optional, Union, Dict, Callable
+from typing import Optional, Union, Callable
 
 from lazy_object_proxy import Proxy
 from ogr.abstract import GitProject, PullRequest
@@ -198,7 +198,7 @@ class BaseJobHelper:
         url: str = "",
         check_names: Union[str, list, None] = None,
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
         """
@@ -238,7 +238,7 @@ class BaseJobHelper:
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ):
         """

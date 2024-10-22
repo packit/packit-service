@@ -7,7 +7,7 @@
 Generator of webhooks
 """
 import json
-from typing import Union, Dict
+from typing import Union
 
 import click
 import ogr
@@ -32,7 +32,7 @@ class PRWebhookPayload:
         self.pr_id = pr_id
         self.github_token = github_token
 
-    def generate(self) -> Dict:
+    def generate(self) -> dict:
         s = ogr.GithubService(token=self.github_token)
         project = s.get_project(namespace=self.namespace, repo=self.project_name)
         pr_info = project.get_pr(self.pr_id)

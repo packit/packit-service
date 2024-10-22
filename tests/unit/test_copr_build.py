@@ -3,7 +3,7 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Optional, Type
+from typing import Optional
 
 import pytest
 from celery import Celery
@@ -104,7 +104,7 @@ def build_helper(
     jobs=None,
     db_project_event=None,
     selected_job=None,
-    project_type: Type[GitProject] = GithubProject,
+    project_type: type[GitProject] = GithubProject,
     build_targets_override=None,
     task: Optional[CeleryTask] = None,
     copr_build_group_id: Optional[int] = None,

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from logging import getLogger
-from typing import Optional, Dict, Union
+from typing import Optional, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
@@ -146,7 +146,7 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
     def get_non_serializable_attributes(self):
         return super().get_non_serializable_attributes() + ["build"]
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
         return result

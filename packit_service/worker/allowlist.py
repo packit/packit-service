@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict, Type
+from typing import Any, Optional, Union, Callable
+from collections.abc import Iterable
 from urllib.parse import urlparse
 
 from fasjson_client import Client
@@ -265,13 +266,13 @@ class Allowlist:
         return True
 
     @staticmethod
-    def get_namespaces_by_status(status: AllowlistStatus) -> List[str]:
+    def get_namespaces_by_status(status: AllowlistStatus) -> list[str]:
         return [
             account.namespace for account in AllowlistModel.get_by_status(status.value)
         ]
 
     @staticmethod
-    def waiting_namespaces() -> List[str]:
+    def waiting_namespaces() -> list[str]:
         """
         Get namespaces waiting for approval.
 
@@ -281,7 +282,7 @@ class Allowlist:
         return Allowlist.get_namespaces_by_status(AllowlistStatus.waiting)
 
     @staticmethod
-    def denied_namespaces() -> List[str]:
+    def denied_namespaces() -> list[str]:
         """
         Get denied namespace.
 
@@ -392,7 +393,7 @@ class Allowlist:
         short_msg,
     ):
         for job_config in job_configs:
-            job_helper_kls: Type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
+            job_helper_kls: type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
             if job_config.type == JobType.tests:
                 job_helper_kls = TestingFarmJobHelper
             else:
@@ -480,8 +481,8 @@ class Allowlist:
         :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
         :return:
         """
-        CALLBACKS: Dict[
-            Union[type, Tuple[Union[type, Tuple[Any, ...]], ...]],
+        CALLBACKS: dict[
+            Union[type, tuple[Union[type, tuple[Any, ...]], ...]],
             Callable,
         ] = {
             (  # events that are not checked against allowlist

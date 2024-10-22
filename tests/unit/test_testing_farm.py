@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 import re
 from datetime import datetime, timezone
-from typing import List, Dict
 
 import pytest
 from flexmock import flexmock
@@ -2122,9 +2121,9 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
 def test_parse_comment_arguments(
     comment: str,
     expected_identifier: str,
-    expected_labels: List[str],
+    expected_labels: list[str],
     expected_pr_arg: str,
-    expected_envs: Dict[str, str],
+    expected_envs: dict[str, str],
 ):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,

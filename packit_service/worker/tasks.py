@@ -5,7 +5,7 @@ import logging
 import socket
 from datetime import timedelta
 from os import getenv
-from typing import List, Optional
+from typing import Optional
 
 from celery import Task
 from celery._state import get_current_task
@@ -187,7 +187,7 @@ def process_message(
     event: dict,
     source: Optional[str] = None,
     event_type: Optional[str] = None,
-) -> List[TaskResults]:
+) -> list[TaskResults]:
     """
     Main celery task for processing messages.
 

@@ -7,7 +7,7 @@ Generic/abstract event classes.
 import copy
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, Optional, Type, Union, Set, List
+from typing import Optional, Union
 
 from ogr.abstract import GitProject, PullRequest
 from ogr.parsing import RepoUrl
@@ -25,7 +25,7 @@ from packit_service.models import (
 logger = getLogger(__name__)
 
 
-MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[Type["Event"], JobConfigTriggerType] = {}
+MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE: dict[type["Event"], JobConfigTriggerType] = {}
 
 
 def use_for_job_config_trigger(trigger_type: JobConfigTriggerType):
@@ -44,7 +44,7 @@ def use_for_job_config_trigger(trigger_type: JobConfigTriggerType):
     ```
     """
 
-    def _add_to_mapping(kls: Type["Event"]):
+    def _add_to_mapping(kls: type["Event"]):
         MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE[kls] = trigger_type
         return kls
 
@@ -70,9 +70,9 @@ class EventData:
         event_dict: Optional[dict],
         issue_id: Optional[int],
         task_accepted_time: Optional[datetime],
-        build_targets_override: Optional[List[str]],
-        tests_targets_override: Optional[List[str]],
-        branches_override: Optional[List[str]],
+        build_targets_override: Optional[list[str]],
+        tests_targets_override: Optional[list[str]],
+        branches_override: Optional[list[str]],
     ):
         self.event_type = event_type
         self.actor = actor
@@ -359,7 +359,7 @@ class Event:
         self._db_project_event: Optional[ProjectEventModel] = None
 
     @staticmethod
-    def make_serializable(d: dict, skip: List) -> dict:
+    def make_serializable(d: dict, skip: list) -> dict:
         """We need a JSON serializable dict (because of redis and celery tasks)
         This method will copy everything from dict except the specified
         non serializable keys.
@@ -398,7 +398,7 @@ class Event:
             "_package_config_searched",
         ]
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = default_dict or self.__dict__
         # whole dict has to be JSON serializable because of redis
         d = self.make_serializable(d, self.get_non_serializable_attributes())
@@ -482,7 +482,7 @@ class Event:
         raise NotImplementedError("Please implement me!")
 
     @property
-    def build_targets_override(self) -> Optional[Set[str]]:
+    def build_targets_override(self) -> Optional[set[str]]:
         """
         Return the targets to use for building of the all targets from config
         for the relevant events (e.g.rerunning of a single check).
@@ -490,7 +490,7 @@ class Event:
         return None
 
     @property
-    def tests_targets_override(self) -> Optional[Set[str]]:
+    def tests_targets_override(self) -> Optional[set[str]]:
         """
         Return the targets to use for testing of the all targets from config
         for the relevant events (e.g.rerunning of a single check).
@@ -498,7 +498,7 @@ class Event:
         return None
 
     @property
-    def branches_override(self) -> Optional[Set[str]]:
+    def branches_override(self) -> Optional[set[str]]:
         """
         Return the branches to use for propose-downstream of the all branches from config
         for the relevant events (e.g.rerunning of a single check).
@@ -613,8 +613,8 @@ class AbstractForgeIndependentEvent(Event):
 
     def get_all_tf_targets_by_status(
         self,
-        statuses_to_filter_with: List[str],
-    ) -> Optional[Set[str]]:
+        statuses_to_filter_with: list[str],
+    ) -> Optional[set[str]]:
         if self.commit_sha is None:
             return None
 
@@ -630,8 +630,8 @@ class AbstractForgeIndependentEvent(Event):
 
     def get_all_build_targets_by_status(
         self,
-        statuses_to_filter_with: List[str],
-    ) -> Optional[Set[str]]:
+        statuses_to_filter_with: list[str],
+    ) -> Optional[set[str]]:
         if self.commit_sha is None or self.project.repo is None:
             return None
 

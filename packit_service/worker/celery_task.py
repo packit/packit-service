@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Any, Dict
+from typing import Optional, Any
 
 from celery import Task
 
@@ -45,7 +45,7 @@ class CeleryTask:
         ex: Optional[Exception] = None,
         delay: Optional[int] = None,
         max_retries: Optional[int] = None,
-        kargs: Optional[Dict[str, Any]] = None,
+        kargs: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Retries the celery task.

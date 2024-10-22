@@ -8,7 +8,6 @@ import logging
 from datetime import datetime
 from functools import cached_property
 from re import match
-from typing import List, Set, Type, Tuple
 from typing import Optional, Union, Callable
 
 import celery
@@ -97,7 +96,7 @@ MANUAL_OR_RESULT_EVENTS = [AbstractCommentEvent, AbstractResultEvent, CheckRerun
 def get_handlers_for_comment(
     comment: str,
     packit_comment_command_prefix: str,
-) -> Set[Type[JobHandler]]:
+) -> set[type[JobHandler]]:
     """
     Get handlers for the given command respecting packit_comment_command_prefix.
 
@@ -118,7 +117,7 @@ def get_handlers_for_comment(
     return handlers
 
 
-def get_handlers_for_check_rerun(check_name_job: str) -> Set[Type[JobHandler]]:
+def get_handlers_for_check_rerun(check_name_job: str) -> set[type[JobHandler]]:
     """
     Get handlers for the given check name.
 
@@ -156,7 +155,7 @@ class SteveJobs:
         event: dict,
         source: Optional[str] = None,
         event_type: Optional[str] = None,
-    ) -> List[TaskResults]:
+    ) -> list[TaskResults]:
         """
         Entrypoint for message processing.
 
@@ -190,7 +189,7 @@ class SteveJobs:
 
         return cls(event_object).process()
 
-    def process(self) -> List[TaskResults]:
+    def process(self) -> list[TaskResults]:
         """
         Processes the event object attribute of SteveJobs - runs the checks for
         the given event and creates tasks that match the event,
@@ -259,7 +258,7 @@ class SteveJobs:
 
     def initialize_job_helper(
         self,
-        handler_kls: Type[JobHandler],
+        handler_kls: type[JobHandler],
         job_config: JobConfig,
     ) -> Union[ProposeDownstreamJobHelper, BaseBuildJobHelper]:
         """
@@ -291,7 +290,7 @@ class SteveJobs:
             params["branches_override"] = self.event.branches_override
             return propose_downstream_helper(**params)
 
-        helper_kls: Type[
+        helper_kls: type[
             Union[TestingFarmJobHelper, CoprBuildJobHelper, KojiBuildJobHelper]
         ]
 
@@ -312,7 +311,7 @@ class SteveJobs:
 
     def report_task_accepted(
         self,
-        handler_kls: Type[JobHandler],
+        handler_kls: type[JobHandler],
         job_config: JobConfig,
         update_feedback_time: Callable,
     ) -> None:
@@ -360,7 +359,7 @@ class SteveJobs:
 
         self.push_copr_metrics(handler_kls, number_of_build_targets)
 
-    def search_distgit_config_in_issue(self) -> Optional[Tuple[str, PackageConfig]]:
+    def search_distgit_config_in_issue(self) -> Optional[tuple[str, PackageConfig]]:
         """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
         Look up for a dist-git repo url inside
         the issue description for the issue comment event.
@@ -433,7 +432,7 @@ class SteveJobs:
 
         return True
 
-    def process_jobs(self) -> List[TaskResults]:
+    def process_jobs(self) -> list[TaskResults]:
         """
         Create Celery tasks for a job handler (if trigger matches) for every
         job defined in config.
@@ -474,9 +473,9 @@ class SteveJobs:
             return []
 
         allowlist = Allowlist(service_config=self.service_config)
-        processing_results: List[TaskResults] = []
+        processing_results: list[TaskResults] = []
 
-        statuses_check_feedback: List[datetime] = []
+        statuses_check_feedback: list[datetime] = []
         for handler_kls in handler_classes:
             # TODO: merge to to get_handlers_for_event so
             # so we don't need to go through the similar process twice.
@@ -510,10 +509,10 @@ class SteveJobs:
 
     def create_tasks(
         self,
-        job_configs: List[JobConfig],
-        handler_kls: Type[JobHandler],
+        job_configs: list[JobConfig],
+        handler_kls: type[JobHandler],
         statuses_check_feedback: list[datetime],
-    ) -> List[TaskResults]:
+    ) -> list[TaskResults]:
         """
         Create handler tasks for handler and job configs.
 
@@ -521,7 +520,7 @@ class SteveJobs:
             job_configs: Matching job configs.
             handler_kls: Handler class that will be used.
         """
-        processing_results: List[TaskResults] = []
+        processing_results: list[TaskResults] = []
         signatures = []
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
@@ -565,7 +564,7 @@ class SteveJobs:
     def should_task_be_created_for_job_config_and_handler(
         self,
         job_config: JobConfig,
-        handler_kls: Type[JobHandler],
+        handler_kls: type[JobHandler],
     ) -> bool:
         """
         Check whether a new task should be created for job config and handler.
@@ -652,7 +651,7 @@ class SteveJobs:
 
         return True
 
-    def check_explicit_matching(self) -> List[JobConfig]:
+    def check_explicit_matching(self) -> list[JobConfig]:
         """Force explicit event/jobs matching for triggers
 
         Returns:
@@ -667,7 +666,7 @@ class SteveJobs:
             bd.pop("trigger")
             return ad == bd
 
-        matching_jobs: List[JobConfig] = []
+        matching_jobs: list[JobConfig] = []
         if isinstance(self.event, PullRequestCommentPagureEvent):
             for job in self.event.packages_config.get_job_views():
                 if (
@@ -732,7 +731,7 @@ class SteveJobs:
 
         return matching_jobs
 
-    def get_jobs_matching_event(self) -> List[JobConfig]:
+    def get_jobs_matching_event(self) -> list[JobConfig]:
         """
         Get list of non-duplicated all jobs that matches with event's trigger.
 
@@ -773,7 +772,7 @@ class SteveJobs:
 
         return jobs_matching_trigger
 
-    def get_handlers_for_comment_and_rerun_event(self) -> Set[Type[JobHandler]]:
+    def get_handlers_for_comment_and_rerun_event(self) -> set[type[JobHandler]]:
         """
         Get all handlers that can be triggered by comment (e.g. `/packit build`) or check rerun.
 
@@ -805,7 +804,7 @@ class SteveJobs:
 
         return handlers_triggered_by_job
 
-    def get_handlers_for_event(self) -> Set[Type[JobHandler]]:
+    def get_handlers_for_event(self) -> set[type[JobHandler]]:
         """
         Get all handlers that we need to run for the given event.
 
@@ -824,7 +823,7 @@ class SteveJobs:
 
         handlers_triggered_by_job = self.get_handlers_for_comment_and_rerun_event()
 
-        matching_handlers: Set[Type["JobHandler"]] = set()
+        matching_handlers: set[type["JobHandler"]] = set()
         for job in jobs_matching_trigger:
             for handler in (
                 MAP_JOB_TYPE_TO_HANDLER[job.type]
@@ -847,8 +846,8 @@ class SteveJobs:
 
     def is_handler_matching_the_event(
         self,
-        handler: Type[JobHandler],
-        allowed_handlers: Set[Type[JobHandler]],
+        handler: type[JobHandler],
+        allowed_handlers: set[type[JobHandler]],
     ) -> bool:
         """
         Decides whether handler matches to comment or check rerun job and given event
@@ -873,8 +872,8 @@ class SteveJobs:
 
     def get_config_for_handler_kls(
         self,
-        handler_kls: Type[JobHandler],
-    ) -> List[JobConfig]:
+        handler_kls: type[JobHandler],
+    ) -> list[JobConfig]:
         """
         Get a list of JobConfigs relevant to event and the handler class.
 
@@ -895,9 +894,9 @@ class SteveJobs:
             List of JobConfigs relevant to the given handler and event
             preserving the order in the config.
         """
-        jobs_matching_trigger: List[JobConfig] = self.get_jobs_matching_event()
+        jobs_matching_trigger: list[JobConfig] = self.get_jobs_matching_event()
 
-        matching_jobs: List[JobConfig] = []
+        matching_jobs: list[JobConfig] = []
         for job in jobs_matching_trigger:
             if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]:
                 matching_jobs.append(job)
@@ -922,7 +921,7 @@ class SteveJobs:
 
     def push_statuses_metrics(
         self,
-        statuses_check_feedback: List[datetime],
+        statuses_check_feedback: list[datetime],
     ) -> None:
         """
         Push the metrics about the time of setting initial statuses for the first and last check.
@@ -968,7 +967,7 @@ class SteveJobs:
 
     def push_copr_metrics(
         self,
-        handler_kls: Type[JobHandler],
+        handler_kls: type[JobHandler],
         built_targets: int = 0,
     ) -> None:
         """
@@ -1005,7 +1004,7 @@ class SteveJobs:
 
     def report_task_accepted_for_downstream_retrigger_comments(
         self,
-        handler_kls: Type[JobHandler],
+        handler_kls: type[JobHandler],
     ):
         """
         For dist-git PR comment events/ issue comment events in issue_repository,

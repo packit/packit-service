@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import datetime
 from functools import partial
 from os import getenv
-from typing import Dict, Optional, Set, Tuple, Type, List, ClassVar
+from typing import Optional, ClassVar
 
 from celery import Task
 
@@ -175,7 +175,7 @@ class SyncFromDownstream(
         )
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (IsProjectOk,)
 
     @property
@@ -605,7 +605,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         )
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (IsUpstreamTagMatchingConfig,)
 
     def _report_errors_for_each_branch(self, message: str) -> None:
@@ -673,7 +673,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         self._project_required = False
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (ValidInformationForPullFromUpstream, IsUpstreamTagMatchingConfig)
 
     @staticmethod
@@ -687,7 +687,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
         )
 
-    def get_resolved_bugs(self) -> List[str]:
+    def get_resolved_bugs(self) -> list[str]:
         """
         If we are reacting to New Hotness, return the corresponding bugzilla ID only.
         In case of comment, take the argument from comment. The format in the comment
@@ -781,7 +781,7 @@ class AbstractDownstreamKojiBuildHandler(
         return self._koji_helper
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             LabelsOnDistgitPR,
             PermissionOnDistgit,
@@ -812,7 +812,7 @@ class AbstractDownstreamKojiBuildHandler(
         return group
 
     @abc.abstractmethod
-    def get_branches(self) -> List[str]:
+    def get_branches(self) -> list[str]:
         """Get a list of branch (names) to be built in koji"""
 
     def is_already_triggered(self, branch: str) -> bool:
@@ -999,7 +999,7 @@ class DownstreamKojiBuildHandler(
             koji_group_model_id=koji_group_model_id,
         )
 
-    def get_branches(self) -> List[str]:
+    def get_branches(self) -> list[str]:
         branch = (
             self.project.get_pr(self.data.pr_id).target_branch
             if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
@@ -1078,7 +1078,7 @@ class RetriggerDownstreamKojiBuildHandler(
             koji_group_model_id=koji_group_model_id,
         )
 
-    def get_branches(self) -> List[str]:
+    def get_branches(self) -> list[str]:
         return self.branches
 
     def get_trigger_type_description(self) -> str:
@@ -1100,7 +1100,7 @@ class TagIntoSidetagHandler(
     task_name = TaskName.tag_into_sidetag
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (PermissionOnDistgit,)
 
     def run_for_branch(self, package: str, sidetag_group: str, branch: str) -> None:
@@ -1117,7 +1117,7 @@ class TagIntoSidetagHandler(
             self.service_config.comment_command_prefix,
         )
         args = commands[1:] if len(commands) > 1 else ""
-        packages_to_tag: Dict[str, Dict[str, Set[str]]] = defaultdict(
+        packages_to_tag: dict[str, dict[str, set[str]]] = defaultdict(
             partial(defaultdict, set),
         )
         for job in self.package_config.get_job_views():

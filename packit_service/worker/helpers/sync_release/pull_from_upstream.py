@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Set
+from typing import Optional
 
 from ogr.abstract import GitProject
 
@@ -28,7 +28,7 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        branches_override: Optional[Set[str]] = None,
+        branches_override: Optional[set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,

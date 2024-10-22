@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Tuple, Type, Optional
+from typing import Optional
 
 from celery import signature, Task
 
@@ -119,7 +119,7 @@ class CoprBuildHandler(
         self._copr_build_group_id = copr_build_group_id
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             IsJobConfigTriggerMatching,
             IsGitForgeProjectAndEventOk,
@@ -137,7 +137,7 @@ class AbstractCoprBuildReportHandler(
     GetCoprBuildEventMixin,
 ):
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (AreOwnerAndProjectMatchingJob, IsPackageMatchingJobView)
 
 
@@ -149,7 +149,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     task_name = TaskName.copr_build_start
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return super(CoprBuildStartHandler, CoprBuildStartHandler).get_checkers() + (
             BuildNotAlreadyStarted,
         )

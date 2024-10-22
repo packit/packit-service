@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, List, Set, Dict, Callable
+from typing import Optional, Callable
 
 from ogr.abstract import GitProject
 
@@ -28,7 +28,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        branches_override: Optional[Set[str]] = None,
+        branches_override: Optional[set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -91,7 +91,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         return ""
 
     @property
-    def check_names(self) -> List[str]:
+    def check_names(self) -> list[str]:
         """
         List of full names of the commit statuses for propose-downstream job.
 
@@ -107,7 +107,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ) -> None:
         if self.job_type:
@@ -127,7 +127,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         update_feedback_time: Callable = None,
     ):
         self.report_status_to_all(

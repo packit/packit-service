@@ -4,7 +4,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Set, Union
+from typing import NamedTuple, Optional, Union
 
 from yaml import safe_load
 
@@ -99,15 +99,15 @@ class ServiceConfig(Config):
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
-        enabled_private_namespaces: Union[Set[str], List[str]] = None,
+        enabled_private_namespaces: Union[set[str], list[str]] = None,
         gitlab_token_secret: str = "",
-        gitlab_mr_targets_handled: List[MRTarget] = None,
-        projects_to_sync: List[ProjectToSync] = None,
-        enabled_projects_for_internal_tf: Union[Set[str], List[str]] = None,
+        gitlab_mr_targets_handled: list[MRTarget] = None,
+        projects_to_sync: list[ProjectToSync] = None,
+        enabled_projects_for_internal_tf: Union[set[str], list[str]] = None,
         dashboard_url: str = "",
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
         koji_web_url: str = "https://koji.fedoraproject.org",
-        enabled_projects_for_srpm_in_copr: Union[Set[str], List[str]] = None,
+        enabled_projects_for_srpm_in_copr: Union[set[str], list[str]] = None,
         comment_command_prefix: str = "/packit",
         redhat_api_refresh_token: str = None,
         package_config_path_override: Optional[str] = None,
@@ -132,7 +132,7 @@ class ServiceConfig(Config):
         self.fas_password = fas_password
 
         # List of github users who are allowed to trigger p-s on any repository
-        self.admins: Set[str] = set(admins or [])
+        self.admins: set[str] = set(admins or [])
 
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""
@@ -140,20 +140,20 @@ class ServiceConfig(Config):
         # Gitlab token secret to decode JWT tokens
         self.gitlab_token_secret: str = gitlab_token_secret
 
-        self.gitlab_mr_targets_handled: List[MRTarget] = gitlab_mr_targets_handled
+        self.gitlab_mr_targets_handled: list[MRTarget] = gitlab_mr_targets_handled
 
         # Explicit list of private namespaces we work with
         # e.g.:
         #  - github.com/other-private-namespace
         #  - gitlab.com/private/namespace
-        self.enabled_private_namespaces: Set[str] = set(
+        self.enabled_private_namespaces: set[str] = set(
             enabled_private_namespaces or [],
         )
         # Explicit list of project we allow the internal TF instance to be used-
         # e.g.:
         #  - github.com/other-private-namespace/project
         #  - gitlab.com/namespace/project
-        self.enabled_projects_for_internal_tf: Set[str] = set(
+        self.enabled_projects_for_internal_tf: set[str] = set(
             enabled_projects_for_internal_tf or [],
         )
 
@@ -164,7 +164,7 @@ class ServiceConfig(Config):
         self.koji_logs_url = koji_logs_url
         self.koji_web_url = koji_web_url
 
-        self.enabled_projects_for_srpm_in_copr: Set[str] = set(
+        self.enabled_projects_for_srpm_in_copr: set[str] = set(
             enabled_projects_for_srpm_in_copr or [],
         )
         self.comment_command_prefix = comment_command_prefix

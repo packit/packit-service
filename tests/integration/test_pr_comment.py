@@ -3,7 +3,6 @@
 
 import json
 import shutil
-from typing import List
 
 import pytest
 from celery.canvas import group as celery_group
@@ -205,7 +204,7 @@ def mock_pr_comment_functionality(request):
     flexmock(Allowlist, check_and_report=True)
 
 
-def one_job_finished_with_msg(results: List[TaskResults], msg: str):
+def one_job_finished_with_msg(results: list[TaskResults], msg: str):
     for value in results:
         assert value["success"]
         if value["details"]["msg"] == msg:

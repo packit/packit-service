@@ -7,7 +7,7 @@ Parser is transforming github JSONs into `events` objects
 import logging
 from datetime import datetime, timezone
 from os import getenv
-from typing import Optional, Type, Union, Dict, Any, Tuple
+from typing import Optional, Union, Any
 
 from ogr.parsing import parse_git_repo
 from packit.config import JobConfigTriggerType
@@ -831,7 +831,7 @@ class Parser:
     def parse_check_name(
         check_name: str,
         db_project_event: ProjectEventModel,
-    ) -> Optional[Tuple[str, str, str]]:
+    ) -> Optional[tuple[str, str, str]]:
         """
         Parse the given name of the check run.
 
@@ -1145,8 +1145,8 @@ class Parser:
     @staticmethod
     def parse_data_from_testing_farm(
         tft_test_run: TFTTestRunTargetModel,
-        event: Dict[Any, Any],
-    ) -> Tuple[
+        event: dict[Any, Any],
+    ) -> tuple[
         str,
         str,
         TestingFarmResult,
@@ -1309,7 +1309,7 @@ class Parser:
         """this corresponds to copr build event e.g:"""
         topic = event.get("topic")
 
-        copr_build_cls: Type["AbstractCoprBuildEvent"]
+        copr_build_cls: type["AbstractCoprBuildEvent"]
         if topic == "org.fedoraproject.prod.copr.build.start":
             copr_build_cls = CoprBuildStartEvent
         elif topic == "org.fedoraproject.prod.copr.build.end":

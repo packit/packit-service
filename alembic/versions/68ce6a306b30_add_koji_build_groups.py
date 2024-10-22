@@ -10,7 +10,7 @@ import collections
 import enum
 import itertools
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from packit_service.models import ProjectAndEventsConnector
 
@@ -335,7 +335,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     )
 
     @property
-    def grouped_targets(self) -> List["TFTTestRunTargetModel"]:
+    def grouped_targets(self) -> list["TFTTestRunTargetModel"]:
         return self.tft_test_run_targets
 
 
@@ -351,7 +351,7 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     )
 
     @property
-    def grouped_targets(self) -> List["CoprBuildTargetModel"]:
+    def grouped_targets(self) -> list["CoprBuildTargetModel"]:
         return self.copr_build_targets
 
 

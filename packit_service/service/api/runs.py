@@ -3,7 +3,6 @@
 
 from http import HTTPStatus
 from logging import getLogger
-from typing import Dict
 
 from flask_restx import Namespace, Resource
 
@@ -32,7 +31,7 @@ logger = getLogger("packit_service")
 ns = Namespace("runs", description="Pipelines")
 
 
-def _add_sync_release(run: SyncReleaseModel, response_dict: Dict):
+def _add_sync_release(run: SyncReleaseModel, response_dict: dict):
     targets = response_dict[run.job_type.value]
 
     for target in run.sync_release_targets:
@@ -49,7 +48,7 @@ def _add_sync_release(run: SyncReleaseModel, response_dict: Dict):
         response_dict["trigger"] = get_project_info_from_build(run)
 
 
-def _add_vm_image_build(run: VMImageBuildTargetModel, response_dict: Dict):
+def _add_vm_image_build(run: VMImageBuildTargetModel, response_dict: dict):
     response_dict["vm_image_build"].append(
         {
             "packit_id": run.id,

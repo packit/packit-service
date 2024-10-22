@@ -8,7 +8,7 @@ This file defines classes for job handlers specific for Fedmsg events
 import logging
 from os import getenv
 from datetime import datetime
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 from celery import signature
 
@@ -118,7 +118,7 @@ class KojiBuildHandler(
         self._project: Optional[GitProject] = None
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (
             IsJobConfigTriggerMatching,
             PermissionOnKoji,
@@ -401,7 +401,7 @@ class KojiBuildTagHandler(
     task_name = TaskName.koji_build_tag
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (SidetagExists,)
 
     def run(self) -> TaskResults:

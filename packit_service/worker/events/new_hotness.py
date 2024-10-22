@@ -4,7 +4,7 @@
 from abc import abstractmethod
 from functools import cached_property
 from logging import getLogger
-from typing import Optional, Dict
+from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
@@ -153,7 +153,7 @@ class AnityaUpdateEvent(Event):
 
         return self.packages_config.upstream_tag_template.format(version=self.version)
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__
         d["project_url"] = self.project_url
         d["tag_name"] = self.tag_name

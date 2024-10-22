@@ -11,7 +11,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from os import getenv
-from typing import TYPE_CHECKING, Union, List
+from typing import TYPE_CHECKING, Union
 
 from alembic import op
 from celery.backends.database import Task
@@ -239,7 +239,7 @@ class RedisCoprBuild(RedisBuild):
     table_name = "copr-builds"
     project: str
     owner: str
-    chroots: List[str]
+    chroots: list[str]
 
 
 # Postgres models

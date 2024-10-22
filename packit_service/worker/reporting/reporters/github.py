@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Dict
+from typing import Optional
 
 from .base import StatusReporter
 from packit_service.worker.reporting.news import News
@@ -36,7 +36,7 @@ class StatusReporterGithubStatuses(StatusReporter):
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: str = None,
     ):
         state_to_set = self.get_commit_status(state)
@@ -70,7 +70,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
     @staticmethod
     def _create_table(
         url: str,
-        links_to_external_services: Optional[Dict[str, str]],
+        links_to_external_services: Optional[dict[str, str]],
     ) -> str:
         table_content = []
         if url:
@@ -100,7 +100,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         description: str,
         check_name: str,
         url: str = "",
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: str = None,
     ):
         markdown_content = markdown_content or ""

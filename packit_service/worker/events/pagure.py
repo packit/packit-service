@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from logging import getLogger
-from typing import Dict, Optional
+from typing import Optional
 
 from ogr.abstract import Comment, GitProject
 from ogr.parsing import RepoUrl
@@ -108,7 +108,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
 
         self._repo_url: Optional[RepoUrl] = None
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__
         d["repo_name"] = self.repo_name
         d["repo_namespace"] = self.repo_namespace
@@ -219,7 +219,7 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         self.git_ref = None  # pr_id will be used for checkout
         self.project_url = project_url
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result

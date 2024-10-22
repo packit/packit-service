@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Tuple, Iterable
+from collections.abc import Iterable
 
 import pytest
 from copr.v3 import Client
@@ -455,7 +455,7 @@ def test_check_and_report_denied_project(allowlist, event):
 
 
 @pytest.fixture()
-def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]:
+def events(request) -> Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]]:
     """
     :param request: event type to create Event instances of that type
     :return: list of Events that check_and_report accepts together with whether they should pass
@@ -598,7 +598,7 @@ def test_check_and_report(
     add_pull_request_event_with_empty_sha,
     allowlist: Allowlist,
     allowlist_entries,
-    events: Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]],
+    events: Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]],
 ):
     """
     :param allowlist: fixture

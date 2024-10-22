@@ -8,7 +8,7 @@ import abc
 import logging
 from datetime import datetime
 from os import getenv
-from typing import Tuple, Type, Optional
+from typing import Optional
 
 from celery import Task
 
@@ -308,7 +308,7 @@ class CreateBodhiUpdateHandler(
     task_name = TaskName.bodhi_update
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """
@@ -369,7 +369,7 @@ class BodhiUpdateFromSidetagHandler(
     task_name = TaskName.bodhi_update_from_sidetag
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """
@@ -399,7 +399,7 @@ class RetriggerBodhiUpdateHandler(
     task_name = TaskName.retrigger_bodhi_update
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """
@@ -434,7 +434,7 @@ class IssueCommentRetriggerBodhiUpdateHandler(
     task_name = TaskName.issue_comment_retrigger_bodhi_update
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """
