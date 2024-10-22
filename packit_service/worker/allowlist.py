@@ -2,36 +2,39 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Optional, Union, Callable
 from collections.abc import Iterable
+from typing import Any, Callable, Optional, Union
 from urllib.parse import urlparse
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config.job_config import JobConfig, JobType
-from packit.exceptions import PackitException, PackitCommandFailedError
+from packit.exceptions import PackitCommandFailedError, PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DENIED_MSG,
+    DOCS_APPROVAL_URL,
     FASJSON_URL,
     NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
     NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS,
     NOTIFICATION_REPO,
-    DOCS_APPROVAL_URL,
-    DENIED_MSG,
 )
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
-    EventData,
     AbstractCoprBuildEvent,
+    CheckRerunEvent,
+    EventData,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    OpenScanHubTaskFinishedEvent,
+    OpenScanHubTaskStartedEvent,
     PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
     PullRequestGithubEvent,
@@ -41,9 +44,6 @@ from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
-    CheckRerunEvent,
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
 )
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent

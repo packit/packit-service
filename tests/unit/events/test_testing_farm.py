@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import pytest
 from datetime import datetime
-from flexmock import flexmock
 
+import pytest
+from flexmock import flexmock
 from ogr.services.github import GithubProject
 
 from packit_service.models import (
     CoprBuildTargetModel,
-    TFTTestRunTargetModel,
     TestingFarmResult,
+    TFTTestRunTargetModel,
     get_submitted_time_from_model,
 )
 from packit_service.worker.events.testing_farm import TestingFarmResultsEvent

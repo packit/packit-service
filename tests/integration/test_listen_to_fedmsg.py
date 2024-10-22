@@ -1,17 +1,16 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-import json
 import copy
+import json
 from datetime import datetime
 
 import pytest
 import requests
-from celery.canvas import group as celery_group, Signature
+from celery.canvas import Signature
+from celery.canvas import group as celery_group
 from copr.v3 import Client
 from flexmock import flexmock
-
-import packit_service.service.urls as urls
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
 from packit.config import (
@@ -21,36 +20,39 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
-from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
+from packit.config.requirements import LabelRequirementsConfig, RequirementsConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit.utils.koji_helper import KojiHelper
+
+import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
 from packit_service.models import (
-    CoprBuildTargetModel,
-    ProjectEventModelType,
-    KojiBuildTargetModel,
-    SRPMBuildModel,
-    TFTTestRunTargetModel,
-    TFTTestRunGroupModel,
-    TestingFarmResult,
     BuildStatus,
-    ProjectReleaseModel,
+    CoprBuildTargetModel,
     GitBranchModel,
+    KojiBuildTargetModel,
+    ProjectEventModelType,
+    ProjectReleaseModel,
     SidetagModel,
+    SRPMBuildModel,
+    TestingFarmResult,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
+from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -61,7 +63,6 @@ from packit_service.worker.tasks import (
     run_koji_build_tag_handler,
     run_testing_farm_handler,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 

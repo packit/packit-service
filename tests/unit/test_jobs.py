@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 import copy
+
 import celery
 import pytest
 from flexmock import flexmock
-
 from ogr.exceptions import GithubAppNotInstalledError
-
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -20,8 +19,13 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import COMMENT_REACTION
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
+    AbstractCoprBuildEvent,
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
+    CheckRerunCommitEvent,
+    CheckRerunEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     IssueCommentEvent,
@@ -35,30 +39,25 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
-    TestingFarmResultsEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
     ReleaseGitlabEvent,
-    CheckRerunEvent,
+    TestingFarmResultsEvent,
     VMImageBuildResultEvent,
-    AbstractCoprBuildEvent,
 )
 from packit_service.worker.events.koji import (
+    AbstractKojiEvent,
     KojiBuildEvent,
     KojiBuildTagEvent,
-    AbstractKojiEvent,
 )
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
+    CoprBuildHandler,
     CoprBuildStartHandler,
     JobHandler,
-    TestingFarmHandler,
-    TestingFarmResultsHandler,
-    CoprBuildHandler,
     KojiBuildHandler,
     KojiTaskReportHandler,
     ProposeDownstreamHandler,
+    TestingFarmHandler,
+    TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler

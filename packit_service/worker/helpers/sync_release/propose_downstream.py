@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 from ogr.abstract import GitProject
+from packit.config import JobConfig, JobType, PackageConfig
 
-from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.worker.events import EventData

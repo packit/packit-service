@@ -7,17 +7,18 @@ Create Date: 2020-03-27 16:22:45.721822
 """
 
 import enum
-from typing import TYPE_CHECKING, Optional
 from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
-from alembic import op
 from flexmock import flexmock
-from sqlalchemy import Integer, String, ForeignKey, Enum, orm
+from sqlalchemy import Enum, ForeignKey, Integer, String, orm
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.testing import config
 from sqlalchemy.testing.schema import Column
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "d90948124e46"

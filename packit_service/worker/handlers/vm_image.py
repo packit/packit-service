@@ -10,7 +10,19 @@ import logging
 from packit.config import (
     JobType,
 )
+
+from packit_service.celerizer import celery_app
+from packit_service.models import (
+    PipelineModel,
+    VMImageBuildStatus,
+    VMImageBuildTargetModel,
+)
 from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.vm_image import (
+    GetVMImageBuildReporterFromJobHelperMixin,
+    HasAuthorWriteAccess,
+    IsCoprBuildForChrootOk,
+)
 from packit_service.worker.events import (
     AbstractPRCommentEvent,
     VMImageBuildResultEvent,
@@ -23,25 +35,13 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
 )
-from packit_service.worker.result import TaskResults
-from packit_service.worker.checker.vm_image import (
-    HasAuthorWriteAccess,
-    IsCoprBuildForChrootOk,
-    GetVMImageBuildReporterFromJobHelperMixin,
+from packit_service.worker.handlers.mixin import (
+    GetVMImageBuilderMixin,
 )
 from packit_service.worker.mixin import (
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.handlers.mixin import (
-    GetVMImageBuilderMixin,
-)
-from packit_service.models import (
-    VMImageBuildTargetModel,
-    VMImageBuildStatus,
-    PipelineModel,
-)
-
-from packit_service.celerizer import celery_app
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 

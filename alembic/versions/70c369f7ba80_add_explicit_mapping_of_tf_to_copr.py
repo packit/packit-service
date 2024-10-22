@@ -10,25 +10,25 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from packit_service.models import ProjectAndEventsConnector
-
-from alembic import op
 import sqlalchemy as sa
 import sqlalchemy.orm
 from sqlalchemy import (
+    JSON,
+    Boolean,
     Column,
-    Integer,
-    String,
     DateTime,
     Enum,
-    Table,
     ForeignKey,
-    JSON,
+    Integer,
+    String,
+    Table,
     Text,
-    Boolean,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
+from alembic import op
+from packit_service.models import ProjectAndEventsConnector
 
 if TYPE_CHECKING:
     Base = object

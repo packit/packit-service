@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
 from packit_service.worker.result import TaskResults
 
 TESTS_DIR = Path(__file__).parent

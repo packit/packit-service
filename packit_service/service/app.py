@@ -15,11 +15,11 @@ from flask_cors import CORS
 from flask_restx import __version__ as restx_version
 from flask_talisman import Talisman
 from lazy_object_proxy import Proxy
+from packit.utils import set_logging
 from prometheus_client import make_wsgi_app as prometheus_app
 from syslog_rfc5424_formatter import RFC5424Formatter
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
-from packit.utils import set_logging
 from packit_service import __version__ as ps_version
 from packit_service.config import ServiceConfig
 from packit_service.sentry_integration import configure_sentry

@@ -8,7 +8,8 @@ from logging import getLogger
 from typing import Optional
 
 from ogr.abstract import Comment, Issue
-from packit_service.models import TestingFarmResult, BuildStatus
+
+from packit_service.models import BuildStatus, TestingFarmResult
 from packit_service.service.db_project_events import (
     AddIssueEventToDb,
     AddPullRequestEventToDb,

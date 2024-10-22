@@ -5,21 +5,22 @@ import logging
 import re
 
 from packit.config.aliases import get_branches
+
 from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.utils import (
-    pr_labels_match_configuration,
     get_packit_commands_from_comment,
+    pr_labels_match_configuration,
 )
-from packit_service.worker.checker.abstract import Checker, ActorChecker
+from packit_service.worker.checker.abstract import ActorChecker, Checker
 from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
-    PushPagureEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
+    PushPagureEvent,
 )
+from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
-from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,

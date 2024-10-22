@@ -11,53 +11,53 @@ from os import getenv
 from typing import Optional
 
 from celery import Task
-
-from packit.config import JobConfig, JobType, PackageConfig, Deployment
+from packit.config import Deployment, JobConfig, JobType, PackageConfig
 from packit.exceptions import PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
-    MSG_RETRIGGER,
-    MSG_GET_IN_TOUCH,
-    MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     DEFAULT_RETRY_BACKOFF,
+    MSG_DOWNSTREAM_JOB_ERROR_HEADER,
+    MSG_GET_IN_TOUCH,
+    MSG_RETRIGGER,
 )
 from packit_service.models import (
     BodhiUpdateGroupModel,
-    PipelineModel,
     BodhiUpdateTargetModel,
     KojiBuildTargetModel,
+    PipelineModel,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
-    IsAuthorAPackager,
     HasIssueCommenterRetriggeringPermissions,
+    IsAuthorAPackager,
     IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
-    IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
+    IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildOwnerMatchingConfiguration,
 )
 from packit_service.worker.events import (
-    PullRequestCommentPagureEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
-from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.handlers.abstract import (
+    RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    RetriableJobHandler,
     run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
-    GetKojiBuildDataFromKojiServiceMultipleBranches,
+    GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,
     GetKojiBuildDataFromKojiBuildTagEventMixin,
     GetKojiBuildDataFromKojiServiceMixin,
+    GetKojiBuildDataFromKojiServiceMultipleBranches,
     GetKojiBuildEventMixin,
-    GetKojiBuildData,
 )
+from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.mixin import (
     ConfigFromDistGitUrlMixin,
     GetBranchesFromIssueMixin,

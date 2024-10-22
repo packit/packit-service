@@ -7,8 +7,8 @@
 CLI script to interact with our allowlist.
 """
 
-from urllib.parse import urlparse
 from typing import Optional
+from urllib.parse import urlparse
 
 import click
 

@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 # import re
+import logging
 from dataclasses import dataclass
 from typing import Optional
-import logging
 
 # from flexmock import flexmock
 import pytest

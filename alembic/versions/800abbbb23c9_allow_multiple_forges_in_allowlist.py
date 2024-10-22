@@ -9,13 +9,13 @@ Create Date: 2021-03-25 10:43:00.679552
 import enum
 from typing import TYPE_CHECKING
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Column, Integer, String, Enum, orm
+from sqlalchemy import Column, Enum, Integer, String, orm
 
 # from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declarative_base
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "800abbbb23c9"

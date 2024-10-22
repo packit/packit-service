@@ -6,8 +6,6 @@ import os
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
 
-from yaml import safe_load
-
 from ogr.abstract import GitProject, Issue
 from packit.config import (
     Config,
@@ -21,17 +19,19 @@ from packit.exceptions import (
     PackitException,
     PackitMissingConfigException,
 )
+from yaml import safe_load
+
 from packit_service.constants import (
     CONFIG_FILE_NAME,
     CONTACTS_URL,
     DOCS_HOW_TO_CONFIGURE_URL,
+    DOCS_VALIDATE_CONFIG,
+    DOCS_VALIDATE_HOOKS,
     SANDCASTLE_DEFAULT_PROJECT,
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
     SANDCASTLE_WORK_DIR,
     TESTING_FARM_API_URL,
-    DOCS_VALIDATE_CONFIG,
-    DOCS_VALIDATE_HOOKS,
 )
 
 logger = logging.getLogger(__name__)

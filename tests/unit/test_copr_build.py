@@ -5,57 +5,56 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
+import packit
 import pytest
 from celery import Celery
-from copr.v3 import Client
-from copr.v3 import CoprAuthException
+from copr.v3 import Client, CoprAuthException
 from copr.v3.proxies.build import BuildProxy
 from flexmock import flexmock
 from ogr.abstract import GitProject
 from ogr.exceptions import GitForgeInternalError, OgrNetworkError
 from ogr.services.github import GithubProject
-
-import packit
-import packit_service
 from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
     JobConfigTriggerType,
+    JobConfigView,
     JobType,
     PackageConfig,
-    JobConfigView,
 )
 from packit.copr_helper import CoprHelper
 from packit.exceptions import (
-    PackitCoprSettingsException,
     PackitCoprProjectException,
+    PackitCoprSettingsException,
 )
+
+import packit_service
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DASHBOARD_JOBS_TESTING_FARM_PATH,
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_LIMIT_OUTAGE,
-    DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
-    CoprBuildTargetModel,
+    BuildStatus,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
     GithubInstallationModel,
     GitProjectModel,
     ProjectEventModel,
     ProjectEventModelType,
-    SRPMBuildModel,
     PullRequestModel,
-    BuildStatus,
+    SRPMBuildModel,
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
 from packit_service.worker.events import (
+    EventData,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
-    EventData,
 )
 from packit_service.worker.handlers import CoprBuildHandler
 from packit_service.worker.helpers.build.copr_build import (

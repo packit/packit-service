@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 from flask import request
-
 from flask_restx import reqparse
 
 DEFAULT_PAGE = 1

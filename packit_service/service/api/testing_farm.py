@@ -12,9 +12,9 @@ from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME
 from packit_service.models import (
+    TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     optional_timestamp,
-    TFTTestRunGroupModel,
 )
 from packit_service.service.api.errors import ValidationFailed
 from packit_service.service.api.parsers import indices, pagination_arguments

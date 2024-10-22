@@ -3,20 +3,20 @@
 
 from datetime import timedelta
 from gzip import open as gzip_open
-from logging import getLogger, DEBUG, INFO
+from logging import DEBUG, INFO, getLogger
 from os import getenv
 from pathlib import Path
 from shutil import copyfileobj
 
 from boto3 import client as boto3_client
 from botocore.exceptions import ClientError
-
 from packit.utils.commands import run_command
+
 from packit_service.constants import (
-    SRPMBUILDS_OUTDATED_AFTER_DAYS,
     PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS,
+    SRPMBUILDS_OUTDATED_AFTER_DAYS,
 )
-from packit_service.models import get_pg_url, SRPMBuildModel, ProjectEventModel
+from packit_service.models import ProjectEventModel, SRPMBuildModel, get_pg_url
 
 logger = getLogger(__name__)
 

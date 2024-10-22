@@ -5,24 +5,24 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from celery import signature, Task
-
+from celery import Task, signature
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import (
     JobConfig,
+    JobConfigTriggerType,
     JobType,
 )
-from packit.config import JobConfigTriggerType
 from packit.config.package_config import PackageConfig
+
 from packit_service import sentry_integration
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
 )
 from packit_service.models import (
-    CoprBuildTargetModel,
     BuildStatus,
+    CoprBuildTargetModel,
     ProjectEventModelType,
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
@@ -34,14 +34,18 @@ from packit_service.utils import (
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
-    CanActorRunTestsJob,
     AreOwnerAndProjectMatchingJob,
-    IsGitForgeProjectAndEventOk,
     BuildNotAlreadyStarted,
+    CanActorRunTestsJob,
+    IsGitForgeProjectAndEventOk,
     IsJobConfigTriggerMatching,
     IsPackageMatchingJobView,
 )
 from packit_service.worker.events import (
+    AbstractPRCommentEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     MergeRequestGitlabEvent,
@@ -49,26 +53,22 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
     ReleaseEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    AbstractPRCommentEvent,
     ReleaseGitlabEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
+    RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
-    RetriableJobHandler,
+    run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
+    ConfigFromEventMixin,
     GetCoprBuildEventMixin,
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
-    ConfigFromEventMixin,
 )
 from packit_service.worker.helpers.open_scan_hub import OpenScanHubHelper
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin

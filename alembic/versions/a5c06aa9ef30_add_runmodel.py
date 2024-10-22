@@ -12,15 +12,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from alembic import op
+from packit.exceptions import PackitException
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    JSON,
     String,
     Text,
     orm,
@@ -28,7 +28,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from packit.exceptions import PackitException
+from alembic import op
 
 if TYPE_CHECKING:
     Base = object

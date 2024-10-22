@@ -8,20 +8,20 @@ import tempfile
 from os import getenv
 from os.path import basename
 from pathlib import Path
-from typing import Optional, Dict
-
+from typing import Optional
 
 from packit.config import (
     JobConfig,
+    JobConfigTriggerType,
     JobType,
 )
-from packit.config import JobConfigTriggerType
+
 from packit_service.constants import (
     OPEN_SCAN_HUB_FEATURE_DESCRIPTION,
 )
 from packit_service.models import (
-    CoprBuildTargetModel,
     BuildStatus,
+    CoprBuildTargetModel,
     SRPMBuildModel,
 )
 from packit_service.service.urls import get_copr_build_info_url
@@ -36,7 +36,9 @@ logger = logging.getLogger(__name__)
 
 class OpenScanHubHelper:
     def __init__(
-        self, copr_build_helper: CoprBuildJobHelper, build: CoprBuildTargetModel
+        self,
+        copr_build_helper: CoprBuildJobHelper,
+        build: CoprBuildTargetModel,
     ):
         self.build = build
         self.copr_build_helper = copr_build_helper
@@ -99,7 +101,7 @@ class OpenScanHubHelper:
                 scan = self.build.add_scan(task_id=id)
             else:
                 logger.debug(
-                    "It was not possible to get the Open Scan Hub task_id from the response."
+                    "It was not possible to get the Open Scan Hub task_id from the response.",
                 )
 
             if not (url := response_dict.get("url")):
@@ -121,7 +123,7 @@ class OpenScanHubHelper:
         state: BaseCommitStatus,
         description: str,
         url: str,
-        links_to_external_services: Optional[Dict[str, str]] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
     ):
         self.copr_build_helper._report(
             state=state,
@@ -173,7 +175,8 @@ class OpenScanHubHelper:
         return base_build_job
 
     def get_base_srpm_model(
-        self, base_build_job: JobConfig
+        self,
+        base_build_job: JobConfig,
     ) -> Optional[SRPMBuildModel]:
         """
         Get the SRPM build model of the latest successful Copr build
@@ -183,13 +186,13 @@ class OpenScanHubHelper:
             self.copr_build_helper.job_project_for_commit_job_config(base_build_job)
         )
         base_build_owner = self.copr_build_helper.job_owner_for_job_config(
-            base_build_job
+            base_build_job,
         )
 
         def get_srpm_build(commit_sha):
             logger.debug(
                 f"Searching for base build for {target_branch_commit} commit "
-                f"in {base_build_owner}/{base_build_project_name} Copr project in our DB. "
+                f"in {base_build_owner}/{base_build_project_name} Copr project in our DB. ",
             )
 
             builds = CoprBuildTargetModel.get_all_by(
@@ -212,7 +215,7 @@ class OpenScanHubHelper:
             return srpm_build
 
         for target_branch_commit in self.copr_build_helper.project.get_commits(
-            self.copr_build_helper.pull_request_object.target_branch
+            self.copr_build_helper.pull_request_object.target_branch,
         )[1:]:
             if srpm_build := get_srpm_build(target_branch_commit):
                 return srpm_build

@@ -7,10 +7,10 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildTargetModel,
-    optional_timestamp,
     BuildStatus,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
+    optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker

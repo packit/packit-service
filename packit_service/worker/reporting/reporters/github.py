@@ -4,19 +4,20 @@
 import logging
 from typing import Optional
 
-from .base import StatusReporter
-from packit_service.worker.reporting.news import News
-from packit_service.worker.reporting.enums import BaseCommitStatus
-
 from ogr.abstract import CommitStatus
 from ogr.exceptions import GithubAPIException
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
-    create_github_check_run_output,
     GithubCheckRunResult,
     GithubCheckRunStatus,
+    create_github_check_run_output,
 )
+
 from packit_service.constants import DOCS_URL, MSG_TABLE_HEADER_WITH_DETAILS
+from packit_service.worker.reporting.enums import BaseCommitStatus
+from packit_service.worker.reporting.news import News
+
+from .base import StatusReporter
 
 logger = logging.getLogger(__name__)
 

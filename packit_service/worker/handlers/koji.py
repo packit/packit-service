@@ -6,28 +6,24 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from os import getenv
 from datetime import datetime
+from os import getenv
 from typing import Optional
 
 from celery import signature
-
 from ogr.abstract import GitProject
 from packit.config import (
     JobConfig,
-    JobType,
     JobConfigTriggerType,
+    JobType,
 )
 from packit.config.package_config import PackageConfig
 from packit.constants import DISTGIT_INSTANCES
+
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     KojiBuildState,
-)
-from packit_service.constants import KojiTaskState
-from packit_service.utils import (
-    dump_job_config,
-    dump_package_config,
+    KojiTaskState,
 )
 from packit_service.models import (
     AbstractProjectObjectDbType,
@@ -37,13 +33,18 @@ from packit_service.models import (
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
+from packit_service.utils import (
+    dump_job_config,
+    dump_package_config,
+)
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.koji import (
-    PermissionOnKoji,
     IsJobConfigTriggerMatching,
+    PermissionOnKoji,
     SidetagExists,
 )
 from packit_service.worker.events import (
+    AbstractPRCommentEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
@@ -53,7 +54,6 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
     ReleaseEvent,
-    AbstractPRCommentEvent,
     ReleaseGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
@@ -65,13 +65,15 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     run_for_comment,
 )
-from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
-from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.mixin import ConfigFromEventMixin
-from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
+from packit_service.worker.helpers.sidetag import SidetagHelper
+from packit_service.worker.mixin import (
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
+)
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 

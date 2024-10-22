@@ -7,29 +7,29 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from deepdiff import DeepDiff
 from flexmock import flexmock
-
 from ogr import GithubService, GitlabService, PagureService
-from packit.config import JobConfigTriggerType, JobConfig, PackageConfig
+from packit.config import JobConfig, JobConfigTriggerType, PackageConfig
 from packit.config.common_package_config import Deployment
+
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    ProjectEventModelType,
-    ProjectEventModel,
     BuildStatus,
+    ProjectEventModel,
+    ProjectEventModelType,
     PullRequestModel,
 )
 from packit_service.worker.events import (
+    MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
-    ReleaseEvent,
-    MergeRequestGitlabEvent,
     PushPagureEvent,
+    ReleaseEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.parser import Parser
-from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
-from deepdiff import DeepDiff
+from tests.spellbook import DATA_DIR, SAVED_HTTPD_REQS, load_the_message_from_file
 
 
 @pytest.fixture(autouse=True)

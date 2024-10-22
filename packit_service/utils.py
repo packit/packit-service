@@ -11,11 +11,11 @@ from re import search
 from typing import Optional
 
 import requests
-
 from ogr.abstract import PullRequest
 from packit.config import JobConfig, PackageConfig
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
+
 from packit_service import __version__ as ps_version
 
 logger = logging.getLogger(__name__)

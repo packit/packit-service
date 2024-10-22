@@ -13,29 +13,27 @@ from os import getenv
 from pathlib import Path
 from typing import Optional
 
-from celery import Task
-from celery import signature
+from celery import Task, signature
 from celery.canvas import Signature
 from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
-from packit_service.config import ServiceConfig
 
+from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import Event, EventData
-from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.result import TaskResults
 from packit_service.worker.checker.abstract import Checker
-
+from packit_service.worker.events import Event, EventData
 from packit_service.worker.mixin import (
     Config,
     PackitAPIProtocol,
 )
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 

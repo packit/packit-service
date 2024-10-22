@@ -6,7 +6,6 @@ import json
 import pytest
 from celery.canvas import group
 from flexmock import flexmock
-
 from ogr.abstract import PRStatus
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
@@ -23,18 +22,19 @@ from packit.exceptions import PackitException
 from packit.local_project import LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
 from packit.utils.repo import RepositoryCache
+
 from packit_service.config import PackageConfigGetter, ProjectToSync, ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
 from packit_service.models import (
     GitBranchModel,
     GitProjectModel,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
+    PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
-    KojiBuildGroupModel,
-    PipelineModel,
-    KojiBuildTargetModel,
-    SidetagModel,
     SidetagGroupModel,
+    SidetagModel,
 )
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler

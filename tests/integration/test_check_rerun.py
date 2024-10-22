@@ -8,22 +8,22 @@ from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
 from ogr.services.github import GithubProject
-
 from packit.config import JobConfigTriggerType
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+
 from packit_service.constants import (
     TASK_ACCEPTED,
 )
 from packit_service.models import (
+    BuildStatus,
     GitBranchModel,
     ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
-    BuildStatus,
+    TestingFarmResult,
     TFTTestRunGroupModel,
     TFTTestRunTargetModel,
-    TestingFarmResult,
 )
 from packit_service.worker.handlers import ProposeDownstreamHandler
 from packit_service.worker.helpers.build import (
@@ -36,8 +36,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus
-from packit_service.worker.reporting import StatusReporterGithubChecks
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_koji_build_handler,

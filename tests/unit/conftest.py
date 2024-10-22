@@ -1,15 +1,15 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import packit
 import pytest
 from flexmock import flexmock
+from packit.config.job_config import JobConfigTriggerType, JobType
 
-import packit
-from packit.config.job_config import JobType, JobConfigTriggerType
 from packit_service.models import (
+    ProjectEventModel,
     ProjectEventModelType,
     PullRequestModel,
-    ProjectEventModel,
 )
 
 

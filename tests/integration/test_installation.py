@@ -7,11 +7,11 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
-from packit_service.config import ServiceConfig, PackageConfigGetter
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
-    GithubInstallationModel,
     AllowlistModel,
+    GithubInstallationModel,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs

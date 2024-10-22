@@ -8,7 +8,6 @@ from celery.app.task import Context, Task
 from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
-
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
@@ -16,22 +15,23 @@ from packit.distgit import DistGit
 from packit.exceptions import PackitDownloadFailedException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.pkgtool import PkgTool
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     TASK_ACCEPTED,
 )
 from packit_service.models import (
-    ProjectEventModelType,
-    ProjectEventModel,
     PipelineModel,
+    ProjectEventModel,
+    ProjectEventModelType,
     ProjectReleaseModel,
+    SyncReleaseJobType,
     SyncReleaseModel,
+    SyncReleasePullRequestModel,
     SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseJobType,
-    SyncReleasePullRequestModel,
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.service.urls import get_propose_downstream_info_url

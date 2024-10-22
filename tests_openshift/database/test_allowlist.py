@@ -4,7 +4,7 @@
 # Create multiple allowlist entries
 import pytest
 
-from packit_service.models import sa_session_transaction, AllowlistModel
+from packit_service.models import AllowlistModel, sa_session_transaction
 
 
 @pytest.fixture()

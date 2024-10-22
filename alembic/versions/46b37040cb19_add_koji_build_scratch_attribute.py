@@ -6,15 +6,15 @@ Create Date: 2022-03-21 09:34:53.526691
 
 """
 
-from typing import TYPE_CHECKING
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+import sqlalchemy as sa
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy import Column, String, DateTime, Integer, JSON, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-
 from packit_service.models import ProjectAndEventsConnector
 
 # revision identifiers, used by Alembic.

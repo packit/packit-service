@@ -3,7 +3,7 @@
 
 import logging
 from functools import partial
-from typing import Optional, Union, Callable
+from typing import Callable, Optional, Union
 
 from lazy_object_proxy import Proxy
 from ogr.abstract import GitProject, PullRequest
@@ -13,21 +13,22 @@ from packit.api import PackitAPI
 from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
 from packit.local_project import (
-    LocalProject,
-    LocalProjectBuilder,
     CALCULATE,
     NOT_TO_CALCULATE,
+    LocalProject,
+    LocalProjectBuilder,
 )
 from packit.utils.repo import RepositoryCache
+
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import (
+    AbstractProjectObjectDbType,
     PipelineModel,
     ProjectEventModel,
-    AbstractProjectObjectDbType,
 )
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 logger = logging.getLogger(__name__)
 

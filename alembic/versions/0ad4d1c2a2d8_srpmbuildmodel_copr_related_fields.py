@@ -9,18 +9,16 @@ Create Date: 2022-01-17 13:51:01.783926
 import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
-from packit_service.models import ProjectAndEventsConnector
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    JSON,
     String,
     Text,
     orm,
@@ -28,6 +26,8 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
+from alembic import op
+from packit_service.models import ProjectAndEventsConnector
 
 if TYPE_CHECKING:
     Base = object

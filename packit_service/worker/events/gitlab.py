@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: MIT
 from typing import Optional
 
-from ogr.abstract import GitProject, Comment
+from ogr.abstract import Comment, GitProject
+
 from packit_service.service.db_project_events import (
-    AddPullRequestEventToDb,
     AddBranchPushEventToDb,
+    AddPullRequestEventToDb,
     AddReleaseEventToDb,
 )
 from packit_service.worker.events.comment import (

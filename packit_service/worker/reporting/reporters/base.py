@@ -3,19 +3,19 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Union, Callable
-
-from packit_service.worker.reporting.enums import (
-    BaseCommitStatus,
-    MAP_TO_COMMIT_STATUS,
-    MAP_TO_CHECK_RUN,
-    DuplicateCheckMode,
-)
+from typing import Callable, Optional, Union
 
 from ogr.abstract import GitProject, PullRequest
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+
+from packit_service.worker.reporting.enums import (
+    MAP_TO_CHECK_RUN,
+    MAP_TO_COMMIT_STATUS,
+    BaseCommitStatus,
+    DuplicateCheckMode,
+)
 
 logger = logging.getLogger(__name__)
 

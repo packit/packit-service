@@ -4,7 +4,7 @@
 import json
 import unittest
 
-from tests_openshift.openshift_integration.base import PackitServiceTestCase, DATA_DIR
+from tests_openshift.openshift_integration.base import DATA_DIR, PackitServiceTestCase
 
 
 def pr_event():

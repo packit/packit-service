@@ -1,14 +1,10 @@
 from logging.config import fileConfig
-
-from alembic import context
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from typing import TYPE_CHECKING
 
-from packit_service.models import Base
-from packit_service.models import get_pg_url
+from sqlalchemy import engine_from_config, pool
 
+from alembic import context
+from packit_service.models import Base, get_pg_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

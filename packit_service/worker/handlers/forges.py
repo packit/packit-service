@@ -8,17 +8,17 @@ TODO: The build and test handlers are independent and should be moved away.
 import logging
 
 from packit.config import (
-    JobConfig,
     Deployment,
+    JobConfig,
 )
 from packit.config.package_config import PackageConfig
+
 from packit_service.config import PackageConfigGetter
-from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
 from packit_service.models import (
-    GithubInstallationModel,
     AllowlistModel,
     AllowlistStatus,
+    GithubInstallationModel,
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
@@ -33,7 +33,11 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     reacts_to,
 )
-from packit_service.worker.mixin import GetIssueMixin, PackitAPIWithDownstreamMixin
+from packit_service.worker.mixin import (
+    ConfigFromEventMixin,
+    GetIssueMixin,
+    PackitAPIWithDownstreamMixin,
+)
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)

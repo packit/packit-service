@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import KojiBuildTargetModel
 from packit_service.worker.events.koji import (
     KojiBuildEvent,
-    KojiTaskEvent,
     KojiBuildTagEvent,
+    KojiTaskEvent,
 )
 from packit_service.worker.parser import Parser
 

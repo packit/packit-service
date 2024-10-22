@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
 
 from celery import Task
-
 
 logger = logging.getLogger(__name__)
 

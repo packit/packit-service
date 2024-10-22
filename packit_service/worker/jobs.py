@@ -8,34 +8,34 @@ import logging
 from datetime import datetime
 from functools import cached_property
 from re import match
-from typing import Optional, Union, Callable
+from typing import Callable, Optional, Union
 
 import celery
-
 from ogr.exceptions import GithubAppNotInstalledError
-from packit.config import JobConfig, JobConfigView, JobType, JobConfigTriggerType
+from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType
 from packit.config.job_config import DEPRECATED_JOB_TYPES
 from packit.utils import nested_get
+
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
-    DOCS_CONFIGURATION_URL,
-    TASK_ACCEPTED,
     COMMENT_REACTION,
+    DOCS_CONFIGURATION_URL,
     PACKIT_VERIFY_FAS_COMMAND,
+    TASK_ACCEPTED,
 )
 from packit_service.utils import (
-    get_packit_commands_from_comment,
     elapsed_seconds,
+    get_packit_commands_from_comment,
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
+    CheckRerunEvent,
     Event,
     EventData,
-    PullRequestCommentPagureEvent,
     InstallationEvent,
-    CheckRerunEvent,
     IssueCommentEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
@@ -43,8 +43,8 @@ from packit_service.worker.events.comment import (
     AbstractPRCommentEvent,
 )
 from packit_service.worker.events.event import (
-    AbstractResultEvent,
     AbstractForgeIndependentEvent,
+    AbstractResultEvent,
 )
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import (
@@ -52,31 +52,31 @@ from packit_service.worker.handlers import (
     GithubAppInstallationHandler,
     GithubFasVerificationHandler,
     KojiBuildHandler,
-    TestingFarmHandler,
     ProposeDownstreamHandler,
+    TestingFarmHandler,
 )
 from packit_service.worker.handlers.abstract import (
-    JobHandler,
+    MAP_CHECK_PREFIX_TO_HANDLER,
     MAP_COMMENT_TO_HANDLER,
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
-    MAP_CHECK_PREFIX_TO_HANDLER,
+    JobHandler,
 )
 from packit_service.worker.handlers.bodhi import (
     BodhiUpdateHandler,
     RetriggerBodhiUpdateHandler,
 )
 from packit_service.worker.handlers.distgit import (
-    PullFromUpstreamHandler,
     DownstreamKojiBuildHandler,
+    PullFromUpstreamHandler,
     RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
 )
 from packit_service.worker.helpers.build import (
+    BaseBuildJobHelper,
     CoprBuildJobHelper,
     KojiBuildJobHelper,
-    BaseBuildJobHelper,
 )
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,

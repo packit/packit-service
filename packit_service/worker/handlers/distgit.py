@@ -11,84 +11,83 @@ from collections import defaultdict
 from datetime import datetime
 from functools import partial
 from os import getenv
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
 from celery import Task
-
-from ogr.abstract import PullRequest, AuthMethod
+from ogr.abstract import AuthMethod, PullRequest
 from ogr.services.github import GithubService
-from packit.config import JobConfig, JobType, JobConfigTriggerType, Deployment
-from packit.config import aliases
+from packit.config import Deployment, JobConfig, JobConfigTriggerType, JobType, aliases
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
-    PackitException,
     PackitDownloadFailedException,
+    PackitException,
     ReleaseSkippedPackitException,
 )
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
-    MSG_RETRIGGER,
-    MSG_GET_IN_TOUCH,
-    MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     DEFAULT_RETRY_BACKOFF,
+    MSG_DOWNSTREAM_JOB_ERROR_HEADER,
+    MSG_GET_IN_TOUCH,
+    MSG_RETRIGGER,
     MSG_RETRIGGER_DISTGIT,
     RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
     KojiBuildState,
 )
 from packit_service.models import (
-    SyncReleasePullRequestModel,
-    SyncReleaseTargetStatus,
-    SyncReleaseTargetModel,
-    SyncReleaseModel,
-    SyncReleaseStatus,
-    SyncReleaseJobType,
+    KojiBuildGroupModel,
     KojiBuildTargetModel,
     PipelineModel,
-    KojiBuildGroupModel,
+    SyncReleaseJobType,
+    SyncReleaseModel,
+    SyncReleasePullRequestModel,
+    SyncReleaseStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
 )
 from packit_service.service.urls import (
     get_propose_downstream_info_url,
     get_pull_from_upstream_info_url,
 )
 from packit_service.utils import (
-    gather_packit_logs_to_buffer,
     collect_packit_logs,
-    get_packit_commands_from_comment,
+    gather_packit_logs_to_buffer,
     get_koji_task_id_and_url_from_stdout,
+    get_packit_commands_from_comment,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
-    IsProjectOk,
-    PermissionOnDistgit,
-    ValidInformationForPullFromUpstream,
     HasIssueCommenterRetriggeringPermissions,
+    IsProjectOk,
     IsUpstreamTagMatchingConfig,
     LabelsOnDistgitPR,
+    PermissionOnDistgit,
     TaggedBuildIsNotABuildOfSelf,
+    ValidInformationForPullFromUpstream,
 )
 from packit_service.worker.events import (
+    AbstractIssueCommentEvent,
+    CheckRerunReleaseEvent,
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
+    PullRequestCommentPagureEvent,
     PushPagureEvent,
     ReleaseEvent,
     ReleaseGitlabEvent,
-    AbstractIssueCommentEvent,
-    CheckRerunReleaseEvent,
-    PullRequestCommentPagureEvent,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
+    RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
-    RetriableJobHandler,
+    run_for_comment,
 )
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.helpers.sidetag import SidetagHelper
@@ -101,15 +100,15 @@ from packit_service.worker.helpers.sync_release.pull_from_upstream import (
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.mixin import (
     Config,
-    LocalProjectMixin,
-    ConfigFromEventMixin,
-    GetBranchesFromIssueMixin,
-    ConfigFromUrlMixin,
     ConfigFromDistGitUrlMixin,
+    ConfigFromEventMixin,
+    ConfigFromUrlMixin,
+    GetBranchesFromIssueMixin,
     GetPagurePullRequestMixin,
-    PackitAPIWithUpstreamMixin,
-    PackitAPIWithDownstreamMixin,
     GetSyncReleaseTagMixin,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
+    PackitAPIWithUpstreamMixin,
 )
 from packit_service.worker.reporting import (
     BaseCommitStatus,

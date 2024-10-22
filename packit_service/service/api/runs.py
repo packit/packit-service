@@ -7,18 +7,18 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
+    BuildStatus,
     CoprBuildGroupModel,
     KojiBuildGroupModel,
     PipelineModel,
-    SyncReleaseModel,
     SRPMBuildModel,
-    TFTTestRunTargetModel,
-    optional_timestamp,
-    BuildStatus,
+    SyncReleaseModel,
     TFTTestRunGroupModel,
-    BodhiUpdateGroupModel,
-    BodhiUpdateTargetModel,
+    TFTTestRunTargetModel,
     VMImageBuildTargetModel,
+    optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (

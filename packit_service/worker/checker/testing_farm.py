@@ -4,9 +4,9 @@
 import logging
 
 from packit_service.constants import (
+    DOCS_TESTING_FARM,
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
-    DOCS_TESTING_FARM,
 )
 from packit_service.worker.checker.abstract import (
     ActorChecker,
@@ -15,9 +15,9 @@ from packit_service.worker.checker.abstract import (
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
 from packit_service.worker.handlers.mixin import (
-    GetTestingFarmJobHelperMixin,
     GetCoprBuildMixin,
     GetGithubCommentEventMixin,
+    GetTestingFarmJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 

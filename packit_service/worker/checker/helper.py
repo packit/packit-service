@@ -3,7 +3,7 @@
 import logging
 from enum import Enum
 
-from ogr.abstract import GitProject, AccessLevel
+from ogr.abstract import AccessLevel, GitProject
 
 logger = logging.getLogger(__name__)
 

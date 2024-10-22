@@ -7,7 +7,8 @@ from typing import Any, Optional
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
 from specfile.utils import NEVR
-from packit_service.models import SidetagModel, SidetagGroupModel
+
+from packit_service.models import SidetagGroupModel, SidetagModel
 
 logger = logging.getLogger(__name__)
 

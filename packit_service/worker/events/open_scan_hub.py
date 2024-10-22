@@ -2,17 +2,18 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-from typing import Optional
 from logging import getLogger
+from typing import Optional
 
 from ogr.abstract import GitProject
+
 from packit_service.config import ServiceConfig
-from packit_service.worker.events.event import AbstractResultEvent
 from packit_service.models import (
     AbstractProjectObjectDbType,
-    ProjectEventModel,
     OSHScanModel,
+    ProjectEventModel,
 )
+from packit_service.worker.events.event import AbstractResultEvent
 
 logger = getLogger(__name__)
 
@@ -36,7 +37,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
             logger.warning(
                 f"Scan with id {task_id} not found in the database."
                 " It should have been created when receiving the CoprBuildEndEvent"
-                " and should have been associated with the copr build."
+                " and should have been associated with the copr build.",
             )
         else:
             self.build = self.scan.copr_build_target
@@ -56,7 +57,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
 
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(
-            self.db_project_object.project.project_url
+            self.db_project_object.project.project_url,
         )
 
     def get_non_serializable_attributes(self):

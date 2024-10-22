@@ -2,21 +2,20 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-
 from flexmock import flexmock
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 
 from packit_service.worker.checker.bodhi import (
     HasIssueCommenterRetriggeringPermissions,
     IsAuthorAPackager,
 )
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
-from packit.config import (
-    JobConfig,
-    JobConfigTriggerType,
-    JobType,
-    PackageConfig,
-    CommonPackageConfig,
-)
 
 
 @pytest.mark.parametrize(

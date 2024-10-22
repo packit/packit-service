@@ -8,9 +8,6 @@ import pytest
 from celery.canvas import group as celery_group
 from flexmock import flexmock
 from github.MainClass import Github
-
-import packit_service.models
-import packit_service.service.urls as urls
 from ogr.abstract import AuthMethod
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
@@ -25,38 +22,41 @@ from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.upstream import GitUpstream
 from packit.utils.koji_helper import KojiHelper
+
+import packit_service.models
+import packit_service.service.urls as urls
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
     CONTACTS_URL,
-    DOCS_HOW_TO_CONFIGURE_URL,
-    TASK_ACCEPTED,
     DEFAULT_RETRY_LIMIT,
-    DOCS_VALIDATE_HOOKS,
+    DOCS_HOW_TO_CONFIGURE_URL,
     DOCS_VALIDATE_CONFIG,
+    DOCS_VALIDATE_HOOKS,
+    TASK_ACCEPTED,
 )
 from packit_service.models import (
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
+    BuildStatus,
     CoprBuildTargetModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
-    PipelineModel,
     PullRequestModel,
-    TFTTestRunTargetModel,
-    TFTTestRunGroupModel,
-    TestingFarmResult,
-    BuildStatus,
+    SidetagGroupModel,
+    SidetagModel,
+    SyncReleaseJobType,
     SyncReleaseModel,
+    SyncReleasePullRequestModel,
     SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseJobType,
-    BodhiUpdateGroupModel,
-    BodhiUpdateTargetModel,
-    SyncReleasePullRequestModel,
-    SidetagGroupModel,
-    SidetagModel,
+    TestingFarmResult,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.service.db_project_events import AddPullRequestEventToDb
 from packit_service.utils import (
@@ -80,17 +80,20 @@ from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import (
+    BaseCommitStatus,
+    StatusReporter,
+    StatusReporterGithubChecks,
+)
 from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
-    run_koji_build_handler,
-    run_retrigger_bodhi_update,
-    run_testing_farm_handler,
-    run_pull_from_upstream_handler,
     run_downstream_koji_build,
+    run_koji_build_handler,
+    run_pull_from_upstream_handler,
+    run_retrigger_bodhi_update,
     run_tag_into_sidetag_handler,
+    run_testing_farm_handler,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 

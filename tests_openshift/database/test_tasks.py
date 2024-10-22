@@ -2,25 +2,25 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-from copr.v3 import Client, BuildProxy, BuildChrootProxy
+from copr.v3 import BuildChrootProxy, BuildProxy, Client
 from flexmock import flexmock
 from munch import Munch
-from packit.copr_helper import CoprHelper
-
 from ogr.services.github import GithubProject
 from packit.config import (
     CommonPackageConfig,
-    PackageConfig,
     JobConfig,
-    JobType,
     JobConfigTriggerType,
+    JobType,
+    PackageConfig,
 )
+from packit.copr_helper import CoprHelper
+
 from packit_service.models import (
-    CoprBuildTargetModel,
-    CoprBuildGroupModel,
-    SRPMBuildModel,
     BuildStatus,
+    CoprBuildGroupModel,
+    CoprBuildTargetModel,
     ProjectEventModel,
+    SRPMBuildModel,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent
 from packit_service.worker.helpers.build.babysit import check_copr_build

@@ -5,10 +5,10 @@ from flask import url_for
 from packit.utils import nested_get
 
 from packit_service.models import (
-    TestingFarmResult,
     PipelineModel,
     SyncReleaseStatus,
     SyncReleaseTargetStatus,
+    TestingFarmResult,
 )
 from packit_service.service.api.runs import process_runs
 from tests_openshift.conftest import SampleValues

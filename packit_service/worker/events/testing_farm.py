@@ -5,12 +5,13 @@ from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
+
 from packit_service.models import (
-    TestingFarmResult,
     AbstractProjectObjectDbType,
-    PullRequestModel,
-    TFTTestRunTargetModel,
     ProjectEventModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.events.event import AbstractResultEvent
 

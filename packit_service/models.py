@@ -8,42 +8,45 @@ Data layer on top of PSQL using sqlalch
 import enum
 import logging
 from collections import Counter
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from os import getenv
 from typing import (
-    Optional,
     TYPE_CHECKING,
+    Optional,
     Union,
     overload,
 )
-from collections.abc import Generator, Iterable
 from urllib.parse import urlparse
 
+from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
-from cachetools import cached, TTLCache
+from packit.config import JobConfigTriggerType
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    JSON,
     String,
+    Table,
     Text,
+    asc,
+    case,
     create_engine,
     desc,
     func,
     null,
-    case,
-    Table,
-    asc,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
+)
+from sqlalchemy.orm import (
     relationship,
     scoped_session,
     sessionmaker,
@@ -51,7 +54,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
-from packit.config import JobConfigTriggerType
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -4039,10 +4041,14 @@ class OSHScanModel(Base):
     issues_fixed_url = Column(String)
     scan_results_url = Column(String)
     copr_build_target_id = Column(
-        Integer, ForeignKey("copr_build_targets.id"), unique=True
+        Integer,
+        ForeignKey("copr_build_targets.id"),
+        unique=True,
     )
     copr_build_target = relationship(
-        "CoprBuildTargetModel", back_populates="scan", uselist=False
+        "CoprBuildTargetModel",
+        back_populates="scan",
+        uselist=False,
     )
 
     @classmethod

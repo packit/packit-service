@@ -3,26 +3,28 @@
 
 import pytest
 from flexmock import flexmock
-
 from ogr import PagureService
 from ogr.abstract import AccessLevel, PRStatus
 from ogr.services.pagure import PagureProject
 from packit.config import (
     CommonPackageConfig,
-    JobType,
+    JobConfig,
     JobConfigTriggerType,
     JobConfigView,
-    JobConfig,
+    JobType,
     PackageConfig,
 )
 from packit.config.commands import TestCommandConfig
-from packit.config.requirements import RequirementsConfig, LabelRequirementsConfig
+from packit.config.requirements import LabelRequirementsConfig, RequirementsConfig
 from packit.copr_helper import CoprHelper
+
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.bodhi import IsKojiBuildOwnerMatchingConfiguration
 from packit_service.worker.checker.copr import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingCopr,
+)
+from packit_service.worker.checker.copr import (
     IsPackageMatchingJobView,
 )
 from packit_service.worker.checker.distgit import (
@@ -37,22 +39,24 @@ from packit_service.worker.checker.koji import (
     PermissionOnKoji,
 )
 from packit_service.worker.checker.testing_farm import (
-    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
     IsIdentifierFromCommentMatching,
     IsLabelFromCommentMatching,
 )
+from packit_service.worker.checker.testing_farm import (
+    IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
+)
 from packit_service.worker.checker.vm_image import (
-    IsCoprBuildForChrootOk,
     HasAuthorWriteAccess,
+    IsCoprBuildForChrootOk,
 )
 from packit_service.worker.events import (
-    PullRequestGithubEvent,
     AbstractCoprBuildEvent,
+    PullRequestGithubEvent,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github import (
-    PushGitHubEvent,
     PullRequestCommentGithubEvent,
+    PushGitHubEvent,
 )
 from packit_service.worker.events.gitlab import MergeRequestGitlabEvent, PushGitlabEvent
 from packit_service.worker.events.pagure import PushPagureEvent

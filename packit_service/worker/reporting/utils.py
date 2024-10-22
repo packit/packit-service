@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+
 from packit.config import JobConfig
 
-from packit_service.config import ServiceConfig, PackageConfigGetter
+from packit_service.config import PackageConfigGetter, ServiceConfig
 
 logger = logging.getLogger(__name__)
 

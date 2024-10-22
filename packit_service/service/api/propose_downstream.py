@@ -7,15 +7,15 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    SyncReleaseTargetModel,
-    SyncReleaseModel,
     SyncReleaseJobType,
+    SyncReleaseModel,
+    SyncReleaseTargetModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
-    response_maker,
     get_sync_release_info,
     get_sync_release_target_info,
+    response_maker,
 )
 
 logger = getLogger("packit_service")

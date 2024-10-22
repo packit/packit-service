@@ -5,9 +5,14 @@ import logging
 from typing import Optional
 
 from ogr.abstract import GitProject
+from packit.config import (
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+    aliases,
+)
 
-from packit.config import JobType, PackageConfig, JobConfig, JobConfigTriggerType
-from packit.config import aliases
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
 from packit_service.trigger_mapping import are_job_types_same

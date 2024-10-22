@@ -12,14 +12,15 @@ from typing import Optional, Union
 from ogr.abstract import GitProject, PullRequest
 from ogr.parsing import RepoUrl
 from packit.config import JobConfigTriggerType, PackageConfig
+
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
-    ProjectEventModel,
+    AnityaProjectModel,
     CoprBuildTargetModel,
+    ProjectEventModel,
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
-    AnityaProjectModel,
 )
 
 logger = getLogger(__name__)

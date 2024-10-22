@@ -7,12 +7,13 @@ This file contains helper classes for events.
 from typing import Optional
 
 from ogr.abstract import GitProject
+
 from packit_service.models import (
     GitBranchModel,
     IssueModel,
+    ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
-    ProjectEventModel,
 )
 
 

@@ -6,11 +6,9 @@ Create Date: 2024-02-07 09:53:51.363885
 
 """
 
-import sqlalchemy as sa
-
-from alembic import op
 from typing import TYPE_CHECKING
 
+import sqlalchemy as sa
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -19,6 +17,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+
+from alembic import op
 
 if TYPE_CHECKING:
     Base = object

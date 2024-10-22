@@ -3,33 +3,33 @@
 
 from typing import Optional, Union
 
-from ogr.abstract import GitProject, Comment
+from ogr.abstract import Comment, GitProject
 
 from packit_service.models import (
+    AbstractProjectObjectDbType,
     AllowlistStatus,
     GitBranchModel,
+    ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
-    ProjectEventModel,
-    AbstractProjectObjectDbType,
 )
 from packit_service.service.db_project_events import (
-    AddPullRequestEventToDb,
     AddBranchPushEventToDb,
+    AddPullRequestEventToDb,
     AddReleaseEventToDb,
 )
 from packit_service.worker.events.comment import (
-    AbstractPRCommentEvent,
     AbstractIssueCommentEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.worker.events.enums import (
     IssueCommentAction,
-    PullRequestCommentAction,
     PullRequestAction,
+    PullRequestCommentAction,
 )
 from packit_service.worker.events.event import (
-    Event,
     AbstractForgeIndependentEvent,
+    Event,
 )
 
 

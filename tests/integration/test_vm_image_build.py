@@ -3,31 +3,29 @@
 
 import json
 
-from flexmock import flexmock
-
 from celery import Celery
 from celery.canvas import group
-
+from flexmock import flexmock
 from ogr.services.github import GithubProject
+from packit.copr_helper import CoprHelper
 
+from packit_service.models import (
+    CoprBuildTargetModel,
+    JobConfigTriggerType,
+    PipelineModel,
+    ProjectEventModel,
+    ProjectEventModelType,
+    PullRequestModel,
+    VMImageBuildTargetModel,
+)
+from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.handlers.vm_image import VMImageBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     run_vm_image_build,
 )
-from packit_service.models import (
-    PullRequestModel,
-    JobConfigTriggerType,
-    CoprBuildTargetModel,
-    PipelineModel,
-    VMImageBuildTargetModel,
-    ProjectEventModelType,
-    ProjectEventModel,
-)
-from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import first_dict_value, get_parameters_from_results
-from packit_service.worker.handlers.vm_image import VMImageBuildHandler
-from packit.copr_helper import CoprHelper
 
 
 def test_vm_image_build(github_vm_image_build_comment):

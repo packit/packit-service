@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import pytest
 from datetime import datetime, timezone
-from flexmock import flexmock
 
+import pytest
+from flexmock import flexmock
 from ogr import GithubService
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType

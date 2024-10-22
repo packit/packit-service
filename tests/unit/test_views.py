@@ -14,8 +14,8 @@ from packit_service.models import (
     ProjectEventModelType,
     SRPMBuildModel,
 )
-from packit_service.service.app import packit_as_a_service as application
 from packit_service.service import urls
+from packit_service.service.app import packit_as_a_service as application
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,

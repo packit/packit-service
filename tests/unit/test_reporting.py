@@ -9,24 +9,24 @@ from ogr.abstract import CommitStatus
 from ogr.exceptions import GithubAPIException, GitlabAPIException
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
-    create_github_check_run_output,
-    GithubCheckRunStatus,
     GithubCheckRunResult,
+    GithubCheckRunStatus,
+    create_github_check_run_output,
 )
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 from packit.config.notifications import (
-    NotificationsConfig,
     FailureCommentNotificationsConfig,
+    NotificationsConfig,
 )
 
 from packit_service.worker.reporting import (
-    StatusReporter,
     BaseCommitStatus,
+    DuplicateCheckMode,
+    StatusReporter,
+    StatusReporterGithubChecks,
     StatusReporterGithubStatuses,
     StatusReporterGitlab,
-    StatusReporterGithubChecks,
-    DuplicateCheckMode,
     update_message_with_configured_failure_comment_message,
 )
 from packit_service.worker.reporting.news import News

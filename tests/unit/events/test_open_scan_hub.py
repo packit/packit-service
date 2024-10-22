@@ -1,25 +1,25 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-import json
-import pytest
 import datetime
-from flexmock import flexmock
+import json
 
+import pytest
+from flexmock import flexmock
 from packit.config import (
-    JobConfig,
     CommonPackageConfig,
-    PackageConfig,
-    JobType,
+    JobConfig,
     JobConfigTriggerType,
+    JobType,
+    PackageConfig,
 )
+
+from packit_service.models import OSHScanModel
 from packit_service.worker.events import (
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
 )
 from packit_service.worker.parser import Parser
-from packit_service.models import OSHScanModel
-
 from tests.spellbook import DATA_DIR
 
 
@@ -61,7 +61,7 @@ def scan_config_and_db(add_pull_request_event_with_sha_123456):
         .mock()
     )
     flexmock(OpenScanHubTaskFinishedEvent).should_receive(
-        "get_packages_config"
+        "get_packages_config",
     ).and_return(
         PackageConfig(
             jobs=[
@@ -71,20 +71,21 @@ def scan_config_and_db(add_pull_request_event_with_sha_123456):
                     packages={
                         "package": CommonPackageConfig(
                             _targets=["fedora-rawhide-x86_64"],
-                        )
+                        ),
                     },
-                )
+                ),
             ],
             packages={"package": CommonPackageConfig()},
-        )
+        ),
     )
     flexmock(OSHScanModel).should_receive("get_by_task_id").and_return(
-        flexmock(copr_build_target=db_build)
+        flexmock(copr_build_target=db_build),
     )
 
 
 def test_parse_openscanhub_task_finished(
-    openscanhub_task_finished_event, scan_config_and_db
+    openscanhub_task_finished_event,
+    scan_config_and_db,
 ):
     event_object = Parser.parse_event(openscanhub_task_finished_event)
 
@@ -109,7 +110,8 @@ def test_parse_openscanhub_task_finished(
 
 
 def test_parse_openscanhub_task_started(
-    openscanhub_task_started_event, scan_config_and_db
+    openscanhub_task_started_event,
+    scan_config_and_db,
 ):
     event_object = Parser.parse_event(openscanhub_task_started_event)
 

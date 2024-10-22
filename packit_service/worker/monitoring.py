@@ -4,7 +4,7 @@
 import logging
 import os
 
-from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
+from prometheus_client import CollectorRegistry, Counter, Histogram, push_to_gateway
 
 logger = logging.getLogger(__name__)
 

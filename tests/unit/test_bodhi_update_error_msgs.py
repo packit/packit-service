@@ -3,15 +3,15 @@
 
 import pytest
 from flexmock import flexmock
-
 from packit.config import (
+    CommonPackageConfig,
     JobConfig,
     JobConfigTriggerType,
     JobType,
     PackageConfig,
-    CommonPackageConfig,
 )
 from packit.exceptions import PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (

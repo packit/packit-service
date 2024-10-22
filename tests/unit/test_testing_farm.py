@@ -5,9 +5,6 @@ from datetime import datetime, timezone
 
 import pytest
 from flexmock import flexmock
-
-import packit_service.models
-import packit_service.service.urls as urls
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -17,30 +14,37 @@ from packit.config import (
 )
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+
+import packit_service.models
+import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.models import ProjectEventModel, ProjectEventModelType, BuildStatus
 from packit_service.models import (
-    TFTTestRunTargetModel,
-    PullRequestModel,
+    BuildStatus,
     PipelineModel,
-    TFTTestRunGroupModel,
+    ProjectEventModel,
+    ProjectEventModelType,
+    PullRequestModel,
     TestingFarmResult,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
+from packit_service.worker.events import (
+    EventData,
+)
 
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
 # and so stop the test discovery warnings.
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
-    EventData,
 )
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.helpers.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 from packit_service.worker.result import TaskResults
 
 

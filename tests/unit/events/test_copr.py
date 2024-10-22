@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import pytest
 from datetime import datetime, timedelta
-from flexmock import flexmock
 
+import pytest
+from flexmock import flexmock
 from ogr.services.github import GithubProject
+
 from packit_service.config import PackageConfigGetter
 from packit_service.models import CoprBuildTargetModel, get_most_recent_targets
 from packit_service.worker.events.copr import AbstractCoprBuildEvent

@@ -1,33 +1,28 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from abc import abstractmethod
 import logging
 import re
+from abc import abstractmethod
 from pathlib import Path
 from typing import Optional, Protocol, Union
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
-
-from ogr.abstract import Issue
-
+from ogr.abstract import GitProject, Issue, PullRequest
 from packit.api import PackitAPI
-from packit.local_project import LocalProject, LocalProjectBuilder, CALCULATE
+from packit.local_project import CALCULATE, LocalProject, LocalProjectBuilder
 from packit.utils.repo import RepositoryCache
 
-from ogr.abstract import GitProject, PullRequest
-
 from packit_service.config import ServiceConfig
-from packit_service.worker.reporting import BaseCommitStatus
-from packit_service.worker.events import EventData
-from packit_service.worker.helpers.job_helper import BaseJobHelper
-
 from packit_service.constants import (
     FASJSON_URL,
-    SANDCASTLE_LOCAL_PROJECT_DIR,
     SANDCASTLE_DG_REPO_DIR,
+    SANDCASTLE_LOCAL_PROJECT_DIR,
 )
+from packit_service.worker.events import EventData
+from packit_service.worker.helpers.job_helper import BaseJobHelper
+from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 

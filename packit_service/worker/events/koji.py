@@ -1,25 +1,26 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import logging
-from typing import Union, Optional
+from typing import Optional, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType, PackageConfig
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     AbstractProjectObjectDbType,
-    KojiBuildTargetModel,
-    PullRequestModel,
-    ProjectReleaseModel,
-    ProjectEventModel,
     GitBranchModel,
+    KojiBuildTargetModel,
+    ProjectEventModel,
+    ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.worker.events.event import (
-    use_for_job_config_trigger,
     AbstractResultEvent,
+    use_for_job_config_trigger,
 )
 
 logger = logging.getLogger(__name__)

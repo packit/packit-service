@@ -4,10 +4,11 @@
 import logging
 from typing import Optional
 
-from .base import StatusReporter
+from ogr.abstract import CommitStatus
+
 from packit_service.worker.reporting.enums import BaseCommitStatus
 
-from ogr.abstract import CommitStatus
+from .base import StatusReporter
 
 logger = logging.getLogger(__name__)
 

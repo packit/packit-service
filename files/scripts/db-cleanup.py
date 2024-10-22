@@ -4,11 +4,12 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
-from sqlalchemy import create_engine, func, select, delete, distinct, union
+
+from sqlalchemy import create_engine, delete, distinct, func, select, union
+
 from packit_service.models import (
     CoprBuildGroupModel,
     CoprBuildTargetModel,
-    get_pg_url,
     GitBranchModel,
     GitProjectModel,
     IssueModel,
@@ -23,12 +24,12 @@ from packit_service.models import (
     SRPMBuildModel,
     SyncReleaseModel,
     SyncReleaseTargetModel,
-    tf_copr_association_table,
     TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     VMImageBuildTargetModel,
+    get_pg_url,
+    tf_copr_association_table,
 )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

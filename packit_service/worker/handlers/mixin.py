@@ -3,37 +3,37 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol, Union
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Any, Optional, Protocol, Union
+
+from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitException
-from packit.config import PackageConfig, JobConfig
 from packit.utils.koji_helper import KojiHelper
 from packit.vm_image_build import ImageBuilder
-from packit_service.utils import get_packit_commands_from_comment
+
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (
-    ProjectEventModel,
-    CoprBuildTargetModel,
-    SRPMBuildModel,
     BuildStatus,
+    CoprBuildTargetModel,
+    ProjectEventModel,
+    SRPMBuildModel,
 )
-from packit_service.worker.events.event import EventData
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.events.copr import AbstractCoprBuildEvent
+from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github import PullRequestCommentGithubEvent
 from packit_service.worker.events.gitlab import MergeRequestCommentGitlabEvent
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.abstract import CeleryTask
-from packit_service.worker.helpers.sidetag import SidetagHelper, Sidetag
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.sidetag import Sidetag, SidetagHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-
 from packit_service.worker.mixin import Config, ConfigFromEventMixin, GetBranches
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.monitoring import Pushgateway
-
 
 logger = logging.getLogger(__name__)
 

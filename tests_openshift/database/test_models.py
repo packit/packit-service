@@ -1,39 +1,38 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-import pytest
-
 from datetime import datetime, timedelta
 
-from sqlalchemy.exc import ProgrammingError, IntegrityError
+import pytest
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from packit_service.models import (
-    CoprBuildTargetModel,
+    BuildStatus,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
     GitBranchModel,
-    GitProjectModel,
     GithubInstallationModel,
-    ProjectEventModelType,
-    KojiBuildTargetModel,
+    GitProjectModel,
     KojiBuildGroupModel,
+    KojiBuildTargetModel,
+    OSHScanModel,
+    PipelineModel,
     ProjectAuthenticationIssueModel,
+    ProjectEventModel,
+    ProjectEventModelType,
     ProjectReleaseModel,
     PullRequestModel,
-    ProjectEventModel,
-    SRPMBuildModel,
+    Session,
     SourceGitPRDistGitPRModel,
-    TFTTestRunTargetModel,
-    TFTTestRunGroupModel,
-    TestingFarmResult,
-    sa_session_transaction,
-    PipelineModel,
-    SyncReleaseTargetStatus,
+    SRPMBuildModel,
+    SyncReleaseJobType,
+    SyncReleaseModel,
     SyncReleaseStatus,
     SyncReleaseTargetModel,
-    SyncReleaseModel,
-    Session,
-    BuildStatus,
-    SyncReleaseJobType,
-    OSHScanModel,
+    SyncReleaseTargetStatus,
+    TestingFarmResult,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
+    sa_session_transaction,
 )
 from tests_openshift.conftest import SampleValues
 

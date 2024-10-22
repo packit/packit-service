@@ -8,10 +8,10 @@ from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
+from packit.config import JobConfigTriggerType, PackageConfig
 
-from packit.config import PackageConfig, JobConfigTriggerType
-from packit_service.config import ServiceConfig, PackageConfigGetter
-from packit_service.models import ProjectReleaseModel, ProjectEventModel
+from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.models import ProjectEventModel, ProjectReleaseModel
 from packit_service.worker.events import Event
 from packit_service.worker.events.event import use_for_job_config_trigger
 

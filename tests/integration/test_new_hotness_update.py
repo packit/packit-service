@@ -8,27 +8,27 @@ import pytest
 from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
-
-import packit_service.worker.checker.distgit
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit.distgit import DistGit
 from packit.local_project import LocalProject, LocalProjectBuilder
+
+import packit_service.worker.checker.distgit
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    ProjectEventModelType,
-    ProjectEventModel,
+    AnityaProjectModel,
+    AnityaVersionModel,
     PipelineModel,
+    ProjectEventModel,
+    ProjectEventModelType,
     ProjectReleaseModel,
-    SyncReleaseStatus,
+    SyncReleaseJobType,
     SyncReleaseModel,
+    SyncReleasePullRequestModel,
+    SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseJobType,
-    SyncReleasePullRequestModel,
-    AnityaVersionModel,
-    AnityaProjectModel,
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
@@ -36,7 +36,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.tasks import run_pull_from_upstream_handler
-from tests.spellbook import get_parameters_from_results, first_dict_value
+from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
 @pytest.fixture(scope="module")

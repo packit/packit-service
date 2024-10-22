@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import Union
 import logging
 import re
+from typing import Union
 
 from flexmock import flexmock
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -17,11 +16,12 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
 from packit_service.worker.events.github import (
-    PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
 )

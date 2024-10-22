@@ -8,9 +8,7 @@ from datetime import datetime
 import pytest
 from celery.canvas import group
 from flexmock import flexmock
-
-from ogr.abstract import GitTag
-from ogr.abstract import PRStatus
+from ogr.abstract import GitTag, PRStatus
 from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
@@ -21,23 +19,24 @@ from packit.distgit import DistGit
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
-from packit_service.config import ServiceConfig, PackageConfigGetter
+
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
+    BodhiUpdateGroupModel,
+    BodhiUpdateTargetModel,
     IssueModel,
-    ProjectEventModelType,
-    ProjectEventModel,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
     PipelineModel,
+    ProjectEventModel,
+    ProjectEventModelType,
+    SyncReleaseJobType,
     SyncReleaseModel,
+    SyncReleasePullRequestModel,
     SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseJobType,
-    KojiBuildGroupModel,
-    KojiBuildTargetModel,
-    BodhiUpdateGroupModel,
-    BodhiUpdateTargetModel,
-    SyncReleasePullRequestModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
@@ -54,9 +53,9 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import (
+    run_issue_comment_retrigger_bodhi_update,
     run_propose_downstream_handler,
     run_retrigger_downstream_koji_build,
-    run_issue_comment_retrigger_bodhi_update,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 

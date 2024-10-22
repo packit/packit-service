@@ -7,29 +7,29 @@ from ogr.services.github import GithubProject
 
 from packit_service.constants import KojiTaskState
 from packit_service.models import (
-    ProjectReleaseModel,
-    GitProjectModel,
-    GitBranchModel,
-    PullRequestModel,
-    CoprBuildTargetModel,
-    TFTTestRunTargetModel,
-    TestingFarmResult,
     BuildStatus,
+    CoprBuildTargetModel,
+    GitBranchModel,
+    GitProjectModel,
+    ProjectReleaseModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
 from packit_service.worker.events import (
-    ReleaseEvent,
-    PushGitHubEvent,
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    TestingFarmResultsEvent,
-    MergeRequestGitlabEvent,
-    KojiTaskEvent,
-    MergeRequestCommentGitlabEvent,
-    PushGitlabEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    KojiTaskEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    ReleaseEvent,
+    TestingFarmResultsEvent,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser

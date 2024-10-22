@@ -5,13 +5,18 @@ import logging
 
 from packit.config.aliases import get_branches
 
-from packit_service.constants import KojiBuildState, MSG_GET_IN_TOUCH
-
+from packit_service.constants import MSG_GET_IN_TOUCH, KojiBuildState
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
 from packit_service.worker.checker.helper import DistgitAccountsChecker
+from packit_service.worker.events import (
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
+    PullRequestCommentPagureEvent,
+)
+from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,
@@ -23,13 +28,6 @@ from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.events import (
-    PullRequestCommentPagureEvent,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-)
-
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.reporting import report_in_issue_repository
 
 logger = logging.getLogger(__name__)

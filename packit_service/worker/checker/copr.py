@@ -15,10 +15,10 @@ from packit_service.worker.events import (
 )
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers.mixin import (
+    ConfigFromEventMixin,
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
     GetCoprSRPMBuildMixin,
-    ConfigFromEventMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 

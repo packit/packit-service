@@ -4,9 +4,9 @@
 import typing
 
 from marshmallow import Schema, ValidationError, fields, post_load
-
 from packit.config.common_package_config import Deployment
 from packit.schema import UserConfigSchema
+
 from packit_service.config import MRTarget, ProjectToSync, ServiceConfig
 
 

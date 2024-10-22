@@ -4,15 +4,15 @@
 import pytest
 from flexmock import flexmock
 from marshmallow import ValidationError
-
 from packit.exceptions import PackitConfigException
-from packit_service.config import (
-    ServiceConfig,
-    Deployment,
-    PackageConfigGetter,
-    MRTarget,
-)
+
 from packit_service import config
+from packit_service.config import (
+    Deployment,
+    MRTarget,
+    PackageConfigGetter,
+    ServiceConfig,
+)
 from packit_service.constants import TESTING_FARM_API_URL
 
 

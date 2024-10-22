@@ -3,9 +3,9 @@
 
 import pytest
 from flexmock import flexmock
-
-from packit.config import CommonPackageConfig, PackageConfig, JobConfig, JobType
+from packit.config import CommonPackageConfig, JobConfig, JobType, PackageConfig
 from packit.config.job_config import JobConfigTriggerType
+
 from packit_service.config import ServiceConfig
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,

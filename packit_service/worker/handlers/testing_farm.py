@@ -9,59 +9,59 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from celery import Task
-
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
+
 from packit_service.models import (
-    ProjectEventModel,
-    TFTTestRunTargetModel,
-    CoprBuildTargetModel,
     BuildStatus,
-    TestingFarmResult,
+    CoprBuildTargetModel,
     PipelineModel,
+    ProjectEventModel,
+    TestingFarmResult,
     TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.service.urls import (
-    get_testing_farm_info_url,
     get_copr_build_info_url,
+    get_testing_farm_info_url,
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
+    IsCoprBuildDefined,
     IsEventForJob,
     IsEventOk,
-    IsJobConfigTriggerMatching,
-    IsCoprBuildDefined,
     IsIdentifierFromCommentMatching,
+    IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
 )
 from packit_service.worker.events import (
-    TestingFarmResultsEvent,
+    AbstractPRCommentEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
+    MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
-    MergeRequestGitlabEvent,
-    AbstractPRCommentEvent,
     ReleaseEvent,
     ReleaseGitlabEvent,
+    TestingFarmResultsEvent,
 )
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
+    RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
-    RetriableJobHandler,
+    run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
+    GetGithubCommentEventMixin,
     GetTestingFarmJobHelperMixin,
 )
-from packit_service.worker.handlers.mixin import GetGithubCommentEventMixin
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus

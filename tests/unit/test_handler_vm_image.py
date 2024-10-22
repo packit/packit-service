@@ -2,28 +2,27 @@
 # SPDX-License-Identifier: MIT
 
 from celery import Celery
-from flexmock import flexmock
-from flexmock import Mock
+from flexmock import Mock, flexmock
 
 from packit_service.models import (
     PipelineModel,
     ProjectEventModel,
-    VMImageBuildTargetModel,
     VMImageBuildStatus,
+    VMImageBuildTargetModel,
 )
-from packit_service.worker.result import TaskResults
 from packit_service.worker.events import VMImageBuildResultEvent
 from packit_service.worker.events.github import (
     PullRequestCommentGithubEvent,
-)
-from packit_service.worker.handlers.vm_image import (
-    GetVMImageBuildReporterFromJobHelperMixin,
 )
 from packit_service.worker.handlers import (
     VMImageBuildHandler,
     VMImageBuildResultHandler,
 )
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.handlers.vm_image import (
+    GetVMImageBuildReporterFromJobHelperMixin,
+)
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
+from packit_service.worker.result import TaskResults
 
 
 def test_get_vm_image_build_reporter_from_job_helper_mixin(

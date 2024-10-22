@@ -6,22 +6,20 @@ import json
 import pytest
 from celery.canvas import group
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
+
 from packit_service.config import PackageConfigGetter
 from packit_service.models import (
     GitBranchModel,
+    KojiBuildGroupModel,
     KojiBuildTargetModel,
     PipelineModel,
     ProjectEventModel,
-    KojiBuildGroupModel,
-)
-from packit_service.models import (
     ProjectEventModelType,
 )
 from packit_service.worker.celery_task import CeleryTask

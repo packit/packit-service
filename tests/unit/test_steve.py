@@ -14,26 +14,26 @@ from flexmock import flexmock
 from github.MainClass import Github
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
-
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
 from packit.local_project import LocalProject, LocalProjectBuilder
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     TASK_ACCEPTED,
 )
 from packit_service.models import (
-    ProjectEventModelType,
-    ProjectEventModel,
     PipelineModel,
+    ProjectEventModel,
+    ProjectEventModelType,
     ProjectReleaseModel,
+    SyncReleaseJobType,
     SyncReleaseModel,
+    SyncReleasePullRequestModel,
     SyncReleaseStatus,
     SyncReleaseTargetModel,
     SyncReleaseTargetStatus,
-    SyncReleaseJobType,
-    SyncReleasePullRequestModel,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist

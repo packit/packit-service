@@ -7,20 +7,20 @@ from typing import Any, Union
 from flask.json import jsonify
 
 from packit_service.models import (
-    CoprBuildTargetModel,
+    AnityaProjectModel,
+    BodhiUpdateTargetModel,
     CoprBuildGroupModel,
+    CoprBuildTargetModel,
     GitProjectModel,
-    KojiBuildTargetModel,
     KojiBuildGroupModel,
+    KojiBuildTargetModel,
     SRPMBuildModel,
-    TFTTestRunTargetModel,
-    TFTTestRunGroupModel,
     SyncReleaseModel,
     SyncReleaseTargetModel,
-    optional_timestamp,
-    BodhiUpdateTargetModel,
+    TFTTestRunGroupModel,
+    TFTTestRunTargetModel,
     VMImageBuildTargetModel,
-    AnityaProjectModel,
+    optional_timestamp,
 )
 
 

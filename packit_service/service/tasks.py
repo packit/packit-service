@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from collections import OrderedDict
 from datetime import timedelta
 from typing import Union
-from collections import OrderedDict
-
 
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
@@ -13,8 +12,8 @@ from packit_service.constants import (
     USAGE_DATE_IN_THE_PAST,
 )
 from packit_service.models import (
-    get_usage_data,
     get_onboarded_projects,
+    get_usage_data,
 )
 
 logger = logging.getLogger(__name__)

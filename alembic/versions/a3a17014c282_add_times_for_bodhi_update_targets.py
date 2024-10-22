@@ -10,14 +10,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from alembic import op
-from sqlalchemy import orm, Column, Integer, String, JSON, DateTime, ForeignKey
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, orm
+from sqlalchemy.orm import declarative_base, relationship
 
+from alembic import op
 from packit_service.models import (
     GroupAndTargetModelConnector,
-    ProjectAndEventsConnector,
     GroupModel,
+    ProjectAndEventsConnector,
 )
 
 # revision identifiers, used by Alembic.

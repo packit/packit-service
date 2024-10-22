@@ -7,7 +7,7 @@ from pathlib import Path
 from boto3.s3.transfer import S3Transfer
 from flexmock import flexmock
 
-from packit_service.models import SRPMBuildModel, ProjectEventModel
+from packit_service.models import ProjectEventModel, SRPMBuildModel
 from packit_service.worker import database
 
 

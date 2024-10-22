@@ -5,7 +5,6 @@ import os
 
 import pytest
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
 from packit.config import (
     CommonPackageConfig,
@@ -14,25 +13,26 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import (
     GitBranchModel,
-    PullRequestModel,
     ProjectEventModel,
     ProjectEventModelType,
+    PullRequestModel,
 )
+from packit_service.worker.handlers import (
+    CoprBuildHandler,
+    JobHandler,
+    KojiBuildHandler,
+)
+from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
 )
-from packit_service.worker.handlers import (
-    JobHandler,
-    CoprBuildHandler,
-    KojiBuildHandler,
-)
-from packit_service.worker.helpers.build import CoprBuildJobHelper
-from packit_service.worker.reporting import StatusReporterGithubChecks, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 
 
 @pytest.fixture()

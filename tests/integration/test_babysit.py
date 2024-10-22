@@ -7,8 +7,6 @@ import pytest
 import requests
 from copr.v3 import Client, CoprNoResultException
 from flexmock import flexmock
-
-import packit_service.worker.helpers.build.babysit
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -17,25 +15,27 @@ from packit.config import (
     PackageConfig,
 )
 from packit.copr_helper import CoprHelper
+
+import packit_service.worker.helpers.build.babysit
 from packit_service.models import (
-    CoprBuildTargetModel,
-    SRPMBuildModel,
-    ProjectEventModelType,
-    TFTTestRunTargetModel,
-    TestingFarmResult,
     BuildStatus,
+    CoprBuildTargetModel,
+    ProjectEventModelType,
+    SRPMBuildModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
-from packit_service.worker.helpers.build.babysit import (
-    check_copr_build,
-    update_copr_builds,
-    check_pending_copr_builds,
-    check_pending_testing_farm_runs,
-)
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     TestingFarmResultsHandler,
+)
+from packit_service.worker.helpers.build.babysit import (
+    check_copr_build,
+    check_pending_copr_builds,
+    check_pending_testing_farm_runs,
+    update_copr_builds,
 )
 
 

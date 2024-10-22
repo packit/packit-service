@@ -6,27 +6,28 @@ Create Date: 2020-08-05 18:14:20.277673
 
 """
 
-from alembic import op
-import sqlalchemy as sa
+import enum
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+import sqlalchemy as sa
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    ForeignKey,
-    Enum,
-    orm,
-    Text,
     JSON,
     Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
     desc,
+    orm,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
-from typing import TYPE_CHECKING
-import enum
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "726cb0f70c6d"

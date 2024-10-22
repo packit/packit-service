@@ -7,54 +7,54 @@ Parser is transforming github JSONs into `events` objects
 import logging
 from datetime import datetime, timezone
 from os import getenv
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 from ogr.parsing import parse_git_repo
 from packit.config import JobConfigTriggerType
-
 from packit.constants import DISTGIT_INSTANCES
 from packit.utils import nested_get
-from packit_service.config import ServiceConfig, Deployment
+
+from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
+    TESTING_FARM_INSTALLABILITY_TEST_URL,
     KojiBuildState,
     KojiTaskState,
-    TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
 from packit_service.models import (
-    TFTTestRunTargetModel,
-    TestingFarmResult,
-    ProjectReleaseModel,
     GitBranchModel,
-    PullRequestModel,
     ProjectEventModel,
+    ProjectReleaseModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
-    KojiTaskEvent,
-    CoprBuildStartEvent,
-    CoprBuildEndEvent,
-    PushPagureEvent,
-    IssueCommentGitlabEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PushGitlabEvent,
-    InstallationEvent,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    TestingFarmResultsEvent,
-    PullRequestCommentPagureEvent,
-    PipelineGitlabEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
-    ReleaseGitlabEvent,
-    TagPushGitlabEvent,
-    VMImageBuildResultEvent,
+    CoprBuildEndEvent,
+    CoprBuildStartEvent,
+    InstallationEvent,
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
+    KojiTaskEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
+    PipelineGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    PushPagureEvent,
+    ReleaseEvent,
+    ReleaseGitlabEvent,
+    TagPushGitlabEvent,
+    TestingFarmResultsEvent,
+    VMImageBuildResultEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -1709,7 +1709,7 @@ class Parser:
             logger.warning(
                 "OpenScanHub task.finished is missing association with build. "
                 "Package config can not be resolved without it. "
-                "Skipping the event."
+                "Skipping the event.",
             )
             return None
         return event
@@ -1730,7 +1730,7 @@ class Parser:
             logger.warning(
                 "OpenScanHub task.started is missing association with build. "
                 "Package config can not be resolved without it. "
-                "Skipping the event."
+                "Skipping the event.",
             )
             return None
         return event

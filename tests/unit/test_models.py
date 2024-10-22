@@ -7,8 +7,8 @@ import pytest
 from flexmock import flexmock
 
 from packit_service.models import (
-    filter_most_recent_target_models_by_status,
     TestingFarmResult,
+    filter_most_recent_target_models_by_status,
     filter_most_recent_target_names_by_status,
 )
 

@@ -8,44 +8,43 @@ from celery import Task
 from celery.canvas import Signature, group
 from celery.exceptions import Retry
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
-from packit.exceptions import PackitException
-
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.koji_helper import KojiHelper
-from packit_service.config import ServiceConfig, PackageConfigGetter
+
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import (
-    GitBranchModel,
-    KojiBuildTargetModel,
-    PipelineModel,
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
-    ProjectEventModel,
+    GitBranchModel,
     KojiBuildTagModel,
-    SidetagModel,
-    SidetagGroupModel,
+    KojiBuildTargetModel,
+    PipelineModel,
+    ProjectEventModel,
     ProjectEventModelType,
+    SidetagGroupModel,
+    SidetagModel,
 )
 from packit_service.utils import (
-    load_job_config,
-    load_package_config,
     dump_job_config,
     dump_package_config,
+    load_job_config,
+    load_package_config,
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
+    BodhiTaskWithRetry,
     run_bodhi_update,
     run_bodhi_update_from_sidetag,
     run_koji_build_tag_handler,
-    BodhiTaskWithRetry,
 )
 from tests.spellbook import first_dict_value, get_parameters_from_results
 

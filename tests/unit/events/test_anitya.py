@@ -2,16 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 import json
+
 import pytest
 from flexmock import flexmock
-
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+
 from packit_service.config import PackageConfigGetter
 from packit_service.models import (
     ProjectEventModel,
-    ProjectReleaseModel,
     ProjectEventModelType,
+    ProjectReleaseModel,
 )
 from packit_service.worker.events.new_hotness import (
     AnityaVersionUpdateEvent,

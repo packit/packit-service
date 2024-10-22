@@ -3,17 +3,13 @@
 import re
 from http import HTTPStatus
 from logging import getLogger
-
 from typing import Optional
 
-from setuptools_scm import get_version
-
-import packit
-
 import ogr
-from flask_restx import Namespace, Resource
-
+import packit
 import specfile
+from flask_restx import Namespace, Resource
+from setuptools_scm import get_version
 
 import packit_service
 from packit_service.service.api.utils import response_maker

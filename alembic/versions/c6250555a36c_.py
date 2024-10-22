@@ -13,22 +13,22 @@ from datetime import datetime, timezone
 from os import getenv
 from typing import TYPE_CHECKING, Union
 
-from alembic import op
 from celery.backends.database import Task
 from redis import Redis
 from sqlalchemy import (
     Column,
+    DateTime,
+    Enum,
+    ForeignKey,
     Integer,
     String,
-    DateTime,
-    ForeignKey,
-    Enum,
     orm,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import PickleType
 
+from alembic import op
 from packit_service.constants import ALLOWLIST_CONSTANTS
 from packit_service.worker.events import InstallationEvent
 

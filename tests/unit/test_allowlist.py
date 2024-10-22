@@ -10,36 +10,38 @@ from fasjson_client.errors import APIError
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
-
 from packit.api import PackitAPI
-from packit.config import CommonPackageConfig, JobType, JobConfig, JobConfigTriggerType
+from packit.config import CommonPackageConfig, JobConfig, JobConfigTriggerType, JobType
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DENIED_MSG,
     DOCS_APPROVAL_URL,
     NOTIFICATION_REPO,
-    DENIED_MSG,
 )
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
+)
+from packit_service.models import (
     AllowlistStatus,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
+    AbstractGithubEvent,
     EventData,
     IssueCommentEvent,
     PullRequestCommentGithubEvent,
     PullRequestGithubEvent,
     ReleaseEvent,
-    AbstractGithubEvent,
 )
 from packit_service.worker.events.enums import (
+    IssueCommentAction,
     PullRequestAction,
     PullRequestCommentAction,
-    IssueCommentAction,
 )
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
 

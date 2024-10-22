@@ -5,16 +5,16 @@ import json
 import pytest
 from fasjson_client import Client
 from flexmock import flexmock
-
 from ogr.services.github import GithubService
 from packit.api import PackitAPI
 from packit.config.notifications import NotificationsConfig
+
 from packit_service.config import PackageConfigGetter
 from packit_service.worker.events.event import EventData
 from packit_service.worker.handlers.distgit import (
-    ProposeDownstreamHandler,
-    DownstreamKojiBuildHandler,
     AbstractSyncReleaseHandler,
+    DownstreamKojiBuildHandler,
+    ProposeDownstreamHandler,
     PullFromUpstreamHandler,
 )
 

@@ -3,7 +3,6 @@
 
 import pytest
 from flexmock import flexmock
-
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -13,12 +12,13 @@ from packit.config import (
 )
 from packit.config.aliases import get_build_targets
 from packit.config.notifications import (
-    NotificationsConfig,
     FailureCommentNotificationsConfig,
+    NotificationsConfig,
 )
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
+
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModelType
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
@@ -26,7 +26,7 @@ from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
 # packit.config.aliases.get_aliases() return value example
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.worker.reporting import StatusReporter, DuplicateCheckMode
+from packit_service.worker.reporting import DuplicateCheckMode, StatusReporter
 
 ALIASES = {
     "fedora-development": ["fedora-33", "fedora-rawhide"],

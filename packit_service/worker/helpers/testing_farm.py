@@ -3,37 +3,37 @@
 import argparse
 import logging
 import re
-from re import Pattern
 import shlex
-from typing import Any, Optional, Union, Callable
+from re import Pattern
+from typing import Any, Callable, Optional, Union
 
 import requests
-
 from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
+from packit.constants import HTTP_REQUEST_TIMEOUT
 from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
-from packit.constants import HTTP_REQUEST_TIMEOUT
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
-    CONTACTS_URL,
-    TESTING_FARM_INSTALLABILITY_TEST_URL,
-    TESTING_FARM_INSTALLABILITY_TEST_REF,
-    TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES,
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
-    PUBLIC_TF_ARCHITECTURE_LIST,
+    CONTACTS_URL,
     INTERNAL_TF_ARCHITECTURE_LIST,
+    PUBLIC_TF_ARCHITECTURE_LIST,
     TESTING_FARM_ARTIFACTS_KEY,
+    TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES,
+    TESTING_FARM_INSTALLABILITY_TEST_REF,
+    TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
 from packit_service.models import (
-    CoprBuildTargetModel,
-    TFTTestRunTargetModel,
-    TestingFarmResult,
-    PullRequestModel,
-    filter_most_recent_target_models_by_status,
     BuildStatus,
+    CoprBuildTargetModel,
     ProjectEventModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
+    filter_most_recent_target_models_by_status,
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
@@ -41,13 +41,13 @@ from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
     EventData,
-    PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
+    PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
-    PullRequestGithubEvent,
-    MergeRequestGitlabEvent,
 )
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus

@@ -7,13 +7,13 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from ogr.services.github import GithubProject
-
 from packit.config import Deployment
-from packit_service.config import ServiceConfig, PackageConfigGetter
+
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
-    AllowlistStatus,
     AllowlistModel,
+    AllowlistStatus,
     GithubInstallationModel,
 )
 from packit_service.worker.allowlist import Allowlist

@@ -7,18 +7,18 @@ from typing import Optional
 from ogr.abstract import Comment, GitProject
 from ogr.parsing import RepoUrl
 from packit.config import PackageConfig
-from packit_service.utils import get_packit_commands_from_comment
-from packit_service.config import PackageConfigGetter, ServiceConfig
 
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.service.db_project_events import (
     AddBranchPushEventToDb,
     AddPullRequestEventToDb,
 )
+from packit_service.utils import get_packit_commands_from_comment
+from packit_service.worker.events.comment import AbstractPRCommentEvent
 from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.comment import AbstractPRCommentEvent
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 logger = getLogger(__name__)

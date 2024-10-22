@@ -2,20 +2,27 @@
 # SPDX-License-Identifier: MIT
 
 import time
-
 from datetime import datetime, timezone
 from http import HTTPStatus
 from logging import getLogger
 from typing import Any
 
-from flask import request, escape, redirect, Response
+from flask import Response, escape, redirect, request
 from flask_restx import Namespace, Resource
 
+from packit_service.celerizer import celery_app
+from packit_service.constants import (
+    USAGE_DATE_IN_THE_PAST_STR,
+    USAGE_PAST_DAY_DATE_STR,
+    USAGE_PAST_MONTH_DATE_STR,
+    USAGE_PAST_WEEK_DATE_STR,
+    USAGE_PAST_YEAR_DATE_STR,
+)
 from packit_service.models import (
     CoprBuildGroupModel,
     GitProjectModel,
-    ProjectEventModelType,
     KojiBuildGroupModel,
+    ProjectEventModelType,
     SRPMBuildModel,
     SyncReleaseModel,
     TFTTestRunGroupModel,
@@ -23,18 +30,10 @@ from packit_service.models import (
     get_usage_data,
 )
 from packit_service.service.api.utils import response_maker
-from packit_service.constants import (
-    USAGE_DATE_IN_THE_PAST_STR,
-    USAGE_PAST_DAY_DATE_STR,
-    USAGE_PAST_WEEK_DATE_STR,
-    USAGE_PAST_MONTH_DATE_STR,
-    USAGE_PAST_YEAR_DATE_STR,
-)
-from packit_service.celerizer import celery_app
 from packit_service.service.tasks import (
-    get_usage_interval_data,
-    get_past_usage_data,
     calculate_onboarded_projects,
+    get_past_usage_data,
+    get_usage_interval_data,
 )
 
 logger = getLogger("packit_service")

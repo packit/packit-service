@@ -2,15 +2,18 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Tuple, Type, Union
+from typing import Union
 
 from packit.config import (
     JobType,
 )
+
+from packit_service.models import OSHScanStatus
 from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.open_scan_hub import RawhideX86Target
 from packit_service.worker.events import (
-    OpenScanHubTaskStartedEvent,
     OpenScanHubTaskFinishedEvent,
+    OpenScanHubTaskStartedEvent,
 )
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
@@ -18,21 +21,17 @@ from packit_service.worker.handlers.abstract import (
     configured_as,
     reacts_to,
 )
-from packit_service.worker.helpers.build import CoprBuildJobHelper
-from packit_service.worker.helpers.open_scan_hub import OpenScanHubHelper
-
 from packit_service.worker.handlers.mixin import (
     ConfigFromEventMixin,
 )
-from packit_service.worker.result import TaskResults
+from packit_service.worker.helpers.build import CoprBuildJobHelper
+from packit_service.worker.helpers.open_scan_hub import OpenScanHubHelper
 from packit_service.worker.mixin import (
     LocalProjectMixin,
     PackitAPIWithUpstreamMixin,
 )
-from packit_service.worker.checker.open_scan_hub import RawhideX86Target
-
 from packit_service.worker.reporting import BaseCommitStatus
-from packit_service.models import OSHScanStatus
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,7 @@ class OpenScanHubAbstractHandler(
         ] = self.data.to_event()
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker], ...]:
+    def get_checkers() -> tuple[type[Checker], ...]:
         return (RawhideX86Target,)
 
     def get_helper(self) -> OpenScanHubHelper:
@@ -66,7 +65,8 @@ class OpenScanHubAbstractHandler(
         )
 
         scan_helper = OpenScanHubHelper(
-            copr_build_helper=build_helper, build=self.event.build
+            copr_build_helper=build_helper,
+            build=self.event.build,
         )
         return scan_helper
 
@@ -76,7 +76,7 @@ class OpenScanHubAbstractHandler(
             return TaskResults(
                 success=True,
                 details={
-                    "msg": f"Scan {task_id} not found or not associated with a Copr build"
+                    "msg": f"Scan {task_id} not found or not associated with a Copr build",
                 },
             )
         elif not self.job_config:
@@ -86,7 +86,7 @@ class OpenScanHubAbstractHandler(
                     "msg": (
                         "No job configuration found for OpenScanHub task"
                         f" in {self.project.repo}"
-                    )
+                    ),
                 },
             )
 

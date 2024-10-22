@@ -3,8 +3,8 @@
 
 import datetime
 
-from flexmock import flexmock
 import pytest
+from flexmock import flexmock
 
 from packit_service.worker.handlers import (
     CoprBuildHandler,

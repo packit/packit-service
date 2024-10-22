@@ -3,24 +3,23 @@
 import datetime
 
 import pytest
-from flexmock import Mock
-from flexmock import flexmock
+from flexmock import Mock, flexmock
+from packit.config.job_config import JobConfigTriggerType
 from requests import HTTPError
 
 import packit_service
-from packit.config.job_config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    VMImageBuildTargetModel,
-    VMImageBuildStatus,
     ProjectEventModelType,
+    VMImageBuildStatus,
+    VMImageBuildTargetModel,
 )
 from packit_service.worker.events import VMImageBuildResultEvent
 from packit_service.worker.handlers import VMImageBuildResultHandler
 from packit_service.worker.helpers.build.babysit import (
+    UpdateImageBuildHelper,
     check_pending_vm_image_builds,
     update_vm_image_build,
-    UpdateImageBuildHelper,
 )
 from packit_service.worker.monitoring import Pushgateway
 

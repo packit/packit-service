@@ -5,7 +5,6 @@ from typing import Union
 
 import pytest
 from flexmock import flexmock
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -17,28 +16,29 @@ from packit.config import (
 )
 from packit.exceptions import PackitCommandFailedError
 from packit.upstream import GitUpstream
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import (
-    SRPMBuildModel,
-    KojiBuildTargetModel,
-    KojiBuildGroupModel,
     BuildStatus,
-)
-from packit_service.worker.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    KojiTaskEvent,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
+    SRPMBuildModel,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
+from packit_service.worker.events import (
+    KojiTaskEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    ReleaseEvent,
+)
 from packit_service.worker.helpers.build import koji_build
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 
 def build_helper(

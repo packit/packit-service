@@ -1,23 +1,24 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+
+from packit.pkgtool import PkgTool
+from requre.helpers.files import StoreFiles
+from requre.helpers.git.fetchinfo import FetchInfoStorageList
+from requre.helpers.git.pushinfo import PushInfoStorageList
+from requre.helpers.git.repo import Repo
+from requre.helpers.simple_object import Simple
+from requre.helpers.tempfile import MkDTemp, MkTemp
 from requre.online_replacing import (
-    record_requests_for_all_methods,
     apply_decorator_to_all_methods,
+    record_requests_for_all_methods,
     replace_module_match,
 )
-from requre.helpers.files import StoreFiles
-from requre.helpers.simple_object import Simple
-from requre.helpers.git.pushinfo import PushInfoStorageList
-from requre.helpers.tempfile import MkTemp, MkDTemp
-from requre.helpers.git.fetchinfo import FetchInfoStorageList
-from requre.helpers.git.repo import Repo
 
 from tests_openshift.openshift_integration.base import PackitServiceTestCase
-from packit.pkgtool import PkgTool
 
 #        where="download_helper",
 #        what="DownloadHelper.request",

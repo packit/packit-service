@@ -7,14 +7,14 @@ from packit_service.constants import DOCS_VM_IMAGE_BUILD
 from packit_service.models import (
     VMImageBuildStatus,
 )
-from packit_service.worker.checker.abstract import Checker, ActorChecker
+from packit_service.worker.checker.abstract import ActorChecker, Checker
+from packit_service.worker.handlers.mixin import (
+    GetCoprBuildJobHelperMixin,
+    GetVMImageDataMixin,
+)
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     GetReporterFromJobHelperMixin,
-)
-from packit_service.worker.handlers.mixin import (
-    GetVMImageDataMixin,
-    GetCoprBuildJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 

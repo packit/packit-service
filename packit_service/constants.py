@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from enum import Enum
 from datetime import datetime, timedelta
+from enum import Enum
 
 CONTACTS_URL = "https://packit.dev/#contact"
 DOCS_URL = "https://packit.dev/docs"

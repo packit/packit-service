@@ -11,17 +11,17 @@ from celery import Task
 from celery._state import get_current_task
 from celery.signals import after_setup_logger
 from ogr import __version__ as ogr_version
+from packit import __version__ as packit_version
+from packit.exceptions import PackitException
 from sqlalchemy import __version__ as sqlal_version
 from syslog_rfc5424_formatter import RFC5424Formatter
 
-from packit import __version__ as packit_version
-from packit.exceptions import PackitException
 from packit_service import __version__ as ps_version
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
-    DEFAULT_RETRY_LIMIT,
-    DEFAULT_RETRY_BACKOFF,
     CELERY_DEFAULT_MAIN_TASK_NAME,
+    DEFAULT_RETRY_BACKOFF,
+    DEFAULT_RETRY_LIMIT,
     USAGE_CURRENT_DATE,
     USAGE_DATE_IN_THE_PAST,
     USAGE_DATE_IN_THE_PAST_STR,
@@ -31,9 +31,9 @@ from packit_service.constants import (
     USAGE_PAST_YEAR_DATE_STR,
 )
 from packit_service.models import (
-    VMImageBuildTargetModel,
     GitProjectModel,
     SyncReleaseTargetModel,
+    VMImageBuildTargetModel,
     get_usage_data,
 )
 from packit_service.utils import (
@@ -42,37 +42,37 @@ from packit_service.utils import (
     log_package_versions,
 )
 from packit_service.worker.database import (
-    discard_old_srpm_build_logs,
     backup,
     discard_old_package_configs,
+    discard_old_srpm_build_logs,
 )
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
-    CoprBuildStartHandler,
-    KojiTaskReportHandler,
-    SyncFromDownstream,
     CoprBuildHandler,
+    CoprBuildStartHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
+    KojiTaskReportHandler,
+    OpenScanHubTaskFinishedHandler,
+    OpenScanHubTaskStartedHandler,
     ProposeDownstreamHandler,
+    SyncFromDownstream,
     TestingFarmHandler,
     TestingFarmResultsHandler,
     VMImageBuildHandler,
     VMImageBuildResultHandler,
-    OpenScanHubTaskFinishedHandler,
-    OpenScanHubTaskStartedHandler,
 )
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import (
-    CreateBodhiUpdateHandler,
     BodhiUpdateFromSidetagHandler,
-    RetriggerBodhiUpdateHandler,
+    CreateBodhiUpdateHandler,
     IssueCommentRetriggerBodhiUpdateHandler,
+    RetriggerBodhiUpdateHandler,
 )
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
-    RetriggerDownstreamKojiBuildHandler,
     PullFromUpstreamHandler,
+    RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
 )
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
@@ -80,17 +80,16 @@ from packit_service.worker.handlers.koji import (
     KojiBuildReportHandler,
     KojiBuildTagHandler,
 )
+from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
-    update_vm_image_build,
     check_pending_vm_image_builds,
+    update_vm_image_build,
 )
-from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
-
 
 logger = logging.getLogger(__name__)
 
@@ -640,7 +639,10 @@ def run_tag_into_sidetag_handler(
 
 @celery_app.task(bind=True, name=TaskName.openscanhub_task_finished, base=TaskWithRetry)
 def run_openscanhub_task_finished_handler(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = OpenScanHubTaskFinishedHandler(
         package_config=load_package_config(package_config),
@@ -653,7 +655,10 @@ def run_openscanhub_task_finished_handler(
 
 @celery_app.task(bind=True, name=TaskName.openscanhub_task_started, base=TaskWithRetry)
 def run_openscanhub_task_started_handler(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
 ):
     handler = OpenScanHubTaskStartedHandler(
         package_config=load_package_config(package_config),
