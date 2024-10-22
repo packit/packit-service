@@ -38,7 +38,7 @@ down_revision = "d7c2f99cd14d"
 branch_labels = None
 depends_on = None
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()

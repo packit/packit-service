@@ -68,10 +68,12 @@ def gzip_file(file: Path) -> Path:
     """
     compressed_file = Path(f"{file}.gz")
     try:
-        with file.open(mode="rb") as f_in:
-            with gzip_open(compressed_file, mode="wb") as f_out:
-                logger.info(f"Compressing {file} into {compressed_file}")
-                copyfileobj(f_in, f_out)
+        with file.open(mode="rb") as f_in, gzip_open(
+            compressed_file,
+            mode="wb",
+        ) as f_out:
+            logger.info(f"Compressing {file} into {compressed_file}")
+            copyfileobj(f_in, f_out)
     except OSError as e:
         logger.error(e)
         raise

@@ -538,12 +538,13 @@ class GetProjectToSyncMixin(ConfigFromEventMixin, GetProjectToSync):
 
     @property
     def project_to_sync(self) -> Optional[ProjectToSync]:
-        if self._project_to_sync is None:
-            if project_to_sync := self.service_config.get_project_to_sync(
+        if self._project_to_sync is None and (
+            project_to_sync := self.service_config.get_project_to_sync(
                 dg_repo_name=self.dg_repo_name,
                 dg_branch=self.dg_branch,
-            ):
-                self._project_to_sync = project_to_sync
+            )
+        ):
+            self._project_to_sync = project_to_sync
         return self._project_to_sync
 
 

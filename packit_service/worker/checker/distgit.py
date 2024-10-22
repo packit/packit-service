@@ -50,19 +50,18 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
         if self.data.event_type in (
             PushPagureEvent.__name__,
             KojiBuildTagEvent.__name__,
+        ) and self.data.git_ref not in (
+            configured_branches := get_branches(
+                *self.job_config.dist_git_branches,
+                default="main",
+                with_aliases=True,
+            )
         ):
-            if self.data.git_ref not in (
-                configured_branches := get_branches(
-                    *self.job_config.dist_git_branches,
-                    default="main",
-                    with_aliases=True,
-                )
-            ):
-                logger.info(
-                    f"Skipping build on '{self.data.git_ref}'. "
-                    f"Koji build configured only for '{configured_branches}'.",
-                )
-                return False
+            logger.info(
+                f"Skipping build on '{self.data.git_ref}'. "
+                f"Koji build configured only for '{configured_branches}'.",
+            )
+            return False
 
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.pull_request:
@@ -183,13 +182,12 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
     """
 
     def pre_check(self) -> bool:
-        if self.data.event_type in (KojiBuildTagEvent.__name__,):
-            if (
-                self.data.event_dict.get("package_name")
-                == self.job_config.downstream_package_name
-            ):
-                logger.info("Skipping build triggered by tagging a build of self.")
-                return False
+        if self.data.event_type in (KojiBuildTagEvent.__name__,) and (
+            self.data.event_dict.get("package_name")
+            == self.job_config.downstream_package_name
+        ):
+            logger.info("Skipping build triggered by tagging a build of self.")
+            return False
         return True
 
 

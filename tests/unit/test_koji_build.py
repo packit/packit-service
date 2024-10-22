@@ -248,8 +248,8 @@ def test_koji_build_failed_kerberos(
     response = helper.run_koji_build()
     assert not response["success"]
     assert (
-        "Kerberos authentication error: the bad authentication error"
-        == response["details"]["msg"]
+        response["details"]["msg"]
+        == "Kerberos authentication error: the bad authentication error"
     )
 
 
@@ -313,8 +313,8 @@ def test_koji_build_target_not_supported(
     response = helper.run_koji_build()
     assert not response["success"]
     assert (
-        "Target not supported: nonexisting-target"
-        == response["details"]["errors"]["nonexisting-target"]
+        response["details"]["errors"]["nonexisting-target"]
+        == "Target not supported: nonexisting-target"
     )
 
 

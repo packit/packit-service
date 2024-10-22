@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import contextlib
 from datetime import datetime, timedelta
 
 import pytest
@@ -275,15 +276,13 @@ def test_get_or_create_pr(clean_before_and_after):
 
 def test_errors_while_doing_db(clean_before_and_after):
     with sa_session_transaction() as session:
-        try:
+        with contextlib.suppress(ProgrammingError):
             PullRequestModel.get_or_create(
                 pr_id="nope",
                 namespace="",
                 repo_name=False,
                 project_url="https://github.com/the-namespace/the-repo",
             )
-        except ProgrammingError:
-            pass
         assert len(session.query(PullRequestModel).all()) == 0
         PullRequestModel.get_or_create(
             pr_id=111,

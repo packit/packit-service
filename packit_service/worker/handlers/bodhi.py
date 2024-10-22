@@ -107,12 +107,13 @@ class BodhiUpdateHandler(
         for target_model in group.grouped_targets:
             try:
                 existing_alias = None
-                if target_model.sidetag:
-                    # get update alias from previous run(s) from the same sidetag (if any)
-                    if model := BodhiUpdateTargetModel.get_first_successful_by_sidetag(
+                # get update alias from previous run(s) from the same sidetag (if any)
+                if target_model.sidetag and (
+                    model := BodhiUpdateTargetModel.get_first_successful_by_sidetag(
                         target_model.sidetag,
-                    ):
-                        existing_alias = model.alias
+                    )
+                ):
+                    existing_alias = model.alias
 
                 logger.debug(
                     (
@@ -231,7 +232,7 @@ class BodhiUpdateHandler(
 
             BodhiUpdateTargetModel.create(
                 target=koji_build_data.dist_git_branch,
-                koji_nvrs=koji_build_data.nvr if not builds else builds,
+                koji_nvrs=builds if builds else koji_build_data.nvr,
                 sidetag=sidetag.koji_name if sidetag else None,
                 status="queued",
                 bodhi_update_group=group,

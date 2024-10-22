@@ -32,7 +32,7 @@ from sqlalchemy.orm import relationship
 from alembic import op
 from packit_service.models import ProjectAndEventsConnector
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # noqa: SIM108
     Base = object
 else:
     Base = declarative_base()

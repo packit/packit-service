@@ -177,24 +177,23 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 
 class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
     def _pre_check(self) -> bool:
-        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
-            if not self.is_packager(user=self.actor):
-                title = (
-                    "Re-triggering Bodhi update through dist-git comment in PR failed"
-                )
-                msg = (
-                    f"Re-triggering Bodhi update via dist-git comment in **PR#{self.data.pr_id}**"
-                    f" and project **{self.project_url}** is not allowed, user *{self.actor}* "
-                    "is not a packager."
-                )
-                logger.info(msg)
-                report_in_issue_repository(
-                    issue_repository=self.job_config.issue_repository,
-                    service_config=self.service_config,
-                    title=title,
-                    message=msg + MSG_GET_IN_TOUCH,
-                    comment_to_existing=msg,
-                )
-                return False
+        if self.data.event_type not in (
+            PullRequestCommentPagureEvent.__name__,
+        ) or self.is_packager(user=self.actor):
+            return True
 
-        return True
+        title = "Re-triggering Bodhi update through dist-git comment in PR failed"
+        msg = (
+            f"Re-triggering Bodhi update via dist-git comment in **PR#{self.data.pr_id}**"
+            f" and project **{self.project_url}** is not allowed, user *{self.actor}* "
+            "is not a packager."
+        )
+        logger.info(msg)
+        report_in_issue_repository(
+            issue_repository=self.job_config.issue_repository,
+            service_config=self.service_config,
+            title=title,
+            message=msg + MSG_GET_IN_TOUCH,
+            comment_to_existing=msg,
+        )
+        return False

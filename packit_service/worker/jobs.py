@@ -414,13 +414,13 @@ class SteveJobs:
                 # for propose-downstream we want to load the package config
                 # from upstream repo
                 and ProposeDownstreamHandler not in handlers
+                and (dist_git_package_config := self.search_distgit_config_in_issue())
             ):
-                if dist_git_package_config := self.search_distgit_config_in_issue():
-                    (
-                        self.event.dist_git_project_url,
-                        self.event._package_config,
-                    ) = dist_git_package_config
-                    return True
+                (
+                    self.event.dist_git_project_url,
+                    self.event._package_config,
+                ) = dist_git_package_config
+                return True
 
             if not dist_git_package_config:
                 self.event.fail_when_config_file_missing = True
@@ -702,18 +702,21 @@ class SteveJobs:
                     in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
                     and self.event.job_config_trigger_type
                     == JobConfigTriggerType.release
-                ):
                     # avoid having duplicate koji_build jobs
-                    if job.type != JobType.koji_build or not any(
-                        j
-                        for j in matching_jobs
-                        if compare_jobs_without_triggers(job, j)
-                    ):
-                        # A koji_build/bodhi_update can be re-triggered by a
-                        # comment in a issue in the repository issues
-                        # after a failed release event
-                        # (which has created the issue)
-                        matching_jobs.append(job)
+                    and (
+                        job.type != JobType.koji_build
+                        or not any(
+                            j
+                            for j in matching_jobs
+                            if compare_jobs_without_triggers(job, j)
+                        )
+                    )
+                ):
+                    # A koji_build/bodhi_update can be re-triggered by a
+                    # comment in a issue in the repository issues
+                    # after a failed release event
+                    # (which has created the issue)
+                    matching_jobs.append(job)
         elif isinstance(self.event, KojiBuildTagEvent):
             # create a virtual job config
             job_config = JobConfig(

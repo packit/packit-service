@@ -2526,8 +2526,8 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
     assert len(processing_results) == 1
     assert processing_results[0]["success"]
     assert (
-        "No packit config found in the repository."
-        == processing_results[0]["details"]["msg"]
+        processing_results[0]["details"]["msg"]
+        == "No packit config found in the repository."
     )
 
 

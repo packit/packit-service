@@ -263,7 +263,8 @@ class ServiceConfig(Config):
             logger.debug(f"Loading service config from: {config_file}")
 
             try:
-                loaded_config = safe_load(open(config_file))
+                with open(config_file) as file_stream:
+                    loaded_config = safe_load(file_stream)
             except Exception as ex:
                 logger.error(f"Cannot load service config '{config_file}'.")
                 raise PackitException(f"Cannot load service config: {ex}.") from ex

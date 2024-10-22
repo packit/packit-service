@@ -265,13 +265,12 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
 
     @property
     def pull_request(self):
-        if not self._pull_request:
-            if self.data.pr_id is not None:
-                logger.debug(
-                    f"Getting pull request #{self.data.pr_id}"
-                    f"for repo {self.project.namespace}/{self.project.repo}",
-                )
-                self._pull_request = self.project.get_pr(self.data.pr_id)
+        if not self._pull_request and self.data.pr_id is not None:
+            logger.debug(
+                f"Getting pull request #{self.data.pr_id}"
+                f"for repo {self.project.namespace}/{self.project.repo}",
+            )
+            self._pull_request = self.project.get_pr(self.data.pr_id)
         return self._pull_request
 
     def get_pr_author(self):
