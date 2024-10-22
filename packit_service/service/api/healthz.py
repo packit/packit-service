@@ -26,4 +26,3 @@ class HealthCheck(Resource):
     def head(self):
         """Health check (no body)"""
         # HEAD is identical to GET except that it MUST NOT return a message-body in the response
-        pass

@@ -169,7 +169,6 @@ class PackitAPIWithDownstreamMixin(PackitAPIWithDownstreamProtocol):
         """TODO: probably we should clean something even here
         but for now let it do the same as before the refactoring
         """
-        pass
 
 
 class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
