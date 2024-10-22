@@ -30,7 +30,7 @@ class StatusReporterGitlab(StatusReporter):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(

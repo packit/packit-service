@@ -339,7 +339,7 @@ class Event:
     task_accepted_time: Optional[datetime] = None
     actor: Optional[str]
 
-    def __init__(self, created_at: Union[int, float, str] = None):
+    def __init__(self, created_at: Optional[Union[int, float, str]] = None):
         self.created_at: datetime
         if created_at:
             if isinstance(created_at, (int, float)):
@@ -534,7 +534,7 @@ class AbstractForgeIndependentEvent(Event):
 
     def __init__(
         self,
-        created_at: Union[int, float, str] = None,
+        created_at: Optional[Union[int, float, str]] = None,
         project_url=None,
         pr_id: Optional[int] = None,
         actor: Optional[str] = None,
@@ -643,7 +643,8 @@ class AbstractForgeIndependentEvent(Event):
         )
 
     def get_non_serializable_attributes(self):
-        return super().get_non_serializable_attributes() + [
+        return [
+            *super().get_non_serializable_attributes(),
             "fail_when_config_file_missing",
             "_pull_request_object",
         ]

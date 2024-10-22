@@ -1901,7 +1901,7 @@ class PipelineModel(Base):
     def create(
         cls,
         project_event: ProjectEventModel,
-        package_name: str = None,
+        package_name: Optional[str] = None,
     ) -> "PipelineModel":
         """Create a pipeline triggered by the given project_event.
         If project is a monorepo, then specify for which
@@ -2219,7 +2219,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     def get_by_build_id(
         cls,
         build_id: Union[str, int],
-        target: str = None,
+        target: Optional[str] = None,
     ) -> Optional["CoprBuildTargetModel"]:
         if isinstance(build_id, int):
             # PG is pesky about this:
@@ -2236,9 +2236,9 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     @staticmethod
     def get_all_by(
         commit_sha: str,
-        project_name: str = None,
-        owner: str = None,
-        target: str = None,
+        project_name: Optional[str] = None,
+        owner: Optional[str] = None,
+        target: Optional[str] = None,
         status: BuildStatus = None,
     ) -> Iterable["CoprBuildTargetModel"]:
         """
@@ -2663,7 +2663,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         cls,
         first: int,
         last: int,
-        scratch: bool = None,
+        scratch: Optional[bool] = None,
     ) -> Iterable["KojiBuildTargetModel"]:
         with sa_session_transaction() as session:
             query = session.query(KojiBuildTargetModel).order_by(
@@ -3164,7 +3164,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         target: str,
         test_run_group: "TFTTestRunGroupModel",
         web_url: Optional[str] = None,
-        data: dict = None,
+        data: Optional[dict] = None,
         identifier: Optional[str] = None,
         copr_build_targets: Optional[list[CoprBuildTargetModel]] = None,
     ) -> "TFTTestRunTargetModel":
@@ -3213,7 +3213,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     @staticmethod
     def get_all_by_commit_target(
         commit_sha: str,
-        target: str = None,
+        target: Optional[str] = None,
     ) -> Iterable["TFTTestRunTargetModel"]:
         """
         All tests with the given commit_sha and optional target.
@@ -3806,7 +3806,7 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
     def get_by_build_id(
         cls,
         build_id: Union[str, int],
-        target: str = None,
+        target: Optional[str] = None,
     ) -> Optional["VMImageBuildTargetModel"]:
         """Returns the build matching the build_id and the target"""
 
@@ -3826,8 +3826,8 @@ class VMImageBuildTargetModel(ProjectAndEventsConnector, Base):
     def get_all_by(
         project_name: str,
         commit_sha: str,
-        owner: str = None,
-        target: str = None,
+        owner: Optional[str] = None,
+        target: Optional[str] = None,
     ) -> Iterable["VMImageBuildTargetModel"]:
         """All owner/project_name builds sorted from latest to oldest
         with the given commit_sha and optional target.

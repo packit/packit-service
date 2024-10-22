@@ -448,7 +448,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         def is_final(v):
             return not isinstance(v, list) and not isinstance(v, dict)
 
-        if type(payload) != type(params):  # noqa: E721
+        if type(payload) != type(params):
             # Incompatible types, no way to merge this
             return
 
@@ -1058,8 +1058,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def send_testing_farm_request(
         self,
         endpoint: str,
-        method: str = None,
-        params: dict = None,
+        method: Optional[str] = None,
+        params: Optional[dict] = None,
         data=None,
     ) -> RequestResponse:
         method = method or "GET"
@@ -1379,7 +1379,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         return self.tests_targets_for_test_job(self.job_config)
 
-    def get_test_check(self, chroot: str = None) -> str:
+    def get_test_check(self, chroot: Optional[str] = None) -> str:
         return self.get_test_check_cls(
             chroot,
             self.project_event_identifier_for_status,
@@ -1422,9 +1422,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         state,
         url: str = "",
         chroot: str = "",
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
         links_to_external_services: Optional[dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         if chroot in self.build_targets_for_tests:
             test_targets = self.build_target2test_targets_for_test_job(
@@ -1448,9 +1448,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         state,
         url: str = "",
         target: str = "",
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
         links_to_external_services: Optional[dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         if target in self.tests_targets:
             self._report(
@@ -1468,9 +1468,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         description,
         state,
         url: str = "",
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
         links_to_external_services: Optional[dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         self._report(
             description=description,
@@ -1487,9 +1487,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
         links_to_external_services: Optional[dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        update_feedback_time: Optional[Callable] = None,
     ):
         if self.job_config.manual_trigger and self.build_required():
             logger.debug("Skipping the reporting.")

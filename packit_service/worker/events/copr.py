@@ -145,7 +145,7 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         return True
 
     def get_non_serializable_attributes(self):
-        return super().get_non_serializable_attributes() + ["build"]
+        return [*super().get_non_serializable_attributes(), "build"]
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()

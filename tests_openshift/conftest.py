@@ -13,6 +13,7 @@ $ alembic upgrade head
 ```
 """
 import datetime
+from typing import ClassVar
 
 import pytest
 from ogr import GithubService, GitlabService, PagureService
@@ -102,8 +103,11 @@ class SampleValues:
     status_waiting_for_srpm = BuildStatus.waiting_for_srpm
     target = "fedora-42-x86_64"
     different_target = "fedora-43-x86_64"
-    chroots = ["fedora-43-x86_64", "fedora-42-x86_64"]
-    status_per_chroot = {"fedora-43-x86_64": "success", "fedora-42-x86_64": "pending"}
+    chroots: ClassVar[list[str]] = ["fedora-43-x86_64", "fedora-42-x86_64"]
+    status_per_chroot: ClassVar[dict[str, str]] = {
+        "fedora-43-x86_64": "success",
+        "fedora-42-x86_64": "pending",
+    }
     copr_web_url = "https://copr.something.somewhere/123456"
     koji_web_url = "https://koji.something.somewhere/123456"
     srpm_logs = "some\nboring\nlogs"
@@ -122,7 +126,7 @@ class SampleValues:
     # Issues
     issue_id = 2020
     different_issue_id = 987
-    built_packages = [
+    built_packages: ClassVar[list[dict]] = [
         {
             "arch": "noarch",
             "epoch": 0,

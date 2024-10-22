@@ -38,7 +38,7 @@ class StatusReporterGithubStatuses(StatusReporter):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
@@ -102,7 +102,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ):
         markdown_content = markdown_content or ""
         state_to_set = self.get_check_run(state)
@@ -141,6 +141,6 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             )
         except GithubAPIException as e:
             logger.debug(
-                f"Failed to set status check, setting status as a fallback: {str(e)}",
+                f"Failed to set status check, setting status as a fallback: {e!s}",
             )
             super().set_status(state, description, check_name, url)

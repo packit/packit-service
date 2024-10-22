@@ -5,7 +5,7 @@ import logging
 import socket
 from datetime import timedelta
 from os import getenv
-from typing import Optional
+from typing import ClassVar, Optional
 
 from celery import Task
 from celery._state import get_current_task
@@ -158,7 +158,7 @@ def setup_loggers(logger, *args, **kwargs):
 class TaskWithRetry(Task):
     autoretry_for = (Exception,)
     max_retries = int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
-    retry_kwargs = {"max_retries": max_retries}
+    retry_kwargs: ClassVar[dict] = {"max_retries": max_retries}
     retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))
     # https://docs.celeryq.dev/en/stable/userguide/tasks.html#Task.acks_late
     # retry if worker gets obliterated during execution
@@ -170,7 +170,10 @@ class BodhiTaskWithRetry(TaskWithRetry):
     max_retries = 5
     # also disable jitter for the same reason
     retry_jitter = False
-    retry_kwargs = {"max_retries": max_retries, "retry_jitter": retry_jitter}
+    retry_kwargs: ClassVar[dict] = {
+        "max_retries": max_retries,
+        "retry_jitter": retry_jitter,
+    }
 
 
 @celery_app.task(

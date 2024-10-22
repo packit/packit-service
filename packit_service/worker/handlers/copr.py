@@ -150,7 +150,8 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return super(CoprBuildStartHandler, CoprBuildStartHandler).get_checkers() + (
+        return (
+            *super(CoprBuildStartHandler, CoprBuildStartHandler).get_checkers(),
             BuildNotAlreadyStarted,
         )
 

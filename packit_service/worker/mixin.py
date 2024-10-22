@@ -339,7 +339,7 @@ class GetReporter(Protocol):
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ) -> None: ...
 
 
@@ -366,6 +366,6 @@ class GetReporterFromJobHelperMixin(Config):
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ) -> None:
         self.job_helper._report(state, description, url, check_names, markdown_content)

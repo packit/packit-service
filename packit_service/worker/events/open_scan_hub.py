@@ -62,7 +62,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
 
     def get_non_serializable_attributes(self):
         # build and scan are not serializable
-        return super().get_non_serializable_attributes() + ["build", "scan"]
+        return [*super().get_non_serializable_attributes(), "build", "scan"]
 
 
 class OpenScanHubTaskFinishedEvent(OpenScanHubTaskAbstractEvent):

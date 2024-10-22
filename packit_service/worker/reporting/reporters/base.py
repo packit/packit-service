@@ -101,7 +101,7 @@ class StatusReporter:
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
     ):
         raise NotImplementedError()
 
@@ -112,8 +112,8 @@ class StatusReporter:
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         """
         Set commit check status.

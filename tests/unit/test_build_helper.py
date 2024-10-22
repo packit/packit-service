@@ -37,9 +37,9 @@ ALIASES = {
 
 STABLE_VERSIONS = ALIASES["fedora-stable"]
 STABLE_CHROOTS = {f"{version}-x86_64" for version in STABLE_VERSIONS}
-ONE_CHROOT_SET = {list(STABLE_CHROOTS)[0]}
+ONE_CHROOT_SET = {next(iter(STABLE_CHROOTS))}
 STABLE_KOJI_TARGETS = {f"f{version[-2:]}" for version in STABLE_VERSIONS}
-ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
+ONE_KOJI_TARGET_SET = {next(iter(STABLE_KOJI_TARGETS))}
 
 
 def _mock_targets(jobs, job, job_type):
@@ -494,7 +494,7 @@ def _mock_targets(jobs, job, job_type):
                 ),
             ],
             (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
-            set(STABLE_VERSIONS + ["fedora-rawhide"]),
+            {*STABLE_VERSIONS, "fedora-rawhide"},
             id="build_with_mixed_build_tests",
         ),
     ],

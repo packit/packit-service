@@ -77,7 +77,7 @@ class BaseJobHelper:
         if len(self.package_config.packages) != 1:
             return None
 
-        return list(self.package_config.packages.keys())[0]
+        return next(iter(self.package_config.packages.keys()))
 
     @property
     def msg_retrigger(self) -> str:
@@ -198,9 +198,9 @@ class BaseJobHelper:
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
         links_to_external_services: Optional[dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         """
         The status reporting should be done through this method
@@ -238,9 +238,9 @@ class BaseJobHelper:
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
+        markdown_content: Optional[str] = None,
         links_to_external_services: Optional[dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        update_feedback_time: Optional[Callable] = None,
     ):
         """
         Report status to the particular job from job_config attribute of the helper.

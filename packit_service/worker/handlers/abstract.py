@@ -321,7 +321,7 @@ class JobHandler(Handler):
         references which hold just a single package.
         """
         if len(self.package_config.packages) == 1:
-            return list(self.package_config.packages.keys())[0]
+            return next(iter(self.package_config.packages.keys()))
 
         return None
 
@@ -333,7 +333,7 @@ class JobHandler(Handler):
         job_type = (
             self.job_config.type.value if self.job_config else self.task_name.value
         )
-        logger.debug(f"Running handler {str(self)} for {job_type}")
+        logger.debug(f"Running handler {self!s} for {job_type}")
         job_results: dict[str, TaskResults] = {}
         current_time = datetime.now().strftime(DATETIME_FORMAT)
         result_key = f"{job_type}-{current_time}"

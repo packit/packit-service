@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 from random import choice
+from typing import ClassVar
 
 
 class News:
-    __FOOTERS = [
+    __FOOTERS: ClassVar[list[str]] = [
         "Do you maintain a Fedora package and don't have access to the upstream repository? "
         "Packit can help. "
         "Take a look [here](https://packit.dev/posts/pull-from-upstream/) to know more.",

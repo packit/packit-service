@@ -17,11 +17,11 @@ def check_onboarded_projects(projects: set[GitProjectModel]):
         if downstream_project_url != "https://src.fedoraproject.org":
             continue
 
-        pagure_service = [
+        pagure_service = next(
             service
             for service in ServiceConfig.get_service_config().services
             if service.instance_url == downstream_project_url
-        ][0]
+        )
         ogr_project = pagure_service.get_project(
             namespace=project.namespace,
             repo=project.repo_name,

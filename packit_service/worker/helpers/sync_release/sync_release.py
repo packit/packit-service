@@ -101,7 +101,7 @@ class SyncReleaseHelper(BaseJobHelper):
         :return: JobConfig or None
         """
         if not self._job:
-            for job in [self.job_config] + self.package_config.jobs:
+            for job in [self.job_config, *self.package_config.jobs]:
                 if are_job_types_same(job.type, self.job_type) and (
                     self._db_project_object
                     and (

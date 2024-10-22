@@ -7,7 +7,7 @@ Parser is transforming github JSONs into `events` objects
 import logging
 from datetime import datetime, timezone
 from os import getenv
-from typing import Any, Optional, Union
+from typing import Any, Callable, ClassVar, Optional, Union
 
 from ogr.parsing import parse_git_repo
 from packit.config import JobConfigTriggerType
@@ -1736,7 +1736,7 @@ class Parser:
         return event
 
     # The .__func__ are needed for Python < 3.10
-    MAPPING = {
+    MAPPING: ClassVar[dict[str, dict[str, Callable]]] = {
         "github": {
             "check_run": parse_check_rerun_event.__func__,  # type: ignore
             "pull_request": parse_pr_event.__func__,  # type: ignore

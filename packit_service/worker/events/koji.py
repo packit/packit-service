@@ -395,4 +395,4 @@ class KojiBuildTagEvent(AbstractKojiEvent):
         )
 
     def get_non_serializable_attributes(self):
-        return super().get_non_serializable_attributes() + ["_koji_helper"]
+        return [*super().get_non_serializable_attributes(), "_koji_helper"]

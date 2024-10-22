@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Any
+from typing import Any, Optional
 
 from packit.config import JobConfig
 
@@ -15,7 +15,7 @@ class TaskResults(dict):
     Inherit from dict to be JSON serializable.
     """
 
-    def __init__(self, success: bool, details: dict[str, Any] = None):
+    def __init__(self, success: bool, details: Optional[dict[str, Any]] = None):
         """
         Args:
             success: Represents the resulting state of the job handler.
