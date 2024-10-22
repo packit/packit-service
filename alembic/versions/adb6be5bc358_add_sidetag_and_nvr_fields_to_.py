@@ -1,7 +1,7 @@
 """Add sidetag and nvr fields to KojiBuildTargetModel
 
 Revision ID: adb6be5bc358
-Revises: f376be1907e1
+Revises: 242a0cdb6d23
 Create Date: 2024-10-20 15:47:45.454965
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "adb6be5bc358"
-down_revision = "f376be1907e1"
+down_revision = "242a0cdb6d23"
 branch_labels = None
 depends_on = None
 
