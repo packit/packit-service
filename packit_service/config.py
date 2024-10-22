@@ -147,14 +147,14 @@ class ServiceConfig(Config):
         #  - github.com/other-private-namespace
         #  - gitlab.com/private/namespace
         self.enabled_private_namespaces: Set[str] = set(
-            enabled_private_namespaces or []
+            enabled_private_namespaces or [],
         )
         # Explicit list of project we allow the internal TF instance to be used-
         # e.g.:
         #  - github.com/other-private-namespace/project
         #  - gitlab.com/namespace/project
         self.enabled_projects_for_internal_tf: Set[str] = set(
-            enabled_projects_for_internal_tf or []
+            enabled_projects_for_internal_tf or [],
         )
 
         self.projects_to_sync = projects_to_sync or []
@@ -165,7 +165,7 @@ class ServiceConfig(Config):
         self.koji_web_url = koji_web_url
 
         self.enabled_projects_for_srpm_in_copr: Set[str] = set(
-            enabled_projects_for_srpm_in_copr or []
+            enabled_projects_for_srpm_in_copr or [],
         )
         self.comment_command_prefix = comment_command_prefix
 
@@ -228,21 +228,26 @@ class ServiceConfig(Config):
         if a_h:
             config.command_handler = RunCommandType(a_h)
         config.command_handler_work_dir = raw_dict.get(
-            "command_handler_work_dir", SANDCASTLE_WORK_DIR
+            "command_handler_work_dir",
+            SANDCASTLE_WORK_DIR,
         )
         config.command_handler_pvc_env_var = raw_dict.get(
-            "command_handler_pvc_env_var", SANDCASTLE_PVC
+            "command_handler_pvc_env_var",
+            SANDCASTLE_PVC,
         )
         config.command_handler_image_reference = raw_dict.get(
-            "command_handler_image_reference", SANDCASTLE_IMAGE
+            "command_handler_image_reference",
+            SANDCASTLE_IMAGE,
         )
         # default project for oc cluster up
         config.command_handler_k8s_namespace = raw_dict.get(
-            "command_handler_k8s_namespace", SANDCASTLE_DEFAULT_PROJECT
+            "command_handler_k8s_namespace",
+            SANDCASTLE_DEFAULT_PROJECT,
         )
 
         config.testing_farm_api_url = raw_dict.get(
-            "testing_farm_api_url", TESTING_FARM_API_URL
+            "testing_farm_api_url",
+            TESTING_FARM_API_URL,
         )
 
         logger.debug(f"Loaded config: {config}")
@@ -252,7 +257,8 @@ class ServiceConfig(Config):
     def get_service_config(cls) -> "ServiceConfig":
         if cls.service_config is None:
             config_file = os.getenv(
-                "PACKIT_SERVICE_CONFIG", Path.home() / ".config" / CONFIG_FILE_NAME
+                "PACKIT_SERVICE_CONFIG",
+                Path.home() / ".config" / CONFIG_FILE_NAME,
             )
             logger.debug(f"Loading service config from: {config_file}")
 
@@ -308,7 +314,8 @@ class PackageConfigGetter:
 
         # TODO: store in DB
         issue = project.create_issue(
-            title=packit_title if add_packit_prefix else title, body=message
+            title=packit_title if add_packit_prefix else title,
+            body=message,
         )
         logger.debug(f"Issue #{issue.id} created: {issue.url}")
         return issue
@@ -338,7 +345,7 @@ class PackageConfigGetter:
             if not package_config and fail_when_missing:
                 raise PackitMissingConfigException(
                     f"No config file for packit (e.g. `.packit.yaml`) found in "
-                    f"{project_to_search_in.full_repo_name} on commit {reference}"
+                    f"{project_to_search_in.full_repo_name} on commit {reference}",
                 )
         except PackitConfigException as ex:
             message = (
@@ -359,10 +366,12 @@ class PackageConfigGetter:
             if pr_id:
                 project.get_pr(pr_id).comment(message)
             elif created_issue := PackageConfigGetter.create_issue_if_needed(
-                project, title="Invalid config", message=message
+                project,
+                title="Invalid config",
+                message=message,
             ):
                 logger.debug(
-                    f"Created issue for invalid packit config: {created_issue.url}"
+                    f"Created issue for invalid packit config: {created_issue.url}",
                 )
             raise ex
 

@@ -41,7 +41,8 @@ MAP_TO_COMMIT_STATUS: Dict[BaseCommitStatus, CommitStatus] = {
 }
 
 MAP_TO_CHECK_RUN: Dict[
-    BaseCommitStatus, Union[GithubCheckRunResult, GithubCheckRunStatus]
+    BaseCommitStatus,
+    Union[GithubCheckRunResult, GithubCheckRunStatus],
 ] = {
     BaseCommitStatus.pending: GithubCheckRunStatus.queued,
     BaseCommitStatus.running: GithubCheckRunStatus.in_progress,

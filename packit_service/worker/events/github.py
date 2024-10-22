@@ -45,7 +45,11 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
 
 class ReleaseEvent(AddReleaseEventToDb, AbstractGithubEvent):
     def __init__(
-        self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
+        self,
+        repo_namespace: str,
+        repo_name: str,
+        tag_name: str,
+        project_url: str,
     ):
         super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace

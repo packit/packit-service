@@ -14,7 +14,7 @@ from packit_service.worker.handlers import CoprBuildHandler
 def test_autoretry():
     flexmock(prometheus_client).should_receive("push_to_gateway")
     flexmock(CoprBuildHandler).should_receive("run_job").and_raise(
-        CoprRequestException
+        CoprRequestException,
     ).once()
 
     # verify that retry is called automatically

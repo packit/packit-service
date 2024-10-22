@@ -48,7 +48,7 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
         if not self._default_dg_branch:
             if self.metadata.event_type in (NewHotnessUpdateEvent.__name__,):
                 distgit_project_url = self.metadata.event_dict.get(
-                    "distgit_project_url"
+                    "distgit_project_url",
                 )
             elif self.metadata.event_type in (PullRequestCommentPagureEvent.__name__,):
                 distgit_project_url = self.metadata.event_dict.get("project_url")

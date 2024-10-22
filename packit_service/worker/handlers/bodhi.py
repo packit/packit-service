@@ -74,7 +74,9 @@ logger = logging.getLogger(__name__)
 
 
 class BodhiUpdateHandler(
-    RetriableJobHandler, PackitAPIWithDownstreamMixin, GetKojiBuildData
+    RetriableJobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetKojiBuildData,
 ):
     topic = "org.fedoraproject.prod.buildsys.build.state.change"
 
@@ -108,7 +110,7 @@ class BodhiUpdateHandler(
                 if target_model.sidetag:
                     # get update alias from previous run(s) from the same sidetag (if any)
                     if model := BodhiUpdateTargetModel.get_first_successful_by_sidetag(
-                        target_model.sidetag
+                        target_model.sidetag,
                     ):
                         existing_alias = model.alias
 
@@ -124,7 +126,7 @@ class BodhiUpdateHandler(
                         f" from sidetag: {target_model.sidetag}."
                         if target_model.sidetag
                         else "."
-                    )
+                    ),
                 )
                 result = self.packit_api.create_update(
                     dist_git_branch=target_model.target,
@@ -154,17 +156,17 @@ class BodhiUpdateHandler(
                         model.set_status("retry")
 
                     logger.debug(
-                        "Celery task will be retried. User will not be notified about the failure."
+                        "Celery task will be retried. User will not be notified about the failure.",
                     )
                     retry_backoff = int(
-                        getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF)
+                        getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF),
                     )
                     delay = retry_backoff * 2**self.celery_task.retries
                     self.celery_task.task.retry(exc=ex, countdown=delay, kwargs=kargs)
                     return TaskResults(
                         success=True,
                         details={
-                            "msg": f"There was an error: {ex}. Task will be retried."
+                            "msg": f"There was an error: {ex}. Task will be retried.",
                         },
                     )
                 else:
@@ -200,7 +202,8 @@ class BodhiUpdateHandler(
             return BodhiUpdateGroupModel.get_by_id(self._bodhi_update_group_model_id)
 
         run_model = PipelineModel.create(
-            self.data.db_project_event, package_name=self.get_package_name()
+            self.data.db_project_event,
+            package_name=self.get_package_name(),
         )
         group = BodhiUpdateGroupModel.create(run_model)
 
@@ -208,18 +211,19 @@ class BodhiUpdateHandler(
             sidetag = builds = None
             if self.job_config.sidetag_group:
                 sidetag = SidetagHelper.get_sidetag(
-                    self.job_config.sidetag_group, koji_build_data.dist_git_branch
+                    self.job_config.sidetag_group,
+                    koji_build_data.dist_git_branch,
                 )
                 # check if dependencies are satisfied within the sidetag
                 dependencies = set(self.job_config.dependencies or [])
                 dependencies.add(
-                    self.job_config.downstream_package_name  # include self
+                    self.job_config.downstream_package_name,  # include self
                 )
                 if missing_dependencies := sidetag.get_missing_dependencies(
-                    dependencies
+                    dependencies,
                 ):
                     raise PackitException(
-                        f"Missing dependencies for Bodhi update: {missing_dependencies}"
+                        f"Missing dependencies for Bodhi update: {missing_dependencies}",
                     )
                 builds = " ".join(
                     str(b) for b in sidetag.get_builds_suitable_for_update(dependencies)
@@ -252,7 +256,8 @@ class BodhiUpdateHandler(
 
     def report_in_issue_repository(self, errors: dict[str, str]) -> None:
         body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
-            object="Bodhi update", dist_git_url=self.packit_api.dg.local_project.git_url
+            object="Bodhi update",
+            dist_git_url=self.packit_api.dg.local_project.git_url,
         )
         for branch, ex in errors.items():
             body += (
@@ -275,7 +280,8 @@ class BodhiUpdateHandler(
         )
 
         body_msg = update_message_with_configured_failure_comment_message(
-            body_msg, self.job_config
+            body_msg,
+            self.job_config,
         )
 
         report_in_issue_repository(
@@ -327,7 +333,7 @@ class CreateBodhiUpdateHandler(
         group = None
         for koji_build_data in self:
             koji_build_target = KojiBuildTargetModel.get_by_task_id(
-                koji_build_data.task_id
+                koji_build_data.task_id,
             )
             if koji_build_target:
                 run_model = koji_build_target.group_of_targets.runs[-1]
@@ -335,7 +341,8 @@ class CreateBodhiUpdateHandler(
             # but let's cover the case
             else:
                 run_model = PipelineModel.create(
-                    self.data.db_project_event, package_name=self.get_package_name()
+                    self.data.db_project_event,
+                    package_name=self.get_package_name(),
                 )
 
             group = BodhiUpdateGroupModel.create(run_model)
@@ -382,7 +389,8 @@ class BodhiUpdateFromSidetagHandler(
 @reacts_to(event=PullRequestCommentPagureEvent)
 @run_for_comment(command="create-update")
 class RetriggerBodhiUpdateHandler(
-    BodhiUpdateHandler, GetKojiBuildDataFromKojiServiceMixin
+    BodhiUpdateHandler,
+    GetKojiBuildDataFromKojiServiceMixin,
 ):
     """
     This handler can re-trigger a bodhi update if any successful Koji build.

@@ -24,14 +24,14 @@ def report_in_issue_repository(
     """
     if not issue_repository:
         logger.debug(
-            "No issue repository configured. User will not be notified about the failure."
+            "No issue repository configured. User will not be notified about the failure.",
         )
         return
 
     logger.debug(
         f"Issue repository configured. We will create "
         f"a new issue in {issue_repository} "
-        "or update the existing one."
+        "or update the existing one.",
     )
     issue_repo = service_config.get_project(url=issue_repository)
     PackageConfigGetter.create_issue_if_needed(
@@ -43,7 +43,8 @@ def report_in_issue_repository(
 
 
 def update_message_with_configured_failure_comment_message(
-    comment: str, job_config: JobConfig
+    comment: str,
+    job_config: JobConfig,
 ) -> str:
     """
     If there is the notifications.failure_comment.message present in the configuration,

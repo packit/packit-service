@@ -65,7 +65,7 @@ def packit_build_752():
     )
 
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
-        project_event_model=pr_event
+        project_event_model=pr_event,
     )
     group = CoprBuildGroupModel.create(run_model)
     srpm_build.set_logs("asd\nqwe\n")
@@ -90,8 +90,8 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             config={
                 "username": "packit",
                 "copr_url": "https://copr.fedorainfracloud.org/",
-            }
-        )
+            },
+        ),
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
         PackageConfig(
@@ -107,12 +107,12 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
                                 "fedora-rawhide-x86_64",
                                 "fedora-31-x86_64",
                                 "fedora-32-x86_64",
-                            ]
-                        )
+                            ],
+                        ),
                     },
-                )
+                ),
             ],
-        )
+        ),
     )
     coprs_response = Munch(
         {
@@ -144,7 +144,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             "state": "succeeded",
             "submitted_on": 1583916261,
             "submitter": "packit",
-        }
+        },
     )
     flexmock(BuildProxy).should_receive("get").and_return(coprs_response)
 
@@ -173,10 +173,11 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
                     "version": "0.38.0",
                 },
             ],
-        }
+        },
     )
     flexmock(BuildChrootProxy).should_receive("get_built_packages").with_args(
-        BUILD_ID, "fedora-rawhide-x86_64"
+        BUILD_ID,
+        "fedora-rawhide-x86_64",
     ).and_return(copr_response_built_packages)
 
     chroot_response = Munch(
@@ -188,10 +189,11 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             "01300329-packit/",
             "started_on": 1583916315,
             "state": "succeeded",
-        }
+        },
     )
     flexmock(BuildChrootProxy).should_receive("get").with_args(
-        BUILD_ID, "fedora-rawhide-x86_64"
+        BUILD_ID,
+        "fedora-rawhide-x86_64",
     ).and_return(chroot_response)
 
     pr = flexmock(source_project=flexmock(), target_branch="main")
@@ -202,7 +204,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(GithubProject).should_receive("create_check_run").and_return().once()
     flexmock(GithubProject).should_receive("get_git_urls").and_return(
-        {"git": "https://github.com/packit-service/packit.git"}
+        {"git": "https://github.com/packit-service/packit.git"},
     )
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {
@@ -210,7 +212,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             "fedora-32-x86_64",
             "fedora-31-x86_64",
             "fedora-rawhide-x86_64",
-        }
+        },
     )
     flexmock(Pushgateway).should_receive("push").once().and_return()
 

@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
 MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
-    set
+    set,
 )
 SUPPORTED_EVENTS_FOR_HANDLER: Dict[Type["JobHandler"], Set[Type["Event"]]] = (
     defaultdict(set)
@@ -207,7 +207,7 @@ class Handler(PackitAPIProtocol, Config):
                 {
                     "repository": self.project.repo,
                     "namespace": self.project.namespace,
-                }
+                },
             )
         if "package_name" in self.data.event_dict:
             tags.update({"package_name": self.data.event_dict["package_name"]})
@@ -235,7 +235,7 @@ class Handler(PackitAPIProtocol, Config):
         # Do not clean dir if does not exist
         if not p.is_dir():
             logger.debug(
-                f"Directory {self.service_config.command_handler_work_dir!r} does not exist."
+                f"Directory {self.service_config.command_handler_work_dir!r} does not exist.",
             )
             return
 
@@ -360,9 +360,11 @@ class JobHandler(Handler):
             cls.task_name.value,
             kwargs={
                 "package_config": dump_package_config(
-                    event.packages_config.get_package_config_for(job)
-                    if event.packages_config
-                    else None
+                    (
+                        event.packages_config.get_package_config_for(job)
+                        if event.packages_config
+                        else None
+                    ),
                 ),
                 "job_config": dump_job_config(job),
                 "event": event.get_dict(),
@@ -382,7 +384,9 @@ class RetriableJobHandler(JobHandler):
         celery_task: Task,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
         )
         self.celery_task = CeleryTask(celery_task)
 

@@ -29,7 +29,11 @@ class TaskResults(dict):
 
     @classmethod
     def create_from(
-        cls, success: bool, msg: str, event: Event, job_config: JobConfig = None
+        cls,
+        success: bool,
+        msg: str,
+        event: Event,
+        job_config: JobConfig = None,
     ):
         package_config = (
             event.packages_config.get_package_config_for(job_config)
@@ -46,7 +50,7 @@ class TaskResults(dict):
             {
                 "job": job_config.type.value if job_config else None,
                 "job_config": dump_job_config(job_config),
-            }
+            },
         )
 
         return cls(success=success, details=details)

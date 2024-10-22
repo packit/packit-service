@@ -53,7 +53,7 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
     mixin = Test()
 
     flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
-        flexmock(id=1)
+        flexmock(id=1),
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Building VM Image...",
@@ -130,7 +130,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         None,
     )
     flexmock(db_project_object).should_receive("__str__").and_return(
-        "db_project_object"
+        "db_project_object",
     )
     handler.data._db_project_event = flexmock()
     handler.data._db_project_object = db_project_object
@@ -142,7 +142,9 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         "results/mmassari/knx-stack/fedora-36-x86_64/"
     )
     handler.packit_api.copr_helper.should_receive("get_repo_download_url").with_args(
-        owner="mmassari", project="knx-stack", chroot="fedora-36-x86_64"
+        owner="mmassari",
+        project="knx-stack",
+        chroot="fedora-36-x86_64",
     ).and_return(repo_download_url)
     flexmock(handler).should_receive("vm_image_builder").and_return(
         flexmock()
@@ -158,7 +160,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
             {"packages": ["python-knx-stack"]},
             repo_download_url,
         )
-        .mock()
+        .mock(),
     )
     flexmock(handler).should_receive("report_status")
 
@@ -200,7 +202,7 @@ def test_vm_image_build_result_handler_ok(
     handler._project = project
 
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_build_id").with_args(
-        1
+        1,
     ).and_return(
         [
             flexmock(
@@ -209,13 +211,13 @@ def test_vm_image_build_result_handler_ok(
                     flexmock()
                     .should_receive("get_project_event_object")
                     .and_return(db_project_object)
-                    .mock()
+                    .mock(),
                 ],
             )
             .should_receive("set_status")
             .with_args("error")
-            .mock()
-        ]
+            .mock(),
+        ],
     )
 
     flexmock(handler).should_receive("report_status")
@@ -244,7 +246,7 @@ def test_vm_image_build_result_handler_ko(
     handler._project = project
 
     flexmock(VMImageBuildTargetModel).should_receive("get_all_by_build_id").with_args(
-        1
+        1,
     ).and_return([])
 
     flexmock(handler).should_receive("report_status")

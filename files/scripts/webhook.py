@@ -90,12 +90,14 @@ class PRWebhookPayload:
 )
 @click.option("--pr", help="ID of the pull request.", default=None, type=int)
 @click.argument(
-    "project", default="packit-service/hello-world", metavar="<NAMESPACE/PROJECT>"
+    "project",
+    default="packit-service/hello-world",
+    metavar="<NAMESPACE/PROJECT>",
 )
 def run(hostname, pr, project, github_token):
     if "/" not in project:
         click.echo(
-            'project should be specified as "PROJECT/NAMESPACE", e.g. "packit-service/ogr"'
+            'project should be specified as "PROJECT/NAMESPACE", e.g. "packit-service/ogr"',
         )
         return 1
     if pr is not None:
@@ -104,7 +106,9 @@ def run(hostname, pr, project, github_token):
         j = p.generate()
         print(json.dumps(j, indent=2))
         response = requests.post(
-            f"https://{hostname}/api/webhooks/github", json=j, verify=False
+            f"https://{hostname}/api/webhooks/github",
+            json=j,
+            verify=False,
         )
         print(response.text)
 

@@ -30,7 +30,7 @@ class StatusReporter:
         pr_id: Optional[int] = None,
     ):
         logger.debug(
-            f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}"
+            f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}",
         )
         self.project: GitProject = project
         self._project_with_commit: Optional[GitProject] = None
@@ -171,7 +171,11 @@ class StatusReporter:
         }
 
     def _add_commit_comment_with_status(
-        self, state: BaseCommitStatus, description: str, check_name: str, url: str = ""
+        self,
+        state: BaseCommitStatus,
+        description: str,
+        check_name: str,
+        url: str = "",
     ):
         """Add a comment with status to the commit.
 
@@ -183,7 +187,7 @@ class StatusReporter:
                     f"- name: {check_name}",
                     f"- state: {state.name}",
                     f"- url: {url or 'not provided'}",
-                ]
+                ],
             )
             + f"\n\n{description}"
         )
@@ -219,7 +223,10 @@ class StatusReporter:
         self.project_with_commit.get_commit_statuses(commit=self.commit_sha)
 
     def _has_identical_comment(
-        self, body: str, mode: DuplicateCheckMode, check_commit: bool = False
+        self,
+        body: str,
+        mode: DuplicateCheckMode,
+        check_commit: bool = False,
     ) -> bool:
         """Checks if the body is the same as the last or any (based on mode) comment.
 

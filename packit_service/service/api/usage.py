@@ -299,7 +299,9 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
     events_handled: dict[str, Any] = get_result_dictionary(
         project=project,
         top_projects=GitProjectModel.get_active_projects_usage_numbers(
-            datetime_from=datetime_from, datetime_to=datetime_to, top=None
+            datetime_from=datetime_from,
+            datetime_to=datetime_to,
+            top=None,
         ),
         count_name="events_handled",
     )
@@ -381,7 +383,8 @@ def _get_celery_result(id: str) -> Response:
 @usage_ns.route("/past-day")
 class UsagePastDay(Resource):
     @usage_ns.response(
-        HTTPStatus.OK, "Provides a url where to wait for Packit last day usage"
+        HTTPStatus.OK,
+        "Provides a url where to wait for Packit last day usage",
     )
     def get(self):
         task = get_past_usage_data.delay(datetime_from=USAGE_PAST_DAY_DATE_STR)
@@ -399,7 +402,8 @@ class UsagePastDayResult(Resource):
 @usage_ns.route("/past-week")
 class UsagePastWeek(Resource):
     @usage_ns.response(
-        HTTPStatus.OK, "Provides a url where to wait for Packit last week usage"
+        HTTPStatus.OK,
+        "Provides a url where to wait for Packit last week usage",
     )
     def get(self):
         task = get_past_usage_data.delay(datetime_from=USAGE_PAST_WEEK_DATE_STR)
@@ -417,7 +421,8 @@ class UsagePastWeekResult(Resource):
 @usage_ns.route("/past-month")
 class UsagePastMonth(Resource):
     @usage_ns.response(
-        HTTPStatus.OK, "Provides a url where to wait for Packit last month usage"
+        HTTPStatus.OK,
+        "Provides a url where to wait for Packit last month usage",
     )
     def get(self):
         task = get_past_usage_data.delay(datetime_from=USAGE_PAST_MONTH_DATE_STR)
@@ -435,7 +440,8 @@ class UsagePastMonthResult(Resource):
 @usage_ns.route("/past-year")
 class UsagePastYear(Resource):
     @usage_ns.response(
-        HTTPStatus.OK, "Provides a url where to wait for Packit last year usage"
+        HTTPStatus.OK,
+        "Provides a url where to wait for Packit last year usage",
     )
     def get(self):
         task = get_past_usage_data.delay(datetime_from=USAGE_PAST_YEAR_DATE_STR)
@@ -453,7 +459,8 @@ class UsagePastYearResult(Resource):
 @usage_ns.route("/total")
 class UsageTotal(Resource):
     @usage_ns.response(
-        HTTPStatus.OK, "Provides a url where to wait for Packit total usage data"
+        HTTPStatus.OK,
+        "Provides a url where to wait for Packit total usage data",
     )
     def get(self):
         task = get_past_usage_data.delay(datetime_from=USAGE_DATE_IN_THE_PAST_STR)
@@ -485,7 +492,9 @@ class UsageIntervals(Resource):
         delta_hours = int(escape(request.args.get("hours", "0")))
         delta_days = int(escape(request.args.get("days", "0")))
         task = get_usage_interval_data.delay(
-            hours=delta_hours, days=delta_days, count=count
+            hours=delta_hours,
+            days=delta_days,
+            count=count,
         )
         return redirect(f"intervals/{task.id}", code=302)
 

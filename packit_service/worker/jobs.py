@@ -95,7 +95,8 @@ MANUAL_OR_RESULT_EVENTS = [AbstractCommentEvent, AbstractResultEvent, CheckRerun
 
 
 def get_handlers_for_comment(
-    comment: str, packit_comment_command_prefix: str
+    comment: str,
+    packit_comment_command_prefix: str,
 ) -> Set[Type[JobHandler]]:
     """
     Get handlers for the given command respecting packit_comment_command_prefix.
@@ -130,7 +131,7 @@ def get_handlers_for_check_rerun(check_name_job: str) -> Set[Type[JobHandler]]:
     handlers = MAP_CHECK_PREFIX_TO_HANDLER[check_name_job]
     if not handlers:
         logger.debug(
-            f"Rerun for check with {check_name_job} prefix not supported by packit."
+            f"Rerun for check with {check_name_job} prefix not supported by packit.",
         )
     return handlers
 
@@ -170,7 +171,10 @@ class SteveJobs:
             List of results of the processing tasks.
         """
         parser = nested_get(
-            Parser.MAPPING, source, event_type, default=Parser.parse_event
+            Parser.MAPPING,
+            source,
+            event_type,
+            default=Parser.parse_event,
         )
         event_object: Optional[Event] = parser(event)
 
@@ -205,7 +209,10 @@ class SteveJobs:
                 self.event.project.repo,
             )
             logger.info(
-                "Packit is not installed on %s/%s/%s, skipping.", host, namespace, repo
+                "Packit is not installed on %s/%s/%s, skipping.",
+                host,
+                namespace,
+                repo,
             )
             return []
 
@@ -215,17 +222,22 @@ class SteveJobs:
         # not repository, so package config with jobs is missing
         if isinstance(self.event, InstallationEvent):
             GithubAppInstallationHandler.get_signature(
-                event=self.event, job=None
+                event=self.event,
+                job=None,
             ).apply_async()
         elif isinstance(
-            self.event, IssueCommentEvent
+            self.event,
+            IssueCommentEvent,
         ) and self.is_fas_verification_comment(self.event.comment):
             if GithubFasVerificationHandler.pre_check(
-                package_config=None, job_config=None, event=self.event.get_dict()
+                package_config=None,
+                job_config=None,
+                event=self.event.get_dict(),
             ):
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
                 GithubFasVerificationHandler.get_signature(
-                    event=self.event, job=None
+                    event=self.event,
+                    job=None,
                 ).apply_async()
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
@@ -240,13 +252,15 @@ class SteveJobs:
                     msg="Job created.",
                     job_config=None,
                     event=self.event,
-                )
+                ),
             ]
 
         return processing_results
 
     def initialize_job_helper(
-        self, handler_kls: Type[JobHandler], job_config: JobConfig
+        self,
+        handler_kls: Type[JobHandler],
+        job_config: JobConfig,
     ) -> Union[ProposeDownstreamJobHelper, BaseBuildJobHelper]:
         """
         Initialize job helper with arguments
@@ -292,7 +306,7 @@ class SteveJobs:
             {
                 "build_targets_override": self.event.build_targets_override,
                 "tests_targets_override": self.event.tests_targets_override,
-            }
+            },
         )
         return helper_kls(**params)
 
@@ -428,7 +442,8 @@ class SteveJobs:
             List of the results of each task.
         """
         if isinstance(
-            self.event, AbstractCommentEvent
+            self.event,
+            AbstractCommentEvent,
         ) and not get_handlers_for_comment(
             self.event.comment,
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
@@ -437,7 +452,7 @@ class SteveJobs:
                 TaskResults(
                     success=True,
                     details={"msg": "No Packit command found in the comment."},
-                )
+                ),
             ]
 
         if not self.is_packit_config_present():
@@ -447,14 +462,14 @@ class SteveJobs:
                     msg="No packit config found in the repository.",
                     job_config=None,
                     event=self.event,
-                )
+                ),
             ]
 
         handler_classes = self.get_handlers_for_event()
 
         if not handler_classes:
             logger.debug(
-                f"There is no handler for {self.event} event suitable for the configuration."
+                f"There is no handler for {self.event} event suitable for the configuration.",
             )
             return []
 
@@ -487,7 +502,7 @@ class SteveJobs:
                 ]
 
             processing_results.extend(
-                self.create_tasks(job_configs, handler_kls, statuses_check_feedback)
+                self.create_tasks(job_configs, handler_kls, statuses_check_feedback),
             )
         self.push_statuses_metrics(statuses_check_feedback)
 
@@ -511,7 +526,8 @@ class SteveJobs:
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
             if self.should_task_be_created_for_job_config_and_handler(
-                job_config, handler_kls
+                job_config,
+                handler_kls,
             ):
                 self.report_task_accepted(
                     handler_kls=handler_kls,
@@ -526,11 +542,11 @@ class SteveJobs:
                     self.event.store_packages_config()
 
                 signatures.append(
-                    handler_kls.get_signature(event=self.event, job=job_config)
+                    handler_kls.get_signature(event=self.event, job=job_config),
                 )
                 logger.debug(
                     f"Got signature for handler={handler_kls} "
-                    f"and job_config={job_config}."
+                    f"and job_config={job_config}.",
                 )
                 processing_results.append(
                     TaskResults.create_from(
@@ -538,7 +554,7 @@ class SteveJobs:
                         msg="Job created.",
                         job_config=job_config,
                         event=self.event,
-                    )
+                    ),
                 )
         logger.debug("Signatures are going to be sent to Celery.")
         # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
@@ -547,7 +563,9 @@ class SteveJobs:
         return processing_results
 
     def should_task_be_created_for_job_config_and_handler(
-        self, job_config: JobConfig, handler_kls: Type[JobHandler]
+        self,
+        job_config: JobConfig,
+        handler_kls: Type[JobHandler],
     ) -> bool:
         """
         Check whether a new task should be created for job config and handler.
@@ -563,7 +581,7 @@ class SteveJobs:
             logger.debug(
                 f"Current deployment ({self.service_config.deployment}) "
                 f"does not match the job configuration ({job_config.packit_instances}). "
-                "The job will not be run."
+                "The job will not be run.",
             )
             return False
 
@@ -610,7 +628,7 @@ class SteveJobs:
         elif not self.event.project:
             logger.warning(
                 "Cannot obtain project from this event! "
-                "Skipping private repository check!"
+                "Skipping private repository check!",
             )
         elif self.event.project.is_private():
             service_with_namespace = (
@@ -624,12 +642,12 @@ class SteveJobs:
                 logger.info(
                     f"We do not interact with private repositories by default. "
                     f"Add `{service_with_namespace}` to the `enabled_private_namespaces` "
-                    f"in the service configuration."
+                    f"in the service configuration.",
                 )
                 return False
             logger.debug(
                 f"Working in `{service_with_namespace}` namespace "
-                f"which is private but enabled via configuration."
+                f"which is private but enabled via configuration.",
             )
 
         return True
@@ -770,17 +788,19 @@ class SteveJobs:
 
         if isinstance(self.event, AbstractCommentEvent):
             handlers_triggered_by_job = get_handlers_for_comment(
-                self.event.comment, self.service_config.comment_command_prefix
+                self.event.comment,
+                self.service_config.comment_command_prefix,
             )
 
             if handlers_triggered_by_job and not isinstance(
-                self.event, PullRequestCommentPagureEvent
+                self.event,
+                PullRequestCommentPagureEvent,
             ):
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
 
         if isinstance(self.event, CheckRerunEvent):
             handlers_triggered_by_job = get_handlers_for_check_rerun(
-                self.event.check_name_job
+                self.event.check_name_job,
             )
 
         return handlers_triggered_by_job
@@ -818,7 +838,7 @@ class SteveJobs:
 
         if not matching_handlers:
             logger.debug(
-                f"We did not find any handler for a following event:\n{self.event.__class__}"
+                f"We did not find any handler for a following event:\n{self.event.__class__}",
             )
 
         logger.debug(f"Matching handlers: {matching_handlers}")
@@ -852,7 +872,8 @@ class SteveJobs:
         )
 
     def get_config_for_handler_kls(
-        self, handler_kls: Type[JobHandler]
+        self,
+        handler_kls: Type[JobHandler],
     ) -> List[JobConfig]:
         """
         Get a list of JobConfigs relevant to event and the handler class.
@@ -883,7 +904,7 @@ class SteveJobs:
 
         if not matching_jobs:
             logger.debug(
-                "No config found, let's see the jobs that requires this handler."
+                "No config found, let's see the jobs that requires this handler.",
             )
             for job in jobs_matching_trigger:
                 if handler_kls in MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]:
@@ -892,7 +913,7 @@ class SteveJobs:
         if not matching_jobs:
             logger.warning(
                 f"We did not find any config for {handler_kls} and a following event:\n"
-                f"{self.event.__class__}"
+                f"{self.event.__class__}",
             )
 
         logger.debug(f"Jobs matching {handler_kls}: {matching_jobs}")
@@ -914,10 +935,11 @@ class SteveJobs:
             return
 
         response_time = elapsed_seconds(
-            begin=self.event.created_at, end=statuses_check_feedback[0]
+            begin=self.event.created_at,
+            end=statuses_check_feedback[0],
         )
         logger.debug(
-            f"Reporting first initial status check time: {response_time} seconds."
+            f"Reporting first initial status check time: {response_time} seconds.",
         )
         self.pushgateway.first_initial_status_time.observe(response_time)
         if response_time > 25:
@@ -927,17 +949,18 @@ class SteveJobs:
             # we need more info why this has happened
             logger.debug(f"Event dict: {self.event}.")
             logger.error(
-                f"Event {self.event.__class__.__name__} took more than 15s to process."
+                f"Event {self.event.__class__.__name__} took more than 15s to process.",
             )
         # set the time when the accepted status was set so that we
         # can use it later for measurements
         self.event.task_accepted_time = statuses_check_feedback[0]
 
         response_time = elapsed_seconds(
-            begin=self.event.created_at, end=statuses_check_feedback[-1]
+            begin=self.event.created_at,
+            end=statuses_check_feedback[-1],
         )
         logger.debug(
-            f"Reporting last initial status check time: {response_time} seconds."
+            f"Reporting last initial status check time: {response_time} seconds.",
         )
         self.pushgateway.last_initial_status_time.observe(response_time)
 
@@ -974,23 +997,26 @@ class SteveJobs:
             `True`, if is verification comment, `False` otherwise.
         """
         command = get_packit_commands_from_comment(
-            comment, self.service_config.comment_command_prefix
+            comment,
+            self.service_config.comment_command_prefix,
         )
 
         return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
 
     def report_task_accepted_for_downstream_retrigger_comments(
-        self, handler_kls: Type[JobHandler]
+        self,
+        handler_kls: Type[JobHandler],
     ):
         """
         For dist-git PR comment events/ issue comment events in issue_repository,
         report that the task was accepted and provide handler specific info.
         """
         if not isinstance(
-            self.event, (AbstractIssueCommentEvent, AbstractPRCommentEvent)
+            self.event,
+            (AbstractIssueCommentEvent, AbstractPRCommentEvent),
         ):
             logger.debug(
-                "Not a comment event, not reporting task was accepted via comment."
+                "Not a comment event, not reporting task was accepted via comment.",
             )
             return
 

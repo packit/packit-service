@@ -9,13 +9,13 @@ from tests_openshift.openshift_integration.base import PackitServiceTestCase, DA
 
 def pr_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "copr_build" / "pr_synchronize.json").read_text()
+        (DATA_DIR / "webhooks" / "copr_build" / "pr_synchronize.json").read_text(),
     )
 
 
 def pr_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json").read_text(),
     )
 
 
@@ -23,7 +23,7 @@ def pr_comment_event_not_collaborator():
     return json.loads(
         (
             DATA_DIR / "webhooks" / "copr_build" / "pr_comment_not_collaborator.json"
-        ).read_text()
+        ).read_text(),
     )
 
 

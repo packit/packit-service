@@ -33,7 +33,9 @@ class PullFromUpstreamList(Resource):
         result = []
         first, last = indices()
         for pull_results in SyncReleaseModel.get_range(
-            first, last, job_type=SyncReleaseJobType.pull_from_upstream
+            first,
+            last,
+            job_type=SyncReleaseJobType.pull_from_upstream,
         ):
             result.append(get_sync_release_info(pull_results))
 
@@ -46,7 +48,8 @@ class PullFromUpstreamList(Resource):
 @ns.param("id", "Packit id of the pull from upstream run target")
 class PullResult(Resource):
     @ns.response(
-        HTTPStatus.OK.value, "OK, pull from upstream target details will follow"
+        HTTPStatus.OK.value,
+        "OK, pull from upstream target details will follow",
     )
     @ns.response(
         HTTPStatus.NOT_FOUND.value,

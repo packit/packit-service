@@ -22,7 +22,7 @@ def mock_get_aliases():
             "fedora-stable": ["fedora-31", "fedora-32"],
             "fedora-development": ["fedora-33", "fedora-rawhide"],
             "epel-all": ["epel-6", "epel-7", "epel-8"],
-        }
+        },
     )
 
 
@@ -45,8 +45,9 @@ def fake_package_config_job_config_project_db_trigger():
         identifier="",
         packages={
             "knx-stack": flexmock(
-                specfile_path="knx-stack.spec", copr_chroot="fedora-36-x86_64"
-            )
+                specfile_path="knx-stack.spec",
+                copr_chroot="fedora-36-x86_64",
+            ),
         },
         package=None,
     )
@@ -73,7 +74,7 @@ def add_pull_request_event_with_empty_sha():
         commit_sha="",
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        db_project_object
+        db_project_object,
     )
     db_project_event = (
         flexmock(id=2, type=ProjectEventModelType.pull_request, commit_sha="")
@@ -83,7 +84,9 @@ def add_pull_request_event_with_empty_sha():
     )
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha=""
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="",
     ).and_return(db_project_event)
     yield db_project_object, db_project_event
 

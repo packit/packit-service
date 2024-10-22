@@ -88,7 +88,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         if not self._build_targets_override and "rebuild-failed" in self.comment:
             self._build_targets_override = (
                 super().get_all_build_targets_by_status(
-                    statuses_to_filter_with=[BuildStatus.failure]
+                    statuses_to_filter_with=[BuildStatus.failure],
                 )
                 or None
             )
@@ -102,7 +102,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
                     statuses_to_filter_with=[
                         TestingFarmResult.failed,
                         TestingFarmResult.error,
-                    ]
+                    ],
                 )
                 or None
             )

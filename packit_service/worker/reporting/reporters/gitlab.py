@@ -33,16 +33,21 @@ class StatusReporterGitlab(StatusReporter):
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
-            f"Setting Gitlab status '{state_to_set.name}' for check '{check_name}': {description}"
+            f"Setting Gitlab status '{state_to_set.name}' for check '{check_name}': {description}",
         )
         if markdown_content:
             logger.debug(
-                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored.",
             )
 
         try:
             self.project_with_commit.set_commit_status(
-                self.commit_sha, state_to_set, url, description, check_name, trim=True
+                self.commit_sha,
+                state_to_set,
+                url,
+                description,
+                check_name,
+                trim=True,
             )
         except GitlabAPIException as e:
             # Ignoring Gitlab 'enqueue' error
@@ -52,10 +57,13 @@ class StatusReporterGitlab(StatusReporter):
                 # 404: Commit has not been found, e.g. used target project on GitLab
                 logger.debug(
                     f"Failed to set status for {self.commit_sha},"
-                    f"  commenting on commit as a fallback: {e}"
+                    f"  commenting on commit as a fallback: {e}",
                 )
                 self._add_commit_comment_with_status(
-                    state, description, check_name, url
+                    state,
+                    description,
+                    check_name,
+                    url,
                 )
             if e.response_code not in {400, 403, 404}:
                 raise

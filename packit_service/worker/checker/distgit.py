@@ -59,7 +59,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
             ):
                 logger.info(
                     f"Skipping build on '{self.data.git_ref}'. "
-                    f"Koji build configured only for '{configured_branches}'."
+                    f"Koji build configured only for '{configured_branches}'.",
                 )
                 return False
 
@@ -75,12 +75,12 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     logger.info(
                         f"Push event {self.data.identifier} with corresponding PR created by"
                         f" {pr_author} that is not allowed in project "
-                        f"configuration: {self.job_config.allowed_pr_authors}."
+                        f"configuration: {self.job_config.allowed_pr_authors}.",
                     )
                     return False
             else:
                 logger.debug(
-                    "Not able to get the pull request, we are handling direct push."
+                    "Not able to get the pull request, we are handling direct push.",
                 )
                 committer = self.data.event_dict["committer"]
                 logger.debug(f"Committer: {committer}")
@@ -92,19 +92,20 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     logger.info(
                         f"Push event {self.data.identifier} done by "
                         f"{committer} that is not allowed in project "
-                        f"configuration: {self.job_config.allowed_committers}."
+                        f"configuration: {self.job_config.allowed_committers}.",
                     )
                     return False
         elif self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             comment = self.data.event_dict.get("comment", "")
             commands = get_packit_commands_from_comment(
-                comment, self.service_config.comment_command_prefix
+                comment,
+                self.service_config.comment_command_prefix,
             )
             command = commands[0] if commands else ""
             commenter = self.data.actor
             logger.debug(
                 f"{'Tagging' if command == 'koji-tag' else 'Triggering'} "
-                f"downstream koji build through comment by: {commenter}"
+                f"downstream koji build through comment by: {commenter}",
             )
             if not self.is_packager(commenter):
                 msg = (
@@ -142,7 +143,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker):
             logger.debug(
                 f"Re-triggering downstream koji-build through comment in "
                 f"repo {self.project.repo} and issue {self.data.issue_id} "
-                f"by {self.actor}."
+                f"by {self.actor}.",
             )
             if not self.project.has_write_access(user=self.actor):
                 msg = (
@@ -227,7 +228,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             commenter = self.data.actor
             logger.debug(
-                f"Triggering pull-from-upstream through comment by: {commenter}"
+                f"Triggering pull-from-upstream through comment by: {commenter}",
             )
             if not self.is_packager(commenter):
                 msg_to_report = (
@@ -267,7 +268,7 @@ class IsUpstreamTagMatchingConfig(Checker):
             if not matching_include_regex:
                 logger.info(
                     f"Tag {tag} doesn't match the upstream_tag_include {upstream_tag_include} "
-                    f"from the config. Skipping the syncing."
+                    f"from the config. Skipping the syncing.",
                 )
                 return False
 
@@ -276,7 +277,7 @@ class IsUpstreamTagMatchingConfig(Checker):
             if matching_exclude_regex:
                 logger.info(
                     f"Tag {tag} matches the upstream_tag_exclude {upstream_tag_exclude} "
-                    f"from the config. Skipping the syncing."
+                    f"from the config. Skipping the syncing.",
                 )
                 return False
 

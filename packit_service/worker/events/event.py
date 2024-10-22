@@ -292,7 +292,7 @@ class EventData:
             )
         else:
             logger.warning(
-                "We don't know, what to search in the database for this event data."
+                "We don't know, what to search in the database for this event data.",
             )
 
     @property
@@ -464,7 +464,7 @@ class Event:
                 return job_config_trigger_type
         if not self.db_project_object:
             logger.warning(
-                f"Event {self} does not have a matching object in the database."
+                f"Event {self} does not have a matching object in the database.",
             )
             return None
         return self.db_project_object.job_config_trigger_type
@@ -585,7 +585,7 @@ class AbstractForgeIndependentEvent(Event):
             return None
 
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_project_object.project.project_url
+            url=self.project_url or self.db_project_object.project.project_url,
         )
 
     def get_base_project(self) -> Optional[GitProject]:
@@ -598,7 +598,7 @@ class AbstractForgeIndependentEvent(Event):
             f"\tproject: {self.project}\n"
             f"\tbase_project: {self.base_project}\n"
             f"\treference: {self.commit_sha}\n"
-            f"\tpr_id: {self.pr_id}"
+            f"\tpr_id: {self.pr_id}",
         )
 
         packages_config = PackageConfigGetter.get_package_config_from_repo(
@@ -612,29 +612,31 @@ class AbstractForgeIndependentEvent(Event):
         return packages_config
 
     def get_all_tf_targets_by_status(
-        self, statuses_to_filter_with: List[str]
+        self,
+        statuses_to_filter_with: List[str],
     ) -> Optional[Set[str]]:
         if self.commit_sha is None:
             return None
 
         logger.debug(
-            f"Getting failed Testing Farm targets for commit sha: {self.commit_sha}"
+            f"Getting failed Testing Farm targets for commit sha: {self.commit_sha}",
         )
         return filter_most_recent_target_names_by_status(
             models=TFTTestRunTargetModel.get_all_by_commit_target(
-                commit_sha=self.commit_sha
+                commit_sha=self.commit_sha,
             ),
             statuses_to_filter_with=statuses_to_filter_with,
         )
 
     def get_all_build_targets_by_status(
-        self, statuses_to_filter_with: List[str]
+        self,
+        statuses_to_filter_with: List[str],
     ) -> Optional[Set[str]]:
         if self.commit_sha is None or self.project.repo is None:
             return None
 
         logger.debug(
-            f"Getting failed COPR build targets for commit sha: {self.commit_sha}"
+            f"Getting failed COPR build targets for commit sha: {self.commit_sha}",
         )
         return filter_most_recent_target_names_by_status(
             models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),

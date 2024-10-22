@@ -116,7 +116,7 @@ def test_GetBranchesFromIssueMixin(desc, comments, branches):
                     flexmock(
                         description=desc,
                         get_comments=lambda: [flexmock(body=c) for c in comments],
-                    )
+                    ),
                 )
                 .mock()
             )
@@ -151,7 +151,7 @@ def test_ConfigFromDistGitUrlMixin():
             )
             event.dist_git_project_url = "url to distgit"
             self.data = EventData.from_event_dict(
-                flexmock(event, tag_name="a tag", commit_sha="aebdf").get_dict()
+                flexmock(event, tag_name="a tag", commit_sha="aebdf").get_dict(),
             )
 
     mixin = Test()

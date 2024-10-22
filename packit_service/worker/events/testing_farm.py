@@ -63,13 +63,13 @@ class TestingFarmResultsEvent(AbstractResultEvent):
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         run_model = TFTTestRunTargetModel.get_by_pipeline_id(
-            pipeline_id=self.pipeline_id
+            pipeline_id=self.pipeline_id,
         )
         return run_model.get_project_event_object() if run_model else None
 
     def get_db_project_event(self) -> Optional[ProjectEventModel]:
         run_model = TFTTestRunTargetModel.get_by_pipeline_id(
-            pipeline_id=self.pipeline_id
+            pipeline_id=self.pipeline_id,
         )
         return run_model.get_project_event_model() if run_model else None
 

@@ -97,8 +97,9 @@ def test_testing_farm_response(
                 trigger=JobConfigTriggerType.pull_request,
                 packages={
                     "package": CommonPackageConfig(
-                        identifier=None, _targets=["fedora-rawhide"]
-                    )
+                        identifier=None,
+                        _targets=["fedora-rawhide"],
+                    ),
                 },
             ),
         ],
@@ -107,21 +108,22 @@ def test_testing_farm_response(
         },
     )
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(package_config)
     config = flexmock(
-        command_handler_work_dir=flexmock(), comment_command_prefix="/packit"
+        command_handler_work_dir=flexmock(),
+        comment_command_prefix="/packit",
     )
     flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
     flexmock(TFResultsEvent).should_receive("db_project_object").and_return(None)
     config.should_receive("get_project").with_args(
-        url="https://github.com/packit/ogr"
+        url="https://github.com/packit/ogr",
     ).and_return(
         flexmock(
             service=flexmock(instance_url="https://github.com"),
             namespace="packit",
             repo="ogr",
-        )
+        ),
     )
     config.should_receive("get_github_account_name").and_return("packit-as-a-service")
     created_dt = datetime.now(timezone.utc)
@@ -146,7 +148,7 @@ def test_testing_farm_response(
             packages={
                 "package": CommonPackageConfig(
                     identifier=None,
-                )
+                ),
             },
         ),
         event=event_dict,
@@ -179,24 +181,25 @@ def test_testing_farm_response(
                     job_config_trigger_type=JobConfigTriggerType.pull_request,
                     project_event_model_type=ProjectEventModelType.pull_request,
                     commit_sha="0000000000",
-                )
+                ),
             )
-            .mock()
+            .mock(),
         )
         .mock()
     )
     tft_test_run_model.should_receive("set_status").with_args(
-        tests_result, created=created_dt
+        tests_result,
+        created=created_dt,
     ).and_return().once()
     tft_test_run_model.should_receive("set_web_url").with_args(
-        "some url"
+        "some url",
     ).and_return().once()
 
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
-        tft_test_run_model
+        tft_test_run_model,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
-        flexmock(id=1, type=ProjectEventModelType.pull_request)
+        flexmock(id=1, type=ProjectEventModelType.pull_request),
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
@@ -250,7 +253,7 @@ def test_distro2compose(target, compose, use_internal_tf):
             packages={
                 "package": CommonPackageConfig(
                     use_internal_tf=use_internal_tf,
-                )
+                ),
             },
         ),
     )
@@ -259,7 +262,7 @@ def test_distro2compose(target, compose, use_internal_tf):
     response = flexmock(status_code=200, json=lambda: {"composes": [{"name": compose}]})
     endpoint = "composes/redhat" if use_internal_tf else "composes/public"
     job_helper.should_receive("send_testing_farm_request").with_args(
-        endpoint=endpoint
+        endpoint=endpoint,
     ).and_return(response).once()
 
     assert job_helper.distro2compose(target) == compose
@@ -476,7 +479,7 @@ def test_is_compose_matching(compose, composes, result):
                     "id": "123456:centos-stream-x86_64",
                     "type": "fedora-copr-build",
                     "packages": ["cool-project-0:0.1.0-2.el8.x86_64"],
-                }
+                },
             ],
             None,
             None,
@@ -803,7 +806,7 @@ def test_payload(
                     tmt_plan=tmt_plan,
                     tf_post_install_script=tf_post_install_script,
                     tf_extra_params=tf_extra_params,
-                )
+                ),
             },
         ),
     )
@@ -832,7 +835,7 @@ def test_payload(
                 "release": "1",
                 "arch": "noarch",
                 "epoch": "0",
-            }
+            },
         ],
         build_logs_url=log_url,
         owner="builder",
@@ -841,7 +844,10 @@ def test_payload(
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
     payload = job_helper._payload(
-        target=chroot, compose=compose, artifacts=artifacts, build=copr_build
+        target=chroot,
+        compose=compose,
+        artifacts=artifacts,
+        build=copr_build,
     )
 
     assert payload["api_key"] == token_to_use
@@ -868,7 +874,7 @@ def test_payload(
                     "arch": arch,
                     "trigger": "commit",
                     "initiator": "packit",
-                }
+                },
             },
             "variables": {
                 "PACKIT_BUILD_LOG_URL": log_url,
@@ -887,14 +893,14 @@ def test_payload(
                 "PACKIT_COPR_PROJECT": "builder/some_package",
                 "MY_ENV_VARIABLE": "my-value",
             },
-        }
+        },
     ]
     if copr_rpms:
         expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = copr_rpms
 
     if tf_post_install_script:
         expected_environments[0]["settings"] = {
-            "provisioning": {"post_install_script": tf_post_install_script}
+            "provisioning": {"post_install_script": tf_post_install_script},
         }
 
     if comment is not None:
@@ -945,10 +951,10 @@ def test_payload(
                             {
                                 "id": "123:fedora-37",
                                 "type": "fedora-copr-build",
-                            }
+                            },
                         ],
-                    }
-                ]
+                    },
+                ],
             },
             {
                 "environments": [
@@ -958,13 +964,13 @@ def test_payload(
                                 "type": "repository",
                                 "id": "123:fedora-37",
                                 "packages": "some-nvr",
-                            }
+                            },
                         ],
                         "settings": {
-                            "provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}
+                            "provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}},
                         },
-                    }
-                ]
+                    },
+                ],
             },
             {
                 "environments": [
@@ -982,10 +988,10 @@ def test_payload(
                             },
                         ],
                         "settings": {
-                            "provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}
+                            "provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}},
                         },
-                    }
-                ]
+                    },
+                ],
             },
         ),
     ],
@@ -1006,7 +1012,10 @@ def test_merge_extra_params_with_install():
     package_config = flexmock()
     project = flexmock(full_repo_name="test/merge")
     metadata = flexmock(
-        commit_sha="0000000", pr_id=None, tag_name=None, event_dict={"comment": ""}
+        commit_sha="0000000",
+        pr_id=None,
+        tag_name=None,
+        event_dict={"comment": ""},
     )
     db_project_event = (
         flexmock()
@@ -1029,8 +1038,8 @@ def test_merge_extra_params_with_install():
         ),
         tf_extra_params={
             "environments": [
-                {"tmt": {"context": {"distro": "rhel-7.9"}}, "settings": tf_settings}
-            ]
+                {"tmt": {"context": {"distro": "rhel-7.9"}}, "settings": tf_settings},
+            ],
         },
     )
     helper = TFJobHelper(
@@ -1130,7 +1139,13 @@ def test_merge_extra_params_with_install():
     ],
 )
 def test_test_repo(
-    fmf_url, fmf_ref, fmf_path, result_url, result_ref, result_path, merge_pr_in_ci
+    fmf_url,
+    fmf_ref,
+    fmf_path,
+    result_url,
+    result_ref,
+    result_path,
+    merge_pr_in_ci,
 ):
     tf_api = "https://api.dev.testing-farm.io/v0.1/"
     tf_token = "very-secret"
@@ -1200,7 +1215,7 @@ def test_test_repo(
                     fmf_ref=fmf_ref,
                     fmf_path=fmf_path,
                     merge_pr_in_ci=merge_pr_in_ci,
-                )
+                ),
             },
         ),
     )
@@ -1225,7 +1240,7 @@ def test_test_repo(
                 "release": "1",
                 "arch": "noarch",
                 "epoch": "0",
-            }
+            },
         ],
         build_logs_url=log_url,
         owner="mf",
@@ -1256,7 +1271,7 @@ def test_get_request_details():
     request = {
         "id": request_id,
         "environments_requested": [
-            {"arch": "x86_64", "os": {"compose": "Fedora-Rawhide"}}
+            {"arch": "x86_64", "os": {"compose": "Fedora-Rawhide"}},
         ],
         "result": {"overall": "passed", "summary": "all ok"},
     }
@@ -1304,13 +1319,13 @@ def test_get_request_details():
                                         target="foo",
                                         status=TestingFarmResult.new,
                                         copr_builds=[
-                                            flexmock(status=BuildStatus.success)
+                                            flexmock(status=BuildStatus.success),
                                         ],
-                                    )
-                                ]
-                            )
-                        )
-                    ]
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
                 ),
             ),
             False,
@@ -1327,7 +1342,7 @@ def test_trigger_build(copr_build, wait_for_build):
         packages={
             "package": CommonPackageConfig(
                 spec_source_id=1,
-            )
+            ),
         },
     )
     job_config._files_to_sync_used = False
@@ -1344,7 +1359,7 @@ def test_trigger_build(copr_build, wait_for_build):
 
     if copr_build and copr_build.status == BuildStatus.success:
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
-            TaskResults(success=True, details={})
+            TaskResults(success=True, details={}),
         ).twice()
     targets = {"target-x86_64", "another-target-x86_64"}
     tests = []
@@ -1355,24 +1370,24 @@ def test_trigger_build(copr_build, wait_for_build):
                     flexmock(
                         id=1,
                         status=copr_build.status if copr_build else BuildStatus.pending,
-                    )
+                    ),
                 ],
                 target=target,
                 status=TestingFarmResult.new,
-            )
+            ),
         )
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
-        *tests
+        *tests,
     ).one_by_one()
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
     flexmock(TFTTestRunGroupModel).should_receive("create").and_return(
-        flexmock(grouped_targets=tests)
+        flexmock(grouped_targets=tests),
     )
 
     if wait_for_build:
         for target in targets:
             flexmock(TFJobHelper).should_receive(
-                "report_status_to_tests_for_test_target"
+                "report_status_to_tests_for_test_target",
             ).with_args(
                 state=BaseCommitStatus.pending,
                 description="The latest build has not finished yet, "
@@ -1390,7 +1405,7 @@ def test_trigger_build(copr_build, wait_for_build):
         celery_task=flexmock(request=flexmock(retries=0)),
     )
     flexmock(tf_handler).should_receive("project").and_return(
-        flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock()
+        flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock(),
     )
     tf_handler._db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -1417,7 +1432,7 @@ def test_trigger_build_manual_tests_dont_report():
         packages={
             "package": CommonPackageConfig(
                 spec_source_id=1,
-            )
+            ),
         },
     )
     job_config._files_to_sync_used = False
@@ -1441,23 +1456,23 @@ def test_trigger_build_manual_tests_dont_report():
                     flexmock(
                         id=1,
                         status=copr_build.status if copr_build else BuildStatus.pending,
-                    )
+                    ),
                 ],
                 target=target,
                 status=TestingFarmResult.new,
-            )
+            ),
         )
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
-        *tests
+        *tests,
     ).one_by_one()
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
     flexmock(TFTTestRunGroupModel).should_receive("create").and_return(
-        flexmock(grouped_targets=tests)
+        flexmock(grouped_targets=tests),
     )
 
     for target in targets:
         flexmock(TFJobHelper).should_receive(
-            "report_status_to_tests_for_test_target"
+            "report_status_to_tests_for_test_target",
         ).with_args(
             state=BaseCommitStatus.neutral,
             description="The latest build has not finished yet. "
@@ -1475,7 +1490,7 @@ def test_trigger_build_manual_tests_dont_report():
         celery_task=flexmock(request=flexmock(retries=0)),
     )
     flexmock(tf_handler).should_receive("project").and_return(
-        flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock()
+        flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock(),
     )
     tf_handler._db_project_object = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -1503,7 +1518,7 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
         packages={
             "package": CommonPackageConfig(
                 fmf_url=job_fmf_url,
-            )
+            ),
         },
     )
     metadata = flexmock(pr_id=pr_id)
@@ -1517,12 +1532,12 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
                 source_project=flexmock()
                 .should_receive("get_web_url")
                 .and_return(fmf_url)
-                .mock()
-            )
+                .mock(),
+            ),
         )
     else:
         git_project.should_receive("get_web_url").and_return(
-            "https://github.com/packit/packit"
+            "https://github.com/packit/packit",
         ).once()
 
     helper = TFJobHelper(
@@ -1547,11 +1562,11 @@ def test_get_additional_builds():
         packages={
             "package": CommonPackageConfig(
                 _targets=["test-target", "another-test-target"],
-            )
+            ),
         },
     )
     metadata = flexmock(
-        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
+        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"},
     )
 
     git_project = flexmock()
@@ -1581,16 +1596,16 @@ def test_get_additional_builds():
     ).and_return(pr)
 
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
-        {"test-target", "another-test-target"}
+        {"test-target", "another-test-target"},
     )
 
     flexmock(packit_service.worker.helpers.testing_farm).should_receive(
-        "filter_most_recent_target_models_by_status"
+        "filter_most_recent_target_models_by_status",
     ).with_args(
         models=[additional_copr_build],
         statuses_to_filter_with=[BuildStatus.success],
     ).and_return(
-        {additional_copr_build}
+        {additional_copr_build},
     ).once()
 
     additional_copr_builds = helper.get_copr_builds_from_other_pr()
@@ -1606,11 +1621,11 @@ def test_get_additional_builds_pr_not_in_db():
         packages={
             "package": CommonPackageConfig(
                 _targets=["test-target", "another-test-target"],
-            )
+            ),
         },
     )
     metadata = flexmock(
-        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
+        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"},
     )
 
     git_project = flexmock()
@@ -1646,11 +1661,11 @@ def test_get_additional_builds_builds_not_in_db():
         packages={
             "package": CommonPackageConfig(
                 _targets=["test-target", "another-test-target"],
-            )
+            ),
         },
     )
     metadata = flexmock(
-        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
+        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"},
     )
 
     git_project = flexmock()
@@ -1676,10 +1691,10 @@ def test_get_additional_builds_builds_not_in_db():
         flexmock(id=16, job_config_trigger_type=JobConfigTriggerType.pull_request)
         .should_receive("get_copr_builds")
         .and_return([])
-        .mock()
+        .mock(),
     )
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
-        {"test-target", "another-test-target"}
+        {"test-target", "another-test-target"},
     )
     additional_copr_builds = helper.get_copr_builds_from_other_pr()
 
@@ -1693,11 +1708,11 @@ def test_get_additional_builds_wrong_format():
         packages={
             "package": CommonPackageConfig(
                 _targets=["test-target", "another-test-target"],
-            )
+            ),
         },
     )
     metadata = flexmock(
-        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"}
+        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"},
     )
 
     git_project = flexmock()
@@ -1802,7 +1817,7 @@ def test_get_additional_builds_wrong_format():
                     "id": "123456:centos-stream-x86_64",
                     "type": "fedora-copr-build",
                     "packages": ["cool-project-0.1.0-2.el8.x86_64"],
-                }
+                },
             ],
         ),
     ],
@@ -1814,11 +1829,11 @@ def test_get_artifacts(chroot, build, additional_build, result):
         packages={
             "package": CommonPackageConfig(
                 _targets=["test-target", "another-test-target"],
-            )
+            ),
         },
     )
     metadata = flexmock(
-        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"}
+        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"},
     )
 
     git_project = flexmock()
@@ -1836,7 +1851,9 @@ def test_get_artifacts(chroot, build, additional_build, result):
     )
 
     artifacts = helper._get_artifacts(
-        chroot=chroot, build=build, additional_build=additional_build
+        chroot=chroot,
+        build=build,
+        additional_build=additional_build,
     )
 
     assert artifacts == result
@@ -1858,7 +1875,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1879,7 +1896,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             identifier="public",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1888,7 +1905,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1909,7 +1926,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             identifier="public",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1919,7 +1936,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1941,7 +1958,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             identifier="public",
-                        )
+                        ),
                     },
                     manual_trigger=False,
                 ),
@@ -1953,7 +1970,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1973,15 +1990,17 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=123, commit_sha="abcdef"
+        type=ProjectEventModelType.pull_request,
+        event_id=123,
+        commit_sha="abcdef",
     ).and_return(
         flexmock()
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
-        .mock()
+        .mock(),
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        db_project_object
+        db_project_object,
     )
 
     gh_project = flexmock(namespace="n", repo="r")
@@ -2026,7 +2045,7 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             packages={
                 "package": CommonPackageConfig(
                     use_internal_tf=use_internal_tf,
-                )
+                ),
             },
         ),
     )
@@ -2113,7 +2132,7 @@ def test_parse_comment_arguments(
         packages={
             "package": CommonPackageConfig(
                 _targets=["test-target", "another-test-target"],
-            )
+            ),
         },
     )
     metadata = flexmock(event_dict={"comment": comment})

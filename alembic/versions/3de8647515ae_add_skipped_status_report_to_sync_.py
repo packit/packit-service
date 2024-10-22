@@ -22,14 +22,14 @@ def upgrade():
 
 def downgrade():
     op.execute(
-        "ALTER TYPE syncreleasetargetstatus RENAME TO syncreleasetargetstatus_old"
+        "ALTER TYPE syncreleasetargetstatus RENAME TO syncreleasetargetstatus_old",
     )
     op.execute(
         "CREATE TYPE syncreleasetargetstatus AS ENUM "
-        "('queued', 'running', 'error', 'retry', 'submitted')"
+        "('queued', 'running', 'error', 'retry', 'submitted')",
     )
     op.execute(
         "ALTER TABLE sync_release_run_targets "
-        "ALTER COLUMN status TYPE syncreleasetargetstatus USING status::syncreleasetargetstatus"
+        "ALTER COLUMN status TYPE syncreleasetargetstatus USING status::syncreleasetargetstatus",
     )
     op.execute("DROP TYPE syncreleasetargetstatus_old")

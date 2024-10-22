@@ -107,12 +107,20 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         if not build:
             logger.warning(
                 f"Build id {build_id} not in "
-                f"{'SRPMBuildDB' if chroot == COPR_SRPM_CHROOT else 'CoprBuildDB'}."
+                f"{'SRPMBuildDB' if chroot == COPR_SRPM_CHROOT else 'CoprBuildDB'}.",
             )
             return None
 
         return cls(
-            topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
+            topic,
+            build_id,
+            build,
+            chroot,
+            status,
+            owner,
+            project_name,
+            pkg,
+            timestamp,
         )
 
     @classmethod

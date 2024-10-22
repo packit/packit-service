@@ -82,21 +82,29 @@ class PipelineModel(Base):
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
     copr_build_group_id = Column(
-        Integer, ForeignKey("copr_build_groups.id"), index=True
+        Integer,
+        ForeignKey("copr_build_groups.id"),
+        index=True,
     )
     copr_build_group = relationship("CoprBuildGroupModel", back_populates="runs")
     koji_build_group_id = Column(
-        Integer, ForeignKey("koji_build_groups.id"), index=True
+        Integer,
+        ForeignKey("koji_build_groups.id"),
+        index=True,
     )
     koji_build_group = relationship("KojiBuildGroupModel", back_populates="runs")
     koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"), index=True)
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
     test_run_group_id = Column(
-        Integer, ForeignKey("tft_test_run_groups.id"), index=True
+        Integer,
+        ForeignKey("tft_test_run_groups.id"),
+        index=True,
     )
     test_run_group = relationship("TFTTestRunGroupModel", back_populates="runs")
     sync_release_run_id = Column(
-        Integer, ForeignKey("sync_release_runs.id"), index=True
+        Integer,
+        ForeignKey("sync_release_runs.id"),
+        index=True,
     )
     sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
@@ -136,7 +144,8 @@ class TFTTestRunTargetModel(ProjectAndEventsConnector, Base):
     )
 
     group_of_targets = relationship(
-        "TFTTestRunGroupModel", back_populates="tft_test_run_targets"
+        "TFTTestRunGroupModel",
+        back_populates="tft_test_run_targets",
     )
 
 
@@ -193,7 +202,8 @@ class CoprBuildTargetModel(ProjectAndEventsConnector, Base):
     copr_build_group_id = Column(Integer, ForeignKey("copr_build_groups.id"))
 
     group_of_targets = relationship(
-        "CoprBuildGroupModel", back_populates="copr_build_targets"
+        "CoprBuildGroupModel",
+        back_populates="copr_build_targets",
     )
 
 
@@ -247,7 +257,8 @@ class KojiBuildTargetModel(ProjectAndEventsConnector, Base):
     koji_build_group_id = Column(Integer, ForeignKey("koji_build_groups.id"))
 
     group_of_targets = relationship(
-        "KojiBuildGroupModel", back_populates="koji_build_targets"
+        "KojiBuildGroupModel",
+        back_populates="koji_build_targets",
     )
     runs = relationship("PipelineModel", back_populates="koji_build")
 
@@ -273,7 +284,8 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"))
 
     sync_release = relationship(
-        "SyncReleaseModel", back_populates="sync_release_targets"
+        "SyncReleaseModel",
+        back_populates="sync_release_targets",
     )
 
 
@@ -294,12 +306,14 @@ class SyncReleaseModel(ProjectAndEventsConnector, Base):
     status = Column(Enum(SyncReleaseStatus))
     submitted_time = Column(DateTime, default=datetime.utcnow)
     job_type = Column(
-        Enum(SyncReleaseJobType), default=SyncReleaseJobType.propose_downstream
+        Enum(SyncReleaseJobType),
+        default=SyncReleaseJobType.propose_downstream,
     )
 
     runs = relationship("PipelineModel", back_populates="sync_release_run")
     sync_release_targets = relationship(
-        "SyncReleaseTargetModel", back_populates="sync_release"
+        "SyncReleaseTargetModel",
+        back_populates="sync_release",
     )
 
 
@@ -316,7 +330,8 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     runs = relationship("PipelineModel", back_populates="test_run_group")
     tft_test_run_targets = relationship(
-        "TFTTestRunTargetModel", back_populates="group_of_targets"
+        "TFTTestRunTargetModel",
+        back_populates="group_of_targets",
     )
 
     @property
@@ -331,7 +346,8 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     runs = relationship("PipelineModel", back_populates="copr_build_group")
     copr_build_targets = relationship(
-        "CoprBuildTargetModel", back_populates="group_of_targets"
+        "CoprBuildTargetModel",
+        back_populates="group_of_targets",
     )
 
     @property
@@ -346,7 +362,8 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     runs = relationship("PipelineModel", back_populates="koji_build_group")
     koji_build_targets = relationship(
-        "KojiBuildTargetModel", back_populates="group_of_targets"
+        "KojiBuildTargetModel",
+        back_populates="group_of_targets",
     )
 
     @property
@@ -375,10 +392,15 @@ def upgrade():
         ["id"],
     )
     op.add_column(
-        "pipelines", sa.Column("koji_build_group_id", sa.Integer(), nullable=True)
+        "pipelines",
+        sa.Column("koji_build_group_id", sa.Integer(), nullable=True),
     )
     op.create_foreign_key(
-        None, "pipelines", "koji_build_groups", ["koji_build_group_id"], ["id"]
+        None,
+        "pipelines",
+        "koji_build_groups",
+        ["koji_build_group_id"],
+        ["id"],
     )
 
     # Group by the same SRPM
@@ -430,7 +452,8 @@ def downgrade():
     # Split the groups back, this may not fully produce the same thing.
     for group in session.query(KojiBuildGroupModel):
         for pipeline, koji_build in itertools.zip_longest(
-            group.runs, group.koji_build_targets
+            group.runs,
+            group.koji_build_targets,
         ):
             if not pipeline:
                 # Not enough pipelines, create a new one
@@ -441,7 +464,8 @@ def downgrade():
             session.add(pipeline)
 
     op.drop_constraint(
-        "koji_build_targets_koji_build_group_id_fkey", "koji_build_targets"
+        "koji_build_targets_koji_build_group_id_fkey",
+        "koji_build_targets",
     )
     op.drop_column("koji_build_targets", "koji_build_group_id")
     op.drop_constraint("pipelines_koji_build_group_id_fkey", "pipelines")

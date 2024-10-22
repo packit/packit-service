@@ -45,13 +45,14 @@ class Sidetag:
         for package in dependencies:
             latest_build = max(b for b in builds if b.name == package)
             latest_stable_nvr = self.koji_helper.get_latest_stable_nvr(
-                package, self.dist_git_branch
+                package,
+                self.dist_git_branch,
             )
             # exclude NVRs that are already in stable tags - if a build
             # has been manually tagged into the sidetag to satisfy dependencies,
             # we don't want it in the update
             if not latest_stable_nvr or latest_build > NEVR.from_string(
-                latest_stable_nvr
+                latest_stable_nvr,
             ):
                 result.add(latest_build)
         return result
@@ -62,7 +63,8 @@ class Sidetag:
 
     def tag_latest_stable_build(self, package: str) -> None:
         latest_stable_nvr = self.koji_helper.get_latest_stable_nvr(
-            package, self.dist_git_branch
+            package,
+            self.dist_git_branch,
         )
         if not latest_stable_nvr:
             logger.debug(f"Failed to find the latest stable build of {package}")
@@ -99,11 +101,11 @@ class SidetagHelper(metaclass=SidetagHelperMeta):
         group = SidetagGroupModel.get_or_create(sidetag_group)
         if not (sidetag := group.get_sidetag_by_target(dist_git_branch)):
             raise PackitException(
-                f"Sidetag for {sidetag_group} and {dist_git_branch} was not found in the database"
+                f"Sidetag for {sidetag_group} and {dist_git_branch} was not found in the database",
             )
         if not cls.koji_helper.get_tag_info(sidetag.koji_name):
             raise PackitException(
-                f"Sidetag {sidetag.koji_name} no longer exists in Koji"
+                f"Sidetag {sidetag.koji_name} no longer exists in Koji",
             )
         return Sidetag(sidetag, cls.koji_helper)
 
@@ -149,12 +151,12 @@ class SidetagHelper(metaclass=SidetagHelperMeta):
         group = SidetagGroupModel.get_or_create(sidetag_group)
         with SidetagModel.get_or_create_for_updating(group, dist_git_branch) as sidetag:
             if not sidetag.koji_name or not cls.koji_helper.get_tag_info(
-                sidetag.koji_name
+                sidetag.koji_name,
             ):
                 tag_info = cls.koji_helper.create_sidetag(dist_git_branch)
                 if not tag_info:
                     raise PackitException(
-                        f"Failed to create sidetag for {dist_git_branch}"
+                        f"Failed to create sidetag for {dist_git_branch}",
                     )
                 sidetag.koji_name = tag_info["name"]
         return Sidetag(sidetag, cls.koji_helper)

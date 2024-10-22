@@ -135,7 +135,7 @@ class CommentArguments:
                     logger.debug(f"Parsed env variable: {key}={value}")
                 else:
                     logger.error(
-                        f"Invalid format for '--env' argument: '{env}'. Expected VAR_NAME=value."
+                        f"Invalid format for '--env' argument: '{env}'. Expected VAR_NAME=value.",
                     )
                     continue
 
@@ -399,7 +399,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @staticmethod
     def _artifact(
-        chroot: str, build_id: Optional[int], built_packages: Optional[List[Dict]]
+        chroot: str,
+        build_id: Optional[int],
+        built_packages: Optional[List[Dict]],
     ) -> Dict[str, Union[List[str], str]]:
         artifact: Dict[str, Union[List[str], str]] = {
             "id": f"{build_id}:{chroot}",
@@ -458,7 +460,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 elif not is_final(value):
                     if key == TESTING_FARM_ARTIFACTS_KEY:
                         cls._handle_extra_artifacts(
-                            payload, params[TESTING_FARM_ARTIFACTS_KEY]
+                            payload,
+                            params[TESTING_FARM_ARTIFACTS_KEY],
                         )
                         continue
                     cls._merge_payload_with_extra_params(payload[key], params[key])
@@ -478,7 +481,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         else:
             logger.info(
                 "Type of artifacts in the tf_extra_params is not a list, "
-                "not adding them to payload."
+                "not adding them to payload.",
             )
 
     def _payload(
@@ -523,7 +526,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         if additional_build is not None:
             packit_copr_projects.append(
-                f"{additional_build.owner}/{additional_build.project_name}"
+                f"{additional_build.owner}/{additional_build.project_name}",
             )
 
         packit_copr_rpms = (
@@ -596,7 +599,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     "arch": arch,
                     "trigger": "commit",
                     "initiator": "packit",
-                }
+                },
             },
             "variables": predefined_environment,
         }
@@ -605,7 +608,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         if self.tf_post_install_script:
             environment["settings"] = {
-                "provisioning": {"post_install_script": self.tf_post_install_script}
+                "provisioning": {"post_install_script": self.tf_post_install_script},
             }
 
         payload = {
@@ -638,7 +641,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 payload[subtree] = extra_params[subtree]
             else:
                 self._merge_payload_with_extra_params(
-                    payload[subtree], extra_params[subtree]
+                    payload[subtree],
+                    extra_params[subtree],
                 )
 
         return payload
@@ -667,7 +671,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     "variables": {
                         "REPOSITORY": f"{copr_build.owner}/{copr_build.project_name}",
                     },
-                }
+                },
             ],
             "notification": {
                 "webhook": {
@@ -703,7 +707,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         try:
             self.project.get_file_content(
-                path=f"{self.fmf_path}/.fmf/version", ref=self.metadata.commit_sha
+                path=f"{self.fmf_path}/.fmf/version",
+                ref=self.metadata.commit_sha,
             )
             return True
         except FileNotFoundError:
@@ -749,7 +754,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         # some of those changes can change the target and result in a failure
         if self.is_compose_matching(distro, compiled_composes):
             logger.debug(
-                f"Distro {distro} directly matches a compose in the compose list."
+                f"Distro {distro} directly matches a compose in the compose list.",
             )
             return distro
 
@@ -854,7 +859,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def get_latest_copr_build(
-        self, target: str, commit_sha: str
+        self,
+        target: str,
+        commit_sha: str,
     ) -> Optional[CoprBuildTargetModel]:
         """
         Search a last build for the given target and commit SHA using Copr owner and project.
@@ -883,7 +890,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         artifacts = []
         if not self.skip_build:
             artifacts.append(
-                self._artifact(chroot, int(build.build_id), build.built_packages)
+                self._artifact(chroot, int(build.build_id), build.built_packages),
             )
 
         if additional_build:
@@ -892,7 +899,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     chroot,
                     int(additional_build.build_id),
                     additional_build.built_packages,
-                )
+                ),
             )
 
         return artifacts
@@ -914,7 +921,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
         chroot = self.test_target2build_target(test_run.target)
         logger.debug(
-            f"Running testing farm for target {test_run.target}, chroot={chroot}."
+            f"Running testing farm for target {test_run.target}, chroot={chroot}.",
         )
 
         if not self.skip_build and chroot not in self.build_targets:
@@ -923,7 +930,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 success=False,
                 details={
                     "msg": f"Target '{chroot}' not defined for build. "
-                    "Cannot run tests without build."
+                    "Cannot run tests without build.",
                 },
             )
 
@@ -956,7 +963,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return TaskResults(
                 success=True,
                 details={
-                    "msg": "No latest successful Copr build from the other PR found."
+                    "msg": "No latest successful Copr build from the other PR found.",
                 },
             )
 
@@ -1008,7 +1015,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(
-                build_id=int(build.build_id), target=test_run.target, compose=compose
+                build_id=int(build.build_id),
+                target=test_run.target,
+                compose=compose,
             )
         else:
             self.report_status_to_tests_for_test_target(
@@ -1029,12 +1038,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         if not response:
             return self._handle_tf_submit_no_response(
-                test_run=test_run, target=test_run.target, payload=payload
+                test_run=test_run,
+                target=test_run.target,
+                payload=payload,
             )
 
         if response.status_code != 200:
             return self._handle_tf_submit_failure(
-                test_run=test_run, response=response, payload=payload
+                test_run=test_run,
+                response=response,
+                payload=payload,
             )
 
         return self._handle_tf_submit_successful(
@@ -1044,13 +1057,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def send_testing_farm_request(
-        self, endpoint: str, method: str = None, params: dict = None, data=None
+        self,
+        endpoint: str,
+        method: str = None,
+        params: dict = None,
+        data=None,
     ) -> RequestResponse:
         method = method or "GET"
         url = f"{self.tft_api_url}{endpoint}"
         try:
             response = self.get_raw_request(
-                method=method, url=url, params=params, data=data
+                method=method,
+                url=url,
+                params=params,
+                data=data,
             )
         except requests.exceptions.ConnectionError as er:
             logger.error(er)
@@ -1101,7 +1121,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         response = self.send_testing_farm_request(
-            endpoint=f"requests/{request_id}", method="GET"
+            endpoint=f"requests/{request_id}",
+            method="GET",
         )
         if not response or response.status_code != 200:
             msg = f"Failed to get request/pipeline {request_id} details from TF. {response.reason}"
@@ -1140,7 +1161,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return TaskResults(success=True, details={})
 
     def _handle_tf_submit_no_response(
-        self, test_run: TFTTestRunTargetModel, target: str, payload: dict
+        self,
+        test_run: TFTTestRunTargetModel,
+        target: str,
+        payload: dict,
     ):
         """
         Retry the task and report it to user or report the error state to user.
@@ -1158,7 +1182,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return TaskResults(success=False, details={"msg": msg})
 
     def _handle_tf_submit_failure(
-        self, test_run: TFTTestRunTargetModel, response: RequestResponse, payload: dict
+        self,
+        test_run: TFTTestRunTargetModel,
+        response: RequestResponse,
+        payload: dict,
     ) -> TaskResults:
         """
         Retry the task and report it to user or report the failure state to user.
@@ -1192,7 +1219,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return TaskResults(success=False, details={"msg": msg})
 
     def _retry_on_submit_failure(
-        self, test_run: TFTTestRunTargetModel, message: str
+        self,
+        test_run: TFTTestRunTargetModel,
+        message: str,
     ) -> TaskResults:
         """
         Retry when there was a failure when submitting TF tests.
@@ -1217,7 +1246,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return TaskResults(
             success=True,
             details={
-                "msg": f"Task will be retried because of failure when submitting tests: {message}"
+                "msg": f"Task will be retried because of failure when submitting tests: {message}",
             },
         )
 
@@ -1260,16 +1289,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         copr_builds = pr_model.get_copr_builds()
         if not copr_builds:
             logger.debug(
-                f"No copr builds for {project_url} and PR ID {pr_id} found in DB."
+                f"No copr builds for {project_url} and PR ID {pr_id} found in DB.",
             )
             return None
 
         successful_most_recent_builds = filter_most_recent_target_models_by_status(
-            models=copr_builds, statuses_to_filter_with=[BuildStatus.success]
+            models=copr_builds,
+            statuses_to_filter_with=[BuildStatus.success],
         )
 
         return self._construct_copr_builds_from_other_pr_dict(
-            successful_most_recent_builds
+            successful_most_recent_builds,
         )
 
     def _parse_comment_pr_argument(self) -> Optional[Tuple[str, str, str]]:
@@ -1288,7 +1318,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             logger.debug(
                 "Unexpected format of the test argument:"
                 f" not able to split the test argument "
-                f"{self.comment_arguments.pr_argument} with '#'."
+                f"{self.comment_arguments.pr_argument} with '#'.",
             )
             return None
 
@@ -1298,19 +1328,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             logger.debug(
                 "Unexpected format of the test argument: "
                 f"not able to split the test argument "
-                f"{self.comment_arguments.pr_argument} with '/'."
+                f"{self.comment_arguments.pr_argument} with '/'.",
             )
             return None
         namespace, repo = namespace_repo
 
         logger.debug(
-            f"Parsed test argument -> namespace: {namespace}, repo: {repo}, PR ID: {pr_id}"
+            f"Parsed test argument -> namespace: {namespace}, repo: {repo}, PR ID: {pr_id}",
         )
 
         return namespace, repo, pr_id
 
     def _construct_copr_builds_from_other_pr_dict(
-        self, successful_most_recent_builds
+        self,
+        successful_most_recent_builds,
     ) -> Optional[Dict[str, CoprBuildTargetModel]]:
         """
         Construct a dictionary that will contain for each build target name
@@ -1401,7 +1432,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     ) -> None:
         if chroot in self.build_targets_for_tests:
             test_targets = self.build_target2test_targets_for_test_job(
-                chroot, self.job_config
+                chroot,
+                self.job_config,
             )
             for target in test_targets:
                 self._report(

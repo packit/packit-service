@@ -73,7 +73,7 @@ class VMImageBuildHandler(
             return TaskResults(
                 success=False,
                 details={
-                    "msg": f"Job configuration not found for project {self.project.repo}"
+                    "msg": f"Job configuration not found for project {self.project.repo}",
                 },
             )
 
@@ -141,7 +141,7 @@ class VMImageBuildResultHandler(
             if model.status == status:
                 logger.debug(
                     "Status was already processed (status in the DB is the same "
-                    "as the one about to report)"
+                    "as the one about to report)",
                 )
                 return TaskResults(
                     success=True,

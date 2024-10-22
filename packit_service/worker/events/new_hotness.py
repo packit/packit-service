@@ -53,7 +53,7 @@ class AnityaUpdateEvent(Event):
             return None
 
         return ServiceConfig.get_service_config().get_project(
-            url=self.distgit_project_url
+            url=self.distgit_project_url,
         )
 
     @property
@@ -81,7 +81,7 @@ class AnityaUpdateEvent(Event):
                 and self.project_url
             ):
                 logger.info(
-                    "Not going to create the DB project event, not valid arguments."
+                    "Not going to create the DB project event, not valid arguments.",
                 )
                 return None
 

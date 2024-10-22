@@ -242,7 +242,9 @@ class AbstractSyncReleaseHandler(
         return self.helper
 
     def sync_branch(
-        self, branch: str, model: SyncReleaseModel
+        self,
+        branch: str,
+        model: SyncReleaseModel,
     ) -> Optional[PullRequest]:
         try:
             branch_suffix = f"update-{self.sync_release_job_type.value}"
@@ -258,14 +260,14 @@ class AbstractSyncReleaseHandler(
                 "add_pr_instructions": True,
                 "resolved_bugs": self.get_resolved_bugs(),
                 "release_monitoring_project_id": self.data.event_dict.get(
-                    "anitya_project_id"
+                    "anitya_project_id",
                 ),
                 "sync_acls": True,
                 "pr_description_footer": DistgitAnnouncement.get_announcement(),
                 # [TODO] Remove for CentOS support once it gets refined
                 "add_new_sources": self.package_config.pkg_tool in (None, "fedpkg"),
                 "fast_forward_merge_branches": self.helper.get_fast_forward_merge_branches_for(
-                    branch
+                    branch,
                 ),
             }
             if not self.packit_api.non_git_upstream:
@@ -299,7 +301,7 @@ class AbstractSyncReleaseHandler(
                 delay = 60 * 2**retries
                 logger.info(
                     f"Will retry for the {retries + 1}. time in {delay}s \
-                        with sync_release_run_id {model.id}."
+                        with sync_release_run_id {model.id}.",
                 )
                 # throw=False so that exception is not raised and task
                 # is not retried also automatically
@@ -320,7 +322,9 @@ class AbstractSyncReleaseHandler(
         finally:
             if self.packit_api.up.local_project:
                 self.packit_api.up.local_project.git_repo.head.reset(
-                    "HEAD", index=True, working_tree=True
+                    "HEAD",
+                    index=True,
+                    working_tree=True,
                 )
 
         return downstream_pr
@@ -342,14 +346,17 @@ class AbstractSyncReleaseHandler(
 
         for branch in self.sync_release_helper.branches:
             sync_release_target = SyncReleaseTargetModel.create(
-                status=SyncReleaseTargetStatus.queued, branch=branch
+                status=SyncReleaseTargetStatus.queued,
+                branch=branch,
             )
             sync_release_model.sync_release_targets.append(sync_release_target)
 
         return sync_release_model
 
     def run_for_target(
-        self, sync_release_run_model: SyncReleaseModel, model: SyncReleaseTargetModel
+        self,
+        sync_release_run_model: SyncReleaseModel,
+        model: SyncReleaseTargetModel,
     ) -> Optional[str]:
         """
         Run sync-release for the single target specified by the given model.
@@ -374,7 +381,7 @@ class AbstractSyncReleaseHandler(
         ]:
             logger.debug(
                 f"Skipping {self.sync_release_job_type} for branch {branch} "
-                f"that was already processed."
+                f"that was already processed.",
             )
             return None
 
@@ -395,7 +402,8 @@ class AbstractSyncReleaseHandler(
 
         try:
             downstream_pr = self.sync_branch(
-                branch=branch, model=sync_release_run_model
+                branch=branch,
+                model=sync_release_run_model,
             )
             logger.debug("Downstream PR created successfully.")
             model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
@@ -435,7 +443,9 @@ class AbstractSyncReleaseHandler(
 
         dashboard_url = self.get_dashboard_url(model.id)
         self.report_dashboard_url(
-            sync_release_pull_request, downstream_pr, dashboard_url
+            sync_release_pull_request,
+            downstream_pr,
+            dashboard_url,
         )
         self.sync_release_helper.report_status_for_branch(
             branch=branch,
@@ -467,7 +477,7 @@ class AbstractSyncReleaseHandler(
         except AbortSyncRelease:
             logger.debug(
                 f"{self.sync_release_job_type} is being retried because "
-                "we were not able yet to download the archive. "
+                "we were not able yet to download the archive. ",
             )
 
             for model in sync_release_run_model.sync_release_targets:
@@ -612,7 +622,8 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         body_msg = f"{message}{msg_retrigger}\n"
 
         body_msg = update_message_with_configured_failure_comment_message(
-            body_msg, self.job_config
+            body_msg,
+            self.job_config,
         )
 
         PackageConfigGetter.create_issue_if_needed(
@@ -688,7 +699,8 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 
         comment = self.data.event_dict.get("comment")
         commands = get_packit_commands_from_comment(
-            comment, self.service_config.comment_command_prefix
+            comment,
+            self.service_config.comment_command_prefix,
         )
         args = commands[1:] if len(commands) > 1 else ""
         bugs_keyword = "--resolve-bug"
@@ -708,10 +720,12 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             f"need some help.*\n"
         )
         long_message = update_message_with_configured_failure_comment_message(
-            body_msg, self.job_config
+            body_msg,
+            self.job_config,
         )
         short_message = update_message_with_configured_failure_comment_message(
-            message, self.job_config
+            message,
+            self.job_config,
         )
         report_in_issue_repository(
             issue_repository=self.job_config.issue_repository,
@@ -782,7 +796,7 @@ class AbstractDownstreamKojiBuildHandler(
             run_model=PipelineModel.create(
                 project_event=self.data.db_project_event,
                 package_name=self.get_package_name(),
-            )
+            ),
         )
 
         for branch in self.get_branches():
@@ -816,7 +830,7 @@ class AbstractDownstreamKojiBuildHandler(
                 KojiBuildState.complete,
             ):
                 logger.debug(
-                    f"Koji build with matching NVR ({nvr}) found with state {state}"
+                    f"Koji build with matching NVR ({nvr}) found with state {state}",
                 )
                 return True
 
@@ -833,14 +847,14 @@ class AbstractDownstreamKojiBuildHandler(
             if koji_build_model.status not in ["queued", "pending", "retry"]:
                 logger.debug(
                     f"Skipping downstream Koji build for branch {branch} "
-                    f"that was already processed."
+                    f"that was already processed.",
                 )
                 continue
 
             if not self.job_config.scratch and self.is_already_triggered(branch):
                 logger.info(
                     f"Skipping downstream Koji build for branch {branch} "
-                    f"that was already triggered."
+                    f"that was already triggered.",
                 )
                 koji_build_model.set_status("skipped")
                 continue
@@ -854,17 +868,18 @@ class AbstractDownstreamKojiBuildHandler(
                     # we need Kerberos ticket to create a new sidetag
                     self.packit_api.init_kerberos_ticket()
                     sidetag = SidetagHelper.get_or_create_sidetag(
-                        self.job_config.sidetag_group, branch
+                        self.job_config.sidetag_group,
+                        branch,
                     )
                     # skip submitting build for a branch if dependencies
                     # are not satisfied within a sidetag
                     dependencies = set(self.job_config.dependencies or [])
                     if missing_dependencies := sidetag.get_missing_dependencies(
-                        dependencies
+                        dependencies,
                     ):
                         logger.debug(
                             f"Skipping downstream Koji build for branch {branch}, "
-                            f"missing dependencies: {missing_dependencies}"
+                            f"missing dependencies: {missing_dependencies}",
                         )
                         koji_build_model.set_status("skipped")
                         continue
@@ -888,17 +903,17 @@ class AbstractDownstreamKojiBuildHandler(
                         model.set_status("retry")
 
                     logger.debug(
-                        "Celery task will be retried. User will not be notified about the failure."
+                        "Celery task will be retried. User will not be notified about the failure.",
                     )
                     retry_backoff = int(
-                        getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF)
+                        getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF),
                     )
                     delay = retry_backoff * 2**self.celery_task.retries
                     self.celery_task.task.retry(exc=ex, countdown=delay, kwargs=kargs)
                     return TaskResults(
                         success=True,
                         details={
-                            "msg": f"There was an error: {ex}. Task will be retried."
+                            "msg": f"There was an error: {ex}. Task will be retried.",
                         },
                     )
                 error = str(ex)
@@ -918,7 +933,8 @@ class AbstractDownstreamKojiBuildHandler(
 
     def report_in_issue_repository(self, errors: dict[str, str]) -> None:
         body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
-            object="Koji build", dist_git_url=self.packit_api.dg.local_project.git_url
+            object="Koji build",
+            dist_git_url=self.packit_api.dg.local_project.git_url,
         )
         for branch, ex in errors.items():
             body += (
@@ -941,7 +957,8 @@ class AbstractDownstreamKojiBuildHandler(
             f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
         )
         body_msg = update_message_with_configured_failure_comment_message(
-            body_msg, self.job_config
+            body_msg,
+            self.job_config,
         )
 
         report_in_issue_repository(
@@ -1096,11 +1113,12 @@ class TagIntoSidetagHandler(
     def run(self) -> TaskResults:
         comment = self.data.event_dict.get("comment")
         commands = get_packit_commands_from_comment(
-            comment, self.service_config.comment_command_prefix
+            comment,
+            self.service_config.comment_command_prefix,
         )
         args = commands[1:] if len(commands) > 1 else ""
         packages_to_tag: Dict[str, Dict[str, Set[str]]] = defaultdict(
-            partial(defaultdict, set)
+            partial(defaultdict, set),
         )
         for job in self.package_config.get_job_views():
             if (
@@ -1109,7 +1127,8 @@ class TagIntoSidetagHandler(
                 and job.dist_git_branches
             ):
                 configured_branches = aliases.get_branches(
-                    *job.dist_git_branches, default_dg_branch="rawhide"
+                    *job.dist_git_branches,
+                    default_dg_branch="rawhide",
                 )
                 if "--all-branches" in args:
                     branches = configured_branches
@@ -1124,7 +1143,7 @@ class TagIntoSidetagHandler(
             for sidetag_group, branches in sidetag_groups.items():
                 logger.debug(
                     f"Running downstream Koji build tagging of {package} "
-                    f"for {branches} in {sidetag_group}"
+                    f"for {branches} in {sidetag_group}",
                 )
                 for branch in branches:
                     self.run_for_branch(package, sidetag_group, branch)

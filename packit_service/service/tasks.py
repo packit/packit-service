@@ -26,7 +26,9 @@ CHART_DATA_TYPE = list[dict[str, Union[str, int]]]
 
 @celery_app.task(ignore_result=False)
 def get_usage_interval_data(
-    days: int, hours: int, count: int
+    days: int,
+    hours: int,
+    count: int,
 ) -> dict[str, Union[str, CHART_DATA_TYPE, dict[str, CHART_DATA_TYPE]]]:
     """
     :param days: number of days for the interval length
@@ -51,14 +53,16 @@ def get_usage_interval_data(
     result_active_projects_cumulative: CHART_DATA_TYPE = []
 
     logger.warn(
-        f"Getting usage data datetime_from {USAGE_DATE_IN_THE_PAST} datetime_to {days_legend[-1]}"
+        f"Getting usage data datetime_from {USAGE_DATE_IN_THE_PAST} datetime_to {days_legend[-1]}",
     )
     past_data = get_usage_data(
-        datetime_from=USAGE_DATE_IN_THE_PAST, datetime_to=days_legend[-1], top=100000
+        datetime_from=USAGE_DATE_IN_THE_PAST,
+        datetime_to=days_legend[-1],
+        top=100000,
     )
     logger.warn("Got usage data ")
     cumulative_projects_past = set(
-        past_data["active_projects"]["top_projects_by_events_handled"].keys()
+        past_data["active_projects"]["top_projects_by_events_handled"].keys(),
     )
     cumulative_projects = cumulative_projects_past.copy()
     cumulative_projects_for_jobs_past = {
@@ -73,7 +77,9 @@ def get_usage_interval_data(
         legend = day.strftime("%H:%M" if (hours and not days) else "%Y-%m-%d")
 
         interval_result = get_usage_data(
-            datetime_from=day_from, datetime_to=day_to, top=100000
+            datetime_from=day_from,
+            datetime_to=day_to,
+            top=100000,
         )
 
         for job, data in interval_result["jobs"].items():
@@ -81,13 +87,13 @@ def get_usage_interval_data(
             result_jobs[job].append({"x": legend, "y": data["job_runs"]})
             result_jobs_project_count.setdefault(job, [])
             result_jobs_project_count[job].append(
-                {"x": legend, "y": len(data["top_projects_by_job_runs"])}
+                {"x": legend, "y": len(data["top_projects_by_job_runs"])},
             )
 
             cumulative_projects_for_jobs[job] |= data["top_projects_by_job_runs"].keys()
             result_jobs_project_cumulative_count.setdefault(job, [])
             result_jobs_project_cumulative_count[job].append(
-                {"x": legend, "y": len(cumulative_projects_for_jobs[job])}
+                {"x": legend, "y": len(cumulative_projects_for_jobs[job])},
             )
 
         for event, data in interval_result["events"].items():
@@ -95,19 +101,19 @@ def get_usage_interval_data(
             result_events[event].append({"x": legend, "y": data["events_handled"]})
 
         result_active_projects.append(
-            {"x": legend, "y": interval_result["active_projects"].get("project_count")}
+            {"x": legend, "y": interval_result["active_projects"].get("project_count")},
         )
         cumulative_projects |= interval_result["active_projects"][
             "top_projects_by_events_handled"
         ].keys()
         result_active_projects_cumulative.append(
-            {"x": legend, "y": len(cumulative_projects)}
+            {"x": legend, "y": len(cumulative_projects)},
         )
 
     onboarded_projects_per_job = {}
     for job, _ in past_data["jobs"].items():
         onboarded_projects_per_job[job] = list(
-            cumulative_projects_for_jobs[job] - cumulative_projects_for_jobs_past[job]
+            cumulative_projects_for_jobs[job] - cumulative_projects_for_jobs_past[job],
         )
 
     return {
@@ -144,7 +150,9 @@ def get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
     num_of_onboarded_projects = len(onboarded)
 
     raw_result = get_usage_data(
-        datetime_from=datetime_from, datetime_to=datetime_to, top=top_all_project
+        datetime_from=datetime_from,
+        datetime_to=datetime_to,
+        top=top_all_project,
     )
     return {
         "active_projects": raw_result["active_projects"],
@@ -152,7 +160,7 @@ def get_past_usage_data(datetime_from=None, datetime_to=None, top=5):
             job: {
                 "job_runs": data["job_runs"],
                 "top_projects_by_job_runs": dict(
-                    list(OrderedDict(data["top_projects_by_job_runs"]).items())[:top]
+                    list(OrderedDict(data["top_projects_by_job_runs"]).items())[:top],
                 ),
                 "active_projects": len(data["top_projects_by_job_runs"]),
             }

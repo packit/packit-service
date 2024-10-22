@@ -44,7 +44,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
     def default_dg_branch(self) -> str:
         if not self._default_dg_branch:
             git_project = self.service_config.get_project(
-                url=self.package_config.dist_git_package_url
+                url=self.package_config.dist_git_package_url,
             )
             self._default_dg_branch = git_project.default_branch
         return self._default_dg_branch

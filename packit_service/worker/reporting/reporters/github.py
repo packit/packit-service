@@ -41,20 +41,25 @@ class StatusReporterGithubStatuses(StatusReporter):
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
-            f"Setting Github status '{state_to_set.name}' for check '{check_name}': {description}"
+            f"Setting Github status '{state_to_set.name}' for check '{check_name}': {description}",
         )
         if markdown_content:
             logger.debug(
-                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored.",
             )
         try:
             self.project_with_commit.set_commit_status(
-                self.commit_sha, state_to_set, url, description, check_name, trim=True
+                self.commit_sha,
+                state_to_set,
+                url,
+                description,
+                check_name,
+                trim=True,
             )
         except GithubAPIException as e:
             logger.debug(
                 f"Failed to set status for {self.commit_sha},"
-                f" commenting on commit as a fallback: {e}"
+                f" commenting on commit as a fallback: {e}",
             )
             self._add_commit_comment_with_status(state, description, check_name, url)
 
@@ -64,7 +69,8 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
 
     @staticmethod
     def _create_table(
-        url: str, links_to_external_services: Optional[Dict[str, str]]
+        url: str,
+        links_to_external_services: Optional[Dict[str, str]],
     ) -> str:
         table_content = []
         if url:
@@ -101,7 +107,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         state_to_set = self.get_check_run(state)
         logger.debug(
             f"Setting Github status check '{state_to_set.name}' for check '{check_name}':"
-            f" {description}"
+            f" {description}",
         )
 
         summary = (
@@ -134,6 +140,6 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             )
         except GithubAPIException as e:
             logger.debug(
-                f"Failed to set status check, setting status as a fallback: {str(e)}"
+                f"Failed to set status check, setting status as a fallback: {str(e)}",
             )
             super().set_status(state, description, check_name, url)

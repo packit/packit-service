@@ -278,7 +278,8 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.add_column(
-        "tft_test_runs", sa.Column("submitted_time", sa.DateTime(), nullable=True)
+        "tft_test_runs",
+        sa.Column("submitted_time", sa.DateTime(), nullable=True),
     )
 
     # Start data migration
@@ -306,7 +307,8 @@ def upgrade():
             for copr_build in job_trigger_model.copr_builds:
                 if copr_build.srpm_build:
                     print(
-                        f"Fixing SRPM matching: {copr_build.srpm_build} -> {copr_build.job_trigger}"
+                        "Fixing SRPM matching:",
+                        f"{copr_build.srpm_build} -> {copr_build.job_trigger}",
                     )
                     fixed_srpm_matching_from_copr_build += 1
                     copr_build.srpm_build.job_trigger = job_trigger_model
@@ -318,7 +320,8 @@ def upgrade():
             for koji_build in job_trigger_model.koji_builds:
                 if koji_build.srpm_build:
                     print(
-                        f"Fixing SRPM matching: {koji_build.srpm_build} -> {koji_build.job_trigger}"
+                        "Fixing SRPM matching:",
+                        f"{koji_build.srpm_build} -> {koji_build.job_trigger}",
                     )
                     fixed_srpm_matching_from_koji_build += 1
                     koji_build.srpm_build.job_trigger = job_trigger_model
@@ -369,7 +372,7 @@ def upgrade():
     run_models_successful = 0
 
     for job_trigger_model in session.query(JobTriggerModel).order_by(
-        JobTriggerModel.id
+        JobTriggerModel.id,
     ):
         copr_builds = defaultdict(list)
         for copr_build in job_trigger_model.copr_builds:
@@ -395,7 +398,7 @@ def upgrade():
                     if len(build.runs) != 1:
                         PackitException(
                             f"Build {build} does not have exactly one run:\n"
-                            f"{build.runs}"
+                            f"{build.runs}",
                         )
                     test_runs_attached += 1
                     build.runs[-1].test_run = test
@@ -414,12 +417,12 @@ def upgrade():
             print(
                 f"job_trigger_model={job_trigger_model}\n"
                 f"runs={job_trigger_model.runs}\n"
-                f"srpm_builds={job_trigger_model.srpm_builds}"
+                f"srpm_builds={job_trigger_model.srpm_builds}",
             )
         if not job_trigger_model.copr_builds and not job_trigger_model.koji_builds:
             for srpm_build in job_trigger_model.srpm_builds:
                 print(
-                    f"Creating RunModel for SRPMBuildModel without any build: {srpm_build}"
+                    f"Creating RunModel for SRPMBuildModel without any build: {srpm_build}",
                 )
                 all_run_models += 1
                 srpms_without_build += 1
@@ -434,7 +437,7 @@ def upgrade():
     for srpm_build in session.query(SRPMBuildModel).all():
         if not srpm_build.runs:
             print(
-                f"Creating RunModel for SRPMBuildModel without any RunModel: {srpm_build}"
+                f"Creating RunModel for SRPMBuildModel without any RunModel: {srpm_build}",
             )
             all_run_models += 1
             srpms_without_run += 1
@@ -450,34 +453,35 @@ def upgrade():
     print(f"SRPM models without any run (RunModel created): {srpms_without_run}")
     print(
         f"SRPM models removed because of no connection to any job trigger: "
-        f"{srpm_builds_removed_for_no_job_trigger}"
+        f"{srpm_builds_removed_for_no_job_trigger}",
     )
     print("================================")
     print(f"All Copr builds: {all_copr_builds}")
     print(
-        f"Copr builds deleted for no SRPM for trigger: {deleted_copr_builds_for_no_srpm}"
+        f"Copr builds deleted for no SRPM for trigger: {deleted_copr_builds_for_no_srpm}",
     )
     print(f"Copr builds deleted for no SRPM set: {copr_builds_without_srpm}")
     print(
         f"Fixed SRPM matching to trigger model from Copr build: "
-        f"{fixed_srpm_matching_from_copr_build}"
+        f"{fixed_srpm_matching_from_copr_build}",
     )
     print("================================")
     print(f"All Koji builds: {all_koji_builds}")
     print(
-        f"Koji builds deleted for no SRPM for trigger: {deleted_koji_builds_for_no_srpm}"
+        f"Koji builds deleted for no SRPM for trigger: {deleted_koji_builds_for_no_srpm}",
     )
     print(f"Koji builds deleted for no SRPM set: {koji_builds_without_srpm}")
     print(
         f"Fixed SRPM matching to trigger model from Koji build: "
-        f"{fixed_srpm_matching_from_koji_build}"
+        f"{fixed_srpm_matching_from_koji_build}",
     )
     print("================================")
     print(f"All Test runs: {all_test_runs}")
     print(f"Attached correctly to build: {test_runs_attached}")
     print(f"All Run models: {all_run_models}")
     print(
-        f"Run models with different number of tests and builds: {number_of_builds_and_tests_differ}"
+        "Run models with different number of tests and builds:",
+        f"{number_of_builds_and_tests_differ}",
     )
     print(f"Run models with test run correctly set: {run_models_successful}")
     print("================================")
@@ -491,14 +495,14 @@ def upgrade():
         srpm_builds = {run.srpm_build for run in copr_build.runs}
         if len(srpm_builds) != 1:
             raise PackitException(
-                f"More SRPM builds for one copr_build {copr_build}:\n{srpm_builds}"
+                f"More SRPM builds for one copr_build {copr_build}:\n{srpm_builds}",
             )
 
     for koji_build in session.query(KojiBuildModel).all():
         srpm_builds = {run.srpm_build for run in koji_build.runs}
         if len(srpm_builds) != 1:
             raise PackitException(
-                f"More SRPM builds for one koji_build {koji_build}:\n{srpm_builds}"
+                f"More SRPM builds for one koji_build {koji_build}:\n{srpm_builds}",
             )
 
     run_model_count = 0
@@ -506,7 +510,7 @@ def upgrade():
         run_model_count += 1
         if not run_model.srpm_build:
             raise PackitException(
-                f"Run model does not have SRPM build set: {run_model}"
+                f"Run model does not have SRPM build set: {run_model}",
             )
 
     session.commit()
@@ -514,27 +518,39 @@ def upgrade():
     # Remove direct connections:
 
     op.drop_constraint(
-        "copr_builds_job_trigger_id_fkey", "copr_builds", type_="foreignkey"
+        "copr_builds_job_trigger_id_fkey",
+        "copr_builds",
+        type_="foreignkey",
     )
     op.drop_constraint(
-        "copr_builds_srpm_build_id_fkey1", "copr_builds", type_="foreignkey"
+        "copr_builds_srpm_build_id_fkey1",
+        "copr_builds",
+        type_="foreignkey",
     )
     op.drop_column("copr_builds", "job_trigger_id")
     op.drop_column("copr_builds", "srpm_build_id")
     op.drop_constraint(
-        "koji_builds_srpm_build_id_fkey", "koji_builds", type_="foreignkey"
+        "koji_builds_srpm_build_id_fkey",
+        "koji_builds",
+        type_="foreignkey",
     )
     op.drop_constraint(
-        "koji_builds_job_trigger_id_fkey", "koji_builds", type_="foreignkey"
+        "koji_builds_job_trigger_id_fkey",
+        "koji_builds",
+        type_="foreignkey",
     )
     op.drop_column("koji_builds", "job_trigger_id")
     op.drop_column("koji_builds", "srpm_build_id")
     op.drop_constraint(
-        "srpm_builds_job_trigger_id_fkey", "srpm_builds", type_="foreignkey"
+        "srpm_builds_job_trigger_id_fkey",
+        "srpm_builds",
+        type_="foreignkey",
     )
     op.drop_column("srpm_builds", "job_trigger_id")
     op.drop_constraint(
-        "tft_test_runs_job_trigger_id_fkey", "tft_test_runs", type_="foreignkey"
+        "tft_test_runs_job_trigger_id_fkey",
+        "tft_test_runs",
+        type_="foreignkey",
     )
     op.drop_column("tft_test_runs", "job_trigger_id")
 

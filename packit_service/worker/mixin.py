@@ -87,7 +87,8 @@ class ConfigFromUrlMixin(Config):
     def project(self) -> Optional[GitProject]:
         if not self._project and self.project_url:
             self._project = self.service_config.get_project(
-                url=self.project_url, required=self._project_required
+                url=self.project_url,
+                required=self._project_required,
             )
         return self._project
 
@@ -236,7 +237,7 @@ class LocalProjectMixin(Config):
             )
             working_dir = Path(
                 Path(self.service_config.command_handler_work_dir)
-                / SANDCASTLE_LOCAL_PROJECT_DIR
+                / SANDCASTLE_LOCAL_PROJECT_DIR,
             )
             kwargs = {
                 "repo_name": CALCULATE,
@@ -274,7 +275,7 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
             if self.data.pr_id is not None:
                 logger.debug(
                     f"Getting pull request #{self.data.pr_id}"
-                    f"for repo {self.project.namespace}/{self.project.repo}"
+                    f"for repo {self.project.namespace}/{self.project.repo}",
                 )
                 self._pull_request = self.project.get_pr(self.data.pr_id)
         return self._pull_request

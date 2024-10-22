@@ -25,7 +25,9 @@ from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_resu
 
 def issue_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "issue_comment_verify_fas.json").read_text()
+        (
+            DATA_DIR / "webhooks" / "github" / "issue_comment_verify_fas.json"
+        ).read_text(),
     )
 
 
@@ -40,7 +42,7 @@ def test_verification_successful():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue_comment = flexmock()
@@ -56,16 +58,16 @@ def test_verification_successful():
 
     processing_results = SteveJobs().process_message(issue_comment_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
     flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
-        False
+        False,
     )
     flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive(
-        "is_github_username_from_fas_account_matching"
+        "is_github_username_from_fas_account_matching",
     ).with_args(fas_account="my-fas-account", sender_login="phracek").and_return(True)
     flexmock(AllowlistModel).should_receive("add_namespace").with_args(
         "github.com/example-user",
@@ -73,7 +75,7 @@ def test_verification_successful():
         "my-fas-account",
     ).once()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        "example-user"
+        "example-user",
     ).and_return(flexmock(sender_login="phracek"))
 
     msg = (
@@ -102,7 +104,7 @@ def test_verification_not_successful():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue_comment = flexmock()
@@ -118,20 +120,20 @@ def test_verification_not_successful():
 
     processing_results = SteveJobs().process_message(issue_comment_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
     flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
-        False
+        False,
     )
     flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive(
-        "is_github_username_from_fas_account_matching"
+        "is_github_username_from_fas_account_matching",
     ).with_args(fas_account="my-fas-account", sender_login="phracek").and_return(False)
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        "example-user"
+        "example-user",
     ).and_return(flexmock(sender_login="phracek"))
 
     msg = (
@@ -172,7 +174,7 @@ def test_verification_incorrect_format(comment):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue_comment = flexmock()
@@ -188,16 +190,16 @@ def test_verification_incorrect_format(comment):
 
     processing_results = SteveJobs().process_message(event_issue_comment)
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
     flexmock(Allowlist).should_receive(
-        "is_github_username_from_fas_account_matching"
+        "is_github_username_from_fas_account_matching",
     ).never()
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        "example-user"
+        "example-user",
     ).and_return(flexmock(sender_login="phracek"))
 
     msg = (
@@ -226,7 +228,7 @@ def test_verification_already_approved():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue_comment = flexmock()
@@ -242,16 +244,16 @@ def test_verification_already_approved():
 
     processing_results = SteveJobs().process_message(issue_comment_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
     flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
-        True
+        True,
     )
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        "example-user"
+        "example-user",
     ).and_return(flexmock(sender_login="phracek"))
 
     msg = "Namespace `github.com/example-user` was already approved."
@@ -277,7 +279,7 @@ def test_verification_wrong_repository():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue = flexmock(
@@ -289,7 +291,7 @@ def test_verification_wrong_repository():
 
     processing_results = SteveJobs().process_message(issue_comment_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -305,7 +307,7 @@ def test_verification_wrong_issue():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue = flexmock(
@@ -317,7 +319,7 @@ def test_verification_wrong_issue():
 
     processing_results = SteveJobs().process_message(issue_comment_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -333,7 +335,7 @@ def test_verification_not_original_triggerer():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_releases").and_return([])
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).and_return(None)
 
     issue_comment = flexmock()
@@ -349,16 +351,16 @@ def test_verification_not_original_triggerer():
 
     processing_results = SteveJobs().process_message(issue_comment_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
     flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").and_return(
-        True
+        True,
     )
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        "example-user"
+        "example-user",
     ).and_return(flexmock(sender_login="somebody-else"))
 
     msg = (

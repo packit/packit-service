@@ -36,7 +36,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_whitelist_account_name"), "whitelist", ["account_name"], unique=False
+        op.f("ix_whitelist_account_name"),
+        "whitelist",
+        ["account_name"],
+        unique=False,
     )
     # ### end Alembic commands ###
 

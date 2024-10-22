@@ -27,13 +27,14 @@ def discard_old_srpm_build_logs():
     """Called periodically (see celery_config.py) to discard logs of old SRPM builds."""
     logger.info("About to discard old SRPM build logs & artifact urls.")
     outdated_after_days = getenv(
-        "SRPMBUILDS_OUTDATED_AFTER_DAYS", SRPMBUILDS_OUTDATED_AFTER_DAYS
+        "SRPMBUILDS_OUTDATED_AFTER_DAYS",
+        SRPMBUILDS_OUTDATED_AFTER_DAYS,
     )
     ago = timedelta(days=int(outdated_after_days))
     for build in SRPMBuildModel.get_older_than(ago):
         logger.debug(
             f"SRPM build {build.id} is older than '{ago}'. "
-            "Discarding log and artifact url."
+            "Discarding log and artifact url.",
         )
         build.set_logs(None)
         build.set_url(None)
@@ -43,13 +44,14 @@ def discard_old_package_configs():
     """Called periodically (see celery_config.py) to discard package configs of old events."""
     logger.info("About to discard old package configs.")
     outdated_after_days = getenv(
-        "PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS", PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS
+        "PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS",
+        PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS,
     )
     ago = timedelta(days=int(outdated_after_days))
     for event in ProjectEventModel.get_older_than_with_packages_config(ago):
         logger.debug(
             f"ProjectEventModel {event.id} has all runs older than '{ago}'. "
-            "Discarding package config."
+            "Discarding package config.",
         )
         event.set_packages_config(None)
 
@@ -77,7 +79,8 @@ def gzip_file(file: Path) -> Path:
 
 
 def upload_to_s3(
-    file: Path, bucket: str = f"arr-packit-{getenv('DEPLOYMENT', 'dev')}"
+    file: Path,
+    bucket: str = f"arr-packit-{getenv('DEPLOYMENT', 'dev')}",
 ) -> None:
     """Upload a file to an S3 bucket.
 

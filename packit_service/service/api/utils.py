@@ -43,7 +43,7 @@ def get_project_info_from_build(
         SyncReleaseModel,
         BodhiUpdateTargetModel,
         VMImageBuildTargetModel,
-    ]
+    ],
 ) -> Dict[str, Any]:
     if not (project := build.get_project()):
         return {}

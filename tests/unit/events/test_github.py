@@ -48,7 +48,7 @@ def github_installation():
 @pytest.fixture()
 def github_issue_comment_propose_downstream():
     with open(
-        DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json"
+        DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -56,7 +56,9 @@ def github_issue_comment_propose_downstream():
 @pytest.fixture()
 def github_issue_comment_no_handler():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json").read_text()
+        (
+            DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json"
+        ).read_text(),
     )
 
 
@@ -81,7 +83,7 @@ def github_push_branch():
 @pytest.fixture()
 def check_rerun():
     with open(
-        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json"
+        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -89,7 +91,7 @@ def check_rerun():
 @pytest.fixture()
 def github_pr_comment_created():
     with open(
-        DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json"
+        DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -141,7 +143,7 @@ def test_parse_pr(github_pr_webhook):
     )
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -149,7 +151,7 @@ def test_parse_pr(github_pr_webhook):
         reference="528b803be6f93e19ca4130bf4976f2800a3004c4",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -169,7 +171,7 @@ def test_parse_github_push(github_push_branch):
     assert not event_object.base_project
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -177,7 +179,7 @@ def test_parse_github_push(github_push_branch):
         reference="04885ff850b0fa0e206cd09db73565703d48f99b",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -197,7 +199,7 @@ def test_parse_github_push_branch(github_push_branch):
     assert not event_object.base_project
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -205,7 +207,7 @@ def test_parse_github_push_branch(github_push_branch):
         reference="04885ff850b0fa0e206cd09db73565703d48f99b",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
 
     assert event_object.packages_config
@@ -237,10 +239,10 @@ def test_parse_check_rerun_commit(check_rerun):
     trigger = flexmock(ProjectEventModel, event_id=123)
     branch_model = GitBranchModel(name="main")
     flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
-        123456
+        123456,
     ).and_return(trigger)
     flexmock(trigger).should_receive("get_project_event_object").and_return(
-        branch_model
+        branch_model,
     )
     event_object = Parser.parse_event(check_rerun)
 
@@ -259,7 +261,7 @@ def test_parse_check_rerun_commit(check_rerun):
     assert not event_object.base_project
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -267,7 +269,7 @@ def test_parse_check_rerun_commit(check_rerun):
         reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
@@ -279,7 +281,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
     trigger = flexmock(ProjectEventModel, event_id=1234)
     pr_model = PullRequestModel(pr_id=12)
     flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
-        123456
+        123456,
     ).and_return(trigger)
     flexmock(trigger).should_receive("get_project_event_object").and_return(pr_model)
     event_object = Parser.parse_event(check_rerun)
@@ -301,7 +303,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
     assert event_object.actor == "lbarcziova"
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -309,7 +311,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
         reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
@@ -320,10 +322,10 @@ def test_parse_check_rerun_release(check_rerun):
     trigger = flexmock(ProjectEventModel, event_id=123)
     release_model = ProjectReleaseModel(tag_name="0.1.0")
     flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
-        123456
+        123456,
     ).and_return(trigger)
     flexmock(trigger).should_receive("get_project_event_object").and_return(
-        release_model
+        release_model,
     )
 
     event_object = Parser.parse_event(check_rerun)
@@ -364,11 +366,11 @@ def test_parse_pr_comment_created(github_pr_comment_created):
     )
 
     flexmock(GithubProject).should_receive("get_pr").with_args(9).and_return(
-        flexmock(head_commit="12345")
+        flexmock(head_commit="12345"),
     )
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -376,7 +378,7 @@ def test_parse_pr_comment_created(github_pr_comment_created):
         reference="12345",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -402,11 +404,11 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
     )
 
     flexmock(GithubProject).should_receive("get_pr").with_args(9).and_return(
-        flexmock(head_commit="12345")
+        flexmock(head_commit="12345"),
     )
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -414,7 +416,7 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
         reference="12345",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
 
     assert event_object.packages_config
@@ -442,11 +444,11 @@ def test_parse_issue_comment(github_issue_comment_propose_downstream):
     assert not event_object.base_project
 
     flexmock(event_object.project).should_receive("get_releases").and_return(
-        [flexmock(tag_name="0.5.0")]
+        [flexmock(tag_name="0.5.0")],
     )
     flexmock(GithubProject, get_sha_from_tag=lambda tag_name: "123456")
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -454,7 +456,7 @@ def test_parse_issue_comment(github_issue_comment_propose_downstream):
         reference="123456",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -470,7 +472,7 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
     flexmock(event_object.project).should_receive("get_releases").and_return([])
     flexmock(GithubProject).should_receive("get_sha_from_tag").never()
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -478,7 +480,7 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
         reference=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
     assert event_object.commit_sha is None
@@ -492,8 +494,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "propose-downstream:f35",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("propose-downstream", "f35", None),
             id="propose_downstream",
@@ -502,8 +504,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "propose-downstream:f35:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("propose-downstream", "f35", "first"),
             id="propose_downstream_identifier",
@@ -512,8 +514,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "rpm-build:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                )
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                ),
             ),
             ("rpm-build", "fedora-35-x86_64", None),
             id="rpm_build_pr",
@@ -522,8 +524,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "rpm-build:1.0.1:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("rpm-build", "fedora-35-x86_64", None),
             id="rpm_build_release",
@@ -532,8 +534,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "rpm-build:main:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                )
+                    job_config_trigger_type=JobConfigTriggerType.commit,
+                ),
             ),
             ("rpm-build", "fedora-35-x86_64", None),
             id="rpm_build_commit",
@@ -542,8 +544,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "rpm-build:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                )
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                ),
             ),
             ("rpm-build", "fedora-35-x86_64", "first"),
             id="rpm_build_pr_identifier",
@@ -552,8 +554,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "rpm-build:1.0.1:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("rpm-build", "fedora-35-x86_64", "first"),
             id="rpm_build_release_identifier",
@@ -562,8 +564,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "rpm-build:main:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                )
+                    job_config_trigger_type=JobConfigTriggerType.commit,
+                ),
             ),
             ("rpm-build", "fedora-35-x86_64", "first"),
             id="rpm_build_commit_identifier",
@@ -572,8 +574,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "testing-farm:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                )
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                ),
             ),
             ("testing-farm", "fedora-35-x86_64", None),
             id="testing_farm_pr",
@@ -582,8 +584,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "testing-farm:1.0.1:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("testing-farm", "fedora-35-x86_64", None),
             id="testing_farm_release",
@@ -592,8 +594,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "testing-farm:main:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                )
+                    job_config_trigger_type=JobConfigTriggerType.commit,
+                ),
             ),
             ("testing-farm", "fedora-35-x86_64", None),
             id="testing_farm_commit",
@@ -602,8 +604,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "testing-farm:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                )
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                ),
             ),
             ("testing-farm", "fedora-35-x86_64", "first"),
             id="testing_farm_pr_identifier",
@@ -612,8 +614,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "testing-farm:1.0.1:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("testing-farm", "fedora-35-x86_64", "first"),
             id="testing_farm_release_identifier",
@@ -622,8 +624,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "testing-farm:main:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                )
+                    job_config_trigger_type=JobConfigTriggerType.commit,
+                ),
             ),
             ("testing-farm", "fedora-35-x86_64", "first"),
             id="testing_farm_commit_identifier",
@@ -632,8 +634,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "koji-build:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                )
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                ),
             ),
             ("koji-build", "fedora-35-x86_64", None),
             id="koji_build_pr",
@@ -642,8 +644,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "koji-build:1.0.1:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("koji-build", "fedora-35-x86_64", None),
             id="koji_build_release",
@@ -652,8 +654,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "koji-build:main:fedora-35-x86_64",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                )
+                    job_config_trigger_type=JobConfigTriggerType.commit,
+                ),
             ),
             ("koji-build", "fedora-35-x86_64", None),
             id="koji_build_commit",
@@ -662,8 +664,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "koji-build:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                )
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                ),
             ),
             ("koji-build", "fedora-35-x86_64", "first"),
             id="koji_build_pr_identifier",
@@ -672,8 +674,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "koji-build:1.0.1:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                )
+                    job_config_trigger_type=JobConfigTriggerType.release,
+                ),
             ),
             ("koji-build", "fedora-35-x86_64", "first"),
             id="koji_build_release_identifier",
@@ -682,8 +684,8 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
             "koji-build:main:fedora-35-x86_64:first",
             flexmock(
                 get_project_event_object=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                )
+                    job_config_trigger_type=JobConfigTriggerType.commit,
+                ),
             ),
             ("koji-build", "fedora-35-x86_64", "first"),
             id="koji_build_commit_identifier",

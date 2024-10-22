@@ -531,7 +531,7 @@ from packit_service.worker.result import TaskResults
                     packages={
                         "package": CommonPackageConfig(
                             skip_build=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -553,7 +553,7 @@ from packit_service.worker.result import TaskResults
                     packages={
                         "package": CommonPackageConfig(
                             skip_build=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -956,12 +956,13 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
         @property
         def packages_config(self):
             return flexmock(
-                get_job_views=lambda: jobs, packages={"package": CommonPackageConfig()}
+                get_job_views=lambda: jobs,
+                packages={"package": CommonPackageConfig()},
             )
 
     event = Event()
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(packit_comment_command_prefix="/packit")
+        ServiceConfig(packit_comment_command_prefix="/packit"),
     )
 
     event_handlers = set(SteveJobs(event).get_handlers_for_event())
@@ -1111,7 +1112,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                     packages={
                         "package": CommonPackageConfig(
                             skip_build=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1131,7 +1132,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                     packages={
                         "package": CommonPackageConfig(
                             skip_build=True,
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1174,7 +1175,12 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
     ],
 )
 def test_get_handlers_for_comment_event(
-    event_cls, comment, packit_comment_command_prefix, db_project_object, jobs, result
+    event_cls,
+    comment,
+    packit_comment_command_prefix,
+    db_project_object,
+    jobs,
+    result,
 ):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
@@ -1192,7 +1198,7 @@ def test_get_handlers_for_comment_event(
             return flexmock(get_job_views=lambda: jobs)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(comment_command_prefix=packit_comment_command_prefix)
+        ServiceConfig(comment_command_prefix=packit_comment_command_prefix),
     )
 
     event = Event()
@@ -1200,7 +1206,7 @@ def test_get_handlers_for_comment_event(
         comment_object = flexmock()
         event._comment_object = comment_object
         flexmock(comment_object).should_receive("add_reaction").with_args(
-            COMMENT_REACTION
+            COMMENT_REACTION,
         ).once()
 
     event_handlers = set(SteveJobs(event).get_handlers_for_event())
@@ -1237,7 +1243,7 @@ def test_get_handlers_for_comment_event(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="the-identifier",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1257,7 +1263,7 @@ def test_get_handlers_for_comment_event(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="the-identifier",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1374,7 +1380,12 @@ def test_get_handlers_for_comment_event(
     ],
 )
 def test_get_handlers_for_check_rerun_event(
-    event_cls, check_name_job, job_identifier, db_project_object, jobs, result
+    event_cls,
+    check_name_job,
+    job_identifier,
+    db_project_object,
+    jobs,
+    result,
 ):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
@@ -1393,7 +1404,7 @@ def test_get_handlers_for_check_rerun_event(
             return flexmock(get_job_views=lambda: jobs)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(packit_comment_command_prefix="/packit")
+        ServiceConfig(packit_comment_command_prefix="/packit"),
     )
     event = Event()
 
@@ -1414,14 +1425,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
         ),
@@ -1434,14 +1445,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr&CoprBuildStartHandler&CoprBuildStartEvent",
         ),
@@ -1454,14 +1465,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr&CoprBuildEndHandler&CoprBuildEndEvent",
         ),
@@ -1475,7 +1486,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [],
             id="tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
@@ -1502,7 +1513,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr+tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
         ),
@@ -1528,7 +1539,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="test_for_pr+build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
         ),
@@ -1544,7 +1555,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1553,7 +1564,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1564,7 +1575,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1573,7 +1584,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1591,7 +1602,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1600,7 +1611,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1609,7 +1620,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1620,9 +1631,9 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
-                )
+                ),
             ],
             id="build_for_pr+build_for_commit+build_for_release"
             "&CoprBuildHandler&PullRequestGithubEvent",
@@ -1638,7 +1649,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1647,7 +1658,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1656,7 +1667,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1667,7 +1678,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1685,7 +1696,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1694,7 +1705,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1703,7 +1714,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1714,7 +1725,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1733,7 +1744,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1742,7 +1753,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1751,7 +1762,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1770,7 +1781,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1779,7 +1790,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1788,7 +1799,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1799,7 +1810,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1817,7 +1828,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1826,7 +1837,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1835,7 +1846,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1846,7 +1857,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1864,7 +1875,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1873,7 +1884,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1882,7 +1893,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1893,7 +1904,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1912,7 +1923,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1921,7 +1932,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1930,7 +1941,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1939,7 +1950,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1950,7 +1961,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -1968,7 +1979,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1977,7 +1988,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1986,7 +1997,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -1995,7 +2006,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2006,7 +2017,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2024,7 +2035,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2033,7 +2044,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2042,7 +2053,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2051,7 +2062,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2062,7 +2073,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2080,7 +2091,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2089,7 +2100,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2098,7 +2109,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2107,7 +2118,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2118,7 +2129,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2136,7 +2147,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2145,7 +2156,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2154,7 +2165,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2163,7 +2174,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2174,7 +2185,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2192,7 +2203,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project0",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2201,7 +2212,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2210,7 +2221,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project2",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -2219,7 +2230,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project3",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2230,7 +2241,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={
                         "package": CommonPackageConfig(
                             project="project1",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -2259,7 +2270,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr+production_build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
         ),
@@ -2284,7 +2295,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr+production_build_for_pr&KojiBuildHandler&PullRequestGithubEvent",
         ),
@@ -2309,7 +2320,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr+production_build_for_pr&KojiBuildReportHandler&KojiBuildEvent",
         ),
@@ -2323,14 +2334,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
         ),
@@ -2343,14 +2354,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr&CoprBuildHandler&MergeRequestCommentGitlabEvent",
         ),
@@ -2363,14 +2374,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="build_for_pr&CoprBuildHandler&PullRequestCommentPagureEvent",
         ),
@@ -2384,7 +2395,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [],
             id="tests_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
@@ -2399,14 +2410,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="tests_for_pr&TestingFarmHandler&PullRequestCommentGithubEvent",
         ),
@@ -2420,14 +2431,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="propose_downstream_for_release&TestingFarmHandler&PullRequestCommentGithubEvent",
         ),
@@ -2440,14 +2451,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.koji_build,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.koji_build,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="koji_build_for_commit&DownstreamKojiBuildHandler&PushPagureEvent",
         ),
@@ -2460,14 +2471,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.koji_build,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.koji_build,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="koji_build_for_commit&KojiBuildReportHandler&KojiBuildEvent",
         ),
@@ -2480,14 +2491,14 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.bodhi_update,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.bodhi_update,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="bodhi_update_for_commit&CreateBodhiUpdateHandler&KojiBuildEvent",
         ),
@@ -2500,21 +2511,25 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.bodhi_update,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             [
                 JobConfig(
                     type=JobType.bodhi_update,
                     trigger=JobConfigTriggerType.commit,
                     packages={"package": CommonPackageConfig()},
-                )
+                ),
             ],
             id="bodhi_update_for_commit&KojiBuildReportHandler&KojiBuildEvent",
         ),
     ],
 )
 def test_get_config_for_handler_kls(
-    handler_kls: Type[JobHandler], event_cls, db_project_object, jobs, result_job_config
+    handler_kls: Type[JobHandler],
+    event_cls,
+    db_project_object,
+    jobs,
+    result_job_config,
 ):
     class Event(event_cls):  # type: ignore
         def __init__(self):
@@ -2590,7 +2605,10 @@ def test_get_config_for_handler_kls(
     ],
 )
 def test_get_handlers_triggered_by_comment(
-    event_kls, comment, packit_comment_command_prefix, result
+    event_kls,
+    comment,
+    packit_comment_command_prefix,
+    result,
 ):
     class Event(event_kls):
         def __init__(self):
@@ -2600,11 +2618,11 @@ def test_get_handlers_triggered_by_comment(
     comment_object = flexmock()
     event._comment_object = comment_object
     flexmock(comment_object).should_receive("add_reaction").with_args(
-        COMMENT_REACTION
+        COMMENT_REACTION,
     ).once()
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(comment_command_prefix=packit_comment_command_prefix)
+        ServiceConfig(comment_command_prefix=packit_comment_command_prefix),
     )
     event_handlers = SteveJobs(event).get_handlers_for_comment_and_rerun_event()
     assert event_handlers == result
@@ -2636,7 +2654,7 @@ def test_get_handlers_triggered_by_check_rerun(event_kls, check_name_job, result
             self.check_name_job = check_name_job
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(packit_comment_command_prefix="/packit")
+        ServiceConfig(packit_comment_command_prefix="/packit"),
     )
     event = Event()
     event_handlers = SteveJobs(event).get_handlers_for_comment_and_rerun_event()
@@ -2688,7 +2706,9 @@ def test_handler_matches_to_job(event_kls, handler: Type[JobHandler], allowed_ha
     ],
 )
 def test_handler_doesnt_match_to_job(
-    event_kls, handler: Type[JobHandler], allowed_handlers
+    event_kls,
+    handler: Type[JobHandler],
+    allowed_handlers,
 ):
     class Event(event_kls):  # type: ignore
         def __init__(self):
@@ -3101,7 +3121,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -3110,7 +3130,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="second",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -3121,7 +3141,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -3137,7 +3157,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                     manual_trigger=True,
                 ),
@@ -3149,7 +3169,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                     manual_trigger=True,
                 ),
@@ -3205,7 +3225,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                     manual_trigger=True,
                 ),
@@ -3215,7 +3235,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                     manual_trigger=False,
                 ),
@@ -3227,7 +3247,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                     manual_trigger=True,
                 ),
@@ -3237,7 +3257,7 @@ def test_handler_doesnt_match_to_job(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="first",
-                        )
+                        ),
                     },
                     manual_trigger=False,
                 ),
@@ -3370,7 +3390,11 @@ def test_handler_doesnt_match_to_job(
     ],
 )
 def test_get_jobs_matching_trigger(
-    event_kls, job_config_trigger_type, jobs, result, kwargs
+    event_kls,
+    job_config_trigger_type,
+    jobs,
+    result,
+    kwargs,
 ):
     class Event(event_kls):
         def __init__(self, **kwargs):
@@ -3400,7 +3424,7 @@ def test_get_jobs_matching_trigger(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="foo",
-                        )
+                        ),
                     },
                 ),
                 JobConfig(
@@ -3409,7 +3433,7 @@ def test_get_jobs_matching_trigger(
                     packages={
                         "package": CommonPackageConfig(
                             identifier="bar",
-                        )
+                        ),
                     },
                 ),
             ],
@@ -3438,7 +3462,11 @@ def test_get_jobs_matching_trigger(
     ],
 )
 def test_create_tasks_tf_identifier(
-    event_kls, jobs, handler_kls, tasks_created, identifier
+    event_kls,
+    jobs,
+    handler_kls,
+    tasks_created,
+    identifier,
 ):
     class Event(event_kls):
         def __init__(self):
@@ -3447,7 +3475,8 @@ def test_create_tasks_tf_identifier(
         @property
         def packages_config(self):
             return flexmock(
-                jobs=jobs, get_package_config_for=lambda job_config: flexmock()
+                jobs=jobs,
+                get_package_config_for=lambda job_config: flexmock(),
             )
 
         def get_dict(self, *args, **kwargs):
@@ -3467,11 +3496,11 @@ def test_create_tasks_tf_identifier(
     flexmock(handler_kls).should_receive("get_signature").and_return(None)
     flexmock(TaskResults, create_from=lambda *args, **kwargs: object())
     flexmock(celery).should_receive("group").with_args(
-        tasks_created * [None]
+        tasks_created * [None],
     ).and_return(flexmock().should_receive("apply_async").mock())
     statuses_check_feedback = flexmock()
     assert tasks_created == len(
-        SteveJobs(event).create_tasks(jobs, handler_kls, statuses_check_feedback)
+        SteveJobs(event).create_tasks(jobs, handler_kls, statuses_check_feedback),
     )
 
 
@@ -3537,7 +3566,7 @@ def test_monorepo_jobs_matching_event():
             trigger=JobConfigTriggerType.release,
             skip_build=False,
             packages={
-                "python-teamcity-messages-double": python_teamcity_messages_double
+                "python-teamcity-messages-double": python_teamcity_messages_double,
             },
         ),
     ]
@@ -3590,7 +3619,7 @@ def test_github_app_not_installed():
     jobs = SteveJobs(event)
 
     flexmock(jobs).should_receive("is_project_public_or_enabled_private").and_raise(
-        GithubAppNotInstalledError
+        GithubAppNotInstalledError,
     )
 
     assert not jobs.process()
@@ -3599,7 +3628,7 @@ def test_github_app_not_installed():
 def test_search_for_dg_config_in_issue_on_pr_comment():
     assert (
         SteveJobs(
-            AbstractPRCommentEvent(None, None, None, None)
+            AbstractPRCommentEvent(None, None, None, None),
         ).search_distgit_config_in_issue()
         is None
     )
@@ -3633,7 +3662,7 @@ def test_invalid_packit_deployment():
 def test_unapproved_jobs():
     event = flexmock(project=None, packages_config=[])
     event.should_receive("get_dict").and_return(
-        {"project": None, "packages_config": []}
+        {"project": None, "packages_config": []},
     )
     jobs = SteveJobs(event)
 
@@ -3643,7 +3672,7 @@ def test_unapproved_jobs():
     flexmock(jobs).should_receive("is_packit_config_present").and_return(True)
     flexmock(jobs).should_receive("get_handlers_for_event").and_return([None])
     flexmock(jobs).should_receive("get_config_for_handler_kls").and_return(
-        [None, None, None]
+        [None, None, None],
     )
     # TODO: »do not« mock the ‹Allowlist› directly!!!
     flexmock(Allowlist).should_receive("check_and_report").and_return(False)

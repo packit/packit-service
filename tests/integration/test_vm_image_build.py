@@ -60,23 +60,28 @@ def test_vm_image_build(github_vm_image_build_comment):
             head_commit="123456",
             comment=lambda _: None,
             get_comment=lambda _: flexmock(add_reaction=lambda _: None),
-        )
+        ),
     )
     project.should_receive("has_write_access").with_args(
-        user="majamassarini"
+        user="majamassarini",
     ).and_return(True)
     project.should_receive("get_files").with_args(
-        ref="123456", filter_regex=r".+\.spec$"
+        ref="123456",
+        filter_regex=r".+\.spec$",
     ).and_return(["packit.spec"])
     project.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="123456"
+        path=".packit.yaml",
+        ref="123456",
     ).and_return(packit_yaml)
     project.should_receive("get_files").with_args(
-        ref="123456", recursive=False
+        ref="123456",
+        recursive=False,
     ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request, event_id=1, commit_sha="123456"
+        type=ProjectEventModelType.pull_request,
+        event_id=1,
+        commit_sha="123456",
     ).and_return(flexmock())
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(
@@ -84,7 +89,7 @@ def test_vm_image_build(github_vm_image_build_comment):
             project_event_model_type=ProjectEventModelType.pull_request,
             id=1,
             commit_sha="123456",
-        )
+        ),
     )
     flexmock(Allowlist).should_receive("check_and_report").and_return(True)
 
@@ -96,8 +101,8 @@ def test_vm_image_build(github_vm_image_build_comment):
                 target="fedora-36-x86_64",
                 status="success",
                 get_project_event_object=lambda: flexmock(id=1),
-            )
-        ]
+            ),
+        ],
     )
     flexmock(group).should_receive("apply_async").times(1)
     repo_download_url = (
@@ -105,7 +110,7 @@ def test_vm_image_build(github_vm_image_build_comment):
         "results/mmassari/knx-stack/fedora-36-x86_64/"
     )
     flexmock(CoprHelper).should_receive("get_repo_download_url").once().and_return(
-        repo_download_url
+        repo_download_url,
     )
     flexmock(VMImageBuildHandler).should_receive("vm_image_builder").and_return(
         flexmock()
@@ -121,7 +126,7 @@ def test_vm_image_build(github_vm_image_build_comment):
             {"packages": ["python-knx-stack"]},
             repo_download_url,
         )
-        .mock()
+        .mock(),
     )
     flexmock(VMImageBuildHandler).should_receive("report_status")
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
@@ -131,7 +136,7 @@ def test_vm_image_build(github_vm_image_build_comment):
 
     processing_results = SteveJobs().process_message(github_vm_image_build_comment)
     event_dict, _, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
     results = run_vm_image_build(

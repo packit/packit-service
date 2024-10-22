@@ -49,7 +49,7 @@ class AbstractKojiEvent(AbstractResultEvent):
     def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not self._build_model_searched and not self._build_model:
             self._build_model = KojiBuildTargetModel.get_by_task_id(
-                task_id=self.task_id
+                task_id=self.task_id,
             )
             self._build_model_searched = True
         return self._build_model
@@ -162,7 +162,7 @@ class KojiBuildEvent(AbstractKojiEvent):
         logger.debug(
             f"Getting packages_config:\n"
             f"\tproject: {self.project}\n"
-            f"\tdefault_branch: {self.project.default_branch}\n"
+            f"\tdefault_branch: {self.project.default_branch}\n",
         )
 
         packages_config = PackageConfigGetter.get_package_config_from_repo(

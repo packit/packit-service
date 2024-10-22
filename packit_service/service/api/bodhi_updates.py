@@ -93,7 +93,8 @@ class BodhiUpdateItem(Resource):
 class BodhiUpdateGroup(Resource):
     @ns.response(HTTPStatus.OK, "OK, Bodhi update group details follow")
     @ns.response(
-        HTTPStatus.NOT_FOUND.value, "No info about Bodhi update group stored in DB"
+        HTTPStatus.NOT_FOUND.value,
+        "No info about Bodhi update group stored in DB",
     )
     def get(self, id):
         """A specific Bodhi update group details."""

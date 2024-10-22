@@ -40,11 +40,13 @@ def testing_farm_results_error():
 
 @pytest.mark.parametrize("identifier", [None, "foo"])
 def test_parse_testing_farm_notification(
-    testing_farm_notification, testing_farm_results, identifier
+    testing_farm_notification,
+    testing_farm_results,
+    identifier,
 ):
     request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        request_id
+        request_id,
     ).and_return(testing_farm_results)
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
         flexmock(
@@ -65,10 +67,10 @@ def test_parse_testing_farm_notification(
                     "specfile_path": "path.spec",
                     "downstream_package_name": "packit",
                 },
-            )
+            ),
         )
         .once()
-        .mock()
+        .mock(),
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
@@ -89,11 +91,12 @@ def test_parse_testing_farm_notification(
 
 
 def test_parse_testing_farm_notification_error(
-    testing_farm_notification, testing_farm_results_error
+    testing_farm_notification,
+    testing_farm_results_error,
 ):
     request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        request_id
+        request_id,
     ).and_return(testing_farm_results_error)
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
         flexmock(
@@ -105,7 +108,7 @@ def test_parse_testing_farm_notification_error(
         .should_receive("get_project_event_object")
         .and_return(flexmock(pr_id=10))
         .once()
-        .mock()
+        .mock(),
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
@@ -125,16 +128,18 @@ def test_parse_testing_farm_notification_error(
 
 
 def test_get_project_testing_farm_notification(
-    testing_farm_notification, testing_farm_results, mock_config
+    testing_farm_notification,
+    testing_farm_results,
+    mock_config,
 ):
     request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
-        request_id
+        request_id,
     ).and_return(testing_farm_results)
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
-        request_id
+        request_id,
     ).and_return(
-        flexmock(data={"base_project_url": "abc"}, commit_sha="12345", identifier=None)
+        flexmock(data={"base_project_url": "abc"}, commit_sha="12345", identifier=None),
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
@@ -146,13 +151,14 @@ def test_get_project_testing_farm_notification(
 
 
 def test_json_testing_farm_notification(
-    testing_farm_notification, testing_farm_results
+    testing_farm_notification,
+    testing_farm_results,
 ):
     flexmock(TestingFarmJobHelper).should_receive("get_request_details").and_return(
-        testing_farm_results
+        testing_farm_results,
     )
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
-        flexmock(data={"base_project_url": "abc"}, commit_sha="12345", identifier=None)
+        flexmock(data={"base_project_url": "abc"}, commit_sha="12345", identifier=None),
     )
     event_object = Parser.parse_event(testing_farm_notification)
     assert json.dumps(event_object.pipeline_id)

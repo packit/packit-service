@@ -26,7 +26,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_sidetag_groups_name"), "sidetag_groups", ["name"], unique=True
+        op.f("ix_sidetag_groups_name"),
+        "sidetag_groups",
+        ["name"],
+        unique=True,
     )
     op.create_table(
         "sidetags",
@@ -41,7 +44,10 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
-        op.f("ix_sidetags_koji_name"), "sidetags", ["koji_name"], unique=True
+        op.f("ix_sidetags_koji_name"),
+        "sidetags",
+        ["koji_name"],
+        unique=True,
     )
     # ### end Alembic commands ###
 

@@ -21,7 +21,7 @@ def upgrade():
     op.execute("ALTER SEQUENCE whitelist_id_seq RENAME TO allowlist_id_seq")
     op.execute("ALTER INDEX whitelist_pkey RENAME TO allowlist_pkey")
     op.execute(
-        "ALTER INDEX ix_whitelist_account_name RENAME TO ix_allowlist_account_name"
+        "ALTER INDEX ix_whitelist_account_name RENAME TO ix_allowlist_account_name",
     )
     op.execute("ALTER TYPE whiteliststatus RENAME TO allowliststatus")
     # ### end Alembic commands ###
@@ -33,7 +33,7 @@ def downgrade():
     op.execute("ALTER SEQUENCE allowlist_id_seq RENAME TO whitelist_id_seq")
     op.execute("ALTER INDEX allowlist_pkey RENAME TO whitelist_pkey")
     op.execute(
-        "ALTER INDEX ix_allowlist_account_name RENAME TO ix_whitelist_account_name"
+        "ALTER INDEX ix_allowlist_account_name RENAME TO ix_whitelist_account_name",
     )
     op.execute("ALTER TYPE allowliststatus RENAME TO whiteliststatus")
     # ### end Alembic commands ###

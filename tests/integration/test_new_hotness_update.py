@@ -59,7 +59,9 @@ def sync_release_model():
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release, event_id=12, commit_sha=None
+        type=ProjectEventModelType.release,
+        event_id=12,
+        commit_sha=None,
     ).and_return(project_event)
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="7.0.3",
@@ -98,7 +100,9 @@ def sync_release_model_non_git():
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release, event_id=12, commit_sha=None
+        type=ProjectEventModelType.release,
+        event_id=12,
+        commit_sha=None,
     ).and_return(project_event)
     flexmock(AnityaVersionModel).should_receive("get_or_create").with_args(
         version="7.0.3",
@@ -124,7 +128,8 @@ def sync_release_target_models(fedora_branches):
         model = flexmock(status="queued", id=1234, branch=branch)
         models.append(model)
         flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
-            status=SyncReleaseTargetStatus.queued, branch=branch
+            status=SyncReleaseTargetStatus.queued,
+            branch=branch,
         ).and_return(model)
     yield models
 
@@ -132,7 +137,8 @@ def sync_release_target_models(fedora_branches):
 def test_new_hotness_update(new_hotness_update, sync_release_model):
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
-        status=SyncReleaseTargetStatus.queued, branch="main"
+        status=SyncReleaseTargetStatus.queued,
+        branch="main",
     ).and_return(model)
     flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
         pr_id=21,
@@ -179,14 +185,14 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
-        )
+        ),
     )
 
     flexmock(Allowlist, check_and_report=True)
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
-        "https://src.fedoraproject.org/rpms/redis"
+        "https://src.fedoraproject.org/rpms/redis",
     ).and_return(distgit_project)
     flexmock(service_config).should_receive("get_project").with_args(
         "https://github.com/packit-service/hello-world",
@@ -228,22 +234,22 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
-        status=SyncReleaseTargetStatus.running
+        status=SyncReleaseTargetStatus.running,
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
-        downstream_pr_url="some_url"
+        downstream_pr_url="some_url",
     )
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object
+        downstream_pr=object,
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=SyncReleaseTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted,
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(sync_release_model).should_receive("set_status").with_args(
-        status=SyncReleaseStatus.finished
+        status=SyncReleaseStatus.finished,
     ).once()
     sync_release_model.should_receive("get_package_name").and_return(None)
 
@@ -252,7 +258,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
             project_event_model_type=ProjectEventModelType.release,
-        )
+        ),
     )
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -260,7 +266,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
 
     processing_results = SteveJobs().process_message(new_hotness_update)
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 
@@ -295,7 +301,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
-        "https://src.fedoraproject.org/rpms/redis"
+        "https://src.fedoraproject.org/rpms/redis",
     ).and_return(distgit_project)
 
     msg = (
@@ -303,7 +309,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
         "the upstream_project_url 'https://github.com/packit-service' defined in the config."
     )
     flexmock(packit_service.worker.checker.distgit).should_receive(
-        "report_in_issue_repository"
+        "report_in_issue_repository",
     ).with_args(
         issue_repository="https://github.com/packit/issue_repository",
         service_config=service_config,
@@ -318,7 +324,8 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
 def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_git):
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
-        status=SyncReleaseTargetStatus.queued, branch="main"
+        status=SyncReleaseTargetStatus.queued,
+        branch="main",
     ).and_return(model)
     flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
         pr_id=21,
@@ -361,10 +368,11 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
-        "https://src.fedoraproject.org/rpms/redis", required=False
+        "https://src.fedoraproject.org/rpms/redis",
+        required=False,
     ).and_return(distgit_project)
     flexmock(service_config).should_receive("get_project").with_args(
-        "https://src.fedoraproject.org/rpms/redis"
+        "https://src.fedoraproject.org/rpms/redis",
     ).and_return(distgit_project)
 
     target_project = (
@@ -402,22 +410,22 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
-        status=SyncReleaseTargetStatus.running
+        status=SyncReleaseTargetStatus.running,
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
-        downstream_pr_url="some_url"
+        downstream_pr_url="some_url",
     )
     flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object
+        downstream_pr=object,
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=SyncReleaseTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted,
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(sync_release_model_non_git).should_receive("set_status").with_args(
-        status=SyncReleaseStatus.finished
+        status=SyncReleaseStatus.finished,
     ).once()
     sync_release_model_non_git.should_receive("get_package_name").and_return(None)
 
@@ -426,7 +434,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
             job_config_trigger_type=JobConfigTriggerType.release,
             id=123,
             project_event_model_type=ProjectEventModelType.release,
-        )
+        ),
     )
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -434,7 +442,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
 
     processing_results = SteveJobs().process_message(new_hotness_update)
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
+        processing_results,
     )
     assert json.dumps(event_dict)
 

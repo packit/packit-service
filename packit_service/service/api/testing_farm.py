@@ -30,7 +30,8 @@ payload = ns.model(
     "Testing Farm notification",
     {
         "request_id": fields.String(
-            required=True, example="614d240a-1e27-4758-ad6a-ed3d34281924"
+            required=True,
+            example="614d240a-1e27-4758-ad6a-ed3d34281924",
         ),
         "token": fields.String(required=True, example="HERE-IS-A-VALID-TOKEN"),
     },
@@ -176,7 +177,8 @@ class TestingFarmResult(Resource):
 class TestingFarmGroup(Resource):
     @ns.response(HTTPStatus.OK, "OK, test run group details follow")
     @ns.response(
-        HTTPStatus.NOT_FOUND.value, "No info about test run group stored in DB"
+        HTTPStatus.NOT_FOUND.value,
+        "No info about test run group stored in DB",
     )
     def get(self, id):
         """A specific test run details."""

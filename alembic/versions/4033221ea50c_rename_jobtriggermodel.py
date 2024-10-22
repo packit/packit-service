@@ -23,7 +23,7 @@ def upgrade():
     op.execute("ALTER SEQUENCE job_triggers_id_seq RENAME TO project_events_id_seq")
     op.execute("ALTER INDEX job_triggers_pkey RENAME TO project_events_pkey")
     op.execute(
-        "ALTER INDEX ix_job_triggers_trigger_id RENAME TO ix_project_events_event_id"
+        "ALTER INDEX ix_job_triggers_trigger_id RENAME TO ix_project_events_event_id",
     )
 
     op.alter_column("pipelines", "job_trigger_id", new_column_name="project_event_id")
@@ -45,7 +45,7 @@ def downgrade():
     op.execute("ALTER SEQUENCE project_events_id_seq RENAME TO job_triggers_id_seq")
     op.execute("ALTER INDEX project_events_pkey RENAME TO job_triggers_pkey")
     op.execute(
-        "ALTER INDEX ix_project_events_event_id RENAME TO ix_job_triggers_trigger_id"
+        "ALTER INDEX ix_project_events_event_id RENAME TO ix_job_triggers_trigger_id",
     )
 
     op.alter_column("pipelines", "project_event_id", new_column_name="job_trigger_id")

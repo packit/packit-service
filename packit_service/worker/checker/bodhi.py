@@ -53,7 +53,7 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
                     logger.debug(
                         f"Skipping build '{koji_build_data.build_id}' "
                         f"on '{koji_build_data.dist_git_branch}'. "
-                        f"Build not finished yet."
+                        f"Build not finished yet.",
                     )
                     return False
 
@@ -65,7 +65,7 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
                 ):
                     logger.info(
                         f"Skipping build on '{koji_build_data.dist_git_branch}'. "
-                        f"Bodhi update configured only for '{configured_branches}'."
+                        f"Bodhi update configured only for '{configured_branches}'.",
                     )
                     return False
 
@@ -87,7 +87,7 @@ class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
             ).check_allowed_accounts():
                 logger.info(
                     f"Owner of the build ({owner}) does not match the "
-                    f"configuration: {configured_builders}"
+                    f"configuration: {configured_builders}",
                 )
                 return False
 
@@ -108,7 +108,8 @@ class IsKojiBuildCompleteAndBranchConfiguredCheckSidetag(
 
 
 class IsKojiBuildCompleteAndBranchConfiguredCheckService(
-    IsKojiBuildCompleteAndBranchConfigured, GetKojiBuildDataFromKojiServiceMixin
+    IsKojiBuildCompleteAndBranchConfigured,
+    GetKojiBuildDataFromKojiServiceMixin,
 ): ...
 
 
@@ -126,7 +127,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
             logger.debug(
                 f"Re-triggering Bodhi update through comment in "
                 f"repo {self.project_url} and issue {self.data.issue_id} "
-                f"by {self.actor}."
+                f"by {self.actor}.",
             )
             if not has_write_access:
                 msg = (
@@ -151,7 +152,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
             logger.debug(
                 f"Re-triggering Bodhi update via dist-git comment in "
                 f"repo {self.project_url} and #PR {self.data.pr_id} "
-                f"by {self.actor}."
+                f"by {self.actor}.",
             )
             if not has_write_access:
                 msg = (

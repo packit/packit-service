@@ -42,7 +42,7 @@ def configure_sentry(
         f"Setup sentry for {runner_type}: "
         f"celery_integration={celery_integration}, "
         f"flask_integration={flask_integration}, "
-        f"sqlalchemy_integration={sqlalchemy_integration}"
+        f"sqlalchemy_integration={sqlalchemy_integration}",
     )
 
     secret_key = getenv("SENTRY_SECRET")

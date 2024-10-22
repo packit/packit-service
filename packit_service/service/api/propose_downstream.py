@@ -33,7 +33,9 @@ class ProposeDownstreamList(Resource):
         result = []
         first, last = indices()
         for propose_downstream_results in SyncReleaseModel.get_range(
-            first, last, job_type=SyncReleaseJobType.propose_downstream
+            first,
+            last,
+            job_type=SyncReleaseJobType.propose_downstream,
         ):
             result.append(get_sync_release_info(propose_downstream_results))
 
@@ -46,7 +48,8 @@ class ProposeDownstreamList(Resource):
 @ns.param("id", "Packit id of the propose downstream run target")
 class ProposeResult(Resource):
     @ns.response(
-        HTTPStatus.OK.value, "OK, propose downstream target details will follow"
+        HTTPStatus.OK.value,
+        "OK, propose downstream target details will follow",
     )
     @ns.response(
         HTTPStatus.NOT_FOUND.value,

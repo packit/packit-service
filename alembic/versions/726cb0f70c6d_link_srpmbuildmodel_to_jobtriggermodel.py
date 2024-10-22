@@ -185,10 +185,15 @@ def upgrade():
     # Start schema migration
 
     op.add_column(
-        "srpm_builds", sa.Column("job_trigger_id", sa.Integer(), nullable=True)
+        "srpm_builds",
+        sa.Column("job_trigger_id", sa.Integer(), nullable=True),
     )
     op.create_foreign_key(
-        None, "srpm_builds", "build_triggers", ["job_trigger_id"], ["id"]
+        None,
+        "srpm_builds",
+        "build_triggers",
+        ["job_trigger_id"],
+        ["id"],
     )
     # End schema migration
 

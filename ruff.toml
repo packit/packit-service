@@ -1,7 +1,7 @@
 select = [
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
-    # "COM", # flake8-commas
+    "COM", # flake8-commas
     # "E",   # pycodestyle Error
     # "F",   # Pyflakes
     # "I",   # isort

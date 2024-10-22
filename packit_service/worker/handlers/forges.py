@@ -42,7 +42,9 @@ logger = logging.getLogger(__name__)
 
 @reacts_to(event=InstallationEvent)
 class GithubAppInstallationHandler(
-    JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+    JobHandler,
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
 ):
     task_name = TaskName.installation
 
@@ -76,7 +78,7 @@ class GithubAppInstallationHandler(
             Result of the run task.
         """
         previous_installation = GithubInstallationModel.get_by_account_login(
-            self.installation_event.account_login
+            self.installation_event.account_login,
         )
         previous_sender_login = (
             previous_installation.sender_login if previous_installation else None
@@ -96,7 +98,8 @@ class GithubAppInstallationHandler(
             and previous_sender_login != self.sender_login
         ):
             if allowlist.is_github_username_from_fas_account_matching(
-                fas_account=self.sender_login, sender_login=self.sender_login
+                fas_account=self.sender_login,
+                sender_login=self.sender_login,
             ):
                 AllowlistModel.add_namespace(
                     namespace,
@@ -153,7 +156,9 @@ class GithubAppInstallationHandler(
 
 @reacts_to(event=IssueCommentEvent)
 class GithubFasVerificationHandler(
-    JobHandler, PackitAPIWithDownstreamMixin, GetIssueMixin
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetIssueMixin,
 ):
     task_name = TaskName.github_fas_verification
 
@@ -185,24 +190,25 @@ class GithubFasVerificationHandler(
         """
         logger.debug(
             f"Going to run verification of FAS account triggered by comment:"
-            f" {self.comment}"
+            f" {self.comment}",
         )
         # e.g. User Bebaabeni needs to be approved.
         _, account_login, _ = self.issue.title.split(maxsplit=2)
         original_sender_login = GithubInstallationModel.get_by_account_login(
-            account_login
+            account_login,
         ).sender_login
         logger.debug(f"Original sender login: {original_sender_login}")
         namespace = f"github.com/{account_login}"
         command_parts = get_packit_commands_from_comment(
-            self.comment, self.service_config.comment_command_prefix
+            self.comment,
+            self.service_config.comment_command_prefix,
         )
         # we expect ["verify-fas", "fas-account"]
         if len(command_parts) != 2:
             msg = "Incorrect format of the Packit verification comment command."
             logger.debug(msg)
             self.issue.comment(
-                f"{msg} The expected format: `/packit verify-fas my-fas-account`"
+                f"{msg} The expected format: `/packit verify-fas my-fas-account`",
             )
             return TaskResults(success=False, details={"msg": msg})
 
@@ -236,7 +242,8 @@ class GithubFasVerificationHandler(
             return TaskResults(success=True, details={"msg": msg})
 
         if allowlist.is_github_username_from_fas_account_matching(
-            fas_account=fas_account, sender_login=self.sender_login
+            fas_account=fas_account,
+            sender_login=self.sender_login,
         ):
             msg = (
                 f"Namespace `{namespace}` approved successfully "
@@ -248,13 +255,15 @@ class GithubFasVerificationHandler(
 
             # store the fas account in the DB for the namespace
             AllowlistModel.add_namespace(
-                namespace, AllowlistStatus.approved_automatically.value, fas_account
+                namespace,
+                AllowlistStatus.approved_automatically.value,
+                fas_account,
             )
 
         else:
             logger.debug(
                 f"No match between FAS account `{fas_account}` "
-                f"and GitHub user `{self.sender_login}` found."
+                f"and GitHub user `{self.sender_login}` found.",
             )
             msg = (
                 f"We were not able to find a match between the GitHub Username field "

@@ -40,7 +40,7 @@ class only_once:
         self.configured = True
         logger.debug(
             f"Function {self.func.__name__} called for the first time with "
-            f"args: {args} and kwargs: {kwargs}"
+            f"args: {args} and kwargs: {kwargs}",
         )
         return self.func(*args, **kwargs)
 
@@ -80,7 +80,7 @@ def get_package_nvrs(built_packages: List[dict]) -> List[str]:
         epoch = f"{package['epoch']}:" if package["epoch"] else ""
 
         packages.append(
-            f"{package['name']}-{epoch}{package['version']}-{package['release']}.{package['arch']}"
+            f"{package['name']}-{epoch}{package['version']}-{package['release']}.{package['arch']}",
         )
     return packages
 
@@ -199,7 +199,8 @@ def elapsed_seconds(begin: datetime, end: datetime) -> float:
 
 
 def get_packit_commands_from_comment(
-    comment: str, packit_comment_command_prefix: str
+    comment: str,
+    packit_comment_command_prefix: str,
 ) -> List[str]:
     comment_parts = comment.strip()
 
@@ -250,7 +251,7 @@ def pr_labels_match_configuration(
     logger.info(
         f"About to check whether PR labels in PR {pull_request.id} "
         f"match to the labels configuration "
-        f"(label.present: {configured_labels_present}, label.absent: {configured_labels_absent})"
+        f"(label.present: {configured_labels_present}, label.absent: {configured_labels_absent})",
     )
 
     pr_labels = [label.name for label in pull_request.labels]

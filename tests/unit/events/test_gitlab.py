@@ -44,7 +44,7 @@ def merge_request_closed():
 @pytest.fixture()
 def gitlab_push():
     with open(
-        DATA_DIR / "webhooks" / "gitlab" / "push_with_one_commit.json"
+        DATA_DIR / "webhooks" / "gitlab" / "push_with_one_commit.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -52,7 +52,7 @@ def gitlab_push():
 @pytest.fixture()
 def gitlab_push_many_commits():
     with open(
-        DATA_DIR / "webhooks" / "gitlab" / "push_with_many_commits.json"
+        DATA_DIR / "webhooks" / "gitlab" / "push_with_many_commits.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -143,7 +143,7 @@ def test_parse_mr(merge_request):
     assert event_object.base_project.full_repo_name == "testing/packit/hello-there"
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -151,7 +151,7 @@ def test_parse_mr(merge_request):
         reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -169,7 +169,7 @@ def test_parse_mr_action(merge_request_update):
     assert event_object.base_project.full_repo_name == "testing/packit/hello-there"
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -177,7 +177,7 @@ def test_parse_mr_action(merge_request_update):
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -210,7 +210,7 @@ def test_parse_mr_comment(gitlab_mr_comment):
     assert event_object.base_project.full_repo_name == "testing/packit/hello-there"
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -218,7 +218,7 @@ def test_parse_mr_comment(gitlab_mr_comment):
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -240,11 +240,11 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
     assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
     flexmock(event_object.project).should_receive("get_releases").and_return(
-        [flexmock(tag_name="0.5.0")]
+        [flexmock(tag_name="0.5.0")],
     )
     flexmock(event_object.project, get_sha_from_tag=lambda tag_name: "123456")
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -252,7 +252,7 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
         reference="123456",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -272,7 +272,7 @@ def test_parse_gitlab_push(gitlab_push):
     assert not event_object.base_project
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -280,7 +280,7 @@ def test_parse_gitlab_push(gitlab_push):
         reference="cb2859505e101785097e082529dced35bbee0c8f",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -303,7 +303,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
     assert not event_object.base_project
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -311,7 +311,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
         reference="15af92227f9e965b392e85ba2f08a41a5aeb278a",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config
 
@@ -343,7 +343,7 @@ def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
     assert not event_object.base_project
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=event_object.base_project,
         project=event_object.project,
@@ -351,6 +351,6 @@ def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
         reference="ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     assert event_object.packages_config

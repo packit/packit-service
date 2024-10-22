@@ -77,7 +77,7 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
     assert event_object.base_project.full_repo_name == "rpms/python-teamcity-messages"
 
     flexmock(PackageConfigGetter).should_receive(
-        "get_package_config_from_repo"
+        "get_package_config_from_repo",
     ).with_args(
         base_project=None,
         project=event_object.project,
@@ -85,10 +85,10 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {})
+        flexmock(get_package_config_views=lambda: {}),
     ).once()
     flexmock(PagureProject).should_receive("get_web_url").and_return(
-        "https://src.fedoraproject.org/rpms/python-teamcity-messages"
+        "https://src.fedoraproject.org/rpms/python-teamcity-messages",
     )
     assert event_object.packages_config
 

@@ -41,7 +41,7 @@ def _add_sync_release(run: SyncReleaseModel, response_dict: Dict):
                 "packit_id": target.id,
                 "target": target.branch,
                 "status": target.status,
-            }
+            },
         )
 
     if "trigger" not in response_dict:
@@ -55,7 +55,7 @@ def _add_vm_image_build(run: VMImageBuildTargetModel, response_dict: Dict):
             "packit_id": run.id,
             "target": run.target,
             "status": run.status,
-        }
+        },
     )
     if "trigger" not in response_dict:
         response_dict["time_submitted"] = optional_timestamp(run.build_submitted_time)
@@ -98,7 +98,7 @@ def process_runs(runs):
                 "status": srpm_build.status,
             }
             response_dict["time_submitted"] = optional_timestamp(
-                srpm_build.build_submitted_time
+                srpm_build.build_submitted_time,
             )
             response_dict["trigger"] = get_project_info_from_build(srpm_build)
 
@@ -118,19 +118,20 @@ def process_runs(runs):
                             "packit_id": row.id,
                             "target": row.target,
                             "status": row.status,
-                        }
+                        },
                     )
                     if "trigger" not in response_dict:
                         submitted_time = (
                             row.submitted_time
                             if isinstance(
-                                row, (TFTTestRunTargetModel, BodhiUpdateTargetModel)
+                                row,
+                                (TFTTestRunTargetModel, BodhiUpdateTargetModel),
                             )
                             else row.build_submitted_time
                         )
 
                         response_dict["time_submitted"] = optional_timestamp(
-                            submitted_time
+                            submitted_time,
                         )
                         response_dict["trigger"] = get_project_info_from_build(row)
 
@@ -143,7 +144,7 @@ def process_runs(runs):
 
         # handle VM image builds
         for vm_image_build_id in set(
-            flatten_and_remove_none(pipeline.vm_image_build_id)
+            flatten_and_remove_none(pipeline.vm_image_build_id),
         ):
             _add_vm_image_build(
                 VMImageBuildTargetModel.get_by_id(vm_image_build_id),
@@ -182,7 +183,8 @@ class MergedRun(Resource):
             return response_maker(result[0])
 
         return response_maker(
-            {"error": "No run has been found in DB"}, status=HTTPStatus.NOT_FOUND
+            {"error": "No run has been found in DB"},
+            status=HTTPStatus.NOT_FOUND,
         )
 
 
@@ -202,7 +204,7 @@ class Run(Resource):
         result = {
             "run_id": run.id,
             "trigger": get_project_info_from_build(
-                run.srpm_build or run.sync_release_run or run.bodhi_update_group
+                run.srpm_build or run.sync_release_run or run.bodhi_update_group,
             ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_group_id": run.copr_build_group_id,

@@ -51,7 +51,9 @@ class PipelineModel(Base):
     id = Column(Integer, primary_key=True)  # our database PK
     datetime = Column(DateTime, default=datetime.utcnow)
     bodhi_update_group_id = Column(
-        Integer, ForeignKey("bodhi_update_groups.id"), index=True
+        Integer,
+        ForeignKey("bodhi_update_groups.id"),
+        index=True,
     )
     bodhi_update_group = relationship("BodhiUpdateGroupModel", back_populates="runs")
 
@@ -63,7 +65,8 @@ class BodhiUpdateGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     runs = relationship("PipelineModel", back_populates="bodhi_update_group")
     bodhi_update_targets = relationship(
-        "BodhiUpdateTargetModel", back_populates="group_of_targets"
+        "BodhiUpdateTargetModel",
+        back_populates="group_of_targets",
     )
 
 
@@ -81,7 +84,8 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
     bodhi_update_group_id = Column(Integer, ForeignKey("bodhi_update_groups.id"))
 
     group_of_targets = relationship(
-        "BodhiUpdateGroupModel", back_populates="bodhi_update_targets"
+        "BodhiUpdateGroupModel",
+        back_populates="bodhi_update_targets",
     )
 
 

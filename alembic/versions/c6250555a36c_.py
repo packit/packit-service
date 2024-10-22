@@ -417,7 +417,10 @@ class JobTriggerUpgradeModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, session: Session, type: JobTriggerModelType, trigger_id: int
+        cls,
+        session: Session,
+        type: JobTriggerModelType,
+        trigger_id: int,
     ) -> "JobTriggerUpgradeModel":
         trigger = (
             session.query(JobTriggerUpgradeModel)
@@ -471,7 +474,9 @@ def upgrade():
 
         # our table
         TaskResultUpgradeModel.add_task_result(
-            session=session, task_id=task_id, task_result_dict=result
+            session=session,
+            task_id=task_id,
+            task_result_dict=result,
         )
         # celery table
         add_task_to_celery_table(
@@ -492,7 +497,9 @@ def upgrade():
         status = data.get("status")
         logger.info(f"Adding account {account} into WhitelistModel")
         WhitelistUpgradeModel.add_account(
-            session=session, account_name=account, status=status
+            session=session,
+            account_name=account,
+            status=status,
         )
 
     # installations

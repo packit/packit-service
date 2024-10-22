@@ -26,14 +26,14 @@ def mock_config():
         (
             {
                 "X-Hub-Signature-256": "sha256="
-                "7884c9fc5f880c17920b2066e85aae7b57489505a16aa9b56806a924df78f846"
+                "7884c9fc5f880c17920b2066e85aae7b57489505a16aa9b56806a924df78f846",
             },
             True,
         ),
         (
             {
                 "X-Hub-Signature-256": "sha256="
-                "feedfacecafebeef920b2066e85aae7b57489505a16aa9b56806a924df78f666"
+                "feedfacecafebeef920b2066e85aae7b57489505a16aa9b56806a924df78f666",
             },
             False,
         ),
@@ -43,7 +43,7 @@ def mock_config():
 def test_validate_signature(mock_config, headers, is_good):
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        flexmock(validate_webhooks=True)
+        flexmock(validate_webhooks=True),
     )
     from packit_service.service.api import webhooks
 
@@ -71,7 +71,7 @@ def test_validate_signature(mock_config, headers, is_good):
                 #            "gitlab-token-secret", algorithm="HS256")
                 "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
                 "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8ifQ."
-                "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8"
+                "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8",
             },
             True,
         ),
@@ -82,7 +82,7 @@ def test_validate_signature(mock_config, headers, is_good):
                 #            "gitlab-token-secret", algorithm="HS256")
                 "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
                 "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSJ9."
-                "WNasZgIU91hMwKtGeGCILjPIDLU-PpL5rww-BEAzMgU"
+                "WNasZgIU91hMwKtGeGCILjPIDLU-PpL5rww-BEAzMgU",
             },
             True,
         ),
@@ -93,7 +93,7 @@ def test_validate_signature(mock_config, headers, is_good):
                 #            "gitlab-token-secret", algorithm="HS256")
                 "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
                 "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8yIn0."
-                "vyQYbtmaCyHfDKpfmyk_uAn9QvDulnaIy2wZ1xgc-uI"
+                "vyQYbtmaCyHfDKpfmyk_uAn9QvDulnaIy2wZ1xgc-uI",
             },
             False,
         ),
@@ -104,14 +104,14 @@ def test_validate_signature(mock_config, headers, is_good):
 def test_validate_token(mock_config, headers, is_good):
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        flexmock(ServiceConfig)
+        flexmock(ServiceConfig),
     )
 
     from packit_service.service.api import webhooks
 
     if "X-Gitlab-Token" not in headers and not is_good:
         flexmock(webhooks.GitlabWebhook).should_receive(
-            "create_confidential_issue_with_token"
+            "create_confidential_issue_with_token",
         ).mock()
 
     webhooks.config = mock_config
@@ -121,7 +121,7 @@ def test_validate_token(mock_config, headers, is_good):
         payload = {
             "project": {
                 "http_url": "https://gitlab.com/multi/part/namespace/repo.git",
-            }
+            },
         }
         request._cached_data = request.data = dumps(payload).encode()
         request.headers = headers
@@ -233,7 +233,7 @@ def test_validate_token(mock_config, headers, is_good):
 def test_interested(mock_config, headers, payload, interested):
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        flexmock(ServiceConfig)
+        flexmock(ServiceConfig),
     )
 
     from packit_service.service.api import webhooks
@@ -241,6 +241,8 @@ def test_interested(mock_config, headers, payload, interested):
     webhooks.config = mock_config
 
     with Flask(__name__).test_request_context(
-        json=payload, content_type="application/json", headers=headers
+        json=payload,
+        content_type="application/json",
+        headers=headers,
     ):
         assert webhooks.GithubWebhook.interested() == interested

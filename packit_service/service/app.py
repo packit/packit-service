@@ -63,7 +63,7 @@ def get_flask_application():
         logger.addHandler(handler)
 
     logger.info(
-        f"server name = {service_config.server_name}, all HTTP requests need to use this URL!"
+        f"server name = {service_config.server_name}, all HTTP requests need to use this URL!",
     )
 
     package_versions = [

@@ -40,13 +40,15 @@ from packit.config import (
     ],
 )
 def test_check_has_author_write_access(
-    event_type: str, has_write_access: bool, result: bool
+    event_type: str,
+    has_write_access: bool,
+    result: bool,
 ):
     package_config = PackageConfig(
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
         jobs=[
             JobConfig(
@@ -55,7 +57,7 @@ def test_check_has_author_write_access(
                 packages={
                     "package": CommonPackageConfig(
                         identifier="first",
-                    )
+                    ),
                 },
             ),
         ],
@@ -66,7 +68,7 @@ def test_check_has_author_write_access(
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
     )
     data = {
@@ -109,7 +111,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
         jobs=[
             JobConfig(
@@ -118,7 +120,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
                 packages={
                     "package": CommonPackageConfig(
                         identifier="first",
-                    )
+                    ),
                 },
             ),
         ],
@@ -129,7 +131,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
         packages={
             "package": CommonPackageConfig(
                 identifier="first",
-            )
+            ),
         },
     )
     data = {
@@ -141,7 +143,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
         repo="playground-for-pencils",
     )
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
-        is_packager
+        is_packager,
     )
 
     checker = IsAuthorAPackager(package_config, job_config, data)

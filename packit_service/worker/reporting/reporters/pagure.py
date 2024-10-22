@@ -33,11 +33,11 @@ class StatusReporterPagure(StatusReporter):
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
-            f"Setting Pagure status '{state_to_set.name}' for check '{check_name}': {description}"
+            f"Setting Pagure status '{state_to_set.name}' for check '{check_name}': {description}",
         )
         if markdown_content:
             logger.debug(
-                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored.",
             )
 
         # Required because Pagure API doesn't accept empty url.
@@ -45,5 +45,10 @@ class StatusReporterPagure(StatusReporter):
             url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
 
         self.project_with_commit.set_commit_status(
-            self.commit_sha, state_to_set, url, description, check_name, trim=True
+            self.commit_sha,
+            state_to_set,
+            url,
+            description,
+            check_name,
+            trim=True,
         )

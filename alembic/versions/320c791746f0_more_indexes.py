@@ -26,17 +26,29 @@ def upgrade():
         unique=False,
     )
     op.create_index(
-        op.f("ix_git_branches_project_id"), "git_branches", ["project_id"], unique=False
+        op.f("ix_git_branches_project_id"),
+        "git_branches",
+        ["project_id"],
+        unique=False,
     )
     op.drop_column("git_projects", "https_url")
     op.create_index(
-        op.f("ix_job_triggers_trigger_id"), "job_triggers", ["trigger_id"], unique=False
+        op.f("ix_job_triggers_trigger_id"),
+        "job_triggers",
+        ["trigger_id"],
+        unique=False,
     )
     op.create_index(
-        op.f("ix_pipelines_copr_build_id"), "pipelines", ["copr_build_id"], unique=False
+        op.f("ix_pipelines_copr_build_id"),
+        "pipelines",
+        ["copr_build_id"],
+        unique=False,
     )
     op.create_index(
-        op.f("ix_pipelines_koji_build_id"), "pipelines", ["koji_build_id"], unique=False
+        op.f("ix_pipelines_koji_build_id"),
+        "pipelines",
+        ["koji_build_id"],
+        unique=False,
     )
     op.create_index(
         op.f("ix_pipelines_propose_downstream_run_id"),
@@ -45,10 +57,16 @@ def upgrade():
         unique=False,
     )
     op.create_index(
-        op.f("ix_pipelines_srpm_build_id"), "pipelines", ["srpm_build_id"], unique=False
+        op.f("ix_pipelines_srpm_build_id"),
+        "pipelines",
+        ["srpm_build_id"],
+        unique=False,
     )
     op.create_index(
-        op.f("ix_pipelines_test_run_id"), "pipelines", ["test_run_id"], unique=False
+        op.f("ix_pipelines_test_run_id"),
+        "pipelines",
+        ["test_run_id"],
+        unique=False,
     )
     op.create_index(
         op.f("ix_project_issues_project_id"),
@@ -79,7 +97,8 @@ def downgrade():
     op.drop_index(op.f("ix_pipelines_test_run_id"), table_name="pipelines")
     op.drop_index(op.f("ix_pipelines_srpm_build_id"), table_name="pipelines")
     op.drop_index(
-        op.f("ix_pipelines_propose_downstream_run_id"), table_name="pipelines"
+        op.f("ix_pipelines_propose_downstream_run_id"),
+        table_name="pipelines",
     )
     op.drop_index(op.f("ix_pipelines_koji_build_id"), table_name="pipelines")
     op.drop_index(op.f("ix_pipelines_copr_build_id"), table_name="pipelines")
@@ -90,6 +109,7 @@ def downgrade():
     )
     op.drop_index(op.f("ix_git_branches_project_id"), table_name="git_branches")
     op.drop_index(
-        op.f("ix_copr_build_targets_commit_sha"), table_name="copr_build_targets"
+        op.f("ix_copr_build_targets_commit_sha"),
+        table_name="copr_build_targets",
     )
     # ### end Alembic commands ###

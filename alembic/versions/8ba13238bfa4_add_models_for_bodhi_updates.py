@@ -42,7 +42,8 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.add_column(
-        "pipelines", sa.Column("bodhi_update_group_id", sa.Integer(), nullable=True)
+        "pipelines",
+        sa.Column("bodhi_update_group_id", sa.Integer(), nullable=True),
     )
     op.create_index(
         op.f("ix_pipelines_bodhi_update_group_id"),
@@ -51,7 +52,11 @@ def upgrade():
         unique=False,
     )
     op.create_foreign_key(
-        None, "pipelines", "bodhi_update_groups", ["bodhi_update_group_id"], ["id"]
+        None,
+        "pipelines",
+        "bodhi_update_groups",
+        ["bodhi_update_group_id"],
+        ["id"],
     )
     # ### end Alembic commands ###
 

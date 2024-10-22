@@ -95,7 +95,9 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
 class KojiBuildHandler(
-    JobHandler, PackitAPIWithDownstreamMixin, GetKojiBuildJobHelperMixin
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetKojiBuildJobHelperMixin,
 ):
     task_name = TaskName.upstream_koji_build
 
@@ -130,12 +132,17 @@ class KojiBuildHandler(
 @configured_as(job_type=JobType.upstream_koji_build)
 @reacts_to(event=KojiTaskEvent)
 class KojiTaskReportHandler(
-    JobHandler, PackitAPIWithDownstreamMixin, ConfigFromEventMixin
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    ConfigFromEventMixin,
 ):
     task_name = TaskName.upstream_koji_build_report
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
@@ -151,7 +158,7 @@ class KojiTaskReportHandler(
     def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
             self._build = KojiBuildTargetModel.get_by_task_id(
-                task_id=str(self.koji_task_event.task_id)
+                task_id=str(self.koji_task_event.task_id),
             )
         return self._build
 
@@ -163,7 +170,7 @@ class KojiTaskReportHandler(
 
     def run(self):
         build = KojiBuildTargetModel.get_by_task_id(
-            task_id=str(self.koji_task_event.task_id)
+            task_id=str(self.koji_task_event.task_id),
         )
 
         if not build:
@@ -173,19 +180,23 @@ class KojiTaskReportHandler(
 
         logger.debug(
             f"Build on {build.target} in koji changed state "
-            f"from {self.koji_task_event.old_state} to {self.koji_task_event.state}."
+            f"from {self.koji_task_event.old_state} to {self.koji_task_event.state}.",
         )
 
         build.set_build_start_time(
-            datetime.utcfromtimestamp(self.koji_task_event.start_time)
-            if self.koji_task_event.start_time
-            else None
+            (
+                datetime.utcfromtimestamp(self.koji_task_event.start_time)
+                if self.koji_task_event.start_time
+                else None
+            ),
         )
 
         build.set_build_finished_time(
-            datetime.utcfromtimestamp(self.koji_task_event.completion_time)
-            if self.koji_task_event.completion_time
-            else None
+            (
+                datetime.utcfromtimestamp(self.koji_task_event.completion_time)
+                if self.koji_task_event.completion_time
+                else None
+            ),
         )
 
         url = get_koji_build_info_url(build.id)
@@ -218,15 +229,16 @@ class KojiTaskReportHandler(
 
         if not (new_commit_status and description):
             logger.debug(
-                f"We don't react to this koji build state change: {self.koji_task_event.state}"
+                f"We don't react to this koji build state change: {self.koji_task_event.state}",
             )
         elif new_commit_status.value == build.status:
             logger.debug(
                 "Status was already processed (status in the DB is the "
-                "same as the one about to report)"
+                "same as the one about to report)",
             )
             return TaskResults(
-                success=True, details={"msg": "State change already processed"}
+                success=True,
+                details={"msg": "State change already processed"},
             )
 
         else:
@@ -238,7 +250,7 @@ class KojiTaskReportHandler(
                 chroot=build.target,
             )
             koji_build_logs = self.koji_task_event.get_koji_build_rpm_tasks_logs_urls(
-                self.service_config.koji_logs_url
+                self.service_config.koji_logs_url,
             )
 
             build.set_build_logs_urls(koji_build_logs)
@@ -266,12 +278,17 @@ class KojiTaskReportHandler(
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
 class KojiBuildReportHandler(
-    JobHandler, PackitAPIWithDownstreamMixin, ConfigFromEventMixin
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    ConfigFromEventMixin,
 ):
     task_name = TaskName.downstream_koji_build_report
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
@@ -286,7 +303,7 @@ class KojiBuildReportHandler(
     def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
             self._build = KojiBuildTargetModel.get_by_task_id(
-                task_id=self.koji_build_event.task_id
+                task_id=self.koji_build_event.task_id,
             )
         return self._build
 
@@ -312,15 +329,19 @@ class KojiBuildReportHandler(
         logger.debug(msg)
 
         self.build.set_build_start_time(
-            datetime.fromisoformat(self.koji_build_event.start_time)
-            if self.koji_build_event.start_time
-            else None
+            (
+                datetime.fromisoformat(self.koji_build_event.start_time)
+                if self.koji_build_event.start_time
+                else None
+            ),
         )
 
         self.build.set_build_finished_time(
-            datetime.fromisoformat(self.koji_build_event.completion_time)
-            if self.koji_build_event.completion_time
-            else None
+            (
+                datetime.fromisoformat(self.koji_build_event.completion_time)
+                if self.koji_build_event.completion_time
+                else None
+            ),
         )
 
         new_commit_status = {
@@ -345,13 +366,13 @@ class KojiBuildReportHandler(
             logger.warning(
                 f"We should not overwrite the final state {self.build.status} "
                 f"to {new_commit_status}. "
-                f"Not updating the status."
+                f"Not updating the status.",
             )
         elif new_commit_status:
             self.build.set_status(new_commit_status.value)
         else:
             logger.debug(
-                f"We don't react to this koji build state change: {self.koji_task_event.state}"
+                f"We don't react to this koji build state change: {self.koji_task_event.state}",
             )
 
         if not self.build.web_url:
@@ -359,11 +380,11 @@ class KojiBuildReportHandler(
                 KojiBuildEvent.get_koji_rpm_build_web_url(
                     rpm_build_task_id=self.koji_build_event.task_id,
                     koji_web_url=self.service_config.koji_web_url,
-                )
+                ),
             )
 
         koji_build_logs = self.koji_build_event.get_koji_build_rpm_tasks_logs_urls(
-            self.service_config.koji_logs_url
+            self.service_config.koji_logs_url,
         )
         self.build.set_build_logs_urls(koji_build_logs)
 
@@ -373,7 +394,9 @@ class KojiBuildReportHandler(
 @configured_as(job_type=JobType.koji_build_tag)
 @reacts_to(event=KojiBuildTagEvent)
 class KojiBuildTagHandler(
-    JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+    JobHandler,
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
 ):
     task_name = TaskName.koji_build_tag
 
@@ -400,7 +423,7 @@ class KojiBuildTagHandler(
             )
             if not packages_config:
                 logger.debug(
-                    f"Packit config not found for package {package_name}, skipping."
+                    f"Packit config not found for package {package_name}, skipping.",
                 )
                 continue
             for job in packages_config.get_job_views():
@@ -430,7 +453,7 @@ class KojiBuildTagHandler(
             )
             if not packages_config:
                 logger.debug(
-                    f"Packit config not found for package {package_name}, skipping."
+                    f"Packit config not found for package {package_name}, skipping.",
                 )
                 continue
             for job in packages_config.get_job_views():
@@ -448,7 +471,9 @@ class KojiBuildTagHandler(
                         else BodhiUpdateFromSidetagHandler
                     )
                     if not handler.pre_check(
-                        package_config=packages_config, job_config=job, event=event_dict
+                        package_config=packages_config,
+                        job_config=job,
+                        event=event_dict,
                     ):
                         continue
                     signature(

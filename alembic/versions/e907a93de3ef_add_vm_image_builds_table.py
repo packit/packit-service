@@ -63,7 +63,8 @@ def upgrade():
         unique=False,
     )
     op.add_column(
-        "pipelines", sa.Column("vm_image_build_id", sa.Integer(), nullable=True)
+        "pipelines",
+        sa.Column("vm_image_build_id", sa.Integer(), nullable=True),
     )
     op.create_index(
         op.f("ix_pipelines_vm_image_build_id"),
@@ -72,7 +73,11 @@ def upgrade():
         unique=False,
     )
     op.create_foreign_key(
-        None, "pipelines", "vm_image_build_targets", ["vm_image_build_id"], ["id"]
+        None,
+        "pipelines",
+        "vm_image_build_targets",
+        ["vm_image_build_id"],
+        ["id"],
     )
     # ### end Alembic commands ###
 
@@ -87,7 +92,8 @@ def downgrade():
         table_name="vm_image_build_targets",
     )
     op.drop_index(
-        op.f("ix_vm_image_build_targets_build_id"), table_name="vm_image_build_targets"
+        op.f("ix_vm_image_build_targets_build_id"),
+        table_name="vm_image_build_targets",
     )
     op.drop_table("vm_image_build_targets")
     # ### end Alembic commands ###

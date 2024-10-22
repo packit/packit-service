@@ -26,14 +26,18 @@ logger = logging.getLogger(__name__)
 
 
 class IsJobConfigTriggerMatching(
-    Checker, ConfigFromEventMixin, GetCoprBuildJobHelperMixin
+    Checker,
+    ConfigFromEventMixin,
+    GetCoprBuildJobHelperMixin,
 ):
     def pre_check(self) -> bool:
         return self.copr_build_helper.is_job_config_trigger_matching(self.job_config)
 
 
 class IsGitForgeProjectAndEventOk(
-    Checker, ConfigFromEventMixin, GetCoprBuildJobHelperMixin
+    Checker,
+    ConfigFromEventMixin,
+    GetCoprBuildJobHelperMixin,
 ):
     def pre_check(
         self,
@@ -55,7 +59,7 @@ class IsGitForgeProjectAndEventOk(
         if self.copr_build_helper.is_custom_copr_project_defined():
             logger.debug(
                 "Custom Copr owner/project set. "
-                "Checking if this GitHub project can use this Copr project."
+                "Checking if this GitHub project can use this Copr project.",
             )
             if not self.copr_build_helper.check_if_custom_copr_can_be_used_and_report():
                 return False
@@ -74,7 +78,7 @@ class AreOwnerAndProjectMatchingJob(Checker, GetCoprBuildJobHelperForIdMixin):
         logger.debug(
             f"The Copr project {self.copr_event.owner}/{self.copr_event.project_name} "
             f"does not match the configuration "
-            f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
+            f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected).",
         )
         return False
 
@@ -94,7 +98,7 @@ class IsPackageMatchingJobView(Checker, GetCoprSRPMBuildMixin):
         logger.debug(
             f"The Copr build {self.copr_event.build_id} (pkg={build_for_package}) "
             f"does not match the package from the configuration "
-            f"({self.job_config.package})."
+            f"({self.job_config.package}).",
         )
         return False
 
@@ -108,7 +112,9 @@ class BuildNotAlreadyStarted(Checker, GetCoprSRPMBuildMixin):
 
 
 class CanActorRunTestsJob(
-    ActorChecker, ConfigFromEventMixin, GetCoprBuildJobHelperMixin
+    ActorChecker,
+    ConfigFromEventMixin,
+    GetCoprBuildJobHelperMixin,
 ):
     """For external contributors, we need to be more careful when running jobs.
     This is a handler-specific permission check
@@ -128,11 +134,11 @@ class CanActorRunTestsJob(
             ):
                 self.copr_build_helper.report_status_to_build(
                     description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
-                        actor=self.actor
+                        actor=self.actor,
                     ),
                     state=BaseCommitStatus.neutral,
                     markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
-                        packit_comment_command_prefix=self.service_config.comment_command_prefix
+                        packit_comment_command_prefix=self.service_config.comment_command_prefix,
                     ),
                 )
                 return False

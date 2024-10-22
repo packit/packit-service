@@ -64,7 +64,8 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
     )
     op.add_column(
-        "pipelines", sa.Column("propose_downstream_run_id", sa.Integer(), nullable=True)
+        "pipelines",
+        sa.Column("propose_downstream_run_id", sa.Integer(), nullable=True),
     )
     op.create_foreign_key(
         None,
