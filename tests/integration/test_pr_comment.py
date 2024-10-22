@@ -2423,9 +2423,13 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     )
     flexmock(PipelineModel).should_receive("create")
 
+    nvr = "package-1.2.3-1.fc40"
+
     koji_build = flexmock(
         target="the_distgit_branch",
         status="queued",
+        sidetag=None,
+        nvr=nvr,
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
@@ -2433,7 +2437,12 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         set_data=lambda x: None,
     )
 
+    flexmock(DistGit).should_receive("get_nvr").and_return(nvr)
+
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvr",
+    ).and_return({koji_build})
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(
         flexmock(grouped_targets=[koji_build]),
     )
@@ -2483,9 +2492,6 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     )
 
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
-    flexmock(DownstreamKojiBuildHandler).should_receive(
-        "is_already_triggered",
-    ).and_return(False)
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(celery_group).should_receive("apply_async").once()

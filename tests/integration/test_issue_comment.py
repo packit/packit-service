@@ -368,9 +368,14 @@ def mock_repository_issue_retriggering():
         db_project_event,
     )
     flexmock(PipelineModel).should_receive("create")
+
+    nvr_f37 = "package-1.2.3-1.fc37"
+
     koji_build_f37 = flexmock(
         target="f37",
         status="queued",
+        sidetag=None,
+        nvr=nvr_f37,
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
@@ -378,9 +383,13 @@ def mock_repository_issue_retriggering():
         set_data=lambda x: None,
     )
 
+    nvr_f38 = "package-1.2.3-1.fc38"
+
     koji_build_f38 = flexmock(
         target="f38",
         status="queued",
+        sidetag=None,
+        nvr=nvr_f38,
         set_status=lambda x: None,
         set_task_id=lambda x: None,
         set_web_url=lambda x: None,
@@ -389,6 +398,12 @@ def mock_repository_issue_retriggering():
     )
 
     flexmock(KojiBuildTargetModel).should_receive("create")
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvr",
+    ).with_args(nvr_f37).and_return({koji_build_f37})
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvr",
+    ).with_args(nvr_f38).and_return({koji_build_f38})
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(
         flexmock(grouped_targets=[koji_build_f38, koji_build_f37]),
     )
@@ -538,14 +553,18 @@ def test_issue_comment_retrigger_koji_build_handler(
     )
     assert json.dumps(event_dict)
 
-    flexmock(PackitAPI).should_receive("build").with_args(
+    dg = flexmock(local_project=flexmock(git_url="an url"))
+    dg.should_receive("get_nvr").with_args("f37").and_return("package-1.2.3-1.fc37")
+    dg.should_receive("get_nvr").with_args("f38").and_return("package-1.2.3-1.fc38")
+    packit_api = flexmock(dg=dg)
+    packit_api.should_receive("build").with_args(
         dist_git_branch="f37",
         scratch=False,
         nowait=True,
         from_upstream=False,
         koji_target=None,
     ).and_return("")
-    flexmock(PackitAPI).should_receive("build").with_args(
+    packit_api.should_receive("build").with_args(
         dist_git_branch="f38",
         scratch=False,
         nowait=True,
@@ -553,11 +572,11 @@ def test_issue_comment_retrigger_koji_build_handler(
         koji_target=None,
     ).and_return("")
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
+        "packit_api",
+    ).and_return(packit_api)
+    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
         "local_project",
     ).and_return(flexmock())
-    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
-        "is_already_triggered",
-    ).and_return(False)
 
     results = run_retrigger_downstream_koji_build(
         package_config=package_config,
@@ -583,6 +602,8 @@ def test_issue_comment_retrigger_koji_build_error_msg(
     flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
     error_msg = "error abc"
     dg = flexmock(local_project=flexmock(git_url="an url"))
+    dg.should_receive("get_nvr").with_args("f37").and_return("package-1.2.3-1.fc37")
+    dg.should_receive("get_nvr").with_args("f38").and_return("package-1.2.3-1.fc38")
     packit_api = flexmock(dg=dg)
     packit_api.should_receive("build").with_args(
         dist_git_branch="f38",
@@ -621,9 +642,6 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         message=msg,
         comment_to_existing=msg,
     ).once()
-    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
-        "is_already_triggered",
-    ).and_return(False)
 
     run_retrigger_downstream_koji_build(
         package_config=package_config,
