@@ -1034,7 +1034,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
         )
     )
 
-    for model in propose_downstream_target_models:
+    for _ in propose_downstream_target_models:
         flexmock(AbstractSyncReleaseHandler).should_receive(
             "run_for_target"
         ).and_return("some error")

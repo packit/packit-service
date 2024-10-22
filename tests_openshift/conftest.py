@@ -2257,7 +2257,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
             test_run_group=runs[-1].test_run_group,
         )
 
-    for i, target in enumerate((SampleValues.target, SampleValues.different_target)):
+    for _i, target in enumerate((SampleValues.target, SampleValues.different_target)):
         TFTTestRunTargetModel.create(
             pipeline_id=SampleValues.pipeline_id,
             web_url=SampleValues.testing_farm_url,

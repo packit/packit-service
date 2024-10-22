@@ -480,7 +480,7 @@ def cache_clear(request):
     """
 
     if getattr(request.module, "CACHE_CLEAR", None):
-        [f.cache_clear() for f in getattr(request.module, "CACHE_CLEAR")]
+        [f.cache_clear() for f in request.module.CACHE_CLEAR]
 
 
 @pytest.fixture()

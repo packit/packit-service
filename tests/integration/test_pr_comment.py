@@ -654,7 +654,7 @@ def test_pr_test_command_handler(
         + str(jobs)
         + "}"
     )
-    add_pull_request_event_with_pr_id_9
+    _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -743,7 +743,7 @@ def test_pr_test_command_handler_identifiers(
         + str(jobs)
         + "}"
     )
-    add_pull_request_event_with_pr_id_9
+    _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -910,7 +910,7 @@ def test_pr_test_command_handler_retries(
         + str(jobs)
         + "}"
     )
-    add_pull_request_event_with_sha_0011223344
+    _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world"
@@ -1098,7 +1098,7 @@ def test_pr_test_command_handler_retries(
 def test_pr_test_command_handler_skip_build_option(
     add_pull_request_event_with_sha_0011223344, pr_embedded_command_comment_event
 ):
-    add_pull_request_event_with_sha_0011223344
+    _ = add_pull_request_event_with_sha_0011223344
     jobs = [
         {
             "trigger": "pull_request",
@@ -1304,7 +1304,7 @@ def test_pr_test_command_handler_compose_not_present(
         + str(jobs)
         + "}"
     )
-    add_pull_request_event_with_sha_0011223344
+    _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world"
@@ -1433,7 +1433,7 @@ def test_pr_test_command_handler_composes_not_available(
         + str(jobs)
         + "}"
     )
-    add_pull_request_event_with_sha_0011223344
+    _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world"
@@ -1838,7 +1838,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     add_pull_request_event_with_sha_0011223344,
     pr_embedded_command_comment_event,
 ):
-    add_pull_request_event_with_sha_0011223344
+    _ = add_pull_request_event_with_sha_0011223344
     jobs = [
         {
             "trigger": "pull_request",
@@ -2032,7 +2032,7 @@ def test_invalid_packit_command_without_config(
 def test_pr_test_command_handler_multiple_builds(
     add_pull_request_event_with_sha_0011223344, pr_embedded_command_comment_event
 ):
-    add_pull_request_event_with_sha_0011223344
+    _ = add_pull_request_event_with_sha_0011223344
     pr_embedded_command_comment_event["comment"][
         "body"
     ] = "/packit test packit/packit-service#16"

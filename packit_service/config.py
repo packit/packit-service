@@ -260,7 +260,7 @@ class ServiceConfig(Config):
                 loaded_config = safe_load(open(config_file))
             except Exception as ex:
                 logger.error(f"Cannot load service config '{config_file}'.")
-                raise PackitException(f"Cannot load service config: {ex}.")
+                raise PackitException(f"Cannot load service config: {ex}.") from ex
 
             cls.service_config = ServiceConfig.get_from_dict(raw_dict=loaded_config)
         return cls.service_config

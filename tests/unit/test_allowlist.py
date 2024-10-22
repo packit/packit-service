@@ -631,7 +631,9 @@ def test_check_and_report(
 
     git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     for event, is_valid, resolved_through in events:
-        flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
+        flexmock(
+            GithubProject, can_merge_pr=lambda username, is_valid=is_valid: is_valid
+        )
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
         # needs to be included when running only `test_allowlist`
         # flexmock(event).should_receive("db_project_object").and_return(

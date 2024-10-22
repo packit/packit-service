@@ -315,7 +315,7 @@ class AbstractSyncReleaseHandler(
                     kwargs=kargs,
                     max_retries=RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
                 )
-                raise AbortSyncRelease()
+                raise AbortSyncRelease() from ex
             raise ex
         finally:
             if self.packit_api.up.local_project:

@@ -823,7 +823,7 @@ def test_project_token_model(clean_before_and_after):
 
 
 def test_merged_runs(clean_before_and_after, few_runs):
-    for i, run_id in enumerate(few_runs, 1):
+    for _i, run_id in enumerate(few_runs, 1):
         merged_run = PipelineModel.get_merged_run(run_id)
         srpm_build_id = merged_run.srpm_build_id
 

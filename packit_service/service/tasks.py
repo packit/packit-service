@@ -105,7 +105,7 @@ def get_usage_interval_data(
         )
 
     onboarded_projects_per_job = {}
-    for job, data in past_data["jobs"].items():
+    for job, _ in past_data["jobs"].items():
         onboarded_projects_per_job[job] = list(
             cumulative_projects_for_jobs[job] - cumulative_projects_for_jobs_past[job]
         )

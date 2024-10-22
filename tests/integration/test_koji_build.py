@@ -244,9 +244,12 @@ def test_is_already_triggered(build_info, result):
     )
     flexmock(KojiHelper).should_receive("get_build_info").and_return(build_info)
 
-    DownstreamKojiBuildHandler(
-        package_config=flexmock(),
-        job_config=flexmock(),
-        event={},
-        celery_task=flexmock(),
-    ).is_already_triggered("rawhide") is result
+    assert (
+        DownstreamKojiBuildHandler(
+            package_config=flexmock(),
+            job_config=flexmock(),
+            event={},
+            celery_task=flexmock(),
+        ).is_already_triggered("rawhide")
+        is result
+    )
