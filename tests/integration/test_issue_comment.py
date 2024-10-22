@@ -317,14 +317,22 @@ def mock_repository_issue_retriggering():
     flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     issue = flexmock(
-        description="""
-Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
-| dist-git branch | error |
-| --------------- | ----- |
-| `f37` | `` |
-| `f38` | `` |
-You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
-        """,
+        description="\n".join(
+            (
+                (
+                    "Packit failed on creating pull-requests in dist-git"
+                    " (https://src.fedoraproject.org/rpms/python-teamcity-messages):"
+                ),
+                "| dist-git branch | error |",
+                "| --------------- | ----- |",
+                "| `f37` | `` |",
+                "| `f38` | `` |",
+                (
+                    "You can retrigger the update by adding a comment"
+                    " (`/packit propose-downstream`) into this issue."
+                ),
+            ),
+        ),
         get_comments=list,
         comment=lambda message: None,
     )

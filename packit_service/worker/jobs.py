@@ -365,11 +365,13 @@ class SteveJobs:
         the issue description for the issue comment event.
         The issue description should have a format like the following:
         ```
-        Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+        Packit failed on creating pull-requests in dist-git
+            (https://src.fedoraproject.org/rpms/python-teamcity-messages):
         | dist-git branch | error |
         | --------------- | ----- |
         | `f37`           | ``    |
-        You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+        You can retrigger the update by adding a comment
+            (`/packit propose-downstream`) into this issue.
         ```
 
         Returns:

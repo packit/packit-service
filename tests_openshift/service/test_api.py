@@ -238,7 +238,7 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     )
     response_dict = response.json
     assert response_dict[0]["status"] == "success"
-    assert type(response_dict[0]["srpm_build_id"]) is int
+    assert isinstance(response_dict[0]["srpm_build_id"], int)
     assert response_dict[0]["log_url"] is not None
     assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict[0]["repo_name"] == SampleValues.repo_name

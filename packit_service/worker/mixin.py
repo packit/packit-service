@@ -305,15 +305,18 @@ class GetBranchesFromIssueMixin(Config, GetBranches):
     def branches(self) -> list[str]:
         """Get branches names from an issue comment like the following:
 
-
-        Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+        ```
+        Packit failed on creating pull-requests in dist-git
+            (https://src.fedoraproject.org/rpms/python-teamcity-messages):
 
         | dist-git branch | error |
         | --------------- | ----- |
         | `f37` | `` |
 
 
-        You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+        You can retrigger the update by adding a comment
+            (`/packit propose-downstream`) into this issue.
+        ```
         """
         branches = set()
         branch_regex = re.compile(r"\s*\| `(\S+)` \|")
