@@ -495,6 +495,9 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("python-teamcity-messages.fc38").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="f38",
         koji_nvrs="python-teamcity-messages.fc38",
@@ -502,6 +505,9 @@ def test_issue_comment_retrigger_bodhi_update_handler(
         status="queued",
         bodhi_update_group=group_model,
     ).and_return().once()
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("python-teamcity-messages.fc37").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="f37",
         koji_nvrs="python-teamcity-messages.fc37",
