@@ -110,11 +110,17 @@ class BodhiUpdateHandler(
                 existing_alias = None
                 # get update alias from previous run(s) from the same sidetag (if any)
                 if target_model.sidetag and (
-                    model := BodhiUpdateTargetModel.get_first_successful_by_sidetag(
+                    existing_model := BodhiUpdateTargetModel.get_last_successful_by_sidetag(
                         target_model.sidetag,
                     )
                 ):
-                    existing_alias = model.alias
+                    existing_alias = existing_model.alias
+                    if set(target_model.koji_nvrs.split()) == set(
+                        existing_model.koji_nvrs.split(),
+                    ):
+                        logger.info("No changes, skipping Bodhi update edit")
+                        target_model.set_status("skipped")
+                        continue
 
                 logger.debug(
                     (f"Edit update {existing_alias} " if existing_alias else "Create update ")

@@ -2484,7 +2484,7 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
             return set(projects)
 
     @classmethod
-    def get_first_successful_by_sidetag(
+    def get_last_successful_by_sidetag(
         cls,
         sidetag: str,
     ) -> Optional["BodhiUpdateTargetModel"]:
@@ -2495,6 +2495,7 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
                     BodhiUpdateTargetModel.status == "success",
                     BodhiUpdateTargetModel.sidetag == sidetag,
                 )
+                .order_by(BodhiUpdateTargetModel.update_creation_time.desc())
                 .first()
             )
 
