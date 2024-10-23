@@ -122,6 +122,22 @@ class BodhiUpdateHandler(
                         target_model.set_status("skipped")
                         continue
 
+                if not existing_alias:
+                    # avoid creating another update containing the same build - Bodhi shouldn't
+                    # allow it anyway but there is a race condition that makes it possible
+                    existing_models = (
+                        BodhiUpdateTargetModel.get_all_successful_or_in_progress_by_nvrs(
+                            target_model.koji_nvrs,
+                        )
+                    )
+                    if existing_models - {target_model}:
+                        logger.info(
+                            "Bodhi update containing one or more builds from "
+                            f"{{{target_model.koji_nvrs}}} already exists, skipping",
+                        )
+                        target_model.set_status("skipped")
+                        continue
+
                 logger.debug(
                     (f"Edit update {existing_alias} " if existing_alias else "Create update ")
                     + f"for dist-git branch: {target_model.target} "
