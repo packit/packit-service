@@ -13,7 +13,6 @@ from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject, LocalProjectBuilder
 
 from packit_service.constants import (
-    COMMENT_REACTION,
     TASK_ACCEPTED,
 )
 from packit_service.models import (
@@ -137,9 +136,6 @@ def test_commit_comment_build_and_test_handler(
     ).and_return(False).once()
     flexmock(celery_group).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").times(4).and_return()
-    comment = flexmock()
-    flexmock(GithubProject).should_receive("get_commit_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(commit_build_comment_event)
     assert len(processing_results) == 2
