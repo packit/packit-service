@@ -1106,7 +1106,7 @@ def test_get_all_downstream_projects(clean_before_and_after, propose_model_submi
     assert projects.pop().project_url == SampleValues.downstream_project_url
 
 
-def test_project_event_get_older_than_with_packages_config(
+def test_project_event_get_and_reset_older_than_with_packages_config(
     clean_before_and_after,
     branch_project_event_model,
 ):
@@ -1117,7 +1117,7 @@ def test_project_event_get_older_than_with_packages_config(
     assert (
         len(
             list(
-                ProjectEventModel.get_older_than_with_packages_config(
+                ProjectEventModel.get_and_reset_older_than_with_packages_config(
                     timedelta(days=1),
                 ),
             ),
@@ -1131,7 +1131,7 @@ def test_project_event_get_older_than_with_packages_config(
     assert (
         len(
             list(
-                ProjectEventModel.get_older_than_with_packages_config(
+                ProjectEventModel.get_and_reset_older_than_with_packages_config(
                     timedelta(days=1),
                 ),
             ),

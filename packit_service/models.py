@@ -1797,20 +1797,30 @@ class ProjectEventModel(Base):
             return session.query(ProjectEventModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_older_than_with_packages_config(
+    def get_and_reset_older_than_with_packages_config(
         cls,
         delta: timedelta,
     ) -> Iterable["ProjectEventModel"]:
-        """Return project events with all runs older than delta that store packages config."""
+        """Return project events with all runs older than delta
+        and set to null their stored packages config.
+        Cleanup project events here to speed up the process."""
         delta_ago = datetime.now(timezone.utc) - delta
-        with sa_session_transaction() as session:
-            return (
+        with sa_session_transaction(commit=True) as session:
+            events = (
                 session.query(ProjectEventModel)
-                .filter(ProjectEventModel.packages_config.isnot(None))
+                .filter(ProjectEventModel.packages_config.isnot(null()))
                 .filter(
                     ~ProjectEventModel.runs.any(PipelineModel.datetime >= delta_ago),
                 )
             )
+            # After we reset the packages config
+            # the query will be empty.
+            # Store the query result in a new list
+            events_list = list(events)
+            for event in events:
+                event.packages_config = null()
+                session.add(event)
+            return events_list
 
     def set_packages_config(self, packages_config: dict):
         with sa_session_transaction(commit=True) as session:
