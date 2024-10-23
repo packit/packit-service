@@ -48,12 +48,13 @@ def discard_old_package_configs():
         PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS,
     )
     ago = timedelta(days=int(outdated_after_days))
-    for event in ProjectEventModel.get_older_than_with_packages_config(ago):
-        logger.debug(
-            f"ProjectEventModel {event.id} has all runs older than '{ago}'. "
-            "Discarding package config.",
-        )
-        event.set_packages_config(None)
+    events = ProjectEventModel.get_and_reset_older_than_with_packages_config(ago)
+    event_ids = "".join([" " + str(event.id) for event in events])
+
+    logger.debug(
+        f"ProjectEventModels with ids [{event_ids}] have all runs older than '{ago}'. "
+        "Discarded package configs.",
+    )
 
 
 def gzip_file(file: Path) -> Path:

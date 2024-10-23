@@ -22,11 +22,11 @@ def test_cleanup_old_srpm_build_logs():
 
 
 def test_discard_old_package_configs():
-    event_model = flexmock(id=1)
-    flexmock(event_model).should_receive("set_packages_config").with_args(None).once()
+    event_model1 = flexmock(id=1)
+    event_model2 = flexmock(id=2)
     flexmock(ProjectEventModel).should_receive(
-        "get_older_than_with_packages_config",
-    ).and_return([event_model]).once()
+        "get_and_reset_older_than_with_packages_config",
+    ).and_return([event_model1, event_model2]).once()
     database.discard_old_package_configs()
 
 
