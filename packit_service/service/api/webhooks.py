@@ -129,6 +129,7 @@ class GithubWebhook(Resource):
             "push": not deleted,
             "release": action == "published",
             "installation": action == "created",
+            "commit_comment": action == "created",
         }
         _interested = interests.get(event, False)
 

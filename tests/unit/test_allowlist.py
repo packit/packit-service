@@ -36,6 +36,7 @@ from packit_service.worker.events import (
     PullRequestGithubEvent,
     ReleaseEvent,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestAction,
@@ -430,6 +431,15 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
+        CommitCommentEvent(
+            repo_namespace="packit-service/src",
+            repo_name="glibc",
+            project_url="https://gitlab.com/packit-service/src/glibc",
+            actor="lojzo",
+            comment="",
+            comment_id=0,
+            commit_sha="abcdefgh",
+        ),
     ],
 )
 def test_check_and_report_denied_project(allowlist, event):
@@ -441,9 +451,15 @@ def test_check_and_report_denied_project(allowlist, event):
         flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
     else:
         flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
-    mocked_pr_or_issue.should_receive("comment").with_args(
-        f"{Allowlist._strip_protocol_and_add_git(event.project_url)} or parent namespaces denied!",
-    ).once()
+
+    msg = f"{Allowlist._strip_protocol_and_add_git(event.project_url)} or parent namespaces denied!"
+    if isinstance(event, CommitCommentEvent):
+        flexmock(gp).should_receive("commit_comment").with_args(
+            commit=event.commit_sha,
+            body=msg,
+        ).once()
+    else:
+        mocked_pr_or_issue.should_receive("comment").with_args(msg).once()
 
     ServiceConfig.get_service_config().admins = {"admin"}
     assert (
@@ -661,6 +677,9 @@ def test_check_and_report(
         flexmock(DBAllowlist).should_receive("get_namespace").with_args(
             actor_namespace,
         ).and_return()
+        if isinstance(event, ReleaseEvent) and not is_valid:
+            flexmock(git_project).should_receive("get_sha_from_tag")
+            flexmock(git_project).should_receive("commit_comment")
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
             notification_project_mock = flexmock()
             notification_project_mock.should_receive("get_issue_list").with_args(

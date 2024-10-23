@@ -21,6 +21,7 @@ from packit_service.service.db_project_events import (
 from packit_service.worker.events.comment import (
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
+    CommitCommentEvent,
 )
 from packit_service.worker.events.enums import (
     IssueCommentAction,
@@ -409,3 +410,7 @@ class InstallationEvent(Event):
 
     def get_project(self):
         return None
+
+
+class CommitCommentGithubEvent(CommitCommentEvent):
+    pass

@@ -55,6 +55,7 @@ from packit_service.worker.events import (
     ReleaseEvent,
     ReleaseGitlabEvent,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     RetriableJobHandler,
@@ -94,6 +95,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
+@reacts_to(CommitCommentEvent)
 class CoprBuildHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,

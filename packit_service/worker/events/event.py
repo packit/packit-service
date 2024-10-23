@@ -291,6 +291,33 @@ class EventData:
                     commit_sha=self.event_dict.get("commit_sha"),
                 )
             )
+        elif self.event_type in {
+            "CommitCommentGithubEvent",
+            "CommitCommentGitlabEvent",
+        }:
+            if self.tag_name:
+                (
+                    self._db_project_object,
+                    self._db_project_event,
+                ) = ProjectEventModel.add_release_event(
+                    tag_name=self.tag_name,
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                    commit_hash=self.commit_sha,
+                )
+            else:
+                (
+                    self._db_project_object,
+                    self._db_project_event,
+                ) = ProjectEventModel.add_branch_push_event(
+                    branch_name=self.git_ref,
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                    commit_sha=self.commit_sha,
+                )
+
         else:
             logger.warning(
                 "We don't know, what to search in the database for this event data.",

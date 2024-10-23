@@ -56,12 +56,15 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     VMImageBuildResultEvent,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.enums import (
     GitlabEventAction,
     IssueCommentAction,
     PullRequestAction,
     PullRequestCommentAction,
 )
+from packit_service.worker.events.github import CommitCommentGithubEvent
+from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import (
     AnityaVersionUpdateEvent,
@@ -119,6 +122,7 @@ class Parser:
             AnityaVersionUpdateEvent,
             OpenScanHubTaskFinishedEvent,
             OpenScanHubTaskStartedEvent,
+            CommitCommentEvent,
         ]
     ]:
         """
@@ -155,6 +159,7 @@ class Parser:
                 Parser.parse_koji_build_tag_event,
                 Parser.parse_merge_request_comment_event,
                 Parser.parse_gitlab_issue_comment_event,
+                Parser.parse_gitlab_commit_comment_event,
                 Parser.parse_gitlab_push_event,
                 Parser.parse_pipeline_event,
                 Parser.parse_pagure_push_event,
@@ -166,6 +171,7 @@ class Parser:
                 Parser.parse_anitya_version_update_event,
                 Parser.parse_openscanhub_task_finished_event,
                 Parser.parse_openscanhub_task_started_event,
+                Parser.parse_commit_comment_event,
             )
         ):
             if response:
@@ -667,14 +673,61 @@ class Parser:
         )
 
     @staticmethod
+    def parse_commit_comment_event(
+        event,
+    ) -> Optional[CommitCommentEvent]:
+        """Look into the provided event and see if it is Github commit comment event."""
+        if not (commit_sha := nested_get(event, "comment", "commit_id")):
+            return None
+
+        comment = nested_get(event, "comment", "body")
+        comment_id = nested_get(event, "comment", "id")
+        logger.info(
+            f"Github commit comment on #{commit_sha}: {comment!r} id#{comment_id} event.",
+        )
+
+        user_login = nested_get(event, "comment", "user", "login")
+        if not user_login:
+            logger.warning("No GitHub login name from event.")
+            return None
+        if user_login in {"packit-as-a-service[bot]", "packit-as-a-service-stg[bot]"}:
+            logger.debug("Our own comment.")
+            return None
+
+        repo_namespace = nested_get(event, "repository", "owner", "login")
+        repo_name = nested_get(event, "repository", "name")
+
+        logger.info(f"Repo: {repo_namespace}/{repo_name}.")
+        https_url = event["repository"]["html_url"]
+        return CommitCommentGithubEvent(
+            commit_sha=commit_sha,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=https_url,
+            actor=user_login,
+            comment=comment,
+            comment_id=comment_id,
+        )
+
+    @staticmethod
     def parse_gitlab_comment_event(
         event,
-    ) -> Optional[Union[MergeRequestCommentGitlabEvent, IssueCommentGitlabEvent]]:
+    ) -> Optional[
+        Union[
+            CommitCommentEvent,
+            MergeRequestCommentGitlabEvent,
+            IssueCommentGitlabEvent,
+        ]
+    ]:
         """Check whether the comment event from Gitlab comes from an MR or issue,
         and parse accordingly.
         """
         if event.get("merge_request"):
             return Parser.parse_merge_request_comment_event(event)
+
+        if event.get("commit"):
+            return Parser.parse_gitlab_commit_comment_event(event)
+
         return Parser.parse_gitlab_issue_comment_event(event)
 
     @staticmethod
@@ -824,6 +877,59 @@ class Parser:
             actor=actor,
             comment=comment,
             commit_sha=commit_sha,
+            comment_id=comment_id,
+        )
+
+    @staticmethod
+    def parse_gitlab_commit_comment_event(
+        event,
+    ) -> Optional[CommitCommentEvent]:
+        """Look into the provided event and see if it is Gitlab commit comment event."""
+        if event.get("object_kind") != "note":
+            return None
+
+        commit = event.get("commit")
+        if not commit:
+            return None
+
+        commit_sha = nested_get(event, "commit", "id")
+
+        comment = nested_get(event, "object_attributes", "note")
+        comment_id = nested_get(event, "object_attributes", "id")
+        logger.info(
+            f"Gitlab commit comment on #{commit_sha}: {comment!r} id#{comment_id} "
+            " event.",
+        )
+
+        project_url = nested_get(event, "project", "web_url")
+        if not project_url:
+            logger.warning("Project url not found in the event.")
+            return None
+
+        parsed_url = parse_git_repo(potential_url=project_url)
+        logger.info(
+            f"Project: "
+            f"repo={parsed_url.repo} "
+            f"namespace={parsed_url.namespace} "
+            f"url={project_url}.",
+        )
+
+        actor = nested_get(event, "user", "username")
+        if not actor:
+            logger.warning("No Gitlab username from event.")
+            return None
+
+        if actor in {"packit-as-a-service", "packit-as-a-service-stg"}:
+            logger.debug("Our own comment.")
+            return None
+
+        return CommitCommentGitlabEvent(
+            commit_sha=commit_sha,
+            repo_namespace=parsed_url.namespace,
+            repo_name=parsed_url.repo,
+            project_url=project_url,
+            actor=actor,
+            comment=comment,
             comment_id=comment_id,
         )
 
@@ -1744,6 +1850,7 @@ class Parser:
             "release": parse_release_event.__func__,  # type: ignore
             "push": parse_github_push_event.__func__,  # type: ignore
             "installation": parse_installation_event.__func__,  # type: ignore
+            "commit_comment": parse_commit_comment_event.__func__,  # type: ignore
         },
         # https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html
         "gitlab": {

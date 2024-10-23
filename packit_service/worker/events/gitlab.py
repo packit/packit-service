@@ -12,6 +12,7 @@ from packit_service.service.db_project_events import (
 from packit_service.worker.events.comment import (
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
+    CommitCommentEvent,
 )
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
@@ -251,3 +252,7 @@ class TagPushGitlabEvent(AddBranchPushEventToDb, AbstractGitlabEvent):
         self.commit_sha = commit_sha
         self.title = title
         self.message = message
+
+
+class CommitCommentGitlabEvent(CommitCommentEvent):
+    pass
