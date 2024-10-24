@@ -268,9 +268,7 @@ class Allowlist:
 
     @staticmethod
     def get_namespaces_by_status(status: AllowlistStatus) -> list[str]:
-        return [
-            account.namespace for account in AllowlistModel.get_by_status(status.value)
-        ]
+        return [account.namespace for account in AllowlistModel.get_by_status(status.value)]
 
     @staticmethod
     def waiting_namespaces() -> list[str]:
@@ -354,8 +352,7 @@ class Allowlist:
         else:
             namespace_approved = self.is_namespace_or_parent_approved(project_url)
             user_approved = (
-                project.can_merge_pr(actor_name)
-                or project.get_pr(event.pr_id).author == actor_name
+                project.can_merge_pr(actor_name) or project.get_pr(event.pr_id).author == actor_name
             )
             # TODO: clear failing check when present
             if namespace_approved and user_approved:
@@ -369,9 +366,7 @@ class Allowlist:
                 else f"Account {actor_name} has no write access nor is author of PR!"
             )
             short_msg = (
-                f"{project_url} not allowed!"
-                if not namespace_approved
-                else "User cannot trigger!"
+                f"{project_url} not allowed!" if not namespace_approved else "User cannot trigger!"
             )
 
         logger.debug(msg)

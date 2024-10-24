@@ -39,7 +39,10 @@ def test_installation():
     ).and_return(None)
     flexmock(Allowlist).should_receive(
         "is_github_username_from_fas_account_matching",
-    ).with_args(fas_account="jpopelka", sender_login="jpopelka").and_return(False)
+    ).with_args(
+        fas_account="jpopelka",
+        sender_login="jpopelka",
+    ).and_return(False)
     flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
     flexmock(AllowlistModel).should_receive("add_namespace")
 

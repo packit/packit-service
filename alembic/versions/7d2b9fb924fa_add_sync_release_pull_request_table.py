@@ -180,9 +180,7 @@ def upgrade():
                 project_url = url[0 : (url.rfind("/pull-request/"))]  # noqa[203]
                 pr_id = int(url[(url.rfind("/pull-request/") + 14) :])  # noqa[203]
                 namespace = "rpms"
-                repo = url[
-                    (url.rfind("rpms/") + 5) : url.rfind("/pull-request")  # noqa[203]
-                ]
+                repo = url[(url.rfind("rpms/") + 5) : url.rfind("/pull-request")]  # noqa[203]
                 pull_request = SyncReleasePullRequestModel.get_or_create(
                     pr_id,
                     namespace,

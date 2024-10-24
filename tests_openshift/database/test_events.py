@@ -439,9 +439,7 @@ def test_parse_check_rerun_pull_request(
     assert event_object.identifier == str(pr_model.pr_id)
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit/hello-world"
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
@@ -468,9 +466,7 @@ def test_parse_check_rerun_release(
     assert event_object.identifier == release_model.tag_name
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit/hello-world"
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}

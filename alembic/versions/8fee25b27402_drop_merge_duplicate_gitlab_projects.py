@@ -72,9 +72,7 @@ def upgrade():
             len(project.project_authentication_issue) <= 0
             and len(project_dot_git.project_authentication_issue) > 0
         ):
-            project_authentication_issue = project_dot_git.project_authentication_issue[
-                0
-            ]
+            project_authentication_issue = project_dot_git.project_authentication_issue[0]
             project_authentication_issue.project_id = project.id
             session.add(project_authentication_issue)
             # we need to commit here explicitly b/c we are changing the foreign key

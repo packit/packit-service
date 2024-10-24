@@ -292,11 +292,7 @@ class WhitelistUpgradeModel(Base):
 
     @classmethod
     def get_account(cls, session: Session, account_name: str):
-        return (
-            session.query(WhitelistUpgradeModel)
-            .filter_by(account_name=account_name)
-            .first()
-        )
+        return session.query(WhitelistUpgradeModel).filter_by(account_name=account_name).first()
 
 
 class InstallationUpgradeModel(Base):
@@ -313,9 +309,7 @@ class InstallationUpgradeModel(Base):
     @classmethod
     def get_by_account_login(cls, session: Session, account_login: str):
         return (
-            session.query(InstallationUpgradeModel)
-            .filter_by(account_login=account_login)
-            .first()
+            session.query(InstallationUpgradeModel).filter_by(account_login=account_login).first()
         )
 
     @classmethod
@@ -364,9 +358,7 @@ class CoprBuildUpgradeModel(Base):
     @classmethod
     def get_by_build_id(cls, session: Session, build_id: str, target: str):
         return (
-            session.query(CoprBuildUpgradeModel)
-            .filter_by(build_id=build_id, target=target)
-            .first()
+            session.query(CoprBuildUpgradeModel).filter_by(build_id=build_id, target=target).first()
         )
 
     @classmethod
@@ -556,8 +548,7 @@ def upgrade():
 
         status = copr_build.get("status")
         web_url = (
-            f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/"
-            f"build/{build_id}/"
+            f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/" f"build/{build_id}/"
         )
 
         try:

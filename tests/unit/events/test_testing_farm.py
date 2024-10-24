@@ -176,7 +176,5 @@ def test_get_submitted_time_from_model():
     fake_copr = flexmock(build_submitted_time=date)
     flexmock(CoprBuildTargetModel).new_instances(fake_copr)
     copr = CoprBuildTargetModel()
-    copr.__class__ = (
-        CoprBuildTargetModel  # to pass in isinstance(model, CoprBuildTargetModel)
-    )
+    copr.__class__ = CoprBuildTargetModel  # to pass in isinstance(model, CoprBuildTargetModel)
     assert date == get_submitted_time_from_model(copr)

@@ -213,11 +213,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         if not self.is_job_config_trigger_matching(test_job_config):
             return set()
 
-        if (
-            not test_job_config.targets
-            and self.job_build
-            and not test_job_config.skip_build
-        ):
+        if not test_job_config.targets and self.job_build and not test_job_config.skip_build:
             return self.configured_build_targets
 
         return test_job_config.targets or {DEFAULT_VERSION}
@@ -234,9 +230,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         targets = set()
         for chroot in self.build_targets_for_test_job_all(test_job_config):
-            targets.update(
-                self.build_target2test_targets_for_test_job(chroot, test_job_config)
-            )
+            targets.update(self.build_target2test_targets_for_test_job(chroot, test_job_config))
         return targets
 
     def build_targets_for_test_job(self, test_job_config: JobConfig) -> Set[str]:
@@ -281,11 +275,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 for target in self.tests_targets_override
             )
 
-        return (
-            configured_targets & targets_override
-            if targets_override
-            else configured_targets
-        )
+        return configured_targets & targets_override if targets_override else configured_targets
 
     def tests_targets_for_test_job(self, test_job_config: JobConfig) -> Set[str]:
         """
@@ -555,9 +545,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         elif self.job_config.trigger == JobConfigTriggerType.release:
             merged_ref = self._db_project_object.tag_name
         else:
-            logger.warning(
-                f"Unable to determine merged ref for {self.job_config.trigger}"
-            )
+            logger.warning(f"Unable to determine merged ref for {self.job_config.trigger}")
             merged_ref = None
 
         try:
@@ -732,9 +720,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 and not test_job.manual_trigger
                 and chroot in self.build_targets_for_test_job(test_job)
             ):
-                test_targets = self.build_target2test_targets_for_test_job(
-                    chroot, test_job
-                )
+                test_targets = self.build_target2test_targets_for_test_job(chroot, test_job)
                 for target in test_targets:
                     self._report(
                         description=description,
@@ -778,9 +764,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             update_feedback_time=update_feedback_time,
         )
 
-    def run_build(
-        self, target: Optional[str] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
+    def run_build(self, target: Optional[str] = None) -> Tuple[Optional[int], Optional[str]]:
         """
         Trigger the build and return id and web_url
         :param target: str, run for all if not set
@@ -812,9 +796,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         post a comment and include the configured message. Do not post
         the comment if the last comment from the Packit user is identical.
         """
-        if not (
-            configured_message := self.job_config.notifications.failure_comment.message
-        ):
+        if not (configured_message := self.job_config.notifications.failure_comment.message):
             return
 
         all_kwargs = copy.copy(FAILURE_COMMENT_MESSAGE_VARIABLES)

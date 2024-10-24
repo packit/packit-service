@@ -52,10 +52,7 @@ def sync_release_model():
         job_config_trigger_type=JobConfigTriggerType.release,
     )
     project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -93,10 +90,7 @@ def sync_release_model_non_git():
         project=AnityaTestProjectModel(),
     )
     project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(

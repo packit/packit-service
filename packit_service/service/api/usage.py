@@ -281,18 +281,16 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
 
         jobs[job_name]["per_event"] = {}
         for project_event_type in ProjectEventModelType:
-            jobs[job_name]["per_event"][project_event_type.value] = (
-                get_result_dictionary(
-                    project,
-                    top_projects=GitProjectModel.get_job_usage_numbers(
-                        datetime_from=datetime_from,
-                        datetime_to=datetime_to,
-                        top=None,
-                        job_result_model=job_model,
-                        project_event_type=project_event_type,
-                    ),
-                    count_name="job_runs",
-                )
+            jobs[job_name]["per_event"][project_event_type.value] = get_result_dictionary(
+                project,
+                top_projects=GitProjectModel.get_job_usage_numbers(
+                    datetime_from=datetime_from,
+                    datetime_to=datetime_to,
+                    top=None,
+                    job_result_model=job_model,
+                    project_event_type=project_event_type,
+                ),
+                count_name="job_runs",
             )
 
     events_handled: dict[str, Any] = get_result_dictionary(
@@ -330,11 +328,7 @@ def get_result_dictionary(
     position_name="position",
     count_name="count",
 ) -> dict[str, int]:
-    position = (
-        list(top_projects.keys()).index(project) + 1
-        if project in top_projects
-        else None
-    )
+    position = list(top_projects.keys()).index(project) + 1 if project in top_projects else None
     return {position_name: position, count_name: top_projects.get(project)}
 
 

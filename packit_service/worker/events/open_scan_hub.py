@@ -45,9 +45,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
             # commit_sha is needed by the StatusReporter
             # and have to be serialized to be later found in the
             # event metadata
-            self.commit_sha = (
-                project_event.commit_sha if not self.commit_sha else self.commit_sha
-            )
+            self.commit_sha = project_event.commit_sha if not self.commit_sha else self.commit_sha
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()

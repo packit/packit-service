@@ -110,10 +110,7 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
     error_msg = "error abc"
     dg = flexmock(local_project=flexmock(git_url="an url"))
     packit_api = (
-        flexmock(dg=dg)
-        .should_receive("create_update")
-        .and_raise(PackitException, error_msg)
-        .mock()
+        flexmock(dg=dg).should_receive("create_update").and_raise(PackitException, error_msg).mock()
     )
     flexmock(RetriggerBodhiUpdateHandler).should_receive("packit_api").and_return(
         packit_api,

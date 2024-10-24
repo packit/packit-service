@@ -103,10 +103,7 @@ def test_parse_gitlab_release(gitlab_release):
     assert event_object.repo_namespace == "fedora/src"
     assert event_object.repo_name == "python-teamcity-messages"
     assert event_object.tag_name == "v1.32"
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/fedora/src/python-teamcity-messages"
-    )
+    assert event_object.project_url == "https://gitlab.com/fedora/src/python-teamcity-messages"
     assert event_object.commit_sha == "6147b3de219ecdda30ba727cf74a0414ca1e618a"
     assert event_object.get_dict()
 
@@ -122,10 +119,7 @@ def test_parse_gitlab_tag_push(gitlab_tag_push):
     assert event_object.git_ref == "v1.32"
     assert event_object.title == "1.32"
     assert event_object.message == "1.32\n"
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/fedora/src/python-teamcity-messages"
-    )
+    assert event_object.project_url == "https://gitlab.com/fedora/src/python-teamcity-messages"
     assert event_object.get_dict()
 
 
@@ -327,10 +321,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
     assert event_object.repo_namespace == "packit-service/rpms"
     assert event_object.repo_name == "open-vm-tools"
     assert event_object.commit_sha == "15af92227f9e965b392e85ba2f08a41a5aeb278a"
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/packit-service/rpms/open-vm-tools"
-    )
+    assert event_object.project_url == "https://gitlab.com/packit-service/rpms/open-vm-tools"
     assert event_object.git_ref == "c9s"
 
     assert isinstance(event_object.project, GitlabProject)
@@ -355,10 +346,7 @@ def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
     event_object = Parser.parse_event(gitlab_mr_pipeline)
 
     assert isinstance(event_object, PipelineGitlabEvent)
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta"
-    )
+    assert event_object.project_url == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta"
     assert event_object.project_name == "luksmeta"
     assert event_object.pipeline_id == 384095584
     assert event_object.git_ref == "9-c9s-src-5"

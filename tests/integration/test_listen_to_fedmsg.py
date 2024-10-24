@@ -2525,10 +2525,7 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 
     assert len(processing_results) == 1
     assert processing_results[0]["success"]
-    assert (
-        processing_results[0]["details"]["msg"]
-        == "No packit config found in the repository."
-    )
+    assert processing_results[0]["details"]["msg"] == "No packit config found in the repository."
 
 
 def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr):
@@ -2613,7 +2610,9 @@ def test_koji_build_tag(
 
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo",
-    ).and_return(pc_koji_build_tag_specfile).and_return(pc_koji_build_tag_packit)
+    ).and_return(
+        pc_koji_build_tag_specfile,
+    ).and_return(pc_koji_build_tag_packit)
 
     flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
     flexmock(BodhiUpdateFromSidetagHandler).should_receive("pre_check").and_return(True)

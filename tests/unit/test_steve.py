@@ -101,9 +101,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         ),
     )
 
-    ServiceConfig().get_service_config().enabled_private_namespaces = (
-        enabled_private_namespaces
-    )
+    ServiceConfig().get_service_config().enabled_private_namespaces = enabled_private_namespaces
     flexmock(PagureProject).should_receive("_call_project_api").and_return(
         {"default": "main"},
     )

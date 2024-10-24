@@ -25,9 +25,7 @@ from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_resu
 
 def issue_comment_event():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "issue_comment_verify_fas.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "issue_comment_verify_fas.json").read_text(),
     )
 
 
@@ -68,7 +66,10 @@ def test_verification_successful():
     flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive(
         "is_github_username_from_fas_account_matching",
-    ).with_args(fas_account="my-fas-account", sender_login="phracek").and_return(True)
+    ).with_args(
+        fas_account="my-fas-account",
+        sender_login="phracek",
+    ).and_return(True)
     flexmock(AllowlistModel).should_receive("add_namespace").with_args(
         "github.com/example-user",
         AllowlistStatus.approved_automatically.value,
@@ -130,7 +131,10 @@ def test_verification_not_successful():
     flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive(
         "is_github_username_from_fas_account_matching",
-    ).with_args(fas_account="my-fas-account", sender_login="phracek").and_return(False)
+    ).with_args(
+        fas_account="my-fas-account",
+        sender_login="phracek",
+    ).and_return(False)
     flexmock(AllowlistModel).should_receive("add_namespace").never()
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
         "example-user",

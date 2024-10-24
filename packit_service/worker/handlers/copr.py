@@ -171,20 +171,13 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
     def run(self):
         if not self.build:
-            model = (
-                "SRPMBuildDB"
-                if self.copr_event.chroot == COPR_SRPM_CHROOT
-                else "CoprBuildDB"
-            )
+            model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"
             msg = f"Copr build {self.copr_event.build_id} not in {model}."
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
 
         if self.build.build_start_time is not None:
-            msg = (
-                f"Copr build start for {self.copr_event.build_id} is already"
-                f" processed."
-            )
+            msg = f"Copr build start for {self.copr_event.build_id} is already" f" processed."
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 
@@ -300,11 +293,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     def run(self):
         if not self.build:
             # TODO: how could this happen?
-            model = (
-                "SRPMBuildDB"
-                if self.copr_event.chroot == COPR_SRPM_CHROOT
-                else "CoprBuildDB"
-            )
+            model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"
             msg = f"Copr build {self.copr_event.build_id} not in {model}."
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
@@ -387,8 +376,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     def report_successful_build(self):
         if (
             self.copr_build_helper.job_build
-            and self.copr_build_helper.job_build.trigger
-            == JobConfigTriggerType.pull_request
+            and self.copr_build_helper.job_build.trigger == JobConfigTriggerType.pull_request
             and self.copr_event.pr_id
             and isinstance(self.project, (GithubProject, GitlabProject))
             and self.job_config.notifications.pull_request.successful_build
@@ -481,10 +469,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 # the same way as when scheduling jobs for event
                 and (
                     job_config.trigger != JobConfigTriggerType.pull_request
-                    or not (
-                        job_config.require.label.present
-                        or job_config.require.label.absent
-                    )
+                    or not (job_config.require.label.present or job_config.require.label.absent)
                     or pr_labels_match_configuration(
                         pull_request=self.copr_build_helper.pull_request_object,
                         configured_labels_absent=job_config.require.label.absent,

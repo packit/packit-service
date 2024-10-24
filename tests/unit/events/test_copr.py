@@ -76,9 +76,7 @@ def test_parse_copr_build_event_start(
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/hello-world"
 
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
 
     assert event_object.get_copr_build_logs_url() == (
         "https://download.copr.fedorainfracloud.org/results/packit/"
@@ -125,9 +123,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/hello-world"
 
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
 
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo",
