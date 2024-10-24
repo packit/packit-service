@@ -128,9 +128,7 @@ def test_parse_new_hotness_update(
     assert event_object.anitya_project_id == 4181
     assert event_object.repo_namespace == repo_namespace
     assert event_object.repo_name == repo_name
-    assert (
-        event_object.distgit_project_url == "https://src.fedoraproject.org/rpms/redis"
-    )
+    assert event_object.distgit_project_url == "https://src.fedoraproject.org/rpms/redis"
     assert event_object.tag_name == tag_name
     assert event_object.packages_config
 

@@ -826,9 +826,7 @@ def test_payload(
 
     # URLs shortened for clarity
     log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
-    srpm_url = (
-        f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
-    )
+    srpm_url = f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
     copr_build = flexmock(
         id=build_id,
         built_packages=[
@@ -1021,10 +1019,7 @@ def test_merge_extra_params_with_install():
         event_dict={"comment": ""},
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(flexmock())
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(flexmock()).mock()
     )
     job_config = flexmock(
         fmf_url="https://github.com/fmf/",
@@ -1058,9 +1053,7 @@ def test_merge_extra_params_with_install():
     assert (
         payload["environments"][0]["settings"]["provisioning"]["tags"]["BusinessUnit"]
         == "sst_upgrades"
-        and payload["environments"][0]["settings"]["provisioning"][
-            "post_install_script"
-        ]
+        and payload["environments"][0]["settings"]["provisioning"]["post_install_script"]
         == "#!/bin/sh\nsudo sed -i s/.*ssh-rsa/ssh-rsa/ /root/.ssh/authorized_keys"
     )
 
@@ -1231,9 +1224,7 @@ def test_test_repo(
     build_id = 1
     # URLs shortened for clarity
     log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
-    srpm_url = (
-        f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
-    )
+    srpm_url = f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
     copr_build = flexmock(
         id=build_id,
         built_packages=[
@@ -1261,11 +1252,8 @@ def test_test_repo(
     # if custom fmf tests are not defined or we're not merging, we don't pass the
     # merge SHA
     merge_sha_should_be_none = fmf_url or not merge_pr_in_ci
-    assert (
-        merge_sha_should_be_none and payload["test"]["tmt"].get("merge_sha") is None
-    ) or (
-        not merge_sha_should_be_none
-        and payload["test"]["tmt"].get("merge_sha") == "abcdefgh"
+    assert (merge_sha_should_be_none and payload["test"]["tmt"].get("merge_sha") is None) or (
+        not merge_sha_should_be_none and payload["test"]["tmt"].get("merge_sha") == "abcdefgh"
     )
 
 
@@ -1530,10 +1518,7 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
     elif pr_id is not None:
         git_project.should_receive("get_pr").with_args(pr_id).and_return(
             flexmock(
-                source_project=flexmock()
-                .should_receive("get_web_url")
-                .and_return(fmf_url)
-                .mock(),
+                source_project=flexmock().should_receive("get_web_url").and_return(fmf_url).mock(),
             ),
         )
     else:
@@ -1995,10 +1980,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
         event_id=123,
         commit_sha="abcdef",
     ).and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         db_project_object,

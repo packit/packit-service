@@ -83,17 +83,12 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             table_content.append(f"| {type_of_url} | {url} |\n")
         if links_to_external_services is not None:
             table_content += [
-                f"| {name} | {link} |\n"
-                for name, link in links_to_external_services.items()
+                f"| {name} | {link} |\n" for name, link in links_to_external_services.items()
             ]
         if table_content:
             table_content += "\n"
 
-        return (
-            MSG_TABLE_HEADER_WITH_DETAILS + "".join(table_content)
-            if table_content
-            else ""
-        )
+        return MSG_TABLE_HEADER_WITH_DETAILS + "".join(table_content) if table_content else ""
 
     def set_status(
         self,
@@ -124,9 +119,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
                 if isinstance(state_to_set, GithubCheckRunStatus)
                 else GithubCheckRunStatus.completed
             )
-            conclusion = (
-                state_to_set if isinstance(state_to_set, GithubCheckRunResult) else None
-            )
+            conclusion = state_to_set if isinstance(state_to_set, GithubCheckRunResult) else None
 
             external_id = str(self.project_event_id) if self.project_event_id else None
 

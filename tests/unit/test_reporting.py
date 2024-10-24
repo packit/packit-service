@@ -693,7 +693,4 @@ def test_update_message_with_configured_failure_comment_message(
             failure_comment=FailureCommentNotificationsConfig(configured_message),
         ),
     )
-    assert (
-        update_message_with_configured_failure_comment_message(comment, job_config)
-        == result
-    )
+    assert update_message_with_configured_failure_comment_message(comment, job_config) == result

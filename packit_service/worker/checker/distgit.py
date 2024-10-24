@@ -33,8 +33,7 @@ logger = logging.getLogger(__name__)
 class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
         if self.data.event_type not in (PushPagureEvent.__name__,) or not (
-            self.job_config.require.label.present
-            or self.job_config.require.label.absent
+            self.job_config.require.label.present or self.job_config.require.label.absent
         ):
             return True
 
@@ -183,8 +182,7 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
 
     def pre_check(self) -> bool:
         if self.data.event_type in (KojiBuildTagEvent.__name__,) and (
-            self.data.event_dict.get("package_name")
-            == self.job_config.downstream_package_name
+            self.data.event_dict.get("package_name") == self.job_config.downstream_package_name
         ):
             logger.info("Skipping build triggered by tagging a build of self.")
             return False
@@ -207,8 +205,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
         )
 
         if self.package_config.upstream_project_url and not (
-            self.data.event_dict.get("repo_name")
-            and self.data.event_dict.get("repo_namespace")
+            self.data.event_dict.get("repo_name") and self.data.event_dict.get("repo_namespace")
         ):
             msg_to_report = (
                 "We were not able to parse repo name or repo namespace from the "
@@ -218,8 +215,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             valid = False
 
         if self.package_config.upstream_project_url and (
-            self.data.event_type in (NewHotnessUpdateEvent.__name__,)
-            and not self.data.tag_name
+            self.data.event_type in (NewHotnessUpdateEvent.__name__,) and not self.data.tag_name
         ):
             msg_to_report = "We were not able to get the upstream tag name."
             valid = False

@@ -58,9 +58,7 @@ def github_issue_comment_propose_downstream():
 @pytest.fixture()
 def github_issue_comment_no_handler():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json").read_text(),
     )
 
 
@@ -438,10 +436,7 @@ def test_parse_issue_comment(github_issue_comment_propose_downstream):
     assert event_object.issue_id == 512
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "packit"
-    assert (
-        event_object.target_repo
-        == f"{event_object.repo_namespace}/{event_object.repo_name}"
-    )
+    assert event_object.target_repo == f"{event_object.repo_namespace}/{event_object.repo_name}"
     assert event_object.base_ref == "master"
     assert event_object.project_url == "https://github.com/packit-service/packit"
     assert event_object.actor == "phracek"

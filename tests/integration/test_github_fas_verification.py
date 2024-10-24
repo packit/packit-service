@@ -25,9 +25,7 @@ from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_resu
 
 def issue_comment_event():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "issue_comment_verify_fas.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "issue_comment_verify_fas.json").read_text(),
     )
 
 

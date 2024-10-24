@@ -66,9 +66,7 @@ class CoprBuildsList(Resource):
             for i, chroot in enumerate(build.target):
                 # [0] because sqlalchemy returns a single element sub-list
                 build_dict["status_per_chroot"][chroot[0]] = build.status[i][0]
-                build_dict["packit_id_per_chroot"][chroot[0]] = (
-                    build.packit_id_per_chroot[i][0]
-                )
+                build_dict["packit_id_per_chroot"][chroot[0]] = build.packit_id_per_chroot[i][0]
 
             result.append(build_dict)
 
@@ -136,9 +134,7 @@ class CoprBuildGroup(Resource):
         group_dict = {
             "submitted_time": optional_timestamp(group_model.submitted_time),
             "run_ids": sorted(run.id for run in group_model.runs),
-            "build_target_ids": sorted(
-                build.id for build in group_model.grouped_targets
-            ),
+            "build_target_ids": sorted(build.id for build in group_model.grouped_targets),
         }
 
         group_dict.update(get_project_info_from_build(group_model))

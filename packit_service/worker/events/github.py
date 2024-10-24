@@ -182,9 +182,7 @@ class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
         comment: str,
         comment_id: int,
         tag_name: str = "",
-        base_ref: Optional[
-            str
-        ] = "master",  # default is master when working with issues
+        base_ref: Optional[str] = "master",  # default is master when working with issues
         comment_object: Optional[Comment] = None,
         dist_git_project_url=None,
     ) -> None:
@@ -233,9 +231,9 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.commit_sha = commit_sha
         self.actor = actor
         self._db_project_event = db_project_event
-        self._db_project_object: AbstractProjectObjectDbType = (
-            db_project_event.get_project_event_object()
-        )
+        self._db_project_object: (
+            AbstractProjectObjectDbType
+        ) = db_project_event.get_project_event_object()
         self.job_identifier = job_identifier
 
     @property

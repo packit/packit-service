@@ -140,14 +140,10 @@ def test_commit_comment_build_and_test_handler(
     processing_results = SteveJobs().process_message(commit_build_comment_event)
     assert len(processing_results) == 2
 
-    copr_build_job = [
-        item for item in processing_results if item["details"]["job"] == "copr_build"
-    ]
+    copr_build_job = [item for item in processing_results if item["details"]["job"] == "copr_build"]
     assert copr_build_job
 
-    test_job = [
-        item for item in processing_results if item["details"]["job"] == "tests"
-    ]
+    test_job = [item for item in processing_results if item["details"]["job"] == "tests"]
     assert test_job
 
     event_dict, job, job_config, package_config = get_parameters_from_results(test_job)

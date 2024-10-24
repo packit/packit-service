@@ -3,10 +3,12 @@
 # pre-commit install -t pre-commit -t pre-push
 
 repos:
-  - repo: https://github.com/psf/black
-    rev: 24.8.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.291
     hooks:
-      - id: black
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
@@ -116,9 +118,3 @@ repos:
           - LICENSE_HEADER.txt
           - --comment-style
           - "#"
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.0.291
-    hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]

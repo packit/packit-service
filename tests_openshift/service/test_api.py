@@ -36,9 +36,7 @@ def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     assert response_dict[1]["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict[1]["repo_name"] == SampleValues.repo_name
     assert response_dict[1]["pr_id"] == SampleValues.pr_id
-    assert {
-        len(response_build["status_per_chroot"]) for response_build in response_dict
-    } == {1, 2}
+    assert {len(response_build["status_per_chroot"]) for response_build in response_dict} == {1, 2}
 
     assert response_dict[1]["build_submitted_time"] is not None
     assert response_dict[1]["project_url"] == SampleValues.project_url
@@ -324,9 +322,7 @@ def test_get_testing_farm_results(
     response = client.get(url_for("api.testing-farm_testing_farm_results"))
     response_dict = response.json
     assert len(response_dict) == 4
-    assert response_dict[0]["packit_id"] in {
-        test_run.id for test_run in multiple_new_test_runs
-    }
+    assert response_dict[0]["packit_id"] in {test_run.id for test_run in multiple_new_test_runs}
     assert response_dict[0]["pipeline_id"] == SampleValues.another_different_pipeline_id
     assert response_dict[0]["target"] == SampleValues.chroots[0]
     assert response_dict[0]["ref"] == SampleValues.different_commit_sha

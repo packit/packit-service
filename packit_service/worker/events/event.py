@@ -116,9 +116,7 @@ class EventData:
         issue_id = event.get("issue_id")
 
         time = event.get("task_accepted_time")
-        task_accepted_time = (
-            datetime.fromtimestamp(time, timezone.utc) if time else None
-        )
+        task_accepted_time = datetime.fromtimestamp(time, timezone.utc) if time else None
 
         build_targets_override = event.get("build_targets_override")
         tests_targets_override = event.get("tests_targets_override")
@@ -282,14 +280,15 @@ class EventData:
         elif self.event_type in {
             "KojiBuildEvent",
         }:
-            (self._db_project_object, self._db_project_event) = (
-                ProjectEventModel.add_branch_push_event(
-                    branch_name=self.event_dict.get("branch_name"),
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                    commit_sha=self.event_dict.get("commit_sha"),
-                )
+            (
+                self._db_project_object,
+                self._db_project_event,
+            ) = ProjectEventModel.add_branch_push_event(
+                branch_name=self.event_dict.get("branch_name"),
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+                commit_sha=self.event_dict.get("commit_sha"),
             )
         elif self.event_type in {
             "CommitCommentGithubEvent",
@@ -404,9 +403,7 @@ class Event:
             return
 
         package_config_dict = (
-            self.packages_config.get_raw_dict_with_defaults()
-            if self.packages_config
-            else None
+            self.packages_config.get_raw_dict_with_defaults() if self.packages_config else None
         )
         if package_config_dict:
             logger.debug("Storing packages config in DB.")
@@ -684,9 +681,7 @@ class AbstractResultEvent(AbstractForgeIndependentEvent):
     """
 
     def get_packages_config(self) -> Optional[PackageConfig]:
-        if self.db_project_event and (
-            db_config := self.db_project_event.packages_config
-        ):
+        if self.db_project_event and (db_config := self.db_project_event.packages_config):
             logger.debug("Getting packages config from DB.")
             return PackageConfig.get_from_dict_without_setting_defaults(db_config)
         return super().get_packages_config()

@@ -32,15 +32,18 @@ class Config(Protocol):
 
     @property
     @abstractmethod
-    def project(self) -> Optional[GitProject]: ...
+    def project(self) -> Optional[GitProject]:
+        ...
 
     @property
     @abstractmethod
-    def service_config(self) -> Optional[ServiceConfig]: ...
+    def service_config(self) -> Optional[ServiceConfig]:
+        ...
 
     @property
     @abstractmethod
-    def project_url(self) -> str: ...
+    def project_url(self) -> str:
+        ...
 
 
 class ConfigFromEventMixin(Config):
@@ -120,10 +123,12 @@ class PackitAPIProtocol(Config):
 
     @property
     @abstractmethod
-    def packit_api(self) -> PackitAPI: ...
+    def packit_api(self) -> PackitAPI:
+        ...
 
     @abstractmethod
-    def clean_api(self) -> None: ...
+    def clean_api(self) -> None:
+        ...
 
 
 class PackitAPIWithDownstreamProtocol(PackitAPIProtocol):
@@ -189,10 +194,7 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
 
     @property
     def non_git_upstream(self):
-        return (
-            self.check_for_non_git_upstreams
-            and self.job_config.upstream_project_url is None
-        )
+        return self.check_for_non_git_upstreams and self.job_config.upstream_project_url is None
 
     def clean_api(self) -> None:
         if self._packit_api:
@@ -217,7 +219,6 @@ class LocalProjectMixin(Config):
 
     @property
     def local_project(self) -> LocalProject:
-
         if not self._local_project:
             builder = LocalProjectBuilder(
                 cache=(
@@ -230,8 +231,7 @@ class LocalProjectMixin(Config):
                 ),
             )
             working_dir = Path(
-                Path(self.service_config.command_handler_work_dir)
-                / SANDCASTLE_LOCAL_PROJECT_DIR,
+                Path(self.service_config.command_handler_work_dir) / SANDCASTLE_LOCAL_PROJECT_DIR,
             )
             kwargs = {
                 "repo_name": CALCULATE,
@@ -254,10 +254,12 @@ class LocalProjectMixin(Config):
 class GetPagurePullRequest(Protocol):
     @property
     @abstractmethod
-    def pull_request(self) -> PullRequest: ...
+    def pull_request(self) -> PullRequest:
+        ...
 
     @abstractmethod
-    def get_pr_author(self) -> Optional[str]: ...
+    def get_pr_author(self) -> Optional[str]:
+        ...
 
 
 class GetPagurePullRequestMixin(GetPagurePullRequest):
@@ -281,7 +283,8 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
 class GetIssue(Protocol):
     @property
     @abstractmethod
-    def issue(self) -> Issue: ...
+    def issue(self) -> Issue:
+        ...
 
 
 class GetIssueMixin(GetIssue, ConfigFromEventMixin):
@@ -297,7 +300,8 @@ class GetIssueMixin(GetIssue, ConfigFromEventMixin):
 class GetBranches(Protocol):
     @property
     @abstractmethod
-    def branches(self) -> list[str]: ...
+    def branches(self) -> list[str]:
+        ...
 
 
 class GetBranchesFromIssueMixin(Config, GetBranches):
@@ -340,7 +344,8 @@ class GetReporter(Protocol):
         url: str = "",
         check_names: Union[str, list, None] = None,
         markdown_content: Optional[str] = None,
-    ) -> None: ...
+    ) -> None:
+        ...
 
 
 class GetReporterFromJobHelperMixin(Config):

@@ -153,10 +153,7 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     if not success:
@@ -222,10 +219,7 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
 
     db_project_object = flexmock(job_config_trigger_type=trigger, name=event["git_ref"])
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = checker_kls(package_config, job_config, event)
@@ -293,10 +287,7 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
 
     db_project_object = flexmock(job_config_trigger_type=trigger, pr_id=1)
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = checker_kls(package_config, job_config, event)
@@ -409,11 +400,7 @@ def test_copr_build_is_package_matching_job_view():
         {"pkg": "package"},
     )
     checker._build = (
-        flexmock()
-        .should_receive("get_package_name")
-        .and_return("package-b")
-        .once()
-        .mock()
+        flexmock().should_receive("get_package_name").and_return("package-b").once().mock()
     )
 
     assert not checker.pre_check()
@@ -500,10 +487,7 @@ def test_koji_branch_merge_queue():
         name="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = IsJobConfigTriggerMatchingKoji(package_config, job_config, event)
@@ -573,10 +557,7 @@ def test_tf_comment_identifier(comment, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = IsIdentifierFromCommentMatching(
@@ -668,10 +649,7 @@ def test_tf_comment_default_identifier(
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = IsIdentifierFromCommentMatching(
@@ -735,10 +713,7 @@ def test_tf_comment_labels(comment, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = IsLabelFromCommentMatching(
@@ -826,10 +801,7 @@ def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = IsLabelFromCommentMatching(
@@ -891,10 +863,7 @@ def test_tf_comment_labels_none_in_config(comment, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
 
     checker = IsLabelFromCommentMatching(

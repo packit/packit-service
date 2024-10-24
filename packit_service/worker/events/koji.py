@@ -203,9 +203,7 @@ class KojiBuildEvent(AbstractKojiEvent):
         return KojiBuildEvent(
             build_id=event.get("build_id"),
             state=KojiBuildState(raw_new) if (raw_new := event.get("state")) else None,
-            old_state=(
-                KojiBuildState(raw_old) if (raw_old := event.get("old_state")) else None
-            ),
+            old_state=(KojiBuildState(raw_old) if (raw_old := event.get("old_state")) else None),
             task_id=event.get("task_id"),
             rpm_build_task_ids=event.get("rpm_build_task_ids"),
             package_name=event.get("package_name"),
@@ -300,11 +298,7 @@ class KojiTaskEvent(AbstractKojiEvent):
         return KojiTaskEvent(
             task_id=event.get("task_id"),
             state=KojiTaskState(event.get("state")) if event.get("state") else None,
-            old_state=(
-                KojiTaskState(event.get("old_state"))
-                if event.get("old_state")
-                else None
-            ),
+            old_state=(KojiTaskState(event.get("old_state")) if event.get("old_state") else None),
             rpm_build_task_ids=event.get("rpm_build_task_ids"),
             start_time=event.get("start_time"),
             completion_time=event.get("completion_time"),
@@ -335,7 +329,6 @@ class KojiTaskEvent(AbstractKojiEvent):
 
 @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.koji_build)
 class KojiBuildTagEvent(AbstractKojiEvent):
-
     _koji_helper: Optional[KojiHelper] = None
 
     def __init__(

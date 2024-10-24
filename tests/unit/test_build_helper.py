@@ -789,10 +789,7 @@ def test_configured_tests_targets(jobs, job_type, test_chroots):
         project_event_model_type=project_event_model_type,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     if job_config_trigger_type == JobConfigTriggerType.commit:
         db_project_object.name = "main"
@@ -888,8 +885,7 @@ def test_deduced_copr_targets():
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,build_targets_override,"
-    "tests_targets_override,build_targets",
+    "jobs,job_config_trigger_type,build_targets_override," "tests_targets_override,build_targets",
     [
         pytest.param(
             [
@@ -1157,8 +1153,7 @@ def test_build_targets_overrides(
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,build_targets_override,"
-    "tests_targets_override,test_targets",
+    "jobs,job_config_trigger_type,build_targets_override," "tests_targets_override,test_targets",
     [
         pytest.param(
             [
@@ -1526,11 +1521,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
     ]
     flexmock(CoprHelper, get_valid_build_targets=get_build_targets)
     for i in [0, 1]:
-        helper = (
-            CoprBuildJobHelper
-            if jobs[i].type == JobType.copr_build
-            else TestingFarmJobHelper
-        )
+        helper = CoprBuildJobHelper if jobs[i].type == JobType.copr_build else TestingFarmJobHelper
         helper = helper(
             service_config=ServiceConfig.get_service_config(),
             package_config=PackageConfig(
@@ -1554,10 +1545,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
             "fedora-35-x86_64",
             "fedora-36-x86_64",
         }
-        assert (
-            helper.build_target2test_targets_for_test_job("fedora-36-x86_64", jobs[0])
-            == set()
-        )
+        assert helper.build_target2test_targets_for_test_job("fedora-36-x86_64", jobs[0]) == set()
         assert helper.build_target2test_targets_for_test_job(
             "epel-8-x86_64",
             jobs[0],

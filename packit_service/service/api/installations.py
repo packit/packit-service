@@ -18,9 +18,7 @@ class InstallationsList(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, installations list follows")
     def get(self):
         """List all Github App installations"""
-        return [
-            installation.to_dict() for installation in GithubInstallationModel.get_all()
-        ]
+        return [installation.to_dict() for installation in GithubInstallationModel.get_all()]
 
 
 @ns.route("/<int:id>")
@@ -31,8 +29,4 @@ class InstallationItem(Resource):
     def get(self, id):
         """A specific installation details"""
         installation = GithubInstallationModel.get_by_id(id)
-        return (
-            installation.to_dict()
-            if installation
-            else ("", HTTPStatus.NO_CONTENT.value)
-        )
+        return installation.to_dict() if installation else ("", HTTPStatus.NO_CONTENT.value)

@@ -42,7 +42,6 @@ class OpenScanHubAbstractHandler(
     ConfigFromEventMixin,
     PackitAPIWithUpstreamMixin,
 ):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.event: Union[
@@ -84,8 +83,7 @@ class OpenScanHubAbstractHandler(
                 success=True,
                 details={
                     "msg": (
-                        "No job configuration found for OpenScanHub task"
-                        f" in {self.project.repo}"
+                        "No job configuration found for OpenScanHub task" f" in {self.project.repo}"
                     ),
                 },
             )
@@ -106,9 +104,7 @@ class OpenScanHubTaskFinishedHandler(
 
         if self.event.status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
-            description = (
-                "Scan in OpenScanHub is finished. Check the URL for more details."
-            )
+            description = "Scan in OpenScanHub is finished. Check the URL for more details."
             external_links = {
                 "Added issues": self.event.issues_added_url,
                 "Fixed issues": self.event.issues_fixed_url,
@@ -120,9 +116,7 @@ class OpenScanHubTaskFinishedHandler(
             self.event.scan.set_scan_results_url(self.event.scan_results_url)
         else:
             state = BaseCommitStatus.neutral
-            description = (
-                f"Scan in OpenScanHub is finished in a {self.event.status} state."
-            )
+            description = f"Scan in OpenScanHub is finished in a {self.event.status} state."
             external_links = {}
             if self.event.status == OpenScanHubTaskFinishedEvent.Status.cancel:
                 self.event.scan.set_status(OSHScanStatus.canceled)

@@ -24,7 +24,8 @@ from packit_service.worker.mixin import (
 
 
 def test_GetVMImageBuilderMixin():
-    class Test(ConfigFromEventMixin, GetVMImageBuilderMixin): ...
+    class Test(ConfigFromEventMixin, GetVMImageBuilderMixin):
+        ...
 
     flexmock(ImageBuilder).should_receive("_get_access_token").and_return("token")
     mixin = Test()
