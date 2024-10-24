@@ -23,6 +23,7 @@ ignore = [
     "B017",    # assert-raises-exception
     "B022",    # useless-contextlib-suppress
     "RUF001",  # String contains ambiguous character
+    "RUF002",  # Docstring contains ambiguous character
     "RUF003",  # Comment contains ambiguous character
     "E701",    # Multiple statements on one line (colon)
     "COM812",  # Can cause conflict with the formatter
