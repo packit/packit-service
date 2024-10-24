@@ -1,0 +1,140 @@
+{
+  "topic": "org.fedoraproject.prod.pagure.pull-request.new",
+  "agent": "zbyszek",
+  "pullrequest": {
+    "assignee": null,
+    "branch": "rawhide",
+    "branch_from": "build-only-on-aarch64",
+    "cached_merge_status": "unknown",
+    "closed_at": null,
+    "closed_by": null,
+    "comments": [],
+    "commit_start": "889f07af35d27bbcaf9c535c17a63b974aa42ee3",
+    "commit_stop": "889f07af35d27bbcaf9c535c17a63b974aa42ee3",
+    "date_created": "1729687175",
+    "full_url": "https://src.fedoraproject.org/rpms/optee_os/pull-request/2",
+    "id": 2,
+    "initial_comment": "Previously the package was \"built\" on all architectures, but no output\r\nwas produced. Only on aarch64, a noarch package was produced, which\r\nthen was distributed to all architectures. Mock/koji allow this, but\r\nit's rather pointless and confusing. We can achieve the same result by\r\nonly building on aarch64.\r\n\r\nI think this DTRT, but please don't merge without waiting for the scratch build result.",
+    "last_updated": "1729687175",
+    "project": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["eballetbo"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1695137284",
+      "date_modified": "1704875184",
+      "description": "The optee_os package\n",
+      "full_url": "https://src.fedoraproject.org/rpms/optee_os",
+      "fullname": "rpms/optee_os",
+      "id": 66326,
+      "milestones": {},
+      "name": "optee_os",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "rpms/optee_os",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/eballetbo",
+        "fullname": "Enric Balletbo i Serra",
+        "name": "eballetbo",
+        "url_path": "user/eballetbo"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["zbyszek"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1729687100",
+      "date_modified": "1729687100",
+      "description": "The optee_os package\n",
+      "full_url": "https://src.fedoraproject.org/fork/zbyszek/rpms/optee_os",
+      "fullname": "forks/zbyszek/rpms/optee_os",
+      "id": 79602,
+      "milestones": {},
+      "name": "optee_os",
+      "namespace": "rpms",
+      "parent": {
+        "access_groups": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "ticket": []
+        },
+        "access_users": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "owner": ["eballetbo"],
+          "ticket": []
+        },
+        "close_status": [],
+        "custom_keys": [],
+        "date_created": "1695137284",
+        "date_modified": "1704875184",
+        "description": "The optee_os package\n",
+        "full_url": "https://src.fedoraproject.org/rpms/optee_os",
+        "fullname": "rpms/optee_os",
+        "id": 66326,
+        "milestones": {},
+        "name": "optee_os",
+        "namespace": "rpms",
+        "parent": null,
+        "priorities": {},
+        "tags": [],
+        "url_path": "rpms/optee_os",
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/eballetbo",
+          "fullname": "Enric Balletbo i Serra",
+          "name": "eballetbo",
+          "url_path": "user/eballetbo"
+        }
+      },
+      "priorities": {},
+      "tags": [],
+      "url_path": "fork/zbyszek/rpms/optee_os",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/zbyszek",
+        "fullname": "Zbigniew J\u0119drzejewski-Szmek",
+        "name": "zbyszek",
+        "url_path": "user/zbyszek"
+      }
+    },
+    "status": "Open",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "Only build on aarch64",
+    "uid": "6bce8aea08204d12a74c2d17ecc505df",
+    "updated_on": "1729687175",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/zbyszek",
+      "fullname": "Zbigniew J\u0119drzejewski-Szmek",
+      "name": "zbyszek",
+      "url_path": "user/zbyszek"
+    }
+  }
+}

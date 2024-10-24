@@ -194,7 +194,7 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         base_repo_namespace: str,
         base_repo_name: str,
         base_repo_owner: str,
-        base_ref: str,
+        base_ref: Optional[str],
         target_repo: str,
         project_url: str,
         commit_sha: str,
@@ -227,6 +227,15 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         )
         logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
         return fork
+
+    def get_packages_config(self) -> Optional[PackageConfig]:
+        return PackageConfigGetter.get_package_config_from_repo(
+            base_project=self.base_project,
+            project=self.project,
+            reference=self.commit_sha,
+            pr_id=self.pr_id,
+            fail_when_missing=self.fail_when_config_file_missing,
+        )
 
 
 class PullRequestFlagPagureEvent(AbstractPagureEvent):
