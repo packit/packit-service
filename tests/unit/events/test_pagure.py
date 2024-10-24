@@ -148,7 +148,7 @@ def test_parse_pagure_pull_request_new(pagure_pr_new):
         pr_id=2,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     flexmock(PagureProject).should_receive("get_web_url").and_return(
         "https://src.fedoraproject.org/rpms/optee_os",
@@ -169,9 +169,7 @@ def test_parse_pagure_pull_request_updated(pagure_pr_updated):
     assert event_object.target_repo == "marshalparser"
     assert event_object.commit_sha == "f2f041328d629719c5ff31a08e800638d5df497f"
     assert event_object.user_login == "pagure"
-    assert (
-        event_object.project_url == "https://src.fedoraproject.org/rpms/marshalparser"
-    )
+    assert event_object.project_url == "https://src.fedoraproject.org/rpms/marshalparser"
 
     assert isinstance(event_object.project, PagureProject)
     assert event_object.project.full_repo_name == "rpms/marshalparser"
@@ -187,7 +185,7 @@ def test_parse_pagure_pull_request_updated(pagure_pr_updated):
         pr_id=32,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     flexmock(PagureProject).should_receive("get_web_url").and_return(
         "https://src.fedoraproject.org/rpms/marshalparser",
@@ -224,7 +222,7 @@ def test_parse_pagure_pull_request_rebased(pagure_pr_rebased):
         pr_id=6,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     flexmock(PagureProject).should_receive("get_web_url").and_return(
         "https://src.fedoraproject.org/rpms/ftp",

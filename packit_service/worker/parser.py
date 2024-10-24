@@ -1897,7 +1897,7 @@ class Parser:
             "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore
             "pagure.pull-request.new": parse_pagure_pull_request_event.__func__,  # type: ignore
             "pagure.pull-request.updated": parse_pagure_pull_request_event.__func__,  # type: ignore
-            "pagure.pull-request.rebased": parse_pagure_pull_request_event.__func__,  # type: ignore 
+            "pagure.pull-request.rebased": parse_pagure_pull_request_event.__func__,  # type: ignore
             "pagure.git.receive": parse_pagure_push_event.__func__,  # type: ignore
             "copr.build.start": parse_copr_event.__func__,  # type: ignore
             "copr.build.end": parse_copr_event.__func__,  # type: ignore
