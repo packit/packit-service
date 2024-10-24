@@ -2526,6 +2526,9 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("123").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="the_distgit_branch",
         koji_nvrs="123",

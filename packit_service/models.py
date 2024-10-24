@@ -7,6 +7,7 @@ Data layer on top of PSQL using sqlalch
 
 import enum
 import logging
+import re
 from collections import Counter
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
@@ -42,6 +43,7 @@ from sqlalchemy import (
     null,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
+from sqlalchemy.dialects.postgresql import dialect as psql_dialect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
@@ -2484,7 +2486,7 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
             return set(projects)
 
     @classmethod
-    def get_first_successful_by_sidetag(
+    def get_last_successful_by_sidetag(
         cls,
         sidetag: str,
     ) -> Optional["BodhiUpdateTargetModel"]:
@@ -2495,7 +2497,26 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
                     BodhiUpdateTargetModel.status == "success",
                     BodhiUpdateTargetModel.sidetag == sidetag,
                 )
+                .order_by(BodhiUpdateTargetModel.update_creation_time.desc())
                 .first()
+            )
+
+    @classmethod
+    def get_all_successful_or_in_progress_by_nvrs(
+        cls,
+        koji_nvrs: str,
+    ) -> set["BodhiUpdateTargetModel"]:
+        regexp = "|".join(re.escape(nvr) for nvr in set(koji_nvrs.split()))
+        with sa_session_transaction() as session:
+            return set(
+                session.query(BodhiUpdateTargetModel)
+                .filter(
+                    BodhiUpdateTargetModel.status.in_(("queued", "retry", "success")),
+                    BodhiUpdateTargetModel.koji_nvrs.regexp_match(regexp).compile(
+                        dialect=psql_dialect(),
+                    ),
+                )
+                .all(),
             )
 
 

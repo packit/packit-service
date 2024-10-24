@@ -13,6 +13,7 @@ from packit.config import (
 from packit.exceptions import PackitException
 
 from packit_service.config import ServiceConfig
+from packit_service.models import BodhiUpdateTargetModel
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
@@ -139,6 +140,9 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
             task_id=123,
         ),
     )
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).and_return(set())
     flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
     handler = RetriggerBodhiUpdateHandler(package_config, job_config, data, flexmock())
     handler.run()

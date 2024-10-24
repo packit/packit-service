@@ -118,6 +118,9 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     )
     flexmock(ProjectEventModel).should_receive("get_or_create")
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -221,6 +224,9 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -328,6 +334,9 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -448,6 +457,9 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -545,6 +557,9 @@ def test_bodhi_update_build_not_tagged_yet(
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -656,6 +671,9 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -742,6 +760,9 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("packit-0.43.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="rawhide",
         koji_nvrs="packit-0.43.0-1.fc36",
@@ -893,6 +914,9 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         ],
     )
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args("python-ogr-0.34.0-1.fc36").and_return(set())
     flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
         target="f36",
         koji_nvrs="python-ogr-0.34.0-1.fc36",
@@ -929,12 +953,30 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
 
 
 @pytest.mark.parametrize(
-    "missing_dependency, existing_update",
-    [(False, None), (False, "FEDORA-2024-abcdef1234"), (True, None)],
+    "missing_dependency, non_unique_builds, existing_update",
+    [
+        (False, False, None),
+        (
+            False,
+            False,
+            flexmock(
+                alias="FEDORA-2024-abcdef1234",
+                koji_nvrs="python-specfile-0.31.0-1.fc40 packit-0.99.0-1.fc40",
+            ),
+        ),
+        (
+            False,
+            False,
+            flexmock(alias="FEDORA-2024-abcdef1234", koji_nvrs="packit-0.99.0-1.fc40"),
+        ),
+        (False, True, None),
+        (True, False, None),
+    ],
 )
 def test_bodhi_update_from_sidetag(
     koji_build_tagged,
     missing_dependency,
+    non_unique_builds,
     existing_update,
 ):
     """(Sidetag scenario.)"""
@@ -997,10 +1039,8 @@ def test_bodhi_update_from_sidetag(
     ).and_return(flexmock(target=dg_branch, get_project_event_model=lambda: None))
 
     flexmock(BodhiUpdateTargetModel).should_receive(
-        "get_first_successful_by_sidetag",
-    ).with_args(sidetag_name).and_return(
-        flexmock(alias=existing_update) if existing_update else None,
-    )
+        "get_last_successful_by_sidetag",
+    ).with_args(sidetag_name).and_return(existing_update)
 
     specfile_packit_yaml = (
         "{'specfile_path': 'python-specfile.spec', 'synced_files': [],"
@@ -1096,29 +1136,43 @@ def test_bodhi_update_from_sidetag(
             "packit-0.99.0-1.fc40",
         }
         assert sidetag == sidetag_name
-        assert alias == (existing_update if existing_update else None)
+        assert alias == (existing_update.alias if existing_update else None)
         return "alias", "url"
 
     flexmock(PackitAPI).should_receive("create_update").replace_with(
         _create_update,
-    ).times(0 if missing_dependency else 1)
+    ).times(
+        (
+            0
+            if missing_dependency
+            or non_unique_builds
+            or existing_update
+            and " " in existing_update.koji_nvrs
+            else 1
+        ),
+    )
 
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
-    group_model = flexmock(
-        grouped_targets=[
-            flexmock(
-                target=dg_branch,
-                koji_nvrs="python-specfile-0.31.0-1.fc40 packit-0.99.0-1.fc40",
-                sidetag=sidetag_name,
-                set_status=lambda x: None,
-                set_data=lambda x: None,
-                set_web_url=lambda x: None,
-                set_alias=lambda x: None,
-                set_update_creation_time=lambda x: None,
-            ),
-        ],
+    update_model = flexmock(
+        target=dg_branch,
+        koji_nvrs="python-specfile-0.31.0-1.fc40 packit-0.99.0-1.fc40",
+        sidetag=sidetag_name,
+        set_status=lambda x: None,
+        set_data=lambda x: None,
+        set_web_url=lambda x: None,
+        set_alias=lambda x: None,
+        set_update_creation_time=lambda x: None,
     )
+    group_model = flexmock(grouped_targets=[update_model])
     flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
+
+    flexmock(BodhiUpdateTargetModel).should_receive(
+        "get_all_successful_or_in_progress_by_nvrs",
+    ).with_args(
+        "python-specfile-0.31.0-1.fc40 packit-0.99.0-1.fc40",
+    ).and_return(
+        {flexmock(), update_model} if non_unique_builds else {update_model},
+    )
 
     def _create(target, koji_nvrs, sidetag, status, bodhi_update_group):
         assert target == dg_branch
