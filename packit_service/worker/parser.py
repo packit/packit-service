@@ -4,6 +4,7 @@
 """
 Parser is transforming github JSONs into `events` objects
 """
+
 import logging
 from datetime import datetime, timezone
 from os import getenv
@@ -1401,7 +1402,7 @@ class Parser:
         """this corresponds to copr build event e.g:"""
         topic = event.get("topic")
 
-        copr_build_cls: type["AbstractCoprBuildEvent"]
+        copr_build_cls: type[AbstractCoprBuildEvent]
         if topic == "org.fedoraproject.prod.copr.build.start":
             copr_build_cls = CoprBuildStartEvent
         elif topic == "org.fedoraproject.prod.copr.build.end":
@@ -1846,7 +1847,7 @@ class Parser:
         "fedora-messaging": {
             "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
-            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore # noqa: E501
+            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore
             "pagure.git.receive": parse_pagure_push_event.__func__,  # type: ignore
             "copr.build.start": parse_copr_event.__func__,  # type: ignore
             "copr.build.end": parse_copr_event.__func__,  # type: ignore

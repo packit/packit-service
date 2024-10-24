@@ -29,8 +29,7 @@ class Checker(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
         self.data = EventData.from_event_dict(event)
 
     @abstractmethod
-    def pre_check(self) -> bool:
-        ...
+    def pre_check(self) -> bool: ...
 
 
 class ActorChecker(Checker):
@@ -39,8 +38,7 @@ class ActorChecker(Checker):
         return self.data.actor
 
     @abstractmethod
-    def _pre_check(self) -> bool:
-        ...
+    def _pre_check(self) -> bool: ...
 
     def pre_check(self) -> bool:
         if not self.actor:

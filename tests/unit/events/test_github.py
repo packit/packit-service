@@ -157,7 +157,7 @@ def test_parse_pr(github_pr_webhook):
         reference="528b803be6f93e19ca4130bf4976f2800a3004c4",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -185,7 +185,7 @@ def test_parse_github_push(github_push_branch):
         reference="04885ff850b0fa0e206cd09db73565703d48f99b",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -213,7 +213,7 @@ def test_parse_github_push_branch(github_push_branch):
         reference="04885ff850b0fa0e206cd09db73565703d48f99b",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     assert event_object.packages_config
@@ -275,7 +275,7 @@ def test_parse_check_rerun_commit(check_rerun):
         reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
@@ -317,7 +317,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
         reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
@@ -384,7 +384,7 @@ def test_parse_pr_comment_created(github_pr_comment_created):
         reference="12345",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -422,7 +422,7 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
         reference="12345",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     assert event_object.packages_config
@@ -459,7 +459,7 @@ def test_parse_issue_comment(github_issue_comment_propose_downstream):
         reference="123456",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -483,7 +483,7 @@ def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
         reference=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
     assert event_object.commit_sha is None
@@ -722,7 +722,7 @@ def test_parse_commit_comment(commit_comment):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     assert event_object.packages_config
@@ -754,7 +754,7 @@ def test_parse_commit_comment_commit(commit_comment):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     flexmock(GithubProject).should_receive("get_commits").with_args(
@@ -805,7 +805,7 @@ def test_parse_commit_comment_release(commit_comment):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     flexmock(GithubProject).should_receive("get_release").and_return(

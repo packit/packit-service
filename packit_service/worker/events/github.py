@@ -231,9 +231,9 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.commit_sha = commit_sha
         self.actor = actor
         self._db_project_event = db_project_event
-        self._db_project_object: (
-            AbstractProjectObjectDbType
-        ) = db_project_event.get_project_event_object()
+        self._db_project_object: AbstractProjectObjectDbType = (
+            db_project_event.get_project_event_object()
+        )
         self.job_identifier = job_identifier
 
     @property

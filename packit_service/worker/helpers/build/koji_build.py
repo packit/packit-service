@@ -2,20 +2,21 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Optional, Set, Tuple
+from typing import Optional
 
 from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_all_koji_targets, get_koji_targets
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCommandFailedError
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import (
-    KojiBuildTargetModel,
     BuildStatus,
     KojiBuildGroupModel,
+    KojiBuildTargetModel,
     ProjectEventModel,
 )
 from packit_service.service.urls import (
@@ -46,8 +47,8 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[Set[str]] = None,
-        tests_targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[set[str]] = None,
+        tests_targets_override: Optional[set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -77,7 +78,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return self.job_build and self.job_build.scratch
 
     @property
-    def build_targets_all(self) -> Set[str]:
+    def build_targets_all(self) -> set[str]:
         """
         Return all valid Koji targets/chroots from config.
         """
@@ -91,7 +92,8 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
     def run_koji_build(self) -> TaskResults:
         self.report_status_to_all(
-            description="Building SRPM ...", state=BaseCommitStatus.running
+            description="Building SRPM ...",
+            state=BaseCommitStatus.running,
         )
         if results := self.create_srpm_if_needed():
             return results
@@ -119,7 +121,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             )
             return TaskResults(success=False, details={"msg": msg})
 
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
         build_group = KojiBuildGroupModel.create(run_model=self.run_model)
         for target in self.build_targets:
             if target not in self.supported_koji_targets:
@@ -188,8 +190,9 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return TaskResults(success=True, details={})
 
     def run_build(
-        self, target: Optional[str] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
+        self,
+        target: Optional[str] = None,
+    ) -> tuple[Optional[int], Optional[str]]:
         """
         Run the Koji build from upstream.
 
@@ -214,7 +217,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             logger.warning(
                 f"Koji build failed for {target}:\n"
                 f"\t stdout: {ex.stdout_output}\n"
-                f"\t stderr: {ex.stderr_output}\n"
+                f"\t stderr: {ex.stderr_output}\n",
             )
             raise
 

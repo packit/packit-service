@@ -6,6 +6,7 @@
 """
 Generator of webhooks
 """
+
 import json
 from typing import Union
 

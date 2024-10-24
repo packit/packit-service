@@ -12,6 +12,7 @@ $ docker-compose -d postgres
 $ alembic upgrade head
 ```
 """
+
 import datetime
 from typing import ClassVar
 

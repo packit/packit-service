@@ -4,6 +4,7 @@
 """
 A book with our finest spells
 """
+
 import json
 from datetime import datetime, timezone
 from pathlib import Path

@@ -30,7 +30,7 @@ from sqlalchemy.orm import relationship
 
 from alembic import op
 
-if TYPE_CHECKING:  # noqa: SIM108
+if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
@@ -504,9 +504,7 @@ def upgrade():
                 f"More SRPM builds for one koji_build {koji_build}:\n{srpm_builds}",
             )
 
-    run_model_count = 0
     for run_model in session.query(RunModel).all():
-        run_model_count += 1
         if not run_model.srpm_build:
             raise PackitException(
                 f"Run model does not have SRPM build set: {run_model}",

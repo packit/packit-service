@@ -44,9 +44,9 @@ class OpenScanHubAbstractHandler(
 ):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.event: Union[
-            OpenScanHubTaskFinishedEvent | OpenScanHubTaskStartedEvent
-        ] = self.data.to_event()
+        self.event: Union[OpenScanHubTaskFinishedEvent | OpenScanHubTaskStartedEvent] = (
+            self.data.to_event()
+        )
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:

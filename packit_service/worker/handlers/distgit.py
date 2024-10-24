@@ -4,6 +4,7 @@
 """
 This file defines classes for job handlers specific for distgit
 """
+
 import abc
 import logging
 import shutil

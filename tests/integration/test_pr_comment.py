@@ -2014,9 +2014,9 @@ def test_invalid_packit_command_without_config(
     )
 
     ServiceConfig.get_service_config().comment_command_prefix = "/packit"
-    pr_embedded_command_comment_event["comment"][
-        "body"
-    ] = "/packit 10minutesOfImplementing3HoursOfTesting"
+    pr_embedded_command_comment_event["comment"]["body"] = (
+        "/packit 10minutesOfImplementing3HoursOfTesting"
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -2601,9 +2601,9 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
 
 
 def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
-    pagure_pr_comment_added["pullrequest"]["comments"][0][
-        "comment"
-    ] = "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = (
+        "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    )
     sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
@@ -2796,9 +2796,9 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
 def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     pagure_pr_comment_added,
 ):
-    pagure_pr_comment_added["pullrequest"]["comments"][0][
-        "comment"
-    ] = "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = (
+        "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    )
     sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(

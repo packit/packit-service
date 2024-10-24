@@ -152,7 +152,7 @@ def test_parse_mr(merge_request):
         reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -178,7 +178,7 @@ def test_parse_mr_action(merge_request_update):
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -219,7 +219,7 @@ def test_parse_mr_comment(gitlab_mr_comment):
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -247,7 +247,7 @@ def test_parse_commit_comment(gitlab_commit_comment):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -281,7 +281,7 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
         reference="123456",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -309,7 +309,7 @@ def test_parse_gitlab_push(gitlab_push):
         reference="cb2859505e101785097e082529dced35bbee0c8f",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -337,7 +337,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
         reference="15af92227f9e965b392e85ba2f08a41a5aeb278a",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -374,6 +374,6 @@ def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
         reference="ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config

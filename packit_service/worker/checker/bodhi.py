@@ -96,22 +96,19 @@ class IsKojiBuildCompleteAndBranchConfiguredCheckEvent(
     IsKojiBuildCompleteAndBranchConfigured,
     GetKojiBuildEventMixin,
     GetKojiBuildDataFromKojiBuildEventMixin,
-):
-    ...
+): ...
 
 
 class IsKojiBuildCompleteAndBranchConfiguredCheckSidetag(
     IsKojiBuildCompleteAndBranchConfigured,
     GetKojiBuildDataFromKojiBuildTagEventMixin,
-):
-    ...
+): ...
 
 
 class IsKojiBuildCompleteAndBranchConfiguredCheckService(
     IsKojiBuildCompleteAndBranchConfigured,
     GetKojiBuildDataFromKojiServiceMixin,
-):
-    ...
+): ...
 
 
 class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixin):

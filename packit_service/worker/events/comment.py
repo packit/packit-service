@@ -4,6 +4,7 @@
 """
 abstract-comment event classes.
 """
+
 import re
 from logging import getLogger
 from typing import Optional, Union

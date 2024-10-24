@@ -6,27 +6,27 @@ import logging
 import re
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Dict, Callable
+from typing import Callable, Optional
 
 from kubernetes.client.rest import ApiException
-from sandcastle import SandcastleTimeoutReached
-
 from ogr.abstract import GitProject
-from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.aliases import DEFAULT_VERSION
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitMergeException
 from packit.utils import PackitFormatter
+from sandcastle import SandcastleTimeoutReached
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAILURE_COMMENT_MESSAGE_VARIABLES
 from packit_service.models import (
-    PipelineModel,
-    SRPMBuildModel,
     BuildStatus,
-    ProjectReleaseModel,
     GitBranchModel,
+    PipelineModel,
     ProjectEventModel,
+    ProjectReleaseModel,
+    SRPMBuildModel,
 )
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
@@ -53,8 +53,8 @@ class BaseBuildJobHelper(BaseJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[Set[str]] = None,
-        tests_targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[set[str]] = None,
+        tests_targets_override: Optional[set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
         super().__init__(
@@ -67,20 +67,20 @@ class BaseBuildJobHelper(BaseJobHelper):
             pushgateway=pushgateway,
         )
         self.run_model: Optional[PipelineModel] = None
-        self.build_targets_override: Optional[Set[str]] = build_targets_override
-        self.tests_targets_override: Optional[Set[str]] = tests_targets_override
+        self.build_targets_override: Optional[set[str]] = build_targets_override
+        self.tests_targets_override: Optional[set[str]] = tests_targets_override
         self.pushgateway = pushgateway
 
         # lazy properties
-        self._build_check_names: Optional[List[str]] = None
+        self._build_check_names: Optional[list[str]] = None
         self._srpm_model: Optional[SRPMBuildModel] = None
         self._srpm_path: Optional[Path] = None
         self._job_tests: Optional[JobConfig] = None
         self._job_build: Optional[JobConfig] = None
-        self._job_tests_all: Optional[List[JobConfig]] = None
+        self._job_tests_all: Optional[list[JobConfig]] = None
 
     @property
-    def configured_build_targets(self) -> Set[str]:
+    def configured_build_targets(self) -> set[str]:
         """
         Return the configured targets for build job.
 
@@ -123,7 +123,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             configured_branch = job_config.branch or self.project.default_branch
             logger.info(
                 f"Configured branch: {configured_branch}, branch from trigger: "
-                f"{self._db_project_object.name}"  # type: ignore
+                f"{self._db_project_object.name}",  # type: ignore
             )
             return bool(re.match(configured_branch, self._db_project_object.name))  # type: ignore
 
@@ -133,7 +133,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 return True
             target_branch = self.pull_request_object.target_branch
             logger.info(
-                f"Configured branch: {configured_branch}, PR target branch: {target_branch}"
+                f"Configured branch: {configured_branch}, PR target branch: {target_branch}",
             )
             return bool(re.match(configured_branch, target_branch))
 
@@ -148,9 +148,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         if not self.job_type_build:
             return None
         if not self._job_build:
-            for job in [self.job_config] + self.package_config.jobs:
+            for job in [self.job_config, *self.package_config.jobs]:
                 if are_job_types_same(
-                    job.type, self.job_type_build
+                    job.type,
+                    self.job_type_build,
                 ) and self.is_job_config_trigger_matching(job):
                     self._job_build = job
                     break
@@ -161,7 +162,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         return self.job_build or self.job_config
 
     @property
-    def job_tests_all(self) -> List[JobConfig]:
+    def job_tests_all(self) -> list[JobConfig]:
         """
         Get all JobConfig for tests defined for the given trigger
         :return: List of JobConfig or None
@@ -169,27 +170,28 @@ class BaseBuildJobHelper(BaseJobHelper):
         if not self.job_type_test:
             return []
 
-        matching_jobs = []
-
         if not self._job_tests_all:
-            for job in self.package_config.jobs:
+            self._job_tests_all = [
+                job
+                for job in self.package_config.jobs
                 if are_job_types_same(
-                    job.type, self.job_type_test
-                ) and self.is_job_config_trigger_matching(job):
-                    matching_jobs.append(job)
-            self._job_tests_all = matching_jobs
+                    job.type,
+                    self.job_type_test,
+                )
+                and self.is_job_config_trigger_matching(job)
+            ]
 
         return self._job_tests_all
 
     @property
-    def build_targets_all(self) -> Set[str]:
+    def build_targets_all(self) -> set[str]:
         """
         Return all valid build targets/chroots from config.
         """
         raise NotImplementedError("Use subclass instead.")
 
     @property
-    def build_targets(self) -> Set[str]:
+    def build_targets(self) -> set[str]:
         """
         Return valid targets/chroots to build.
 
@@ -201,7 +203,7 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         return self.build_targets_all
 
-    def configured_targets_for_tests_job(self, test_job_config: JobConfig) -> Set[str]:
+    def configured_targets_for_tests_job(self, test_job_config: JobConfig) -> set[str]:
         """
         Return the configured targets for the particular test job.
         Has to be a sub-set of the `configured_build_targets`.
@@ -213,33 +215,29 @@ class BaseBuildJobHelper(BaseJobHelper):
         if not self.is_job_config_trigger_matching(test_job_config):
             return set()
 
-        if (
-            not test_job_config.targets
-            and self.job_build
-            and not test_job_config.skip_build
-        ):
+        if not test_job_config.targets and self.job_build and not test_job_config.skip_build:
             return self.configured_build_targets
 
         return test_job_config.targets or {DEFAULT_VERSION}
 
-    def build_targets_for_test_job_all(self, test_job_config: JobConfig) -> Set[str]:
+    def build_targets_for_test_job_all(self, test_job_config: JobConfig) -> set[str]:
         """
         Return valid targets/chroots to build in needed to run the particular test job.
         """
         raise NotImplementedError("Use subclass instead.")
 
-    def tests_targets_for_test_job_all(self, test_job_config: JobConfig) -> Set[str]:
+    def tests_targets_for_test_job_all(self, test_job_config: JobConfig) -> set[str]:
         """
         Return valid test targets (mapped) to test in for the particular test job.
         """
         targets = set()
         for chroot in self.build_targets_for_test_job_all(test_job_config):
             targets.update(
-                self.build_target2test_targets_for_test_job(chroot, test_job_config)
+                self.build_target2test_targets_for_test_job(chroot, test_job_config),
             )
         return targets
 
-    def build_targets_for_test_job(self, test_job_config: JobConfig) -> Set[str]:
+    def build_targets_for_test_job(self, test_job_config: JobConfig) -> set[str]:
         """
         Return valid targets/chroots to build in needed to run the particular test job.
 
@@ -281,13 +279,9 @@ class BaseBuildJobHelper(BaseJobHelper):
                 for target in self.tests_targets_override
             )
 
-        return (
-            configured_targets & targets_override
-            if targets_override
-            else configured_targets
-        )
+        return configured_targets & targets_override if targets_override else configured_targets
 
-    def tests_targets_for_test_job(self, test_job_config: JobConfig) -> Set[str]:
+    def tests_targets_for_test_job(self, test_job_config: JobConfig) -> set[str]:
         """
         Return valid test targets (mapped) to test in for the particular test job.
         If there are build_targets_override or tests_targets_override defined,
@@ -322,7 +316,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             logger.debug(f"Build targets override: {self.build_targets_override}")
             for target in self.build_targets_override:
                 targets_override.update(
-                    self.build_target2test_targets_for_test_job(target, test_job_config)
+                    self.build_target2test_targets_for_test_job(target, test_job_config),
                 )
 
         if self.tests_targets_override:
@@ -336,8 +330,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         )
 
     def build_target2test_targets_for_test_job(
-        self, build_target: str, test_job_config: JobConfig
-    ) -> Set[str]:
+        self,
+        build_target: str,
+        test_job_config: JobConfig,
+    ) -> set[str]:
         """
         Return all test targets defined for the build target
         (from configuration or from default mapping).
@@ -345,7 +341,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         raise NotImplementedError("Use subclass instead.")
 
     def test_target2build_target_for_test_job(
-        self, test_target: str, test_job_config: JobConfig
+        self,
+        test_target: str,
+        test_job_config: JobConfig,
     ) -> str:
         """
         Return build target to be built for a given test target
@@ -354,7 +352,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         raise NotImplementedError("Use subclass instead.")
 
     @property
-    def build_check_names(self) -> List[str]:
+    def build_check_names(self) -> list[str]:
         """
         List of full names of the commit statuses.
 
@@ -381,8 +379,8 @@ class BaseBuildJobHelper(BaseJobHelper):
     @classmethod
     def get_check_cls(
         cls,
-        job_name: str = None,
-        chroot: str = None,
+        job_name: Optional[str] = None,
+        chroot: Optional[str] = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
         package: Optional[str] = None,
@@ -405,7 +403,6 @@ class BaseBuildJobHelper(BaseJobHelper):
                 "Failed to use the template for status check, falling back to default: %s",
                 e,
             )
-            pass
 
         chroot_str = f":{chroot}" if chroot else ""
         # replace ':' in the project event identifier
@@ -416,7 +413,7 @@ class BaseBuildJobHelper(BaseJobHelper):
     @classmethod
     def get_build_check_cls(
         cls,
-        chroot: str = None,
+        chroot: Optional[str] = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
         package: Optional[str] = None,
@@ -434,7 +431,7 @@ class BaseBuildJobHelper(BaseJobHelper):
     @classmethod
     def get_test_check_cls(
         cls,
-        chroot: str = None,
+        chroot: Optional[str] = None,
         project_event_identifier: Optional[str] = None,
         identifier: Optional[str] = None,
         package: Optional[str] = None,
@@ -463,7 +460,7 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         return identifier
 
-    def get_build_check(self, chroot: str = None) -> str:
+    def get_build_check(self, chroot: Optional[str] = None) -> str:
         return self.get_build_check_cls(
             chroot,
             self.project_event_identifier_for_status,
@@ -472,7 +469,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             template=self.job_build_or_job_config.status_name_template,
         )
 
-    def test_check_names_for_test_job(self, test_job_config: JobConfig) -> List[str]:
+    def test_check_names_for_test_job(self, test_job_config: JobConfig) -> list[str]:
         """
         List of full names of the commit statuses for a particular test job.
 
@@ -556,7 +553,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             merged_ref = self._db_project_object.tag_name
         else:
             logger.warning(
-                f"Unable to determine merged ref for {self.job_config.trigger}"
+                f"Unable to determine merged ref for {self.job_config.trigger}",
             )
             merged_ref = None
 
@@ -567,7 +564,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                     update_release=update_release,
                     release_suffix=self.job_config.release_suffix,
                     merged_ref=merged_ref,
-                )
+                ),
             )
         except SandcastleTimeoutReached as ex:
             exception = ex
@@ -630,9 +627,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         self.report_status_to_build(
             description=description,
@@ -656,9 +653,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         description,
         state,
         url: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         if self.job_build:
             self._report(
@@ -676,9 +673,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         description,
         state,
         url: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         for test_job in self.job_tests_all:
             if test_job.skip_build or test_job.manual_trigger:
@@ -700,9 +697,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         state,
         url: str = "",
         chroot: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         if self.job_build and chroot in self.build_targets:
             cs = self.get_build_check(chroot)
@@ -722,9 +719,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         state,
         url: str = "",
         chroot: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         for test_job in self.job_tests_all:
             if (
@@ -733,7 +730,8 @@ class BaseBuildJobHelper(BaseJobHelper):
                 and chroot in self.build_targets_for_test_job(test_job)
             ):
                 test_targets = self.build_target2test_targets_for_test_job(
-                    chroot, test_job
+                    chroot,
+                    test_job,
                 )
                 for target in test_targets:
                     self._report(
@@ -756,9 +754,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         state,
         url: str = "",
         chroot: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ) -> None:
         self.report_status_to_build_for_chroot(
             description=description,
@@ -779,8 +777,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         )
 
     def run_build(
-        self, target: Optional[str] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
+        self,
+        target: Optional[str] = None,
+    ) -> tuple[Optional[int], Optional[str]]:
         """
         Trigger the build and return id and web_url
         :param target: str, run for all if not set
@@ -793,9 +792,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         description: str,
         state: BaseCommitStatus,
         url: str = "",
-        markdown_content: str = None,
-        links_to_external_services: Optional[Dict[str, str]] = None,
-        update_feedback_time: Callable = None,
+        markdown_content: Optional[str] = None,
+        links_to_external_services: Optional[dict[str, str]] = None,
+        update_feedback_time: Optional[Callable] = None,
     ):
         self.report_status_to_build(
             description=description,
@@ -812,9 +811,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         post a comment and include the configured message. Do not post
         the comment if the last comment from the Packit user is identical.
         """
-        if not (
-            configured_message := self.job_config.notifications.failure_comment.message
-        ):
+        if not (configured_message := self.job_config.notifications.failure_comment.message):
             return
 
         all_kwargs = copy.copy(FAILURE_COMMENT_MESSAGE_VARIABLES)
@@ -823,5 +820,6 @@ class BaseBuildJobHelper(BaseJobHelper):
         formatted_message = configured_message.format(**all_kwargs)
 
         self.status_reporter.comment(
-            formatted_message, duplicate_check=DuplicateCheckMode.check_last_comment
+            formatted_message,
+            duplicate_check=DuplicateCheckMode.check_last_comment,
         )

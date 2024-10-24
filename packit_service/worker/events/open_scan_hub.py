@@ -85,5 +85,4 @@ class OpenScanHubTaskFinishedEvent(OpenScanHubTaskAbstractEvent):
         self.scan_results_url = scan_results_url
 
 
-class OpenScanHubTaskStartedEvent(OpenScanHubTaskAbstractEvent):
-    ...
+class OpenScanHubTaskStartedEvent(OpenScanHubTaskAbstractEvent): ...

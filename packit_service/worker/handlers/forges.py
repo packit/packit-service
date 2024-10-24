@@ -5,6 +5,7 @@
 This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
+
 import logging
 
 from packit.config import (

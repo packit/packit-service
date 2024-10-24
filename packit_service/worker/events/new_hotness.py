@@ -42,8 +42,7 @@ class AnityaUpdateEvent(Event):
 
     @property
     @abstractmethod
-    def version(self) -> str:
-        ...
+    def version(self) -> str: ...
 
     @cached_property
     def project(self) -> Optional[GitProject]:

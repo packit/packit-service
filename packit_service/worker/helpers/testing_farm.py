@@ -428,7 +428,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         def is_final(v):
             return not isinstance(v, list) and not isinstance(v, dict)
 
-        if type(payload) != type(params):
+        if type(payload) is not type(params):
             # Incompatible types, no way to merge this
             return
 

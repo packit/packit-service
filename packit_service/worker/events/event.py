@@ -4,6 +4,7 @@
 """
 Generic/abstract event classes.
 """
+
 import copy
 from datetime import datetime, timezone
 from logging import getLogger

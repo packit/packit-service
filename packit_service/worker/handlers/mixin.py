@@ -43,8 +43,7 @@ class GetKojiBuildEvent(Protocol):
 
     @property
     @abstractmethod
-    def koji_build_event(self) -> KojiBuildEvent:
-        ...
+    def koji_build_event(self) -> KojiBuildEvent: ...
 
 
 class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
@@ -62,8 +61,7 @@ class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
 class GetKojiBuildJobHelper(Protocol):
     @property
     @abstractmethod
-    def koji_build_helper(self) -> KojiBuildJobHelper:
-        ...
+    def koji_build_helper(self) -> KojiBuildJobHelper: ...
 
 
 class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigFromEventMixin):
@@ -113,8 +111,7 @@ class GetKojiBuildData(Iterator, Protocol):
 
     @property
     @abstractmethod
-    def num_of_branches(self):
-        ...
+    def num_of_branches(self): ...
 
     def __next__(self) -> KojiBuildData:
         """Iterate over all available dist-git branches.
@@ -138,28 +135,23 @@ class GetKojiBuildData(Iterator, Protocol):
 
     @property
     @abstractmethod
-    def _nvr(self) -> str:
-        ...
+    def _nvr(self) -> str: ...
 
     @property
     @abstractmethod
-    def _build_id(self) -> int:
-        ...
+    def _build_id(self) -> int: ...
 
     @property
     @abstractmethod
-    def _dist_git_branch(self) -> str:
-        ...
+    def _dist_git_branch(self) -> str: ...
 
     @property
     @abstractmethod
-    def _state(self) -> KojiBuildState:
-        ...
+    def _state(self) -> KojiBuildState: ...
 
     @property
     @abstractmethod
-    def _task_id(self) -> int:
-        ...
+    def _task_id(self) -> int: ...
 
 
 class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEvent):
@@ -322,8 +314,7 @@ class GetCoprBuildEvent(Protocol):
 
     @property
     @abstractmethod
-    def copr_event(self) -> AbstractCoprBuildEvent:
-        ...
+    def copr_event(self) -> AbstractCoprBuildEvent: ...
 
 
 class GetCoprBuildEventMixin(ConfigFromEventMixin, GetCoprBuildEvent):
@@ -341,13 +332,11 @@ class GetCoprBuildEventMixin(ConfigFromEventMixin, GetCoprBuildEvent):
 class GetSRPMBuild(Protocol):
     @property
     @abstractmethod
-    def build(self) -> Optional[SRPMBuildModel]:
-        ...
+    def build(self) -> Optional[SRPMBuildModel]: ...
 
     @property
     @abstractmethod
-    def db_project_event(self) -> Optional[ProjectEventModel]:
-        ...
+    def db_project_event(self) -> Optional[ProjectEventModel]: ...
 
 
 class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
@@ -379,8 +368,7 @@ class GetCoprBuild(Protocol):
 
     @property
     @abstractmethod
-    def db_project_event(self) -> Optional[ProjectEventModel]:
-        ...
+    def db_project_event(self) -> Optional[ProjectEventModel]: ...
 
 
 class GetCoprBuildMixin(GetCoprBuild, ConfigFromEventMixin):
@@ -408,8 +396,7 @@ class GetCoprBuildJobHelper(Protocol):
 
     @property
     @abstractmethod
-    def copr_build_helper(self) -> CoprBuildJobHelper:
-        ...
+    def copr_build_helper(self) -> CoprBuildJobHelper: ...
 
 
 class GetCoprBuildJobHelperMixin(Config, GetCoprBuildJobHelper):
@@ -474,8 +461,7 @@ class GetTestingFarmJobHelper(Protocol):
 
     @property
     @abstractmethod
-    def testing_farm_job_helper(self) -> TestingFarmJobHelper:
-        ...
+    def testing_farm_job_helper(self) -> TestingFarmJobHelper: ...
 
 
 class GetTestingFarmJobHelperMixin(
@@ -504,12 +490,10 @@ class GetTestingFarmJobHelperMixin(
 
 class GetGithubCommentEvent(Protocol):
     @abstractmethod
-    def is_comment_event(self) -> bool:
-        ...
+    def is_comment_event(self) -> bool: ...
 
     @abstractmethod
-    def is_copr_build_comment_event(self) -> bool:
-        ...
+    def is_copr_build_comment_event(self) -> bool: ...
 
 
 class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigFromEventMixin):
@@ -530,18 +514,15 @@ class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigFromEventMixin):
 class GetProjectToSync(Protocol):
     @property
     @abstractmethod
-    def dg_repo_name(self) -> str:
-        ...
+    def dg_repo_name(self) -> str: ...
 
     @property
     @abstractmethod
-    def dg_branch(self) -> str:
-        ...
+    def dg_branch(self) -> str: ...
 
     @property
     @abstractmethod
-    def project_to_sync(self) -> Optional[ProjectToSync]:
-        ...
+    def project_to_sync(self) -> Optional[ProjectToSync]: ...
 
 
 class GetProjectToSyncMixin(ConfigFromEventMixin, GetProjectToSync):
@@ -570,50 +551,41 @@ class GetProjectToSyncMixin(ConfigFromEventMixin, GetProjectToSync):
 class GetVMImageBuilder(Protocol):
     @property
     @abstractmethod
-    def vm_image_builder(self):
-        ...
+    def vm_image_builder(self): ...
 
 
 class GetVMImageData(Protocol):
     @property
     @abstractmethod
-    def build_id(self) -> str:
-        ...
+    def build_id(self) -> str: ...
 
     @property
     @abstractmethod
-    def chroot(self) -> str:
-        ...
+    def chroot(self) -> str: ...
 
     @property
     @abstractmethod
-    def identifier(self) -> str:
-        ...
+    def identifier(self) -> str: ...
 
     @property
     @abstractmethod
-    def owner(self) -> str:
-        ...
+    def owner(self) -> str: ...
 
     @property
     @abstractmethod
-    def project_name(self) -> str:
-        ...
+    def project_name(self) -> str: ...
 
     @property
     @abstractmethod
-    def image_distribution(self) -> str:
-        ...
+    def image_distribution(self) -> str: ...
 
     @property
     @abstractmethod
-    def image_request(self) -> dict:
-        ...
+    def image_request(self) -> dict: ...
 
     @property
     @abstractmethod
-    def image_customizations(self) -> dict:
-        ...
+    def image_customizations(self) -> dict: ...
 
 
 class GetVMImageBuilderMixin(Config):

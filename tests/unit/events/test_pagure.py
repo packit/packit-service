@@ -80,7 +80,7 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     flexmock(PagureProject).should_receive("get_web_url").and_return(
         "https://src.fedoraproject.org/rpms/python-teamcity-messages",

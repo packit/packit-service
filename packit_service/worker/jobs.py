@@ -4,6 +4,7 @@
 """
 We love you, Steve Jobs.
 """
+
 import logging
 from datetime import datetime
 from functools import cached_property
@@ -426,12 +427,9 @@ class SteveJobs:
             if not dist_git_package_config:
                 self.event.fail_when_config_file_missing = True
 
-        if not self.event.packages_config:
-            # this happens when service receives events for repos which don't have packit config
-            # success=True - it's not an error that people don't have packit.yaml in their repo
-            return False
-
-        return True
+        # False happens when service receives events for repos which don't have packit config
+        # success=True - it's not an error that people don't have packit.yaml in their repo
+        return self.event.packages_config
 
     def process_jobs(self) -> list[TaskResults]:
         """
@@ -813,7 +811,7 @@ class SteveJobs:
 
         handlers_triggered_by_job = self.get_handlers_for_comment_and_rerun_event()
 
-        matching_handlers: set[type["JobHandler"]] = set()
+        matching_handlers: set[type[JobHandler]] = set()
         for job in jobs_matching_trigger:
             for handler in (
                 MAP_JOB_TYPE_TO_HANDLER[job.type] | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]

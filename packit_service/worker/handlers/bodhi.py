@@ -4,6 +4,7 @@
 """
 This file defines classes for job handlers related to Bodhi
 """
+
 import abc
 import logging
 from datetime import datetime
