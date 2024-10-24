@@ -94,7 +94,7 @@ def test_parse_copr_build_event_start(
         reference="0011223344",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     assert event_object.packages_config
@@ -138,7 +138,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
         reference="0011223344",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
 
     assert event_object.packages_config

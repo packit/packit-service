@@ -4,6 +4,7 @@
 """
 We love you, Steve Jobs.
 """
+
 import logging
 from datetime import datetime
 from functools import cached_property
@@ -291,9 +292,7 @@ class SteveJobs:
             params["branches_override"] = self.event.branches_override
             return propose_downstream_helper(**params)
 
-        helper_kls: type[
-            Union[TestingFarmJobHelper, CoprBuildJobHelper, KojiBuildJobHelper]
-        ]
+        helper_kls: type[Union[TestingFarmJobHelper, CoprBuildJobHelper, KojiBuildJobHelper]]
 
         if handler_kls == TestingFarmHandler:
             helper_kls = TestingFarmJobHelper
@@ -428,12 +427,9 @@ class SteveJobs:
             if not dist_git_package_config:
                 self.event.fail_when_config_file_missing = True
 
-        if not self.event.packages_config:
-            # this happens when service receives events for repos which don't have packit config
-            # success=True - it's not an error that people don't have packit.yaml in their repo
-            return False
-
-        return True
+        # False happens when service receives events for repos which don't have packit config
+        # success=True - it's not an error that people don't have packit.yaml in their repo
+        return self.event.packages_config
 
     def process_jobs(self) -> list[TaskResults]:
         """
@@ -547,8 +543,7 @@ class SteveJobs:
                     handler_kls.get_signature(event=self.event, job=job_config),
                 )
                 logger.debug(
-                    f"Got signature for handler={handler_kls} "
-                    f"and job_config={job_config}.",
+                    f"Got signature for handler={handler_kls} " f"and job_config={job_config}.",
                 )
                 processing_results.append(
                     TaskResults.create_from(
@@ -629,18 +624,13 @@ class SteveJobs:
         # CoprBuildEvent.get_project returns None when the build id is not known
         elif not self.event.project:
             logger.warning(
-                "Cannot obtain project from this event! "
-                "Skipping private repository check!",
+                "Cannot obtain project from this event! " "Skipping private repository check!",
             )
         elif self.event.project.is_private():
             service_with_namespace = (
-                f"{self.event.project.service.hostname}/"
-                f"{self.event.project.namespace}"
+                f"{self.event.project.service.hostname}/" f"{self.event.project.namespace}"
             )
-            if (
-                service_with_namespace
-                not in self.service_config.enabled_private_namespaces
-            ):
+            if service_with_namespace not in self.service_config.enabled_private_namespaces:
                 logger.info(
                     f"We do not interact with private repositories by default. "
                     f"Add `{service_with_namespace}` to the `enabled_private_namespaces` "
@@ -676,14 +666,11 @@ class SteveJobs:
                     job.type in [JobType.koji_build, JobType.bodhi_update]
                     and job.trigger
                     in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
-                    and self.event.job_config_trigger_type
-                    == JobConfigTriggerType.pull_request
+                    and self.event.job_config_trigger_type == JobConfigTriggerType.pull_request
                 ):
                     # avoid having duplicate koji_build jobs
                     if job.type != JobType.koji_build or not any(
-                        j
-                        for j in matching_jobs
-                        if compare_jobs_without_triggers(job, j)
+                        j for j in matching_jobs if compare_jobs_without_triggers(job, j)
                     ):
                         # A koji_build or bodhi_update job with comment or koji_build trigger
                         # can be re-triggered by a Pagure comment in a PR
@@ -691,8 +678,7 @@ class SteveJobs:
                 elif (
                     job.type == JobType.pull_from_upstream
                     and job.trigger == JobConfigTriggerType.release
-                    and self.event.job_config_trigger_type
-                    == JobConfigTriggerType.pull_request
+                    and self.event.job_config_trigger_type == JobConfigTriggerType.pull_request
                 ):
                     # A pull_from_upstream job with release trigger
                     # can be re-triggered by a comment in a dist-git PR
@@ -703,15 +689,12 @@ class SteveJobs:
                     job.type in (JobType.koji_build, JobType.bodhi_update)
                     and job.trigger
                     in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
-                    and self.event.job_config_trigger_type
-                    == JobConfigTriggerType.release
+                    and self.event.job_config_trigger_type == JobConfigTriggerType.release
                     # avoid having duplicate koji_build jobs
                     and (
                         job.type != JobType.koji_build
                         or not any(
-                            j
-                            for j in matching_jobs
-                            if compare_jobs_without_triggers(job, j)
+                            j for j in matching_jobs if compare_jobs_without_triggers(job, j)
                         )
                     )
                 ):
@@ -757,8 +740,7 @@ class SteveJobs:
                 and (
                     not job.manual_trigger
                     or any(
-                        isinstance(self.event, event_type)
-                        for event_type in MANUAL_OR_RESULT_EVENTS
+                        isinstance(self.event, event_type) for event_type in MANUAL_OR_RESULT_EVENTS
                     )
                 )
                 and (
@@ -829,11 +811,10 @@ class SteveJobs:
 
         handlers_triggered_by_job = self.get_handlers_for_comment_and_rerun_event()
 
-        matching_handlers: set[type["JobHandler"]] = set()
+        matching_handlers: set[type[JobHandler]] = set()
         for job in jobs_matching_trigger:
             for handler in (
-                MAP_JOB_TYPE_TO_HANDLER[job.type]
-                | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
+                MAP_JOB_TYPE_TO_HANDLER[job.type] | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
             ):
                 if self.is_handler_matching_the_event(
                     handler=handler,
@@ -903,9 +884,7 @@ class SteveJobs:
         jobs_matching_trigger: list[JobConfig] = self.get_jobs_matching_event()
 
         matching_jobs: list[JobConfig] = [
-            job
-            for job in jobs_matching_trigger
-            if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]
+            job for job in jobs_matching_trigger if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]
         ]
 
         if not matching_jobs:

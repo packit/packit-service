@@ -66,10 +66,7 @@ def propose_downstream_model(sync_release_pr_model):
         job_config_trigger_type=JobConfigTriggerType.release,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -200,9 +197,7 @@ def test_dist_git_push_release_handle(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
     target_project = (
         flexmock(namespace="downstream-namespace", repo="downstream-repo")
         .should_receive("get_web_url")
@@ -326,9 +321,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     for model in propose_downstream_target_models:
         url = get_propose_downstream_info_url(model.id)
@@ -472,9 +465,7 @@ def test_dist_git_push_release_handle_one_failed(
         ),
     )
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
     failed_branch = fedora_branches[1]
 
     for model in propose_downstream_target_models:
@@ -670,9 +661,7 @@ def test_dist_git_push_release_handle_all_failed(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
         Exception,
@@ -779,9 +768,7 @@ def test_retry_propose_downstream_task(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
@@ -897,9 +884,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
@@ -1003,9 +988,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
         propose_downstream_target_models,
         key=lambda model: model.branch,
     ):
-        table_content += (
-            f"| `{model.branch}` | See {get_propose_downstream_info_url(model.id)} |\n"
-        )
+        table_content += f"| `{model.branch}` | See {get_propose_downstream_info_url(model.id)} |\n"
     project = (
         flexmock(
             get_file_content=lambda path, ref: packit_yaml,
@@ -1037,9 +1020,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    ServiceConfig().get_service_config().get_project = (
-        lambda url, required=True: project
-    )
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(

@@ -128,10 +128,7 @@ def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     assert len(builds_list[0].target) == 2
 
     # check that IDs are different
-    assert (
-        builds_list[0].packit_id_per_chroot[0][0]
-        != builds_list[0].packit_id_per_chroot[1][0]
-    )
+    assert builds_list[0].packit_id_per_chroot[0][0] != builds_list[0].packit_id_per_chroot[1][0]
 
     assert builds_list[1].status[0][0] == "success"
     assert ["fedora-42-x86_64"] in builds_list[2].target
@@ -357,11 +354,7 @@ def test_copr_get_all_by_owner_project_commit_target(
     )
     assert len(builds_list) == 2
     # both should have the same project_name
-    assert (
-        builds_list[1].project_name
-        == builds_list[0].project_name
-        == SampleValues.project
-    )
+    assert builds_list[1].project_name == builds_list[0].project_name == SampleValues.project
 
     # test without target and owner
     builds_list_without_target = list(
@@ -1029,9 +1022,7 @@ def test_sourcegit_distgit_pr_relationship(clean_before_and_after):
     dist_git_pr_id = 31
     dist_git_namespace = "packit/rpms"
     dist_git_repo_name = "python-teamcity-messages"
-    dist_git_project_url = (
-        "https://src.fedoraproject.org/fork/packit/rpms/python-teamcity-messages"
-    )
+    dist_git_project_url = "https://src.fedoraproject.org/fork/packit/rpms/python-teamcity-messages"
 
     created = SourceGitPRDistGitPRModel.get_or_create(
         source_git_pr_id,

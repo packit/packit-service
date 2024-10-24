@@ -15,7 +15,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from alembic import op
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:  # noqa: SIM108
+if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
@@ -72,9 +72,7 @@ def upgrade():
             len(project.project_authentication_issue) <= 0
             and len(project_dot_git.project_authentication_issue) > 0
         ):
-            project_authentication_issue = project_dot_git.project_authentication_issue[
-                0
-            ]
+            project_authentication_issue = project_dot_git.project_authentication_issue[0]
             project_authentication_issue.project_id = project.id
             session.add(project_authentication_issue)
             # we need to commit here explicitly b/c we are changing the foreign key

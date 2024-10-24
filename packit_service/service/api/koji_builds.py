@@ -27,9 +27,7 @@ class KojiBuildsList(Resource):
     def get(self):
         """List all Koji builds."""
         scratch = (
-            request.args.get("scratch").lower() == "true"
-            if "scratch" in request.args
-            else None
+            request.args.get("scratch").lower() == "true" if "scratch" in request.args else None
         )
         first, last = indices()
         result = []
@@ -126,9 +124,7 @@ class KojiBuildGroup(Resource):
         group_dict = {
             "submitted_time": optional_timestamp(group_model.submitted_time),
             "run_ids": sorted(run.id for run in group_model.runs),
-            "build_target_ids": sorted(
-                build.id for build in group_model.grouped_targets
-            ),
+            "build_target_ids": sorted(build.id for build in group_model.grouped_targets),
         }
 
         group_dict.update(get_project_info_from_build(group_model))

@@ -4,6 +4,7 @@
 """
 Let's test flask views.
 """
+
 from datetime import datetime
 
 import pytest

@@ -21,9 +21,7 @@ def pr_comment_event():
 
 def pr_comment_event_not_collaborator():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "copr_build" / "pr_comment_not_collaborator.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "copr_build" / "pr_comment_not_collaborator.json").read_text(),
     )
 
 

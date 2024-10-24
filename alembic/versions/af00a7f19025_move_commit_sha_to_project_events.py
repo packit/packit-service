@@ -23,7 +23,7 @@ from sqlalchemy.orm import relationship
 
 from alembic import op
 
-if TYPE_CHECKING:  # noqa: SIM108
+if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
@@ -318,9 +318,7 @@ def downgrade():
     )
     for row in rows:
         bind.execute(
-            update(SRPMBuildModel)
-            .where(SRPMBuildModel.id == row[0])
-            .values(commit_sha=row[1]),
+            update(SRPMBuildModel).where(SRPMBuildModel.id == row[0]).values(commit_sha=row[1]),
         )
     rows = (
         session.query(CoprBuildTargetModel.id, ProjectEventModel.commit_sha)

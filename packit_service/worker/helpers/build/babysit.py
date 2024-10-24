@@ -3,44 +3,43 @@
 
 import collections
 import logging
-from enum import Enum
-from requests import HTTPError
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Iterable, Type, Any
+from enum import Enum
+from typing import Any
 
 import copr.v3
 import requests
 from copr.v3 import Client as CoprClient
+from requests import HTTPError
 
 from packit_service.constants import (
     COPR_API_FAIL_STATE,
     COPR_API_SUCC_STATE,
-    COPR_SUCC_STATE,
     COPR_FAIL_STATE,
     COPR_SRPM_CHROOT,
-    TESTING_FARM_API_URL,
+    COPR_SUCC_STATE,
     DEFAULT_JOB_TIMEOUT,
+    TESTING_FARM_API_URL,
 )
 from packit_service.models import (
-    SRPMBuildModel,
-    CoprBuildTargetModel,
-    VMImageBuildTargetModel,
-    VMImageBuildStatus,
-    TFTTestRunTargetModel,
-    TestingFarmResult,
     BuildStatus,
+    CoprBuildTargetModel,
+    SRPMBuildModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
+    VMImageBuildStatus,
+    VMImageBuildTargetModel,
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
-    CoprBuildStartEvent,
     CoprBuildEndEvent,
+    CoprBuildStartEvent,
     TestingFarmResultsEvent,
     VMImageBuildResultEvent,
 )
 from packit_service.worker.events.enums import FedmsgTopic
-from packit_service.worker.mixin import ConfigFromUrlMixin
-from packit_service.worker.handlers.mixin import GetVMImageBuilderMixin
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -48,7 +47,9 @@ from packit_service.worker.handlers import (
     VMImageBuildResultHandler,
 )
 from packit_service.worker.handlers.copr import AbstractCoprBuildReportHandler
+from packit_service.worker.handlers.mixin import GetVMImageBuilderMixin
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.mixin import ConfigFromUrlMixin
 from packit_service.worker.parser import Parser
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ def check_pending_testing_farm_runs() -> None:
                 logger.info(
                     f"TF pipeline {run.pipeline_id} has been running for "
                     f"{elapsed}s, probably an internal error occurred. "
-                    "Not checking it anymore."
+                    "Not checking it anymore.",
                 )
                 run.set_status(TestingFarmResult.error)
                 continue
@@ -83,7 +84,7 @@ def check_pending_testing_farm_runs() -> None:
             logger.info(
                 f"Failed to obtain state of TF pipeline {run.pipeline_id}. "
                 f"Status code {response.status_code}. Reason: {response.reason}. "
-                "Let's try again later."
+                "Let's try again later.",
             )
             continue
 
@@ -123,7 +124,7 @@ def check_pending_testing_farm_runs() -> None:
         except Exception as ex:
             logger.debug(
                 f"There was an exception when updating the Testing farm run "
-                f"with pipeline ID {run.pipeline_id}: {ex}"
+                f"with pipeline ID {run.pipeline_id}: {ex}",
             )
 
 
@@ -213,7 +214,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
     except copr.v3.CoprNoResultException:
         logger.info(
             f"Copr build {build_id} no longer available. Setting it to error status and "
-            f"not checking it anymore."
+            f"not checking it anymore.",
         )
         for build in builds:
             build.set_status(BuildStatus.error)
@@ -233,7 +234,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
         except copr.v3.CoprNoResultException:
             logger.info(
                 f"SRPM build of Copr build {build_id} no longer available. "
-                "Setting it to error status and not checking it anymore."
+                "Setting it to error status and not checking it anymore.",
             )
             srpm_build.set_status(BuildStatus.error)
         else:
@@ -242,7 +243,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             except Exception as ex:
                 logger.debug(
                     f"There was an exception when updating the SRPM build of"
-                    f" Copr build {build_id}: {ex}"
+                    f" Copr build {build_id}: {ex}",
                 )
                 return False
 
@@ -253,14 +254,14 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             logger.info(
                 f"The build {build_id} has been running for "
                 f"{elapsed}s, probably an internal error"
-                f"occurred. Not checking it anymore."
+                f"occurred. Not checking it anymore.",
             )
             build.set_status(BuildStatus.error)
             continue
         if build.status not in (BuildStatus.pending, BuildStatus.waiting_for_srpm):
             logger.info(
                 f"DB state of {build_id} says {build.status!r}, "
-                "things were taken care of already, skipping."
+                "things were taken care of already, skipping.",
             )
             continue
         try:
@@ -268,7 +269,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
         except copr.v3.CoprNoResultException:
             logger.info(
                 f"Copr build {build_id} for {build.target} no longer available. "
-                "Setting it to error status and not checking it anymore."
+                "Setting it to error status and not checking it anymore.",
             )
             build.set_status(BuildStatus.error)
             continue
@@ -277,7 +278,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
         except Exception as ex:
             logger.debug(
                 f"There was an exception when updating the Copr build {build_id} for"
-                f" {build.target}: {ex}"
+                f" {build.target}: {ex}",
             )
             return False
     # Builds which we ran CoprBuildStartHandler for still need to be monitored.
@@ -285,7 +286,9 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
 
 
 def update_srpm_build_state(
-    build: SRPMBuildModel, build_copr: Any, build_copr_srpm: Any
+    build: SRPMBuildModel,
+    build_copr: Any,
+    build_copr_srpm: Any,
 ) -> None:
     """
     Updates the state of the given SRPM build.
@@ -305,14 +308,12 @@ def update_srpm_build_state(
     event = CoprBuildEndEvent(
         topic=FedmsgTopic.copr_build_finished.value,
         build_id=int(
-            build.copr_build_id
+            build.copr_build_id,
         ),  # we expect int there even though we have str in DB
         build=build,
         chroot=COPR_SRPM_CHROOT,
         status=(
-            COPR_API_SUCC_STATE
-            if build_copr_srpm.state == COPR_SUCC_STATE
-            else COPR_API_FAIL_STATE
+            COPR_API_SUCC_STATE if build_copr_srpm.state == COPR_SUCC_STATE else COPR_API_FAIL_STATE
         ),
         owner=build_copr.ownername,
         project_name=build_copr.projectname,
@@ -346,7 +347,9 @@ def update_srpm_build_state(
 
 
 def update_copr_build_state(
-    build: CoprBuildTargetModel, build_copr: Any, chroot_build_copr: Any
+    build: CoprBuildTargetModel,
+    build_copr: Any,
+    chroot_build_copr: Any,
 ) -> None:
     """
     Updates the state of the given copr build chroot.
@@ -361,8 +364,8 @@ def update_copr_build_state(
         chroot_build_copr: Data of the single build chroot from the copr API.
 
     """
-    event_kls: Type[AbstractCoprBuildEvent]
-    handler_kls: Type[AbstractCoprBuildReportHandler]
+    event_kls: type[AbstractCoprBuildEvent]
+    handler_kls: type[AbstractCoprBuildReportHandler]
     if chroot_build_copr.ended_on:
         event_kls = CoprBuildEndEvent
         handler_kls = CoprBuildEndHandler
@@ -377,7 +380,7 @@ def update_copr_build_state(
     event = event_kls(
         topic=FedmsgTopic.copr_build_finished.value,
         build_id=int(
-            build.build_id
+            build.build_id,
         ),  # we expect int there even though we have str in DB
         build=build,
         chroot=build.target,
@@ -475,7 +478,8 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     response = None
     try:
         response = helper.vm_image_builder.image_builder_request(
-            "GET", f"composes/{build_id}"
+            "GET",
+            f"composes/{build_id}",
         )
         body = response.json()
         status = body["image_status"]["status"]
@@ -485,8 +489,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         status = VMImageBuildStatus.error
     except Exception as ex:
         message = (
-            f"There was an exception when getting status of the VM "
-            f"Image Build {build_id}: {ex}"
+            f"There was an exception when getting status of the VM " f"Image Build {build_id}: {ex}"
         )
         logger.error(message)
         # keep polling
@@ -526,7 +529,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         build.set_status(status)
         logger.debug(
             f"No package config found for {build.build_id}. "
-            "No feedback can be given to the user."
+            "No feedback can be given to the user.",
         )
         return True
 
@@ -557,7 +560,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     build.set_status(status)
     logger.debug(
         f"Something went wrong retrieving job configs for {build.build_id}. "
-        "No feedback can be given to the user."
+        "No feedback can be given to the user.",
     )
     return True
 
@@ -573,20 +576,21 @@ def check_pending_vm_image_builds() -> None:
     - registering
     """
     pending_vm_image_builds = VMImageBuildTargetModel.get_all_by_status(
-        VMImageBuildStatus.pending
+        VMImageBuildStatus.pending,
     )
     current_time = datetime.now(timezone.utc)
     for build in pending_vm_image_builds:
         logger.debug(f"Checking status of VM image build {build.build_id}")
         if build.build_submitted_time:
             elapsed = elapsed_seconds(
-                begin=build.build_submitted_time, end=current_time
+                begin=build.build_submitted_time,
+                end=current_time,
             )
             if elapsed > DEFAULT_JOB_TIMEOUT:
                 logger.info(
                     f"VM image build {build.build_id} has been running for "
                     f"{elapsed}s, probably an internal error occurred. "
-                    "Not checking it anymore."
+                    "Not checking it anymore.",
                 )
                 build.set_status(VMImageBuildStatus.error)
                 continue

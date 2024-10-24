@@ -45,10 +45,7 @@ def test_parse_pagure_flag(pagure_pr_flag_updated):
         == "https://fedora.softwarefactory-project.io/zuul/buildset/66ec2c23c78446afa2fd993"
     )
     assert event_object.commit_sha == "c69960e6f562c90905435fec824fcae952abfad6"
-    assert (
-        event_object.pr_url
-        == "https://src.fedoraproject.org/rpms/packit/pull-request/268"
-    )
+    assert event_object.pr_url == "https://src.fedoraproject.org/rpms/packit/pull-request/268"
     assert event_object.pr_source_branch == "0.47.0-f36-update"
     assert event_object.project_name == "packit"
     assert event_object.project_namespace == "rpms"
@@ -67,10 +64,7 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
     assert event_object.commit_sha == "beaf90bcecc51968a46663f8d6f092bfdc92e682"
     assert event_object.user_login == "mmassari"
     assert event_object.comment == "/packit koji-build"
-    assert (
-        event_object.project_url
-        == "https://src.fedoraproject.org/rpms/python-teamcity-messages"
-    )
+    assert event_object.project_url == "https://src.fedoraproject.org/rpms/python-teamcity-messages"
 
     assert isinstance(event_object.project, PagureProject)
     assert event_object.project.full_repo_name == "rpms/python-teamcity-messages"
@@ -86,7 +80,7 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     flexmock(PagureProject).should_receive("get_web_url").and_return(
         "https://src.fedoraproject.org/rpms/python-teamcity-messages",

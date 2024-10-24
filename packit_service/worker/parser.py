@@ -4,6 +4,7 @@
 """
 Parser is transforming github JSONs into `events` objects
 """
+
 import logging
 from datetime import datetime, timezone
 from os import getenv
@@ -519,9 +520,7 @@ class Parser:
         # https://developer.github.com/v3/activity/events/types/#pushevent
         # > Note: The webhook payload example following the table differs
         # > significantly from the Events API payload described in the table.
-        head_commit = (
-            event.get("head") or event.get("after") or event.get("head_commit")
-        )
+        head_commit = event.get("head") or event.get("after") or event.get("head_commit")
 
         if not (raw_ref and head_commit and before and pusher):
             return None
@@ -897,8 +896,7 @@ class Parser:
         comment = nested_get(event, "object_attributes", "note")
         comment_id = nested_get(event, "object_attributes", "id")
         logger.info(
-            f"Gitlab commit comment on #{commit_sha}: {comment!r} id#{comment_id} "
-            " event.",
+            f"Gitlab commit comment on #{commit_sha}: {comment!r} id#{comment_id} " " event.",
         )
 
         project_url = nested_get(event, "project", "web_url")
@@ -1025,14 +1023,9 @@ class Parser:
     @staticmethod
     def parse_check_rerun_event(
         event,
-    ) -> Optional[
-        Union[CheckRerunCommitEvent, CheckRerunPullRequestEvent, CheckRerunReleaseEvent]
-    ]:
+    ) -> Optional[Union[CheckRerunCommitEvent, CheckRerunPullRequestEvent, CheckRerunReleaseEvent]]:
         """Look into the provided event and see if it is Github check rerun event."""
-        if not (
-            nested_get(event, "check_run")
-            and nested_get(event, "action") == "rerequested"
-        ):
+        if not (nested_get(event, "check_run") and nested_get(event, "action") == "rerequested"):
             return None
 
         check_name = nested_get(event, "check_run", "name")
@@ -1328,16 +1321,10 @@ class Parser:
 
         # ["test"]["fmf"]["url"] contains PR's source/fork url or TF's install test url.
         # We need the original/base project url stored in db.
-        if (
-            tft_test_run
-            and tft_test_run.data
-            and "base_project_url" in tft_test_run.data
-        ):
+        if tft_test_run and tft_test_run.data and "base_project_url" in tft_test_run.data:
             project_url = tft_test_run.data["base_project_url"]
         else:
-            project_url = (
-                fmf_url if fmf_url != TESTING_FARM_INSTALLABILITY_TEST_URL else None
-            )
+            project_url = fmf_url if fmf_url != TESTING_FARM_INSTALLABILITY_TEST_URL else None
 
         log_url: str = nested_get(event, "run", "artifacts")
 
@@ -1415,7 +1402,7 @@ class Parser:
         """this corresponds to copr build event e.g:"""
         topic = event.get("topic")
 
-        copr_build_cls: type["AbstractCoprBuildEvent"]
+        copr_build_cls: type[AbstractCoprBuildEvent]
         if topic == "org.fedoraproject.prod.copr.build.start":
             copr_build_cls = CoprBuildStartEvent
         elif topic == "org.fedoraproject.prod.copr.build.end":
@@ -1519,9 +1506,7 @@ class Parser:
         #       {}
         #     ],
         raw_git_ref, fedora_target, _ = event.get("request")
-        project_url = (
-            raw_git_ref.split("#")[0].removeprefix("git+").removesuffix(".git")
-        )
+        project_url = raw_git_ref.split("#")[0].removeprefix("git+").removesuffix(".git")
         package_name, commit_hash = raw_git_ref.split("/")[-1].split(".git#")
         branch_name = fedora_target.removesuffix("-candidate")
 
@@ -1795,7 +1780,6 @@ class Parser:
     def parse_openscanhub_task_finished_event(
         event,
     ) -> Optional[OpenScanHubTaskFinishedEvent]:
-
         if "openscanhub.task.finished" not in event.get("topic", ""):
             return None
 
@@ -1824,7 +1808,6 @@ class Parser:
     def parse_openscanhub_task_started_event(
         event,
     ) -> Optional[OpenScanHubTaskStartedEvent]:
-
         if "openscanhub.task.started" not in event.get("topic", ""):
             return None
 
@@ -1864,7 +1847,7 @@ class Parser:
         "fedora-messaging": {
             "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
-            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore # noqa: E501
+            "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore
             "pagure.git.receive": parse_pagure_push_event.__func__,  # type: ignore
             "copr.build.start": parse_copr_event.__func__,  # type: ignore
             "copr.build.end": parse_copr_event.__func__,  # type: ignore

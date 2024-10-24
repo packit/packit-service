@@ -184,9 +184,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self._tft_api_url: str = ""
         self._tft_token: str = ""
         self.__pr = None
-        self._copr_builds_from_other_pr: Optional[dict[str, CoprBuildTargetModel]] = (
-            None
-        )
+        self._copr_builds_from_other_pr: Optional[dict[str, CoprBuildTargetModel]] = None
         self._test_check_names: Optional[list[str]] = None
         self._comment_arguments: Optional[CommentArguments] = None
 
@@ -227,10 +225,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def fmf_url(self) -> str:
         return (
             self.job_config.fmf_url
-            or (
-                self.pull_request_object
-                and self.pull_request_object.source_project.get_web_url()
-            )
+            or (self.pull_request_object and self.pull_request_object.source_project.get_web_url())
             or self.project.get_web_url()
         )
 
@@ -270,29 +265,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @property
     def source_branch_sha(self) -> Optional[str]:
-        return (
-            self.pull_request_object.head_commit if self.pull_request_object else None
-        )
+        return self.pull_request_object.head_commit if self.pull_request_object else None
 
     @property
     def target_branch_sha(self) -> Optional[str]:
         return (
-            self.pull_request_object.target_branch_head_commit
-            if self.pull_request_object
-            else None
+            self.pull_request_object.target_branch_head_commit if self.pull_request_object else None
         )
 
     @property
     def target_branch(self) -> Optional[str]:
-        return (
-            self.pull_request_object.target_branch if self.pull_request_object else None
-        )
+        return self.pull_request_object.target_branch if self.pull_request_object else None
 
     @property
     def source_branch(self) -> Optional[str]:
-        return (
-            self.pull_request_object.source_branch if self.pull_request_object else None
-        )
+        return self.pull_request_object.source_branch if self.pull_request_object else None
 
     @property
     def target_project_url(self) -> Optional[str]:
@@ -336,9 +323,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def is_test_comment_event(self) -> bool:
-        return (
-            self.is_comment_event() and self.comment_arguments.packit_command == "test"
-        )
+        return self.is_comment_event() and self.comment_arguments.packit_command == "test"
 
     def is_test_comment_pr_argument_present(self):
         return self.is_test_comment_event() and self.comment_arguments.pr_argument
@@ -374,10 +359,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if the testing farm was triggered by a comment with PR argument
         and we store any Copr builds for the given PR, otherwise None.
         """
-        if (
-            not self._copr_builds_from_other_pr
-            and self.is_test_comment_pr_argument_present()
-        ):
+        if not self._copr_builds_from_other_pr and self.is_test_comment_pr_argument_present():
             self._copr_builds_from_other_pr = self.get_copr_builds_from_other_pr()
         return self._copr_builds_from_other_pr
 
@@ -389,9 +371,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         Returns:
             Set of all available composes or `None` if error occurs.
         """
-        endpoint = (
-            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
-        )
+        endpoint = f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
 
         response = self.send_testing_farm_request(endpoint=endpoint)
         if response.status_code != 200:
@@ -435,11 +415,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # We assign a commit hash for merging only if:
             # • there are no custom fmf tests set
             # • we merge and have a PR
-            if (
-                not self.custom_fmf
-                and self.job_config.merge_pr_in_ci
-                and self.target_branch_sha
-            ):
+            if not self.custom_fmf and self.job_config.merge_pr_in_ci and self.target_branch_sha:
                 tmt["merge_sha"] = self.target_branch_sha
 
         if self.tmt_plan:
@@ -452,7 +428,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         def is_final(v):
             return not isinstance(v, list) and not isinstance(v, dict)
 
-        if type(payload) != type(params):
+        if type(payload) is not type(params):
             # Incompatible types, no way to merge this
             return
 
@@ -558,9 +534,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_BUILD_LOG_URL": build_log_url,
             "PACKIT_SRPM_URL": srpm_url,
             "PACKIT_COMMIT_SHA": self.metadata.commit_sha,
-            "PACKIT_TAG_NAME": (
-                self.metadata.tag_name if self.metadata.tag_name else None
-            ),
+            "PACKIT_TAG_NAME": (self.metadata.tag_name if self.metadata.tag_name else None),
             "PACKIT_SOURCE_SHA": self.source_branch_sha,
             "PACKIT_TARGET_SHA": self.target_branch_sha,
             "PACKIT_SOURCE_BRANCH": self.source_branch,
@@ -571,13 +545,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_COPR_PROJECT": (
                 " ".join(packit_copr_projects) if packit_copr_projects else None
             ),
-            "PACKIT_COPR_RPMS": (
-                " ".join(packit_copr_rpms) if packit_copr_rpms else None
-            ),
+            "PACKIT_COPR_RPMS": (" ".join(packit_copr_rpms) if packit_copr_rpms else None),
         }
-        predefined_environment = {
-            k: v for k, v in predefined_environment.items() if v is not None
-        }
+        predefined_environment = {k: v for k, v in predefined_environment.items() if v is not None}
         # User-defined variables have priority
         env_variables = self.job_config.env if hasattr(self.job_config, "env") else {}
         predefined_environment.update(env_variables)
@@ -1231,9 +1201,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             message: message to report to the user
         """
         test_run.set_status(TestingFarmResult.retry)
-        interval = (
-            BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
-        )
+        interval = BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
 
         self.report_status_to_tests(
             state=BaseCommitStatus.pending,
@@ -1358,9 +1326,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         for build_target in self.build_targets_for_tests:
             additional_build = [
-                build
-                for build in successful_most_recent_builds
-                if build.target == build_target
+                build for build in successful_most_recent_builds if build.target == build_target
             ]
             result[build_target] = additional_build[0] if additional_build else None
 
@@ -1400,9 +1366,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         e.g. ["testing-farm:fedora-rawhide-x86_64"]
         """
         if not self._test_check_names:
-            self._test_check_names = [
-                self.get_test_check(target) for target in self.tests_targets
-            ]
+            self._test_check_names = [self.get_test_check(target) for target in self.tests_targets]
         return self._test_check_names
 
     def test_target2build_target(self, test_target: str) -> str:

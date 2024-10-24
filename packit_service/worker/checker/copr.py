@@ -49,9 +49,7 @@ class IsGitForgeProjectAndEventOk(
             # Not interested in closed merge requests
             return False
 
-        if not (
-            self.copr_build_helper.job_build or self.copr_build_helper.job_tests_all
-        ):
+        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests_all):
             logger.info("No copr_build or tests job defined.")
             # we can't report it to end-user at this stage
             return False

@@ -103,10 +103,7 @@ def test_parse_gitlab_release(gitlab_release):
     assert event_object.repo_namespace == "fedora/src"
     assert event_object.repo_name == "python-teamcity-messages"
     assert event_object.tag_name == "v1.32"
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/fedora/src/python-teamcity-messages"
-    )
+    assert event_object.project_url == "https://gitlab.com/fedora/src/python-teamcity-messages"
     assert event_object.commit_sha == "6147b3de219ecdda30ba727cf74a0414ca1e618a"
     assert event_object.get_dict()
 
@@ -122,10 +119,7 @@ def test_parse_gitlab_tag_push(gitlab_tag_push):
     assert event_object.git_ref == "v1.32"
     assert event_object.title == "1.32"
     assert event_object.message == "1.32\n"
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/fedora/src/python-teamcity-messages"
-    )
+    assert event_object.project_url == "https://gitlab.com/fedora/src/python-teamcity-messages"
     assert event_object.get_dict()
 
 
@@ -158,7 +152,7 @@ def test_parse_mr(merge_request):
         reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -184,7 +178,7 @@ def test_parse_mr_action(merge_request_update):
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -225,7 +219,7 @@ def test_parse_mr_comment(gitlab_mr_comment):
         reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -253,7 +247,7 @@ def test_parse_commit_comment(gitlab_commit_comment):
         pr_id=None,
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -287,7 +281,7 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
         reference="123456",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -315,7 +309,7 @@ def test_parse_gitlab_push(gitlab_push):
         reference="cb2859505e101785097e082529dced35bbee0c8f",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -327,10 +321,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
     assert event_object.repo_namespace == "packit-service/rpms"
     assert event_object.repo_name == "open-vm-tools"
     assert event_object.commit_sha == "15af92227f9e965b392e85ba2f08a41a5aeb278a"
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/packit-service/rpms/open-vm-tools"
-    )
+    assert event_object.project_url == "https://gitlab.com/packit-service/rpms/open-vm-tools"
     assert event_object.git_ref == "c9s"
 
     assert isinstance(event_object.project, GitlabProject)
@@ -346,7 +337,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
         reference="15af92227f9e965b392e85ba2f08a41a5aeb278a",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config
 
@@ -355,10 +346,7 @@ def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
     event_object = Parser.parse_event(gitlab_mr_pipeline)
 
     assert isinstance(event_object, PipelineGitlabEvent)
-    assert (
-        event_object.project_url
-        == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta"
-    )
+    assert event_object.project_url == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta"
     assert event_object.project_name == "luksmeta"
     assert event_object.pipeline_id == 384095584
     assert event_object.git_ref == "9-c9s-src-5"
@@ -386,6 +374,6 @@ def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
         reference="ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
         fail_when_missing=False,
     ).and_return(
-        flexmock(get_package_config_views=lambda: {}),
+        flexmock(get_package_config_views=dict),
     ).once()
     assert event_object.packages_config

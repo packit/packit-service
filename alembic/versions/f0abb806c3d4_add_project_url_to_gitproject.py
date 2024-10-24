@@ -21,7 +21,7 @@ branch_labels = None
 depends_on = None
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:  # noqa: SIM108
+if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
@@ -54,9 +54,7 @@ def upgrade():
 
     for project in session.query(GitProjectUpgradeModel).all():
         if not project.project_url:
-            project.project_url = (
-                f"https://github.com/{project.namespace}/{project.repo_name}"
-            )
+            project.project_url = f"https://github.com/{project.namespace}/{project.repo_name}"
             session.add(project)
 
     session.commit()

@@ -33,8 +33,7 @@ def discard_old_srpm_build_logs():
     ago = timedelta(days=int(outdated_after_days))
     for build in SRPMBuildModel.get_older_than(ago):
         logger.debug(
-            f"SRPM build {build.id} is older than '{ago}'. "
-            "Discarding log and artifact url.",
+            f"SRPM build {build.id} is older than '{ago}'. " "Discarding log and artifact url.",
         )
         build.set_logs(None)
         build.set_url(None)
@@ -69,10 +68,13 @@ def gzip_file(file: Path) -> Path:
     """
     compressed_file = Path(f"{file}.gz")
     try:
-        with file.open(mode="rb") as f_in, gzip_open(
-            compressed_file,
-            mode="wb",
-        ) as f_out:
+        with (
+            file.open(mode="rb") as f_in,
+            gzip_open(
+                compressed_file,
+                mode="wb",
+            ) as f_out,
+        ):
             logger.info(f"Compressing {file} into {compressed_file}")
             copyfileobj(f_in, f_out)
     except OSError as e:

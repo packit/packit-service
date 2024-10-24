@@ -4,6 +4,7 @@
 """
 This file defines generic job handler
 """
+
 import enum
 import logging
 import shutil
@@ -41,9 +42,7 @@ MAP_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(se
 MAP_REQUIRED_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(
     set,
 )
-SUPPORTED_EVENTS_FOR_HANDLER: dict[type["JobHandler"], set[type["Event"]]] = (
-    defaultdict(set)
-)
+SUPPORTED_EVENTS_FOR_HANDLER: dict[type["JobHandler"], set[type["Event"]]] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
@@ -330,9 +329,7 @@ class JobHandler(Handler):
         If pre-check succeeds, run the job for the specific handler.
         :return: Dict [str, TaskResults]
         """
-        job_type = (
-            self.job_config.type.value if self.job_config else self.task_name.value
-        )
+        job_type = self.job_config.type.value if self.job_config else self.task_name.value
         logger.debug(f"Running handler {self!s} for {job_type}")
         job_results: dict[str, TaskResults] = {}
         current_time = datetime.now().strftime(DATETIME_FORMAT)

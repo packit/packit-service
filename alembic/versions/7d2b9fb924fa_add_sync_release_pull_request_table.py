@@ -20,7 +20,7 @@ from sqlalchemy.orm import relationship
 
 from alembic import op
 
-if TYPE_CHECKING:  # noqa: SIM108
+if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
@@ -181,7 +181,9 @@ def upgrade():
                 pr_id = int(url[(url.rfind("/pull-request/") + 14) :])  # noqa[203]
                 namespace = "rpms"
                 repo = url[
-                    (url.rfind("rpms/") + 5) : url.rfind("/pull-request")  # noqa[203]
+                    (url.rfind("rpms/") + 5) : url.rfind(
+                        "/pull-request",
+                    )  # noqa[203]
                 ]
                 pull_request = SyncReleasePullRequestModel.get_or_create(
                     pr_id,

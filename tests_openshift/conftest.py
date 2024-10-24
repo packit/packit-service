@@ -12,6 +12,7 @@ $ docker-compose -d postgres
 $ alembic upgrade head
 ```
 """
+
 import datetime
 from typing import ClassVar
 
@@ -1480,8 +1481,7 @@ def release_event_dict():
     return {
         "action": "published",
         "release": {
-            "html_url": "https://github.com/the-namespace/the-repo-name/"
-            "releases/tag/v1.0.2",
+            "html_url": "https://github.com/the-namespace/the-repo-name/" "releases/tag/v1.0.2",
             "tag_name": "v1.0.2",
             "target_commitish": "master",
             "name": "test",
@@ -2411,9 +2411,7 @@ def source_git_dist_git_pr_new_relationship():
     dist_git_pr_id = 31
     dist_git_namespace = "packit/rpms"
     dist_git_repo_name = "python-teamcity-messages"
-    dist_git_project_url = (
-        "https://src.fedoraproject.org/fork/packit/rpms/python-teamcity-messages"
-    )
+    dist_git_project_url = "https://src.fedoraproject.org/fork/packit/rpms/python-teamcity-messages"
 
     created = SourceGitPRDistGitPRModel.get_or_create(
         source_git_pr_id,

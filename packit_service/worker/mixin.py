@@ -189,10 +189,7 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
 
     @property
     def non_git_upstream(self):
-        return (
-            self.check_for_non_git_upstreams
-            and self.job_config.upstream_project_url is None
-        )
+        return self.check_for_non_git_upstreams and self.job_config.upstream_project_url is None
 
     def clean_api(self) -> None:
         if self._packit_api:
@@ -217,7 +214,6 @@ class LocalProjectMixin(Config):
 
     @property
     def local_project(self) -> LocalProject:
-
         if not self._local_project:
             builder = LocalProjectBuilder(
                 cache=(
@@ -230,8 +226,7 @@ class LocalProjectMixin(Config):
                 ),
             )
             working_dir = Path(
-                Path(self.service_config.command_handler_work_dir)
-                / SANDCASTLE_LOCAL_PROJECT_DIR,
+                Path(self.service_config.command_handler_work_dir) / SANDCASTLE_LOCAL_PROJECT_DIR,
             )
             kwargs = {
                 "repo_name": CALCULATE,

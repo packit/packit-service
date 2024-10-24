@@ -74,12 +74,7 @@ class AnityaUpdateEvent(Event):
                 )
                 return
 
-            if not (
-                self.tag_name
-                and self.repo_name
-                and self.repo_namespace
-                and self.project_url
-            ):
+            if not (self.tag_name and self.repo_name and self.repo_namespace and self.project_url):
                 logger.info(
                     "Not going to create the DB project event, not valid arguments.",
                 )
@@ -128,9 +123,7 @@ class AnityaUpdateEvent(Event):
 
     @property
     def project_url(self) -> Optional[str]:
-        return (
-            self.packages_config.upstream_project_url if self.packages_config else None
-        )
+        return self.packages_config.upstream_project_url if self.packages_config else None
 
     @cached_property
     def repo_url(self) -> Optional[RepoUrl]:

@@ -4,6 +4,7 @@
 """
 This file defines classes for job handlers specific for distgit
 """
+
 import abc
 import logging
 import shutil
@@ -448,8 +449,7 @@ class AbstractSyncReleaseHandler(
         )
         self.sync_release_helper.report_status_for_branch(
             branch=branch,
-            description=f"{self.job_name_for_reporting.capitalize()} "
-            f"finished successfully.",
+            description=f"{self.job_name_for_reporting.capitalize()} " f"finished successfully.",
             state=BaseCommitStatus.success,
             url=url,
         )
@@ -464,9 +464,7 @@ class AbstractSyncReleaseHandler(
         """
         errors = {}
         sync_release_run_model = self._get_or_create_sync_release_run()
-        branches_to_run = [
-            target.branch for target in sync_release_run_model.sync_release_targets
-        ]
+        branches_to_run = [target.branch for target in sync_release_run_model.sync_release_targets]
         logger.debug(f"Branches to run {self.job_config.type}: {branches_to_run}")
 
         try:
@@ -627,8 +625,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
 
         PackageConfigGetter.create_issue_if_needed(
             project=self.project,
-            title=f"{self.job_name_for_reporting.capitalize()} failed for "
-            f"release {self.tag}",
+            title=f"{self.job_name_for_reporting.capitalize()} failed for " f"release {self.tag}",
             message=body_msg,
             comment_to_existing=body_msg,
         )
@@ -707,9 +704,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             return []
 
         bugs = (
-            args[args.index(bugs_keyword) + 1]
-            if args.index(bugs_keyword) < len(args) - 1
-            else None
+            args[args.index(bugs_keyword) + 1] if args.index(bugs_keyword) < len(args) - 1 else None
         )
         return bugs.split(",")
 
@@ -873,10 +868,8 @@ class AbstractDownstreamKojiBuildHandler(
                 continue
 
             if not self.job_config.scratch:
-                existing_models = (
-                    KojiBuildTargetModel.get_all_successful_or_in_progress_by_nvr(
-                        koji_build_model.nvr,
-                    )
+                existing_models = KojiBuildTargetModel.get_all_successful_or_in_progress_by_nvr(
+                    koji_build_model.nvr,
                 )
                 if existing_models - {koji_build_model} or self.is_already_triggered(
                     koji_build_model.nvr,
@@ -945,12 +938,7 @@ class AbstractDownstreamKojiBuildHandler(
             dist_git_url=self.packit_api.dg.local_project.git_url,
         )
         for branch, ex in errors.items():
-            body += (
-                "<tr>"
-                f"<td><code>{branch}</code></td>"
-                f"<td><pre>{ex}</pre></td>"
-                "</tr>\n"
-            )
+            body += "<tr>" f"<td><code>{branch}</code></td>" f"<td><pre>{ex}</pre></td>" "</tr>\n"
         body += "</table>\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
@@ -961,9 +949,7 @@ class AbstractDownstreamKojiBuildHandler(
         )
 
         trigger_type_description = self.get_trigger_type_description()
-        body_msg = (
-            f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
-        )
+        body_msg = f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
         body_msg = update_message_with_configured_failure_comment_message(
             body_msg,
             self.job_config,
@@ -1024,8 +1010,7 @@ class DownstreamKojiBuildHandler(
             )
         elif self.data.event_type == PushPagureEvent.__name__:
             trigger_type_description += (
-                f"Fedora Koji build was triggered "
-                f"by push with sha {self.data.commit_sha}."
+                f"Fedora Koji build was triggered " f"by push with sha {self.data.commit_sha}."
             )
         elif self.data.event_type == KojiBuildTagEvent.__name__:
             trigger_type_description += (
@@ -1090,10 +1075,7 @@ class RetriggerDownstreamKojiBuildHandler(
         return self.branches
 
     def get_trigger_type_description(self) -> str:
-        return (
-            f"Fedora Koji build was re-triggered "
-            f"by comment in issue {self.data.issue_id}."
-        )
+        return f"Fedora Koji build was re-triggered " f"by comment in issue {self.data.issue_id}."
 
 
 @configured_as(job_type=JobType.koji_build)
@@ -1129,11 +1111,7 @@ class TagIntoSidetagHandler(
             partial(defaultdict, set),
         )
         for job in self.package_config.get_job_views():
-            if (
-                job.type == JobType.koji_build
-                and job.sidetag_group
-                and job.dist_git_branches
-            ):
+            if job.type == JobType.koji_build and job.sidetag_group and job.dist_git_branches:
                 configured_branches = aliases.get_branches(
                     *job.dist_git_branches,
                     default_dg_branch="rawhide",
@@ -1144,9 +1122,7 @@ class TagIntoSidetagHandler(
                     continue
                 else:
                     branches = {self.pull_request.target_branch}
-                packages_to_tag[job.downstream_package_name][
-                    job.sidetag_group
-                ] |= branches
+                packages_to_tag[job.downstream_package_name][job.sidetag_group] |= branches
         for package, sidetag_groups in packages_to_tag.items():
             for sidetag_group, branches in sidetag_groups.items():
                 logger.debug(

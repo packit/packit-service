@@ -615,9 +615,7 @@ class GetVMImageDataMixin(Config, GetCoprBuildJobHelper):
 
     @property
     def owner(self) -> str:
-        return self.job_config.owner or (
-            self.copr_build.owner if self.copr_build else None
-        )
+        return self.job_config.owner or (self.copr_build.owner if self.copr_build else None)
 
     @property
     def project_name(self) -> str:
@@ -645,8 +643,7 @@ class GetVMImageDataMixin(Config, GetCoprBuildJobHelper):
     def copr_build(self) -> Optional[CoprBuildTargetModel]:
         if not self._copr_build:
             copr_builds = CoprBuildTargetModel.get_all_by(
-                project_name=self.job_config.project
-                or self.copr_build_helper.default_project_name,
+                project_name=self.job_config.project or self.copr_build_helper.default_project_name,
                 commit_sha=self.data.commit_sha,
                 owner=self.job_config.owner or self.copr_build_helper.job_owner,
                 target=self.job_config.copr_chroot,

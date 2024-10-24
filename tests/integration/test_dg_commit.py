@@ -243,10 +243,7 @@ def test_downstream_koji_build(sidetag_group):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -390,10 +387,7 @@ def test_downstream_koji_build_failure_no_issue():
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -496,10 +490,7 @@ def test_downstream_koji_build_failure_issue_created():
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -608,10 +599,7 @@ def test_downstream_koji_build_failure_issue_comment():
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -734,10 +722,7 @@ def test_downstream_koji_build_no_config():
     flexmock(group).should_receive("apply_async").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
-    assert (
-        processing_results[0]["details"]["msg"]
-        == "No packit config found in the repository."
-    )
+    assert processing_results[0]["details"]["msg"] == "No packit config found in the repository."
 
 
 @pytest.mark.parametrize(
@@ -804,10 +789,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -1028,10 +1010,7 @@ def test_precheck_koji_build_push(
     )
     job_config = jobs[0]
     event = distgit_push_event.get_dict()
-    assert (
-        DownstreamKojiBuildHandler.pre_check(package_config, job_config, event)
-        == should_pass
-    )
+    assert DownstreamKojiBuildHandler.pre_check(package_config, job_config, event) == should_pass
 
 
 @pytest.mark.parametrize(
@@ -1108,7 +1087,4 @@ def test_precheck_koji_build_push_pr(
     )
     job_config = jobs[0]
     event = distgit_push_event.get_dict()
-    assert (
-        DownstreamKojiBuildHandler.pre_check(package_config, job_config, event)
-        == should_pass
-    )
+    assert DownstreamKojiBuildHandler.pre_check(package_config, job_config, event) == should_pass

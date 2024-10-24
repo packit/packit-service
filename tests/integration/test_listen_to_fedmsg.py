@@ -433,9 +433,7 @@ def test_copr_build_end_push(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         # we cannot comment for branch push events
-        flexmock(source_project=flexmock())
-        .should_receive("comment")
-        .never(),
+        flexmock(source_project=flexmock()).should_receive("comment").never(),
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
         pc_build_push,
@@ -507,10 +505,7 @@ def test_copr_build_end_release(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         # we cannot comment for branch push events
-        flexmock(source_project=flexmock())
-        .should_receive("comment")
-        .never()
-        .mock(),
+        flexmock(source_project=flexmock()).should_receive("comment").never().mock(),
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
         pc_build_release,
@@ -1578,9 +1573,7 @@ def test_copr_build_end_push_testing_farm(copr_build_end_push, copr_build_branch
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         # we cannot comment for branch push events
-        flexmock(source_project=flexmock())
-        .should_receive("comment")
-        .never(),
+        flexmock(source_project=flexmock()).should_receive("comment").never(),
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "packit", "copr_url": "https://dummy.url"}),
@@ -1691,9 +1684,7 @@ def test_copr_build_end_push_testing_farm_different_branch(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         # we cannot comment for branch push events
-        flexmock(source_project=flexmock())
-        .should_receive("comment")
-        .never(),
+        flexmock(source_project=flexmock()).should_receive("comment").never(),
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "packit", "copr_url": "https://dummy.url"}),
@@ -2525,10 +2516,7 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 
     assert len(processing_results) == 1
     assert processing_results[0]["success"]
-    assert (
-        processing_results[0]["details"]["msg"]
-        == "No packit config found in the repository."
-    )
+    assert processing_results[0]["details"]["msg"] == "No packit config found in the repository."
 
 
 def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr):

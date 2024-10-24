@@ -115,18 +115,14 @@ def pr_build_comment_event():
 @pytest.fixture(scope="module")
 def pr_production_build_comment_event():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "pr_comment_production_build.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_production_build.json").read_text(),
     )
 
 
 @pytest.fixture(scope="module")
 def pr_embedded_command_comment_event():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "pr_comment_embedded_command.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_embedded_command.json").read_text(),
     )
 
 
@@ -141,10 +137,7 @@ def pr_empty_comment_event():
 def pr_packit_comment_command_without_argument_event():
     return json.loads(
         (
-            DATA_DIR
-            / "webhooks"
-            / "github"
-            / "issue_comment_packit_command_without_argument.json"
+            DATA_DIR / "webhooks" / "github" / "issue_comment_packit_command_without_argument.json"
         ).read_text(),
     )
 
@@ -152,9 +145,7 @@ def pr_packit_comment_command_without_argument_event():
 @pytest.fixture(scope="module")
 def pr_wrong_packit_comment_event():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "issue_comment_wrong_packit_command.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "issue_comment_wrong_packit_command.json").read_text(),
     )
 
 
@@ -314,14 +305,10 @@ def test_pr_comment_build_build_and_test_handler(
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     assert len(processing_results) == 2
 
-    copr_build_job = [
-        item for item in processing_results if item["details"]["job"] == "copr_build"
-    ]
+    copr_build_job = [item for item in processing_results if item["details"]["job"] == "copr_build"]
     assert copr_build_job
 
-    test_job = [
-        item for item in processing_results if item["details"]["job"] == "tests"
-    ]
+    test_job = [item for item in processing_results if item["details"]["job"] == "tests"]
     assert test_job
 
     event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
@@ -393,14 +380,10 @@ def test_pr_comment_build_build_and_test_handler_manual_test_reporting(
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     assert len(processing_results) == 2
 
-    copr_build_job = [
-        item for item in processing_results if item["details"]["job"] == "copr_build"
-    ]
+    copr_build_job = [item for item in processing_results if item["details"]["job"] == "copr_build"]
     assert copr_build_job
 
-    test_job = [
-        item for item in processing_results if item["details"]["job"] == "tests"
-    ]
+    test_job = [item for item in processing_results if item["details"]["job"] == "tests"]
     assert test_job
 
     event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
@@ -669,9 +652,7 @@ def test_pr_test_command_handler(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
@@ -759,9 +740,7 @@ def test_pr_test_command_handler_identifiers(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
@@ -926,9 +905,7 @@ def test_pr_test_command_handler_retries(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
@@ -1131,9 +1108,7 @@ def test_pr_test_command_handler_skip_build_option(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     pr = flexmock(
         source_project=flexmock(
@@ -1327,9 +1302,7 @@ def test_pr_test_command_handler_compose_not_present(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
@@ -1458,9 +1431,7 @@ def test_pr_test_command_handler_composes_not_available(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
@@ -1585,9 +1556,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     db_project_object, _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
@@ -1652,9 +1621,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -1886,9 +1853,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     pr = flexmock(
         source_project=flexmock(
@@ -2022,9 +1987,7 @@ def test_invalid_packit_command_with_config(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
     ServiceConfig.get_service_config().comment_command_prefix = "/packit"
-    pr_embedded_command_comment_event["comment"][
-        "body"
-    ] = "/packit i-hate-testing-with-flexmock"
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit i-hate-testing-with-flexmock"
     flexmock(
         GithubProject,
         get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"],
@@ -2034,13 +1997,9 @@ def test_invalid_packit_command_with_config(
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
-    processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[
-        0
-    ]
+    processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[0]
     assert processing_result["success"]
-    assert (
-        processing_result["details"]["msg"] == "No Packit command found in the comment."
-    )
+    assert processing_result["details"]["msg"] == "No Packit command found in the comment."
 
 
 def test_invalid_packit_command_without_config(
@@ -2055,21 +2014,17 @@ def test_invalid_packit_command_without_config(
     )
 
     ServiceConfig.get_service_config().comment_command_prefix = "/packit"
-    pr_embedded_command_comment_event["comment"][
-        "body"
-    ] = "/packit 10minutesOfImplementing3HoursOfTesting"
+    pr_embedded_command_comment_event["comment"]["body"] = (
+        "/packit 10minutesOfImplementing3HoursOfTesting"
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
-    processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[
-        0
-    ]
+    processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[0]
     assert processing_result["success"]
-    assert (
-        processing_result["details"]["msg"] == "No Packit command found in the comment."
-    )
+    assert processing_result["details"]["msg"] == "No Packit command found in the comment."
 
 
 def test_pr_test_command_handler_multiple_builds(
@@ -2077,9 +2032,7 @@ def test_pr_test_command_handler_multiple_builds(
     pr_embedded_command_comment_event,
 ):
     _ = add_pull_request_event_with_sha_0011223344
-    pr_embedded_command_comment_event["comment"][
-        "body"
-    ] = "/packit test packit/packit-service#16"
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test packit/packit-service#16"
     jobs = [
         {
             "trigger": "pull_request",
@@ -2093,9 +2046,7 @@ def test_pr_test_command_handler_multiple_builds(
         },
     ]
     packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
     )
     pr = flexmock(
         source_project=flexmock(
@@ -2407,9 +2358,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         recursive=False,
     ).and_return(["python-teamcity-messages.spec", ".packit.yaml"])
 
-    pagure_pr_comment_added["pullrequest"]["comments"][0][
-        "comment"
-    ] = "/packit koji-build"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit koji-build"
 
     project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -2453,10 +2402,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -2520,9 +2466,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
 
 
 def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
-    pagure_pr_comment_added["pullrequest"]["comments"][0][
-        "comment"
-    ] = "/packit create-update"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit create-update"
     project = pagure_pr_comment_added["pullrequest"]["project"]
     project["full_url"] = "https://src.fedoraproject.org/rpms/jouduv-dort"
     project["fullname"] = "rpms/jouduv-dort"
@@ -2657,9 +2601,9 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
 
 
 def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
-    pagure_pr_comment_added["pullrequest"]["comments"][0][
-        "comment"
-    ] = "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = (
+        "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    )
     sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
@@ -2796,10 +2740,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -2855,9 +2796,9 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
 def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     pagure_pr_comment_added,
 ):
-    pagure_pr_comment_added["pullrequest"]["comments"][0][
-        "comment"
-    ] = "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = (
+        "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    )
     sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
@@ -2966,10 +2907,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -3053,8 +2991,8 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
         recursive=False,
     ).and_return(["python-teamcity-messages.spec", ".packit.yaml"])
 
-    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = (
-        "/packit koji-tag" + (" --all-branches" if all_branches else "")
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit koji-tag" + (
+        " --all-branches" if all_branches else ""
     )
 
     project_event = flexmock(
@@ -3075,10 +3013,7 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,

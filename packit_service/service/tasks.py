@@ -65,8 +65,7 @@ def get_usage_interval_data(
     )
     cumulative_projects = cumulative_projects_past.copy()
     cumulative_projects_for_jobs_past = {
-        job: set(data["top_projects_by_job_runs"].keys())
-        for job, data in past_data["jobs"].items()
+        job: set(data["top_projects_by_job_runs"].keys()) for job, data in past_data["jobs"].items()
     }
     cumulative_projects_for_jobs = cumulative_projects_for_jobs_past.copy()
 

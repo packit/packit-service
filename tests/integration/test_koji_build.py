@@ -149,10 +149,7 @@ def test_koji_build_error_msg(distgit_push_packit):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(PushPagureEvent).should_receive("db_project_object").and_return(
         db_project_object,
@@ -202,10 +199,7 @@ def test_koji_build_error_msg(distgit_push_packit):
     dg = flexmock(local_project=flexmock(git_url="an url"))
     dg.should_receive("get_nvr").and_return(nvr)
     packit_api = (
-        flexmock(dg=dg)
-        .should_receive("build")
-        .and_raise(PackitException, error_msg)
-        .mock()
+        flexmock(dg=dg).should_receive("build").and_raise(PackitException, error_msg).mock()
     )
     flexmock(DownstreamKojiBuildHandler).should_receive("packit_api").and_return(
         packit_api,
