@@ -1,0 +1,140 @@
+{
+  "topic": "org.fedoraproject.prod.pagure.pull-request.updated",
+  "agent": "pagure",
+  "pullrequest": {
+    "assignee": null,
+    "branch": "f40",
+    "branch_from": "rawhide",
+    "cached_merge_status": "unknown",
+    "closed_at": null,
+    "closed_by": null,
+    "comments": [],
+    "commit_start": "d1f60630c7181d40a211ead45699c8c14df280f5",
+    "commit_stop": "f2f041328d629719c5ff31a08e800638d5df497f",
+    "date_created": "1729677025",
+    "full_url": "https://src.fedoraproject.org/rpms/marshalparser/pull-request/32",
+    "id": 32,
+    "initial_comment": null,
+    "last_updated": "1729679207",
+    "project": {
+      "access_groups": {
+        "admin": ["python-packagers-sig"],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["lbalhar"],
+        "ticket": ["zuul"]
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1595253234",
+      "date_modified": "1599647214",
+      "description": "The marshalparser package",
+      "full_url": "https://src.fedoraproject.org/rpms/marshalparser",
+      "fullname": "rpms/marshalparser",
+      "id": 44239,
+      "milestones": {},
+      "name": "marshalparser",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "rpms/marshalparser",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/lbalhar",
+        "fullname": "Lum\u00edr Balhar",
+        "name": "lbalhar",
+        "url_path": "user/lbalhar"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["lbalhar"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1596098091",
+      "date_modified": "1596098091",
+      "description": "The marshalparser package",
+      "full_url": "https://src.fedoraproject.org/fork/lbalhar/rpms/marshalparser",
+      "fullname": "forks/lbalhar/rpms/marshalparser",
+      "id": 44436,
+      "milestones": {},
+      "name": "marshalparser",
+      "namespace": "rpms",
+      "parent": {
+        "access_groups": {
+          "admin": ["python-packagers-sig"],
+          "collaborator": [],
+          "commit": [],
+          "ticket": []
+        },
+        "access_users": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "owner": ["lbalhar"],
+          "ticket": ["zuul"]
+        },
+        "close_status": [],
+        "custom_keys": [],
+        "date_created": "1595253234",
+        "date_modified": "1599647214",
+        "description": "The marshalparser package",
+        "full_url": "https://src.fedoraproject.org/rpms/marshalparser",
+        "fullname": "rpms/marshalparser",
+        "id": 44239,
+        "milestones": {},
+        "name": "marshalparser",
+        "namespace": "rpms",
+        "parent": null,
+        "priorities": {},
+        "tags": [],
+        "url_path": "rpms/marshalparser",
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/lbalhar",
+          "fullname": "Lum\u00edr Balhar",
+          "name": "lbalhar",
+          "url_path": "user/lbalhar"
+        }
+      },
+      "priorities": {},
+      "tags": [],
+      "url_path": "fork/lbalhar/rpms/marshalparser",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/lbalhar",
+        "fullname": "Lum\u00edr Balhar",
+        "name": "lbalhar",
+        "url_path": "user/lbalhar"
+      }
+    },
+    "status": "Open",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "[f40] Update to 0.4.0 (rhbz#2321237)",
+    "uid": "4adeb164731e45f6a852bc16f41ecbf3",
+    "updated_on": "1729677338",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/lbalhar",
+      "fullname": "Lum\u00edr Balhar",
+      "name": "lbalhar",
+      "url_path": "user/lbalhar"
+    }
+  }
+}

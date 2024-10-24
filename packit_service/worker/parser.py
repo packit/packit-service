@@ -71,7 +71,10 @@ from packit_service.worker.events.new_hotness import (
     AnityaVersionUpdateEvent,
     NewHotnessUpdateEvent,
 )
-from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
+from packit_service.worker.events.pagure import (
+    PullRequestFlagPagureEvent,
+    PullRequestPagureEvent,
+)
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -112,6 +115,7 @@ class Parser:
             PipelineGitlabEvent,
             PullRequestFlagPagureEvent,
             PullRequestCommentPagureEvent,
+            PullRequestPagureEvent,
             PushPagureEvent,
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
@@ -173,6 +177,7 @@ class Parser:
                 Parser.parse_openscanhub_task_finished_event,
                 Parser.parse_openscanhub_task_started_event,
                 Parser.parse_commit_comment_event,
+                Parser.parse_pagure_pull_request_event,
             )
         ):
             if response:
@@ -1704,6 +1709,48 @@ class Parser:
         )
 
     @staticmethod
+    def parse_pagure_pull_request_event(
+        event,
+    ) -> Optional[PullRequestPagureEvent]:
+        if (topic := event.get("topic", "")) not in (
+            "org.fedoraproject.prod.pagure.pull-request.new",
+            "org.fedoraproject.prod.pagure.pull-request.updated",
+            "org.fedoraproject.prod.pagure.pull-request.rebased",
+        ):
+            return None
+
+        logger.info(f"Pagure PR event, topic: {topic}")
+
+        action = (
+            PullRequestAction.opened.value
+            if topic.endswith("new")
+            else PullRequestAction.synchronize.value
+        )
+        pr_id = event["pullrequest"]["id"]
+        pagure_login = event["agent"]
+
+        base_repo_namespace = event["pullrequest"]["project"]["namespace"]
+        base_repo_name = event["pullrequest"]["project"]["name"]
+        repo_from = event["pullrequest"]["repo_from"]
+        base_repo_owner = repo_from["user"]["name"] if repo_from else pagure_login
+        target_repo = repo_from["name"] if repo_from else base_repo_name
+        https_url = event["pullrequest"]["project"]["full_url"]
+        commit_sha = event["pullrequest"]["commit_stop"]
+
+        return PullRequestPagureEvent(
+            action=PullRequestAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=base_repo_name,
+            base_repo_owner=base_repo_owner,
+            base_ref=None,
+            target_repo=target_repo,
+            project_url=https_url,
+            commit_sha=commit_sha,
+            user_login=pagure_login,
+        )
+
+    @staticmethod
     def parse_new_hotness_update_event(event) -> Optional[NewHotnessUpdateEvent]:
         if "hotness.update.bug.file" not in event.get("topic", ""):
             return None
@@ -1848,6 +1895,9 @@ class Parser:
             "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore
+            "pagure.pull-request.new": parse_pagure_pull_request_event.__func__,  # type: ignore
+            "pagure.pull-request.updated": parse_pagure_pull_request_event.__func__,  # type: ignore
+            "pagure.pull-request.rebased": parse_pagure_pull_request_event.__func__,  # type: ignore
             "pagure.git.receive": parse_pagure_push_event.__func__,  # type: ignore
             "copr.build.start": parse_copr_event.__func__,  # type: ignore
             "copr.build.end": parse_copr_event.__func__,  # type: ignore

@@ -1,0 +1,140 @@
+{
+  "topic": "org.fedoraproject.prod.pagure.pull-request.rebased",
+  "agent": "pagure",
+  "pullrequest": {
+    "assignee": null,
+    "branch": "rawhide",
+    "branch_from": "fedora_plans",
+    "cached_merge_status": "unknown",
+    "closed_at": null,
+    "closed_by": null,
+    "comments": [],
+    "commit_start": "196f3c99b21d75bf441331e1a82fb76d243e82d5",
+    "commit_stop": "196f3c99b21d75bf441331e1a82fb76d243e82d5",
+    "date_created": "1727942209",
+    "full_url": "https://src.fedoraproject.org/rpms/ftp/pull-request/6",
+    "id": 6,
+    "initial_comment": "Update plans and gating",
+    "last_updated": "1729685933",
+    "project": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": ["mruprich"],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["mruprich"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1501867757",
+      "date_modified": "1507273635",
+      "description": "The ftp rpms",
+      "full_url": "https://src.fedoraproject.org/rpms/ftp",
+      "fullname": "rpms/ftp",
+      "id": 4014,
+      "milestones": {},
+      "name": "ftp",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "rpms/ftp",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/mruprich",
+        "fullname": "Michal Ruprich",
+        "name": "mruprich",
+        "url_path": "user/mruprich"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["omejzlik"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1727942177",
+      "date_modified": "1727942177",
+      "description": "The ftp rpms",
+      "full_url": "https://src.fedoraproject.org/fork/omejzlik/rpms/ftp",
+      "fullname": "forks/omejzlik/rpms/ftp",
+      "id": 79045,
+      "milestones": {},
+      "name": "ftp",
+      "namespace": "rpms",
+      "parent": {
+        "access_groups": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "ticket": []
+        },
+        "access_users": {
+          "admin": ["mruprich"],
+          "collaborator": [],
+          "commit": [],
+          "owner": ["mruprich"],
+          "ticket": []
+        },
+        "close_status": [],
+        "custom_keys": [],
+        "date_created": "1501867757",
+        "date_modified": "1507273635",
+        "description": "The ftp rpms",
+        "full_url": "https://src.fedoraproject.org/rpms/ftp",
+        "fullname": "rpms/ftp",
+        "id": 4014,
+        "milestones": {},
+        "name": "ftp",
+        "namespace": "rpms",
+        "parent": null,
+        "priorities": {},
+        "tags": [],
+        "url_path": "rpms/ftp",
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/mruprich",
+          "fullname": "Michal Ruprich",
+          "name": "mruprich",
+          "url_path": "user/mruprich"
+        }
+      },
+      "priorities": {},
+      "tags": [],
+      "url_path": "fork/omejzlik/rpms/ftp",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/omejzlik",
+        "fullname": "Ond\u0159ej Mejzl\u00edk",
+        "name": "omejzlik",
+        "url_path": "user/omejzlik"
+      }
+    },
+    "status": "Open",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "Update plans and gating",
+    "uid": "0e726e2c759b46a4beee5824dd8e9f39",
+    "updated_on": "1729589491",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/omejzlik",
+      "fullname": "Ond\u0159ej Mejzl\u00edk",
+      "name": "omejzlik",
+      "url_path": "user/omejzlik"
+    }
+  }
+}
