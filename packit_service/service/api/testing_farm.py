@@ -96,8 +96,7 @@ class TestingFarmResults(Resource):
             raise ValidationFailed(msg)
 
         if token == config.testing_farm_secret or (
-            config.internal_testing_farm_secret
-            and token == config.internal_testing_farm_secret
+            config.internal_testing_farm_secret and token == config.internal_testing_farm_secret
         ):
             return
 

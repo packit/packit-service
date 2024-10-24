@@ -54,9 +54,7 @@ def upgrade():
 
     for project in session.query(GitProjectUpgradeModel).all():
         if not project.project_url:
-            project.project_url = (
-                f"https://github.com/{project.namespace}/{project.repo_name}"
-            )
+            project.project_url = f"https://github.com/{project.namespace}/{project.repo_name}"
             session.add(project)
 
     session.commit()

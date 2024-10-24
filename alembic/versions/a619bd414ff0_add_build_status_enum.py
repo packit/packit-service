@@ -25,8 +25,7 @@ def upgrade():
         "ALTER COLUMN status TYPE buildstatus USING status::buildstatus",
     )
     op.execute(
-        "ALTER TABLE srpm_builds "
-        "ALTER COLUMN status TYPE buildstatus USING status::buildstatus",
+        "ALTER TABLE srpm_builds " "ALTER COLUMN status TYPE buildstatus USING status::buildstatus",
     )
 
 

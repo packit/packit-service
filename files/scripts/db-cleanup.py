@@ -185,9 +185,7 @@ See get_pg_url() for details.
         ]
         for trigger_type, trigger_model in trigger_types:
             triggers = (
-                select(JobTriggerModel)
-                .filter(JobTriggerModel.type == trigger_type)
-                .subquery()
+                select(JobTriggerModel).filter(JobTriggerModel.type == trigger_type).subquery()
             )
             orphaned_triggers = (
                 select(trigger_model.id)

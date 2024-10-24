@@ -47,9 +47,7 @@ class only_once:
 
 # wrappers for dumping/loading of configs
 def load_package_config(package_config: dict):
-    package_config_obj = (
-        PackageConfigSchema().load(package_config) if package_config else None
-    )
+    package_config_obj = PackageConfigSchema().load(package_config) if package_config else None
     return PackageConfig.post_load(package_config_obj)
 
 
@@ -276,10 +274,7 @@ def download_file(url: str, path: Path):
     # TODO: use a library to make the downloads more robust (e.g. pycurl),
     # unify with packit code:
     # https://github.com/packit/packit/blob/2e75e6ff4c0cadb55da1c8daf9315e4b0a69e4a8/packit/base_git.py#L566-L583
-    user_agent = (
-        os.getenv("PACKIT_USER_AGENT")
-        or f"packit-service/{ps_version} (hello@packit.dev)"
-    )
+    user_agent = os.getenv("PACKIT_USER_AGENT") or f"packit-service/{ps_version} (hello@packit.dev)"
     try:
         with requests.get(
             url,

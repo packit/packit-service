@@ -408,9 +408,7 @@ def test_parse_koji_tag_event(koji_build_tagged):
     assert event_object.version == "0.31.0"
     assert event_object.release == "1.fc40"
     assert event_object.nvr == "python-specfile-0.31.0-1.fc40"
-    assert (
-        event_object.project_url == "https://src.fedoraproject.org/rpms/python-specfile"
-    )
+    assert event_object.project_url == "https://src.fedoraproject.org/rpms/python-specfile"
 
     assert isinstance(event_object.project, PagureProject)
     assert event_object.project.full_repo_name == "rpms/python-specfile"

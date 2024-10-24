@@ -31,8 +31,7 @@ def test_check_pending_vm_image_builds():
         [
             flexmock(
                 build_id=1,
-                build_submitted_time=datetime.datetime.utcnow()
-                - datetime.timedelta(days=1),
+                build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(days=1),
             ),
         ],
     )
@@ -49,8 +48,7 @@ def test_check_pending_vm_image_builds_timeout():
         [
             flexmock(
                 build_id=1,
-                build_submitted_time=datetime.datetime.utcnow()
-                - datetime.timedelta(weeks=2),
+                build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
             )
             .should_receive("set_status")
             .mock(),
@@ -131,10 +129,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
             flexmock()
             .should_receive("image_builder_request")
             .and_return(
-                flexmock()
-                .should_receive("json")
-                .and_return(vm_image_builder_result)
-                .mock(),
+                flexmock().should_receive("json").and_return(vm_image_builder_result).mock(),
             )
             .mock(),
         )

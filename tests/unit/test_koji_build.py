@@ -160,11 +160,7 @@ def test_koji_build_check_names(
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
-        flexmock(id=1)
-        .should_receive("set_task_id")
-        .mock()
-        .should_receive("set_web_url")
-        .mock(),
+        flexmock(id=1).should_receive("set_task_id").mock().should_receive("set_web_url").mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -248,8 +244,7 @@ def test_koji_build_failed_kerberos(
     response = helper.run_koji_build()
     assert not response["success"]
     assert (
-        response["details"]["msg"]
-        == "Kerberos authentication error: the bad authentication error"
+        response["details"]["msg"] == "Kerberos authentication error: the bad authentication error"
     )
 
 
@@ -359,17 +354,9 @@ def test_koji_build_with_multiple_targets(
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
-        flexmock(id=1)
-        .should_receive("set_task_id")
-        .mock()
-        .should_receive("set_web_url")
-        .mock(),
+        flexmock(id=1).should_receive("set_task_id").mock().should_receive("set_web_url").mock(),
     ).and_return(
-        flexmock(id=2)
-        .should_receive("set_task_id")
-        .mock()
-        .should_receive("set_web_url")
-        .mock(),
+        flexmock(id=2).should_receive("set_task_id").mock().should_receive("set_web_url").mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -563,17 +550,9 @@ def test_koji_build_targets_override(
     )
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
-        flexmock(id=1)
-        .should_receive("set_task_id")
-        .mock()
-        .should_receive("set_web_url")
-        .mock(),
+        flexmock(id=1).should_receive("set_task_id").mock().should_receive("set_web_url").mock(),
     ).and_return(
-        flexmock(id=2)
-        .should_receive("set_task_id")
-        .mock()
-        .should_receive("set_web_url")
-        .mock(),
+        flexmock(id=2).should_receive("set_task_id").mock().should_receive("set_web_url").mock(),
     )
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 

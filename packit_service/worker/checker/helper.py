@@ -40,8 +40,7 @@ class DistgitAccountsChecker:
         direct_account_names = [
             value
             for value in self.accounts_list
-            if not self.is_distgit_allowed_accounts_alias(value)
-            and not value.startswith("@")
+            if not self.is_distgit_allowed_accounts_alias(value) and not value.startswith("@")
         ]
 
         # check the direct account names to prevent unneeded API interactions

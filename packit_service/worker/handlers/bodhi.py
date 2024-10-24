@@ -116,18 +116,10 @@ class BodhiUpdateHandler(
                     existing_alias = model.alias
 
                 logger.debug(
-                    (
-                        f"Edit update {existing_alias} "
-                        if existing_alias
-                        else "Create update "
-                    )
+                    (f"Edit update {existing_alias} " if existing_alias else "Create update ")
                     + f"for dist-git branch: {target_model.target} "
                     f"and nvrs: {target_model.koji_nvrs}"
-                    + (
-                        f" from sidetag: {target_model.sidetag}."
-                        if target_model.sidetag
-                        else "."
-                    ),
+                    + (f" from sidetag: {target_model.sidetag}." if target_model.sidetag else "."),
                 )
                 result = self.packit_api.create_update(
                     dist_git_branch=target_model.target,
@@ -244,9 +236,7 @@ class BodhiUpdateHandler(
     def get_handler_specific_task_accepted_message(
         service_config: ServiceConfig,
     ) -> str:
-        user = (
-            "packit" if service_config.deployment == Deployment.prod else "packit-stg"
-        )
+        user = "packit" if service_config.deployment == Deployment.prod else "packit-stg"
         return (
             "You can check the recent Bodhi update submissions of Packit "
             f"in [Packit dashboard]({service_config.dashboard_url}/jobs/bodhi-updates). "
@@ -261,12 +251,7 @@ class BodhiUpdateHandler(
             dist_git_url=self.packit_api.dg.local_project.git_url,
         )
         for branch, ex in errors.items():
-            body += (
-                "<tr>"
-                f"<td><code>{branch}</code></td>"
-                f"<td><pre>{ex}</pre></td>"
-                "</tr>\n"
-            )
+            body += "<tr>" f"<td><code>{branch}</code></td>" f"<td><pre>{ex}</pre></td>" "</tr>\n"
         body += "</table>\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
@@ -321,10 +306,7 @@ class CreateBodhiUpdateHandler(
 
     def get_trigger_type_description(self) -> str:
         for koji_build_data in self:
-            return (
-                f"Fedora Bodhi update was triggered by "
-                f"Koji build {koji_build_data.nvr}."
-            )
+            return f"Fedora Bodhi update was triggered by " f"Koji build {koji_build_data.nvr}."
         return ""
 
     def _get_or_create_bodhi_update_group_model(self) -> BodhiUpdateGroupModel:
@@ -379,10 +361,7 @@ class BodhiUpdateFromSidetagHandler(
 
     def get_trigger_type_description(self) -> str:
         for koji_build_data in self:
-            return (
-                f"Fedora Bodhi update was triggered by "
-                f"Koji build {koji_build_data.nvr}."
-            )
+            return f"Fedora Bodhi update was triggered by " f"Koji build {koji_build_data.nvr}."
         return ""
 
 
@@ -443,7 +422,4 @@ class IssueCommentRetriggerBodhiUpdateHandler(
         return (HasIssueCommenterRetriggeringPermissions,)
 
     def get_trigger_type_description(self) -> str:
-        return (
-            f"Fedora Bodhi update was re-triggered by "
-            f"comment in issue {self.data.issue_id}."
-        )
+        return f"Fedora Bodhi update was re-triggered by " f"comment in issue {self.data.issue_id}."

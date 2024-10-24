@@ -99,12 +99,7 @@ jobs:
         default_branch="main",
         get_sha_from_tag=lambda tag_name: "123456",
     )
-    (
-        flexmock(project_class)
-        .should_receive("can_merge_pr")
-        .with_args(author)
-        .and_return(True)
-    )
+    (flexmock(project_class).should_receive("can_merge_pr").with_args(author).and_return(True))
     issue = flexmock(
         description="Packit failed on creating pull-requests in dist-git "
         "(https://src.fedoraproject.org/rpms/packit.git):",
@@ -336,9 +331,7 @@ def mock_repository_issue_retriggering():
         get_comments=list,
         comment=lambda message: None,
     )
-    project = (
-        flexmock(GithubProject).should_receive("get_issue").and_return(issue).mock()
-    )
+    project = flexmock(GithubProject).should_receive("get_issue").and_return(issue).mock()
     flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").with_args(
         project=PagureProject,
         fail_when_missing=False,
@@ -357,10 +350,7 @@ def mock_repository_issue_retriggering():
     )
 
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
 
     flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
@@ -533,10 +523,7 @@ def test_issue_comment_retrigger_bodhi_update_handler(
 def github_repository_issue_comment_retrigger_koji_build():
     return json.loads(
         (
-            DATA_DIR
-            / "webhooks"
-            / "github"
-            / "repository_issue_comment_retrigger_koji_build.json"
+            DATA_DIR / "webhooks" / "github" / "repository_issue_comment_retrigger_koji_build.json"
         ).read_text(),
     )
 

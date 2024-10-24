@@ -173,11 +173,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
     def repo_url(self) -> Optional[RepoUrl]:
         if not self._repo_url:
             self._repo_url = RepoUrl.parse(
-                (
-                    self.packages_config.upstream_project_url
-                    if self.packages_config
-                    else None
-                ),
+                (self.packages_config.upstream_project_url if self.packages_config else None),
             )
         return self._repo_url
 

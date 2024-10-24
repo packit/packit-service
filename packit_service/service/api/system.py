@@ -44,9 +44,9 @@ class SystemInformation(Resource):
         }
         # packit_service might not be installed (i.e. when running locally)
         # so it's treated differently
-        packages_and_versions[packit_service] = (
-            packit_service.__version__
-            or get_version(root="..", relative_to=packit_service.__file__)
+        packages_and_versions[packit_service] = packit_service.__version__ or get_version(
+            root="..",
+            relative_to=packit_service.__file__,
         )
 
         response_data = {

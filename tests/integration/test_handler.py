@@ -87,10 +87,7 @@ def test_precheck(github_pr_event):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -139,10 +136,7 @@ def test_precheck_gitlab(gitlab_mr_event):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -197,10 +191,7 @@ def test_precheck_push(github_push_event):
         name="build-branch",
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -253,10 +244,7 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         name="branch",
     )
     db_project_event = (
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock()
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,

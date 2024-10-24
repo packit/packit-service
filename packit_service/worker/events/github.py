@@ -182,9 +182,7 @@ class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
         comment: str,
         comment_id: int,
         tag_name: str = "",
-        base_ref: Optional[
-            str
-        ] = "master",  # default is master when working with issues
+        base_ref: Optional[str] = "master",  # default is master when working with issues
         comment_object: Optional[Comment] = None,
         dist_git_project_url=None,
     ) -> None:

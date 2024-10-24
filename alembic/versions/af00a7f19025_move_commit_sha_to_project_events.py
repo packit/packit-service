@@ -318,9 +318,7 @@ def downgrade():
     )
     for row in rows:
         bind.execute(
-            update(SRPMBuildModel)
-            .where(SRPMBuildModel.id == row[0])
-            .values(commit_sha=row[1]),
+            update(SRPMBuildModel).where(SRPMBuildModel.id == row[0]).values(commit_sha=row[1]),
         )
     rows = (
         session.query(CoprBuildTargetModel.id, ProjectEventModel.commit_sha)

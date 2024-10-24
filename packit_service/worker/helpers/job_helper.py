@@ -107,9 +107,7 @@ class BaseJobHelper:
                 full_name=CALCULATE,
                 namespace=CALCULATE,
                 git_repo=(
-                    CALCULATE
-                    if self.require_git_repo_in_local_project
-                    else NOT_TO_CALCULATE
+                    CALCULATE if self.require_git_repo_in_local_project else NOT_TO_CALCULATE
                 ),
             )
         return self._local_project
@@ -185,9 +183,7 @@ class BaseJobHelper:
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 packit_user=self.service_config.get_github_account_name(),
-                project_event_id=(
-                    self.db_project_event.id if self.db_project_event else None
-                ),
+                project_event_id=(self.db_project_event.id if self.db_project_event else None),
                 pr_id=self.metadata.pr_id,
             )
         return self._status_reporter

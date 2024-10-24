@@ -254,20 +254,16 @@ def test_handle_scan_task_finished(
 
         if scan_status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
-            description = (
-                "Scan in OpenScanHub is finished. Check the URL for more details."
-            )
+            description = "Scan in OpenScanHub is finished. Check the URL for more details."
             flexmock(scan_mock).should_receive("set_status").with_args(
                 "succeeded",
             ).once()
             links_to_external_services = {
                 "Added issues": (
-                    "http://openscanhub.fedoraproject.org/task/15649/log/added.js"
-                    "?format=raw"
+                    "http://openscanhub.fedoraproject.org/task/15649/log/added.js" "?format=raw"
                 ),
                 "Fixed issues": (
-                    "http://openscanhub.fedoraproject.org/task/15649/log/fixed.js"
-                    "?format=raw"
+                    "http://openscanhub.fedoraproject.org/task/15649/log/fixed.js" "?format=raw"
                 ),
                 "Scan results": (
                     "http://openscanhub.fedoraproject.org/task/15649/log/gvisor-tap-vsock-"

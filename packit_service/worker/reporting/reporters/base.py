@@ -245,10 +245,7 @@ class StatusReporter:
                 if mode == DuplicateCheckMode.check_last_comment:
                     return body == comment.body
 
-                if (
-                    mode == DuplicateCheckMode.check_all_comments
-                    and body == comment.body
-                ):
+                if mode == DuplicateCheckMode.check_all_comments and body == comment.body:
                     return True
         return False
 

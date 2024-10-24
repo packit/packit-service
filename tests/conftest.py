@@ -574,11 +574,7 @@ def pytest_assertrepr_compare(op, left, right):
         schema = JobConfigSchema()
         return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
 
-    if (
-        isinstance(left, PackageConfig)
-        and isinstance(right, PackageConfig)
-        and op == "=="
-    ):
+    if isinstance(left, PackageConfig) and isinstance(right, PackageConfig) and op == "==":
         from packit.schema import PackageConfigSchema
 
         schema = PackageConfigSchema()

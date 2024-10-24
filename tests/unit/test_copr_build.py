@@ -447,9 +447,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         flexmock(CeleryTask).should_receive("retry").with_args(
             ex=exc,
             delay=delay,
-            max_retries=(
-                DEFAULT_RETRY_LIMIT_OUTAGE if exc.__class__ is OgrNetworkError else None
-            ),
+            max_retries=(DEFAULT_RETRY_LIMIT_OUTAGE if exc.__class__ is OgrNetworkError else None),
         ).once()
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.pending,
@@ -615,10 +613,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-35",
     ).and_return({"fedora-35-x86_64"})
-    assert (
-        build_helper(github_pr_event).get_latest_fedora_stable_chroot()
-        == "fedora-35-x86_64"
-    )
+    assert build_helper(github_pr_event).get_latest_fedora_stable_chroot() == "fedora-35-x86_64"
 
 
 @pytest.mark.parametrize(
@@ -871,11 +866,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
         "5. whether your Copr project/group is not private"
     )
     status_reporter = (
-        flexmock()
-        .should_receive("comment")
-        .with_args(body=expected_body)
-        .and_return()
-        .mock()
+        flexmock().should_receive("comment").with_args(body=expected_body).and_return().mock()
     )
 
     flexmock(CoprBuildJobHelper).should_receive("status_reporter").and_return(
@@ -1013,10 +1004,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
         event_id=123,
         commit_sha="abcdef",
     ).and_return(
-        flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(db_project_object)
-        .mock(),
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         db_project_object,

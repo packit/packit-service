@@ -58,9 +58,7 @@ def github_issue_comment_propose_downstream():
 @pytest.fixture()
 def github_issue_comment_no_handler():
     return json.loads(
-        (
-            DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json"
-        ).read_text(),
+        (DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json").read_text(),
     )
 
 
@@ -146,9 +144,7 @@ def test_parse_pr(github_pr_webhook):
 
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/packit"
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
 
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo",
@@ -303,9 +299,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
     assert event_object.identifier == "12"
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit/hello-world"
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.actor == "lbarcziova"
@@ -369,9 +363,7 @@ def test_parse_pr_comment_created(github_pr_comment_created):
 
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/hello-world"
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
 
     flexmock(GithubProject).should_receive("get_pr").with_args(9).and_return(
         flexmock(head_commit="12345"),
@@ -407,9 +399,7 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
 
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/hello-world"
-    assert (
-        not event_object.base_project  # With Github app, we cannot work with fork repo
-    )
+    assert not event_object.base_project  # With Github app, we cannot work with fork repo
 
     flexmock(GithubProject).should_receive("get_pr").with_args(9).and_return(
         flexmock(head_commit="12345"),
@@ -438,10 +428,7 @@ def test_parse_issue_comment(github_issue_comment_propose_downstream):
     assert event_object.issue_id == 512
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "packit"
-    assert (
-        event_object.target_repo
-        == f"{event_object.repo_namespace}/{event_object.repo_name}"
-    )
+    assert event_object.target_repo == f"{event_object.repo_namespace}/{event_object.repo_name}"
     assert event_object.base_ref == "master"
     assert event_object.project_url == "https://github.com/packit-service/packit"
     assert event_object.actor == "phracek"

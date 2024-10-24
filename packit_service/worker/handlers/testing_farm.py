@@ -353,9 +353,7 @@ class TestingFarmResultsHandler(
             event=event,
         )
         self.result = (
-            TestingFarmResult.from_string(event.get("result"))
-            if event.get("result")
-            else None
+            TestingFarmResult.from_string(event.get("result")) if event.get("result") else None
         )
         self.pipeline_id = event.get("pipeline_id")
         self.log_url = event.get("log_url")

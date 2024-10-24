@@ -149,9 +149,7 @@ class GithubAppInstallationHandler(
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
             AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
         else:
-            msg = (
-                f"{self.account_type} {self.account_login} is already on our allowlist."
-            )
+            msg = f"{self.account_type} {self.account_login} is already on our allowlist."
 
         logger.info(msg)
         return TaskResults(success=True, details={"msg": msg})
@@ -192,8 +190,7 @@ class GithubFasVerificationHandler(
             TaskResults
         """
         logger.debug(
-            f"Going to run verification of FAS account triggered by comment:"
-            f" {self.comment}",
+            f"Going to run verification of FAS account triggered by comment:" f" {self.comment}",
         )
         # e.g. User Bebaabeni needs to be approved.
         _, account_login, _ = self.issue.title.split(maxsplit=2)

@@ -73,9 +73,7 @@ class OpenScanHubHelper:
         srpm_model = self.build.get_srpm_build()
 
         with tempfile.TemporaryDirectory() as directory:
-            if not (
-                paths := self.download_srpms(directory, base_srpm_model, srpm_model)
-            ):
+            if not (paths := self.download_srpms(directory, base_srpm_model, srpm_model)):
                 return
 
             build_dashboard_url = get_copr_build_info_url(self.build.id)
@@ -159,8 +157,7 @@ class OpenScanHubHelper:
                 and (
                     (
                         job.branch
-                        and job.branch
-                        == self.copr_build_helper.pull_request_object.target_branch
+                        and job.branch == self.copr_build_helper.pull_request_object.target_branch
                     )
                     or (
                         not job.branch
@@ -182,8 +179,8 @@ class OpenScanHubHelper:
         Get the SRPM build model of the latest successful Copr build
         for the given job config.
         """
-        base_build_project_name = (
-            self.copr_build_helper.job_project_for_commit_job_config(base_build_job)
+        base_build_project_name = self.copr_build_helper.job_project_for_commit_job_config(
+            base_build_job,
         )
         base_build_owner = self.copr_build_helper.job_owner_for_job_config(
             base_build_job,
@@ -207,9 +204,7 @@ class OpenScanHubHelper:
             except StopIteration:
                 return None
 
-        target_branch_commit = (
-            self.copr_build_helper.pull_request_object.target_branch_head_commit
-        )
+        target_branch_commit = self.copr_build_helper.pull_request_object.target_branch_head_commit
 
         if srpm_build := get_srpm_build(target_branch_commit):
             return srpm_build

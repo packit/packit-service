@@ -284,9 +284,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
     return bool(build_copr.ended_on)
 
 
-def update_srpm_build_state(
-    build: SRPMBuildModel, build_copr: Any, build_copr_srpm: Any
-) -> None:
+def update_srpm_build_state(build: SRPMBuildModel, build_copr: Any, build_copr_srpm: Any) -> None:
     """
     Updates the state of the given SRPM build.
 
@@ -304,15 +302,11 @@ def update_srpm_build_state(
 
     event = CoprBuildEndEvent(
         topic=FedmsgTopic.copr_build_finished.value,
-        build_id=int(
-            build.copr_build_id
-        ),  # we expect int there even though we have str in DB
+        build_id=int(build.copr_build_id),  # we expect int there even though we have str in DB
         build=build,
         chroot=COPR_SRPM_CHROOT,
         status=(
-            COPR_API_SUCC_STATE
-            if build_copr_srpm.state == COPR_SUCC_STATE
-            else COPR_API_FAIL_STATE
+            COPR_API_SUCC_STATE if build_copr_srpm.state == COPR_SUCC_STATE else COPR_API_FAIL_STATE
         ),
         owner=build_copr.ownername,
         project_name=build_copr.projectname,
@@ -376,9 +370,7 @@ def update_copr_build_state(
         return
     event = event_kls(
         topic=FedmsgTopic.copr_build_finished.value,
-        build_id=int(
-            build.build_id
-        ),  # we expect int there even though we have str in DB
+        build_id=int(build.build_id),  # we expect int there even though we have str in DB
         build=build,
         chroot=build.target,
         status=(
@@ -474,9 +466,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     status = None
     response = None
     try:
-        response = helper.vm_image_builder.image_builder_request(
-            "GET", f"composes/{build_id}"
-        )
+        response = helper.vm_image_builder.image_builder_request("GET", f"composes/{build_id}")
         body = response.json()
         status = body["image_status"]["status"]
     except HTTPError as ex:
@@ -485,8 +475,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         status = VMImageBuildStatus.error
     except Exception as ex:
         message = (
-            f"There was an exception when getting status of the VM "
-            f"Image Build {build_id}: {ex}"
+            f"There was an exception when getting status of the VM " f"Image Build {build_id}: {ex}"
         )
         logger.error(message)
         # keep polling
@@ -572,16 +561,12 @@ def check_pending_vm_image_builds() -> None:
     - uploading
     - registering
     """
-    pending_vm_image_builds = VMImageBuildTargetModel.get_all_by_status(
-        VMImageBuildStatus.pending
-    )
+    pending_vm_image_builds = VMImageBuildTargetModel.get_all_by_status(VMImageBuildStatus.pending)
     current_time = datetime.now(timezone.utc)
     for build in pending_vm_image_builds:
         logger.debug(f"Checking status of VM image build {build.build_id}")
         if build.build_submitted_time:
-            elapsed = elapsed_seconds(
-                begin=build.build_submitted_time, end=current_time
-            )
+            elapsed = elapsed_seconds(begin=build.build_submitted_time, end=current_time)
             if elapsed > DEFAULT_JOB_TIMEOUT:
                 logger.info(
                     f"VM image build {build.build_id} has been running for "

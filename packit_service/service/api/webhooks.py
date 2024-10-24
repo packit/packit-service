@@ -309,12 +309,9 @@ class GitlabWebhook(Resource):
 
         # "repo_name" might be missing in token_decoded if the token is for group/namespace
         if token_decoded["namespace"] != parsed_url.namespace or (
-            "repo_name" in token_decoded
-            and token_decoded["repo_name"] != parsed_url.repo
+            "repo_name" in token_decoded and token_decoded["repo_name"] != parsed_url.repo
         ):
-            msg_failed_validation = (
-                "Decoded X-Gitlab-Token does not match namespace[/project]."
-            )
+            msg_failed_validation = "Decoded X-Gitlab-Token does not match namespace[/project]."
             logger.warning(msg_failed_validation)
             logger.debug(f"decoded: {token_decoded}, url: {parsed_url}")
             raise ValidationFailed(msg_failed_validation)

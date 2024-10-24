@@ -90,9 +90,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return self._supported_koji_targets
 
     def run_koji_build(self) -> TaskResults:
-        self.report_status_to_all(
-            description="Building SRPM ...", state=BaseCommitStatus.running
-        )
+        self.report_status_to_all(description="Building SRPM ...", state=BaseCommitStatus.running)
         if results := self.create_srpm_if_needed():
             return results
 
@@ -187,9 +185,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
         return TaskResults(success=True, details={})
 
-    def run_build(
-        self, target: Optional[str] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
+    def run_build(self, target: Optional[str] = None) -> Tuple[Optional[int], Optional[str]]:
         """
         Run the Koji build from upstream.
 

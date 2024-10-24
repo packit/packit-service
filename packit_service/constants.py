@@ -46,9 +46,7 @@ MSG_DOWNSTREAM_JOB_ERROR_HEADER = (
     "</tr>"
 )
 
-MSG_GET_IN_TOUCH = (
-    f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
-)
+MSG_GET_IN_TOUCH = f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
 
 MSG_RETRIGGER = (
     "You can retrigger the {job} by adding a comment (`{packit_comment_command_prefix} {command}`) "
@@ -219,9 +217,7 @@ INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
     "or only test job via `{packit_comment_command_prefix} test` comment.*",
 )
 
-CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS = (
-    "Not allowed to build in {copr_project} Copr project."
-)
+CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS = "Not allowed to build in {copr_project} Copr project."
 CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
     "Your git-forge project is not allowed to use "
     "the configured `{copr_project}` Copr project.\n\n"
@@ -234,9 +230,7 @@ FASJSON_URL = "https://fasjson.fedoraproject.org"
 
 PACKIT_VERIFY_FAS_COMMAND = "verify-fas"
 
-MISSING_PERMISSIONS_TO_BUILD_IN_COPR = (
-    "You don't have permissions to build in this copr."
-)
+MISSING_PERMISSIONS_TO_BUILD_IN_COPR = "You don't have permissions to build in this copr."
 NOT_ALLOWED_TO_BUILD_IN_COPR = "is not allowed to build in the copr"
 GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR = "can't build in this Copr via Packit."
 

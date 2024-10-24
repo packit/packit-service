@@ -72,10 +72,7 @@ def test_parse_valid(service_config_valid):
     assert config.server_name == "hub.packit.org"
     assert config.gitlab_token_secret == "jwt_secret"
     assert len(config.gitlab_mr_targets_handled) == 3
-    assert (
-        MRTarget("redhat/centos-stream/src/.+", "c9s")
-        in config.gitlab_mr_targets_handled
-    )
+    assert MRTarget("redhat/centos-stream/src/.+", "c9s") in config.gitlab_mr_targets_handled
     assert MRTarget("packit-service/src/.+", None) in config.gitlab_mr_targets_handled
     assert MRTarget(None, "rawhide") in config.gitlab_mr_targets_handled
     assert config.enabled_private_namespaces == {

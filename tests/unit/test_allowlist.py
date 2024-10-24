@@ -929,12 +929,7 @@ def test_is_github_username_from_fas_account_matching(
     # so that the kerberos authentication is not required
     FasjsonClient.__init__ = init
     # the Client class doesn't have directly the get_user method
-    fas = (
-        flexmock(FasjsonClient)
-        .should_receive("__getattr__")
-        .with_args("get_user")
-        .once()
-    )
+    fas = flexmock(FasjsonClient).should_receive("__getattr__").with_args("get_user").once()
     if person_object is not None:
         fas.and_return(flexmock(result=person_object))
     if raises is not None:

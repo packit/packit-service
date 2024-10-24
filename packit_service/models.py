@@ -85,10 +85,7 @@ Session = sessionmaker(bind=engine)
 
 def is_multi_threaded() -> bool:
     # See run_worker.sh
-    return (
-        getenv("POOL", "solo") in ("gevent", "eventlet")
-        and int(getenv("CONCURRENCY", 1)) > 1
-    )
+    return getenv("POOL", "solo") in ("gevent", "eventlet") and int(getenv("CONCURRENCY", 1)) > 1
 
 
 if is_multi_threaded():
@@ -547,9 +544,7 @@ class AnityaMultipleVersionsModel(BuildsAndTestsConnector, Base):
 
     def __repr__(self):
         return (
-            f"AnityaMultipleVersionsModel("
-            f"versions={self.versions}, "
-            f"project={self.project})"
+            f"AnityaMultipleVersionsModel(" f"versions={self.versions}, " f"project={self.project})"
         )
 
 
@@ -595,11 +590,7 @@ class AnityaVersionModel(BuildsAndTestsConnector, Base):
             return session.query(AnityaVersionModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return (
-            f"AnityaVersionModel("
-            f"version={self.version}, "
-            f"project={self.project})"
-        )
+        return f"AnityaVersionModel(" f"version={self.version}, " f"project={self.project})"
 
 
 class GitProjectModel(Base):
@@ -956,10 +947,7 @@ class GitProjectModel(Base):
                     projects_per_instance.setdefault(instance, set())
                     projects_per_instance[instance].add(project)
 
-        return {
-            instance: len(projects)
-            for instance, projects in projects_per_instance.items()
-        }
+        return {instance: len(projects) for instance, projects in projects_per_instance.items()}
 
     @classmethod
     @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
@@ -1288,9 +1276,7 @@ class SyncReleasePullRequestModel(Base):
             return session.query(SyncReleasePullRequestModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return (
-            f"SyncReleasePullRequestModel(pr_id={self.pr_id}, project={self.project})"
-        )
+        return f"SyncReleasePullRequestModel(pr_id={self.pr_id}, project={self.project})"
 
 
 class PullRequestModel(BuildsAndTestsConnector, Base):
@@ -1498,11 +1484,7 @@ class ProjectReleaseModel(BuildsAndTestsConnector, Base):
             return session.query(ProjectReleaseModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return (
-            f"ProjectReleaseModel("
-            f"tag_name={self.tag_name}, "
-            f"project={self.project})"
-        )
+        return f"ProjectReleaseModel(" f"tag_name={self.tag_name}, " f"project={self.project})"
 
 
 class KojiBuildTagModel(BuildsAndTestsConnector, Base):
@@ -2009,9 +1991,7 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"CoprBuildGroupModel(id={self.id}, submitted_time={self.submitted_time})"
-        )
+        return f"CoprBuildGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @property
     def grouped_targets(self) -> list["CoprBuildTargetModel"]:
@@ -2152,11 +2132,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         # All SRPMBuild models for all the runs have to be same.
-        return (
-            self.group_of_targets.runs[0].srpm_build
-            if self.group_of_targets.runs
-            else None
-        )
+        return self.group_of_targets.runs[0].srpm_build if self.group_of_targets.runs else None
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildTargetModel"]:
@@ -2369,9 +2345,7 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return self.koji_build_targets
 
     def __repr__(self) -> str:
-        return (
-            f"KojiBuildGroupModel(id={self.id}, submitted_time={self.submitted_time})"
-        )
+        return f"KojiBuildGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildGroupModel"]:
@@ -2499,8 +2473,7 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
                 )
                 .join(
                     BodhiUpdateTargetModel,
-                    BodhiUpdateGroupModel.id
-                    == BodhiUpdateTargetModel.bodhi_update_group_id,
+                    BodhiUpdateGroupModel.id == BodhiUpdateTargetModel.bodhi_update_group_id,
                 )
             ).filter(BodhiUpdateTargetModel.status == "success")
 
@@ -2542,9 +2515,7 @@ class BodhiUpdateGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return self.bodhi_update_targets
 
     def __repr__(self) -> str:
-        return (
-            f"BodhiUpdateGroupModel(id={self.id}, submitted_time={self.submitted_time})"
-        )
+        return f"BodhiUpdateGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["BodhiUpdateGroupModel"]:
@@ -2655,11 +2626,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         # All SRPMBuild models for all the runs have to be same.
-        return (
-            self.group_of_targets.runs[0].srpm_build
-            if self.group_of_targets.runs
-            else None
-        )
+        return self.group_of_targets.runs[0].srpm_build if self.group_of_targets.runs else None
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildTargetModel"]:
@@ -2877,9 +2844,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
     def get_range(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
         with sa_session_transaction() as session:
             return (
-                session.query(SRPMBuildModel)
-                .order_by(desc(SRPMBuildModel.id))
-                .slice(first, last)
+                session.query(SRPMBuildModel).order_by(desc(SRPMBuildModel.id)).slice(first, last)
             )
 
     @classmethod
@@ -2890,11 +2855,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
         if isinstance(copr_build_id, int):
             copr_build_id = str(copr_build_id)
         with sa_session_transaction() as session:
-            return (
-                session.query(SRPMBuildModel)
-                .filter_by(copr_build_id=copr_build_id)
-                .first()
-            )
+            return session.query(SRPMBuildModel).filter_by(copr_build_id=copr_build_id).first()
 
     @classmethod
     def get_older_than(cls, delta: timedelta) -> Iterable["SRPMBuildModel"]:
@@ -3105,9 +3066,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"TFTTestRunGroupModel(id={self.id}, submitted_time={self.submitted_time})"
-        )
+        return f"TFTTestRunGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @classmethod
     def create(cls, run_models: list["PipelineModel"]) -> "TFTTestRunGroupModel":
@@ -3222,11 +3181,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     @classmethod
     def get_by_pipeline_id(cls, pipeline_id: str) -> Optional["TFTTestRunTargetModel"]:
         with sa_session_transaction() as session:
-            return (
-                session.query(TFTTestRunTargetModel)
-                .filter_by(pipeline_id=pipeline_id)
-                .first()
-            )
+            return session.query(TFTTestRunTargetModel).filter_by(pipeline_id=pipeline_id).first()
 
     @classmethod
     def get_all_by_status(
@@ -3381,8 +3336,7 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
                 )
                 .join(
                     SyncReleaseTargetModel,
-                    SyncReleaseTargetModel.downstream_pr_id
-                    == SyncReleasePullRequestModel.id,
+                    SyncReleaseTargetModel.downstream_pr_id == SyncReleasePullRequestModel.id,
                 )
                 .filter(
                     SyncReleaseTargetModel.status == SyncReleaseTargetStatus.submitted,
@@ -3626,9 +3580,7 @@ class GithubInstallationModel(Base):
             installation.sender_login = event.sender_login
             installation.sender_id = event.sender_id
             installation.created_at = event.created_at
-            installation.repositories = [
-                cls.get_project(repo).id for repo in event.repositories
-            ]
+            installation.repositories = [cls.get_project(repo).id for repo in event.repositories]
             session.add(installation)
             return installation
 
@@ -3716,9 +3668,7 @@ class SourceGitPRDistGitPRModel(Base):
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["SourceGitPRDistGitPRModel"]:
         with sa_session_transaction() as session:
-            return (
-                session.query(SourceGitPRDistGitPRModel).filter_by(id=id_).one_or_none()
-            )
+            return session.query(SourceGitPRDistGitPRModel).filter_by(id=id_).one_or_none()
 
     @classmethod
     def get_by_source_git_id(cls, id_: int) -> Optional["SourceGitPRDistGitPRModel"]:
@@ -4018,11 +3968,7 @@ class SidetagModel(Base):
         session.begin()
 
         try:
-            sidetag = (
-                session.query(cls)
-                .filter_by(sidetag_group_id=group.id, target=target)
-                .first()
-            )
+            sidetag = session.query(cls).filter_by(sidetag_group_id=group.id, target=target).first()
             if not sidetag:
                 sidetag = cls()
                 sidetag.target = target
