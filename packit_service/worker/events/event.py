@@ -556,6 +556,7 @@ class Event(ABC):
         Returns:
             `False` when we can ignore the event, `True` otherwise (for handling).
         """
+        # [XXX] Is `True` as a default here a good idea?
         return True
 
     @abstractmethod
