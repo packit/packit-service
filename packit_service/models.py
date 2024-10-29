@@ -43,7 +43,6 @@ from sqlalchemy import (
     null,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
-from sqlalchemy.dialects.postgresql import dialect as psql_dialect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
@@ -2512,9 +2511,7 @@ class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
                 session.query(BodhiUpdateTargetModel)
                 .filter(
                     BodhiUpdateTargetModel.status.in_(("queued", "retry", "success")),
-                    BodhiUpdateTargetModel.koji_nvrs.regexp_match(regexp).compile(
-                        dialect=psql_dialect(),
-                    ),
+                    BodhiUpdateTargetModel.koji_nvrs.regexp_match(regexp),
                 )
                 .all(),
             )
