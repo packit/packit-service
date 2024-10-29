@@ -192,6 +192,18 @@ class BodhiUpdateHandler(
                 target_model.set_status("error")
                 target_model.set_data({"error": error})
 
+            except Exception as ex:
+                if self.celery_task and not self.celery_task.is_last_try():
+                    target_model.set_status("retry")
+                    raise
+
+                error = f"Internal error, please contact us: {ex}"
+                errors[target_model.target] = error
+
+                target_model.set_status("error")
+                target_model.set_data({"error": error})
+                raise
+
         if errors:
             self.report_in_issue_repository(errors=errors)
 
