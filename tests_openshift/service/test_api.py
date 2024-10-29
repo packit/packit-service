@@ -929,11 +929,11 @@ def test_bodhi_update_list(
 
     response_dict.reverse()
     assert response_dict[0]["status"] == "queued"
-    assert response_dict[0]["koji_nvr"] == SampleValues.nvr
+    assert response_dict[0]["koji_nvrs"] == SampleValues.nvr
     assert response_dict[0]["branch"] == SampleValues.dist_git_branch
     assert response_dict[0]["branch_name"] == SampleValues.branch
 
-    assert response_dict[1]["koji_nvr"] == SampleValues.different_nvr
+    assert response_dict[1]["koji_nvrs"] == SampleValues.different_nvr
     assert response_dict[1]["branch"] == SampleValues.different_dist_git_branch
 
     assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
@@ -953,7 +953,7 @@ def test_bodhi_update_info(
     assert response_dict["alias"] == SampleValues.alias
     assert response_dict["branch"] == SampleValues.dist_git_branch
     assert response_dict["web_url"] == SampleValues.bodhi_url
-    assert response_dict["koji_nvr"] == SampleValues.nvr
+    assert response_dict["koji_nvrs"] == SampleValues.nvr
     assert response_dict["branch_name"] == SampleValues.branch
     assert response_dict["repo_name"] == SampleValues.repo_name
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace

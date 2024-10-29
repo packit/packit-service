@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from packit_service.models import (
+    BodhiUpdateTargetModel,
     BuildStatus,
     CoprBuildGroupModel,
     CoprBuildTargetModel,
@@ -1145,3 +1146,21 @@ def test_add_scan_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
     a_copr_build_for_pr.add_scan(123)
     scan = OSHScanModel.get_by_task_id(123)
     assert scan.task_id == 123
+
+
+def test_bodhi_model_get_last_successful_by_sidetag(
+    clean_before_and_after, successful_bodhi_update_model
+):
+    assert successful_bodhi_update_model.id
+
+    model = BodhiUpdateTargetModel.get_last_successful_by_sidetag(SampleValues.sidetag)
+    assert model.id == successful_bodhi_update_model.id
+
+
+def test_bodhi_model_get_all_successful_or_in_progress_by_nvrs(
+    clean_before_and_after, successful_bodhi_update_model
+):
+    assert successful_bodhi_update_model.id
+
+    [model] = BodhiUpdateTargetModel.get_all_successful_or_in_progress_by_nvrs(SampleValues.nvr)
+    assert model.id == successful_bodhi_update_model.id
