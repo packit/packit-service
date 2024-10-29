@@ -158,6 +158,7 @@ class SampleValues:
     different_dist_git_branch = "f38"
     alias = "FEDORA-123"
     bodhi_url = "https://bodhi.fedoraproject.org/FEDORA-123"
+    sidetag = "f39-build-side-12345"
 
     # anitya
     anitya_project_id = 12345
@@ -199,6 +200,7 @@ def clean_db():
         session.query(CoprBuildTargetModel).delete()
         session.query(CoprBuildGroupModel).delete()
         session.query(KojiBuildTargetModel).delete()
+        session.query(BodhiUpdateTargetModel).delete()
         session.query(SRPMBuildModel).delete()
         session.query(SyncReleaseTargetModel).delete()
         session.query(SyncReleaseModel).delete()
@@ -2434,13 +2436,32 @@ def bodhi_update_model(branch_project_event_model):
     )
     model = BodhiUpdateTargetModel.create(
         target=SampleValues.dist_git_branch,
-        koji_nvr=SampleValues.nvr,
+        koji_nvrs=SampleValues.nvr,
         status="queued",
         bodhi_update_group=group,
+        sidetag=SampleValues.sidetag,
     )
     model.set_alias(SampleValues.alias)
     model.set_web_url(SampleValues.bodhi_url)
     model.set_status("error")
+    yield model
+
+
+@pytest.fixture()
+def successful_bodhi_update_model(branch_project_event_model):
+    group = BodhiUpdateGroupModel.create(
+        run_model=PipelineModel.create(project_event=branch_project_event_model),
+    )
+    model = BodhiUpdateTargetModel.create(
+        target=SampleValues.dist_git_branch,
+        koji_nvrs=SampleValues.nvr,
+        status="queued",
+        bodhi_update_group=group,
+        sidetag=SampleValues.sidetag,
+    )
+    model.set_alias(SampleValues.alias)
+    model.set_web_url(SampleValues.bodhi_url)
+    model.set_status("success")
     yield model
 
 
@@ -2452,13 +2473,13 @@ def multiple_bodhi_update_runs(branch_project_event_model):
     yield [
         BodhiUpdateTargetModel.create(
             target=SampleValues.dist_git_branch,
-            koji_nvr=SampleValues.nvr,
+            koji_nvrs=SampleValues.nvr,
             status="queued",
             bodhi_update_group=group,
         ),
         BodhiUpdateTargetModel.create(
             target=SampleValues.different_dist_git_branch,
-            koji_nvr=SampleValues.different_nvr,
+            koji_nvrs=SampleValues.different_nvr,
             status="queued",
             bodhi_update_group=group,
         ),
