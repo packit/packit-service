@@ -152,6 +152,7 @@ def test_handle_scan(build_models):
             id=1,
             get_srpm_build=lambda: srpm_mock,
             target="fedora-rawhide-x86_64",
+            scan=None,
             get_project_event_model=lambda: flexmock(
                 type=ProjectEventModelType.pull_request,
                 get_project_event_object=lambda: flexmock(),

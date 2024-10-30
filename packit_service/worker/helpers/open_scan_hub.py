@@ -65,11 +65,19 @@ class OpenScanHubHelper:
             logger.debug("No base build job needed for diff scan found in the config.")
             return
 
-        logger.info("Preparing to trigger scan in OpenScanHub...")
-
-        if not (base_srpm_model := self.get_base_srpm_model(base_build_job)):
+        if self.build.scan:
+            # see comment https://github.com/packit/packit-service/issues/2604#issuecomment-2444321483
+            logger.debug(
+                f"Scan for build {self.build.id} already submitted, "
+                "scan task_id {self.build.scan.task_id}."
+            )
             return
 
+        if not (base_srpm_model := self.get_base_srpm_model(base_build_job)):
+            logger.debug("Successful base SRPM build has not been found.")
+            return
+
+        logger.info("Preparing to trigger scan in OpenScanHub...")
         srpm_model = self.build.get_srpm_build()
 
         with tempfile.TemporaryDirectory() as directory:
