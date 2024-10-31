@@ -233,6 +233,13 @@ class OpenScanHubHelper:
         srpm_model: SRPMBuildModel,
     ) -> Optional[tuple[Path, Path]]:
         def download_srpm(srpm_model: SRPMBuildModel) -> Optional[Path]:
+            if not srpm_model.url:
+                logger.info(
+                    f"SRPMBuildModel with copr_build_id={srpm_model.copr_build_id} "
+                    "has status={srpm_model.status} "
+                    "and empty url. Skipping download."
+                )
+                return None
             srpm_path = Path(directory).joinpath(basename(srpm_model.url))
             if not download_file(srpm_model.url, srpm_path):
                 logger.info(f"Downloading of SRPM {srpm_model.url} was not successful.")
