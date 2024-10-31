@@ -959,3 +959,34 @@ def test_bodhi_update_info(
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["status"] == "error"
     assert response_dict["submitted_time"] is not None
+
+
+def test_scan_info(
+    client,
+    clean_before_and_after,
+    a_scan,
+):
+    response = client.get(
+        url_for("api.osh-scans_scan_item", id=a_scan.id),
+    )
+    response_dict = response.json
+    assert response_dict["task_id"] == SampleValues.task_id
+    assert response_dict["url"] == SampleValues.scan_url
+    assert response_dict["status"] == SampleValues.scan_status_success
+    assert response_dict["issues_added_url"] == SampleValues.issues_added_url
+    assert response_dict["issues_fixed_url"] == SampleValues.issues_fixed_url
+    assert response_dict["scan_results_url"] == SampleValues.scan_results_url
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["project_url"] == SampleValues.project_url
+
+
+def test_scans_list(
+    client,
+    clean_before_and_after,
+    a_scan,
+):
+    response = client.get(url_for("api.osh-scans_scans_list"))
+    response_dict = response.json
+
+    assert len(response_dict) == 1

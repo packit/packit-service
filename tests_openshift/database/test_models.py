@@ -1134,11 +1134,11 @@ def test_project_event_get_and_reset_older_than_with_packages_config(
 
 def test_create_scan(clean_before_and_after, a_scan):
     assert a_scan.task_id == 123
-    assert a_scan.status == "success"
-    assert a_scan.url == "task url"
-    assert a_scan.issues_added_url == "added issues"
-    assert a_scan.issues_fixed_url == "fixed issues"
-    assert a_scan.scan_results_url == "results"
+    assert a_scan.status == "succeeded"
+    assert a_scan.url == "https://scan-url"
+    assert a_scan.issues_added_url == "https://issues-added-url"
+    assert a_scan.issues_fixed_url == "https://issues-fixed-url"
+    assert a_scan.scan_results_url == "https://scan-results-url"
     assert a_scan.copr_build_target.build_id == "123456"
 
 

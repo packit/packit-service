@@ -34,6 +34,7 @@ from packit_service.models import (
     KojiBuildGroupModel,
     KojiBuildTargetModel,
     OSHScanModel,
+    OSHScanStatus,
     PipelineModel,
     ProjectAuthenticationIssueModel,
     ProjectEventModel,
@@ -163,6 +164,14 @@ class SampleValues:
     # anitya
     anitya_project_id = 12345
     anitya_project_name = "packit-anitya"
+
+    # scan
+    task_id = 123
+    scan_url = "https://scan-url"
+    issues_added_url = "https://issues-added-url"
+    issues_fixed_url = "https://issues-fixed-url"
+    scan_results_url = "https://scan-results-url"
+    scan_status_success = OSHScanStatus.succeeded
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -2488,10 +2497,10 @@ def multiple_bodhi_update_runs(branch_project_event_model):
 
 @pytest.fixture()
 def a_scan(a_copr_build_for_pr):
-    scan = a_copr_build_for_pr.add_scan(123)
-    scan.status = "success"
-    scan.url = "task url"
-    scan.issues_added_url = "added issues"
-    scan.issues_fixed_url = "fixed issues"
-    scan.scan_results_url = "results"
+    scan = a_copr_build_for_pr.add_scan(SampleValues.task_id)
+    scan.status = SampleValues.scan_status_success
+    scan.url = SampleValues.scan_url
+    scan.issues_added_url = SampleValues.issues_added_url
+    scan.issues_fixed_url = SampleValues.issues_fixed_url
+    scan.scan_results_url = SampleValues.scan_results_url
     yield scan
