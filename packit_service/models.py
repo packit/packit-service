@@ -4038,6 +4038,7 @@ class OSHScanModel(Base):
     issues_added_url = Column(String)
     issues_fixed_url = Column(String)
     scan_results_url = Column(String)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
     copr_build_target_id = Column(
         Integer,
         ForeignKey("copr_build_targets.id"),
