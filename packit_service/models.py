@@ -23,7 +23,6 @@ from urllib.parse import urlparse
 
 from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
-from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -47,6 +46,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
 )
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import (
     relationship,
     scoped_session,
@@ -55,6 +55,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
+from packit.config import JobConfigTriggerType
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -2328,6 +2329,46 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             scan.copr_build_target = self
             session.add(scan)
             return scan
+
+    @contextmanager
+    def add_scan_transaction(self) -> Generator["OSHScanModel"]:
+        """
+        Context manager that creates a ScanModel upon entering the context,
+        provides a corresponding instance of `ScanModel` to be updated within the context
+        and commits the changes upon exiting the context, all within a single transaction.
+
+        This locking mechanism is working on the assumption that just a single scan model
+        for build can exist.
+
+        raise: IntegrityError if the scan model already exists
+        """
+        session = singleton_session or Session()
+        session.begin()
+
+        try:
+            scan = OSHScanModel()
+            scan.copr_build_target = self
+            session.add(scan)
+            session.commit()
+        except Exception as ex:
+            logger.warning(f"Exception while working with database: {ex!r}")
+            session.rollback()
+            raise
+
+        try:
+            yield scan
+        except Exception as ex:
+            logger.warning(f"{ex!r}")
+            session.rollback()
+            raise
+
+        try:
+            session.add(scan)
+            session.commit()
+        except Exception as ex:
+            logger.warning(f"Exception while working with database: {ex!r}")
+            session.rollback()
+            raise
 
 
 class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):

@@ -9,12 +9,14 @@ from os import getenv
 from os.path import basename
 from pathlib import Path
 from typing import Optional
+from sqlalchemy.exc import IntegrityError
 
 from packit.config import (
     JobConfig,
     JobConfigTriggerType,
     JobType,
 )
+from packit.exceptions import PackitException
 
 from packit_service.constants import (
     OPEN_SCAN_HUB_FEATURE_DESCRIPTION,
@@ -22,6 +24,7 @@ from packit_service.constants import (
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
+    OSHScanStatus,
     SRPMBuildModel,
 )
 from packit_service.service.urls import get_copr_build_info_url
@@ -32,6 +35,10 @@ from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
+
+
+class OSHNoFeedback(PackitException):
+    pass
 
 
 class OpenScanHubHelper:
@@ -65,14 +72,6 @@ class OpenScanHubHelper:
             logger.debug("No base build job needed for diff scan found in the config.")
             return
 
-        if self.build.scan:
-            # see comment https://github.com/packit/packit-service/issues/2604#issuecomment-2444321483
-            logger.debug(
-                f"Scan for build {self.build.id} already submitted, "
-                "scan task_id {self.build.scan.task_id}."
-            )
-            return
-
         if not (base_srpm_model := self.get_base_srpm_model(base_build_job)):
             logger.debug("Successful base SRPM build has not been found.")
             return
@@ -94,53 +93,55 @@ class OpenScanHubHelper:
 
             build_dashboard_url = get_copr_build_info_url(self.build.id)
 
-            output = self.copr_build_helper.api.run_osh_build(
-                srpm_path=paths[1],
-                base_srpm=paths[0],
-                comment=f"Submitted via Packit Service for {build_dashboard_url}",
-            )
+            try:
+                err_msg = "Scan in OpenScanHub was not submitted successfully."
+                with self.build.add_scan_transaction() as scan:
+                    output = self.copr_build_helper.api.run_osh_build(
+                        srpm_path=paths[1],
+                        base_srpm=paths[0],
+                        comment=f"Submitted via Packit Service for {build_dashboard_url}",
+                    )
 
-            if not output:
+                    if not output:
+                        raise OSHNoFeedback("Something went wrong, skipping the reporting.")
+
+                    logger.info("Scan submitted successfully.")
+
+                    response_dict = self.parse_dict_from_output(output)
+
+                    logger.debug(f"Parsed dict from output: {response_dict} ")
+
+                    if id := response_dict.get("id"):
+                        scan.task_id = id
+                        scan.status = OSHScanStatus.pending
+                    else:
+                        raise OSHNoFeedback(
+                            "It was not possible to get the Open Scan Hub task_id "
+                            "from the response.",
+                        )
+
+                    if not (url := response_dict.get("url")):
+                        err_msg = "It was not possible to get the task URL from the OSH response."
+                        raise OSHNoFeedback(err_msg)
+                    scan.url = url
+
+                    self.report(
+                        state=BaseCommitStatus.running,
+                        description=(
+                            "Scan in OpenScanHub submitted successfully. "
+                            "Check the URL for more details."
+                        ),
+                        url=url,
+                    )
+            except IntegrityError as ex:
+                logger.info(f"OpenScanHub already submitted: {ex}")
+            except OSHNoFeedback as ex:
+                logger.info(f"OpenScanHub feedback missing: {ex}")
                 self.report(
                     state=BaseCommitStatus.neutral,
-                    description="Scan in OpenScanHub was not submitted successfully.",
-                    url=None,
+                    description=err_msg,
+                    url=build_dashboard_url,
                 )
-                return
-
-            logger.info("Scan submitted successfully.")
-
-            response_dict = self.parse_dict_from_output(output)
-
-            logger.debug(f"Parsed dict from output: {response_dict} ")
-
-            scan = None
-            if id := response_dict.get("id"):
-                scan = self.build.add_scan(task_id=id)
-            else:
-                logger.debug(
-                    "It was not possible to get the Open Scan Hub task_id from the response.",
-                )
-
-            if not (url := response_dict.get("url")):
-                msg = "It was not possible to get the task URL from the OSH response."
-                logger.debug(msg)
-                self.report(
-                    state=BaseCommitStatus.neutral,
-                    description=msg,
-                    url=None,
-                )
-                return
-            if url and scan:
-                scan.set_url(url)
-
-            self.report(
-                state=BaseCommitStatus.running,
-                description=(
-                    "Scan in OpenScanHub submitted successfully. Check the URL for more details."
-                ),
-                url=url,
-            )
 
     def report(
         self,
