@@ -82,6 +82,14 @@ class OpenScanHubHelper:
 
         with tempfile.TemporaryDirectory() as directory:
             if not (paths := self.download_srpms(directory, base_srpm_model, srpm_model)):
+                self.report(
+                    state=BaseCommitStatus.neutral,
+                    description=(
+                        "It was not possible to download the SRPMs needed"
+                        " for the differential scan."
+                    ),
+                    url=None,
+                )
                 return
 
             build_dashboard_url = get_copr_build_info_url(self.build.id)
@@ -93,7 +101,11 @@ class OpenScanHubHelper:
             )
 
             if not output:
-                logger.debug("Something went wrong, skipping the reporting.")
+                self.report(
+                    state=BaseCommitStatus.neutral,
+                    description="Scan in OpenScanHub was not submitted successfully.",
+                    url=None,
+                )
                 return
 
             logger.info("Scan submitted successfully.")
@@ -111,7 +123,13 @@ class OpenScanHubHelper:
                 )
 
             if not (url := response_dict.get("url")):
-                logger.debug("It was not possible to get the URL from the response.")
+                msg = "It was not possible to get the task URL from the OSH response."
+                logger.debug(msg)
+                self.report(
+                    state=BaseCommitStatus.neutral,
+                    description=msg,
+                    url=None,
+                )
                 return
             if url and scan:
                 scan.set_url(url)
