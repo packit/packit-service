@@ -297,8 +297,6 @@ USAGE_DATE_IN_THE_PAST = USAGE_CURRENT_DATE.replace(year=USAGE_CURRENT_DATE.year
 USAGE_DATE_IN_THE_PAST_STR = USAGE_DATE_IN_THE_PAST.strftime("%Y-%m-%d")
 
 OPEN_SCAN_HUB_FEATURE_DESCRIPTION = (
-    "This is an experimental feature. Once the scan finishes, you can see the "
-    "new findings in the `added.html` in `Logs`. \n\n"
     ":warning: You can see the list of known issues and also provide your feedback"
     " [here](https://github.com/packit/packit/discussions/2371). \n\n"
     "You can disable the scanning in your configuration by "
