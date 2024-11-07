@@ -1,9 +1,10 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+import json
 import logging
-from typing import Union
+from typing import Optional, Union
 
+import requests
 from packit.config import (
     JobType,
 )
@@ -99,17 +100,79 @@ class OpenScanHubTaskFinishedHandler(
     event: OpenScanHubTaskFinishedEvent
     task_name = TaskName.openscanhub_task_finished
 
+    def get_number_of_new_findings_identified(self) -> Optional[int]:
+        """
+        Downloads a JSON file from the task issues added URL and
+        returns the number of items in the 'defects' array.
+
+        Returns:
+            Optional[int]: Number of items in the 'defects' array,
+             or None if not found or on error.
+        """
+        url = self.event.issues_added_url
+        logger.info(f"About to get the number of new findings identified by the scan from {url}.")
+
+        try:
+            with requests.get(url, timeout=10) as response:
+                response.raise_for_status()
+                data = response.json()
+
+                defects = data.get("defects")
+                if defects is None:
+                    logger.debug("No 'defects' array found in the JSON data.")
+                    return None
+
+                return len(defects)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error while downloading the JSON file: {e}")
+            return None
+        except json.JSONDecodeError:
+            logger.error("The response is not a valid JSON format.")
+            return None
+
+    def get_issues_added_url(
+        self,
+        openscanhub_url: str = "https://openscanhub.fedoraproject.org",
+        file_format: str = "html",
+    ) -> str:
+        """
+        Constructs the URL for the added issues in the specified
+        format for the given OpenScanHub task.
+
+        Parameters:
+            openscanhub_url (str)
+            file_format (str): The format of the added issues file ('html' or 'json').
+
+        Returns:
+            str: The full URL to access the added issues in the specified format.
+        """
+        return f"{openscanhub_url}/task/{self.event.task_id}/log/added.{file_format}"
+
     def run(self) -> TaskResults:
         self.check_scan_and_build()
 
         if self.event.status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
-            description = "Scan in OpenScanHub is finished. Check the URL for more details."
-            external_links = {
-                "Added issues": self.event.issues_added_url,
-                "Fixed issues": self.event.issues_fixed_url,
-                "Scan results": self.event.scan_results_url,
-            }
+            number_of_new_findings = self.get_number_of_new_findings_identified()
+            base_description = "Scan in OpenScanHub is finished."
+
+            if number_of_new_findings is None:
+                description = (
+                    f"{base_description} We were not able to analyse the findings; "
+                    f"please check the URL."
+                )
+                external_links = {"Added issues": self.get_issues_added_url()}
+            elif number_of_new_findings > 0:
+                description = (
+                    f"{base_description} [{number_of_new_findings}"
+                    f" new findings]({self.get_issues_added_url()}) identified."
+                )
+                external_links = {"Added issues": self.get_issues_added_url()}
+            else:
+                description = f"{base_description} No new findings identified."
+                external_links = {}
+
             self.event.scan.set_status(OSHScanStatus.succeeded)
             self.event.scan.set_issues_added_url(self.event.issues_added_url)
             self.event.scan.set_issues_fixed_url(self.event.issues_fixed_url)
