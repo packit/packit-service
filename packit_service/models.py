@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
+from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -42,11 +43,11 @@ from sqlalchemy import (
     null,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
 )
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import (
     relationship,
     scoped_session,
@@ -55,7 +56,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
-from packit.config import JobConfigTriggerType
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)

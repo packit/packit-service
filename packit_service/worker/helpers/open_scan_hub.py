@@ -9,7 +9,6 @@ from os import getenv
 from os.path import basename
 from pathlib import Path
 from typing import Optional
-from sqlalchemy.exc import IntegrityError
 
 from packit.config import (
     JobConfig,
@@ -17,6 +16,7 @@ from packit.config import (
     JobType,
 )
 from packit.exceptions import PackitException
+from sqlalchemy.exc import IntegrityError
 
 from packit_service.constants import (
     OPEN_SCAN_HUB_FEATURE_DESCRIPTION,
