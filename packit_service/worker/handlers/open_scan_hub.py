@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Union
+from typing import Optional, Union
 
+from ogr.services.github import GithubProject
 from packit.config import (
     JobType,
 )
@@ -47,6 +48,7 @@ class OpenScanHubAbstractHandler(
         self.event: Union[OpenScanHubTaskFinishedEvent | OpenScanHubTaskStartedEvent] = (
             self.data.to_event()
         )
+        self._openscanhub_helper: Optional[OpenScanHubHelper] = None
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
@@ -67,6 +69,12 @@ class OpenScanHubAbstractHandler(
             copr_build_helper=build_helper,
             build=self.event.build,
         )
+
+    @property
+    def openscanhub_helper(self):
+        if not self._openscanhub_helper:
+            self._openscanhub_helper = self.get_helper()
+        return self._openscanhub_helper
 
     def check_scan_and_build(self):
         task_id = self.data.event_dict["task_id"]
@@ -114,6 +122,12 @@ class OpenScanHubTaskFinishedHandler(
             self.event.scan.set_issues_added_url(self.event.issues_added_url)
             self.event.scan.set_issues_fixed_url(self.event.issues_fixed_url)
             self.event.scan.set_scan_results_url(self.event.scan_results_url)
+            if isinstance(self.project, GithubProject):
+                issues_sarif = self.openscanhub_helper.get_sarif_to_upload(
+                    self.event.issues_added_url
+                )
+                if issues_sarif:
+                    self.openscanhub_helper.upload_sarif(issues_sarif)
         else:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {self.event.status} state."
@@ -123,7 +137,7 @@ class OpenScanHubTaskFinishedHandler(
             else:
                 self.event.scan.set_status(OSHScanStatus.failed)
 
-        self.get_helper().report(
+        self.openscanhub_helper.report(
             state=state,
             description=description,
             url=self.event.scan.url,
@@ -154,7 +168,7 @@ class OpenScanHubTaskStartedHandler(
         description = "Scan in OpenScanHub has started."
         self.event.scan.set_status(OSHScanStatus.running)
 
-        self.get_helper().report(
+        self.openscanhub_helper.report(
             state=state,
             description=description,
             url=self.event.scan.url,

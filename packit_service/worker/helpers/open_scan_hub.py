@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+import base64
+import gzip
 import json
 import logging
 import re
@@ -10,11 +11,13 @@ from os.path import basename
 from pathlib import Path
 from typing import Optional
 
+from ogr.services.github import GithubProject
 from packit.config import (
     JobConfig,
     JobConfigTriggerType,
     JobType,
 )
+from packit.utils import run_command
 
 from packit_service.constants import (
     OPEN_SCAN_HUB_FEATURE_DESCRIPTION,
@@ -271,3 +274,68 @@ class OpenScanHubHelper:
             return None
 
         return base_srpm_path, srpm_path
+
+    @staticmethod
+    def get_sarif_to_upload(url: str) -> Optional[str]:
+        """
+        Fetch the file content, convert to SARIF using csgrep,
+        compress and encode it so that it can be uploaded to GitHub.
+        """
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).joinpath(basename(url))
+            if not download_file(url, path):
+                logger.info(f"Downloading of file {url} was not successful.")
+                return None
+
+            # run `csgrep` to convert to SARIF format
+            result = run_command(["csgrep", "--mode=sarif", str(path)], fail=False, output=True)
+
+        if not result.success:
+            logger.info(f"Conversion to SARIF was not successful: {result.stderr}")
+            return None
+
+        logger.info("Conversion to SARIF was successful, about to compress and encode.")
+
+        try:
+            # TODO replace csmock with OpenScanHub/ [Packit] OpenScanHub where needed
+            #  so that this name is displayed later in GitHub UI
+            sarif_data = result.stdout.encode("utf-8")
+            compressed_data = gzip.compress(sarif_data)
+            base64_encoded_data = base64.b64encode(compressed_data).decode("utf-8")
+
+            logger.info("SARIF file successfully compressed and encoded.")
+            return base64_encoded_data
+
+        except Exception as e:
+            logger.error(f"An error occurred during compression and encoding: {e}")
+            return None
+
+    def upload_sarif(self, data: str):
+        """
+        Upload the encoded SARIF to GitHub.
+        """
+        if self.copr_build_helper.job_build.merge_pr_in_ci:
+            # TODO this is not really correct and we need to discuss it
+            commit_sha = self.copr_build_helper.pull_request_object.merge_commit_sha
+            ref = f"refs/pull/{self.copr_build_helper.pr_id}/merge"
+        else:
+            commit_sha = self.copr_build_helper.db_project_event.commit_sha
+            ref = f"refs/pull/{self.copr_build_helper.pr_id}/head"
+
+        # there is no PyGithub support yet, API docs:
+        # https://docs.github.com/en/rest/code-scanning/code-scanning?
+        # apiVersion=2022-11-28#upload-an-analysis-as-sarif-data--parameters
+        payload = {
+            "commit_sha": commit_sha,
+            "ref": ref,
+            "sarif": data,
+        }
+        if not isinstance(self.copr_build_helper.project, GithubProject):
+            return
+
+        pygithub_repo = self.copr_build_helper.project.github_repo
+        pygithub_repo._requester.requestJsonAndCheck(
+            "POST",
+            f"{pygithub_repo.url}/code-scanning/sarifs",
+            input=payload,
+        )

@@ -269,6 +269,8 @@ def test_handle_scan_task_finished(
                     "0.7.5-1.20241007054606793155.pr405.23.g829aafd6/scan-results.js?format=raw"
                 ),
             }
+            flexmock(OpenScanHubHelper).should_receive("get_sarif_to_upload").and_return(flexmock())
+            flexmock(OpenScanHubHelper).should_receive("upload_sarif")
         elif scan_status == OpenScanHubTaskFinishedEvent.Status.cancel:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {scan_status} state."
