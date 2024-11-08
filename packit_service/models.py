@@ -4038,6 +4038,7 @@ class OSHScanModel(Base):
     issues_added_url = Column(String)
     issues_fixed_url = Column(String)
     scan_results_url = Column(String)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
     copr_build_target_id = Column(
         Integer,
         ForeignKey("copr_build_targets.id"),
@@ -4089,6 +4090,16 @@ class OSHScanModel(Base):
     def get_by_task_id(cls, task_id: int) -> Optional["OSHScanModel"]:
         with sa_session_transaction() as session:
             return session.query(cls).filter_by(task_id=task_id).first()
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["OSHScanModel"]:
+        with sa_session_transaction() as session:
+            return session.query(OSHScanModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_range(cls, first: int, last: int) -> Iterable["OSHScanModel"]:
+        with sa_session_transaction() as session:
+            return session.query(OSHScanModel).order_by(desc(OSHScanModel.id)).slice(first, last)
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
