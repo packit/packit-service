@@ -165,8 +165,7 @@ class OpenScanHubTaskFinishedHandler(
                 external_links = {"Added issues": self.get_issues_added_url()}
             elif number_of_new_findings > 0:
                 description = (
-                    f"{base_description} [{number_of_new_findings}"
-                    f" new findings]({self.get_issues_added_url()}) identified."
+                    f"{base_description} {number_of_new_findings} new findings identified."
                 )
                 external_links = {"Added issues": self.get_issues_added_url()}
             else:
