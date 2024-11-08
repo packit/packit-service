@@ -27,6 +27,7 @@ from packit_service.worker.events import (
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
 )
+from packit_service.worker.handlers import OpenScanHubTaskFinishedHandler
 from packit_service.worker.handlers.copr import OpenScanHubHelper
 from packit_service.worker.helpers import open_scan_hub
 from packit_service.worker.helpers.build import CoprBuildJobHelper
@@ -253,21 +254,19 @@ def test_handle_scan_task_finished(
     if processing_results:
         if scan_status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
-            description = "Scan in OpenScanHub is finished. Check the URL for more details."
+            description = (
+                "Scan in OpenScanHub is finished. "
+                "[2 new findings](https://openscanhub."
+                "fedoraproject.org/task/15649/log/added.html) identified."
+            )
             flexmock(scan_mock).should_receive("set_status").with_args(
                 "succeeded",
             ).once()
+            flexmock(OpenScanHubTaskFinishedHandler).should_receive(
+                "get_number_of_new_findings_identified"
+            ).and_return(2)
             links_to_external_services = {
-                "Added issues": (
-                    "http://openscanhub.fedoraproject.org/task/15649/log/added.js" "?format=raw"
-                ),
-                "Fixed issues": (
-                    "http://openscanhub.fedoraproject.org/task/15649/log/fixed.js" "?format=raw"
-                ),
-                "Scan results": (
-                    "http://openscanhub.fedoraproject.org/task/15649/log/gvisor-tap-vsock-"
-                    "0.7.5-1.20241007054606793155.pr405.23.g829aafd6/scan-results.js?format=raw"
-                ),
+                "Added issues": ("https://openscanhub.fedoraproject.org/task/15649/log/added.html"),
             }
         elif scan_status == OpenScanHubTaskFinishedEvent.Status.cancel:
             state = BaseCommitStatus.neutral
