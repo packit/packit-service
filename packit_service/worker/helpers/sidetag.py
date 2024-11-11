@@ -150,7 +150,7 @@ class SidetagHelper(metaclass=SidetagHelperMeta):
             PackitException if the sidetag failed to be created in Koji.
         """
         group = SidetagGroupModel.get_or_create(sidetag_group)
-        with SidetagModel.get_or_create_for_updating(group, dist_git_branch) as sidetag:
+        with SidetagModel.get_or_create_for_updating(group.name, dist_git_branch) as sidetag:
             if not sidetag.koji_name or not cls.koji_helper.get_tag_info(
                 sidetag.koji_name,
             ):
