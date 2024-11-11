@@ -29,24 +29,9 @@ class ScansList(Resource):
         result = []
 
         for scan in OSHScanModel.get_range(first, last):
-            update_dict = {
-                "packit_id": scan.id,
-                "task_id": scan.task_id,
-                "status": scan.status,
-                "url": scan.url,
-                "issues_added_url": scan.issues_added_url,
-                "issues_fixed_url": scan.issues_fixed_url,
-                "scan_results_url": scan.scan_results_url,
-                "copr_build_target_id": scan.copr_build_target_id,
-                "submitted_time": optional_timestamp(scan.submitted_time),
-            }
-
-            if project := scan.copr_build_target.get_project():
-                update_dict["project_url"] = project.project_url
-                update_dict["repo_namespace"] = project.namespace
-                update_dict["repo_name"] = project.repo_name
-
-            result.append(update_dict)
+            scan_dict = get_scan_info(scan)
+            scan_dict["packit_id"] = scan.id
+            result.append(scan_dict)
 
         resp = response_maker(
             result,
@@ -70,16 +55,20 @@ class ScanItem(Resource):
                 status=HTTPStatus.NOT_FOUND,
             )
 
-        scan_dict = {
-            "task_id": scan.task_id,
-            "status": scan.status,
-            "url": scan.url,
-            "issues_added_url": scan.issues_added_url,
-            "issues_fixed_url": scan.issues_fixed_url,
-            "scan_results_url": scan.scan_results_url,
-            "copr_build_target_id": scan.copr_build_target_id,
-            "submitted_time": optional_timestamp(scan.submitted_time),
-        }
+        return response_maker(get_scan_info(scan))
 
-        scan_dict.update(get_project_info_from_build(scan.copr_build_target))
-        return response_maker(scan_dict)
+
+def get_scan_info(scan: OSHScanModel) -> dict:
+    scan_dict = {
+        "task_id": scan.task_id,
+        "status": scan.status,
+        "url": scan.url,
+        "issues_added_url": scan.issues_added_url,
+        "issues_fixed_url": scan.issues_fixed_url,
+        "scan_results_url": scan.scan_results_url,
+        "copr_build_target_id": scan.copr_build_target_id,
+        "submitted_time": optional_timestamp(scan.submitted_time),
+    }
+
+    scan_dict.update(get_project_info_from_build(scan.copr_build_target))
+    return scan_dict
