@@ -683,7 +683,7 @@ class SteveJobs:
                         # in case of koji-tag command, match only koji_build jobs with sidetag group
                         if event_is_koji_tag_command() and not job.sidetag_group:
                             continue
-                    # A koji_build or bodhi_update job with comment or koji_build trigger
+                    # A koji_build or bodhi_update job with commit or koji_build trigger
                     # can be re-triggered by a Pagure comment in a PR
                     matching_jobs.append(job)
                 elif (
