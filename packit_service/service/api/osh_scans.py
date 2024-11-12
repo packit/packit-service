@@ -69,6 +69,6 @@ def get_scan_info(scan: OSHScanModel) -> dict:
         "copr_build_target_id": scan.copr_build_target_id,
         "submitted_time": optional_timestamp(scan.submitted_time),
     }
-
-    scan_dict.update(get_project_info_from_build(scan.copr_build_target))
+    if scan.copr_build_target:
+        scan_dict.update(get_project_info_from_build(scan.copr_build_target))
     return scan_dict
