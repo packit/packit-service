@@ -38,13 +38,20 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
                 " It should have been created when receiving the CoprBuildEndEvent"
                 " and should have been associated with the copr build.",
             )
-        else:
-            self.build = self.scan.copr_build_target
-            project_event = self.build.get_project_event_model()
-            # commit_sha is needed by the StatusReporter
-            # and have to be serialized to be later found in the
-            # event metadata
-            self.commit_sha = project_event.commit_sha if not self.commit_sha else self.commit_sha
+            return
+        self.build = self.scan.copr_build_target
+        if not self.build:
+            logger.warning(
+                f"Scan with id {task_id} not associated with a build."
+                " It should have been associated when receiving the CoprBuildEndEvent."
+            )
+            return
+
+        project_event = self.build.get_project_event_model()
+        # commit_sha is needed by the StatusReporter
+        # and have to be serialized to be later found in the
+        # event metadata
+        self.commit_sha = project_event.commit_sha if not self.commit_sha else self.commit_sha
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()

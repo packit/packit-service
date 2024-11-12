@@ -158,7 +158,11 @@ def test_handle_scan(build_models):
                 type=ProjectEventModelType.pull_request,
                 get_project_event_object=lambda: flexmock(),
             ),
-        ),
+        )
+        .should_receive("add_scan_transaction")
+        .once()
+        .and_return(flexmock())
+        .mock(),
         copr_build_helper=CoprBuildJobHelper(
             service_config=flexmock(),
             package_config=package_config,
