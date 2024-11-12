@@ -2342,8 +2342,6 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         raise: IntegrityError if the scan model already exists
         """
         session = singleton_session or Session()
-        session.begin()
-
         try:
             scan = OSHScanModel()
             scan.copr_build_target = self
