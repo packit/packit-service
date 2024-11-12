@@ -659,6 +659,14 @@ class SteveJobs:
             bd.pop("trigger")
             return ad == bd
 
+        def event_is_koji_tag_command():
+            commands = get_packit_commands_from_comment(
+                self.event.comment, self.service_config.comment_command_prefix
+            )
+            if not commands:
+                return False
+            return commands[0] == "koji-tag"
+
         matching_jobs: list[JobConfig] = []
         if isinstance(self.event, PullRequestCommentPagureEvent):
             for job in self.event.packages_config.get_job_views():
@@ -668,13 +676,16 @@ class SteveJobs:
                     in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
                     and self.event.job_config_trigger_type == JobConfigTriggerType.pull_request
                 ):
-                    # avoid having duplicate koji_build jobs
-                    if job.type != JobType.koji_build or not any(
-                        j for j in matching_jobs if compare_jobs_without_triggers(job, j)
-                    ):
-                        # A koji_build or bodhi_update job with comment or koji_build trigger
-                        # can be re-triggered by a Pagure comment in a PR
-                        matching_jobs.append(job)
+                    if job.type == JobType.koji_build:
+                        # avoid having duplicate koji_build jobs
+                        if any(j for j in matching_jobs if compare_jobs_without_triggers(job, j)):
+                            continue
+                        # in case of koji-tag command, match only koji_build jobs with sidetag group
+                        if event_is_koji_tag_command() and not job.sidetag_group:
+                            continue
+                    # A koji_build or bodhi_update job with commit or koji_build trigger
+                    # can be re-triggered by a Pagure comment in a PR
+                    matching_jobs.append(job)
                 elif (
                     job.type == JobType.pull_from_upstream
                     and job.trigger == JobConfigTriggerType.release
@@ -690,14 +701,12 @@ class SteveJobs:
                     and job.trigger
                     in (JobConfigTriggerType.commit, JobConfigTriggerType.koji_build)
                     and self.event.job_config_trigger_type == JobConfigTriggerType.release
-                    # avoid having duplicate koji_build jobs
-                    and (
-                        job.type != JobType.koji_build
-                        or not any(
-                            j for j in matching_jobs if compare_jobs_without_triggers(job, j)
-                        )
-                    )
                 ):
+                    # avoid having duplicate koji_build jobs
+                    if job.type == JobType.koji_build and any(
+                        j for j in matching_jobs if compare_jobs_without_triggers(job, j)
+                    ):
+                        continue
                     # A koji_build/bodhi_update can be re-triggered by a
                     # comment in a issue in the repository issues
                     # after a failed release event

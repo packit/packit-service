@@ -3065,7 +3065,7 @@ def test_handler_doesnt_match_to_job(
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            {},
+            {"comment": "test"},
         ),
         pytest.param(
             PullRequestCommentPagureEvent,
@@ -3094,7 +3094,7 @@ def test_handler_doesnt_match_to_job(
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            {},
+            {"comment": "test"},
         ),
         pytest.param(
             CheckRerunPullRequestEvent,
@@ -3370,7 +3370,7 @@ def test_handler_doesnt_match_to_job(
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            {},
+            {"comment": "test"},
         ),
     ],
 )
