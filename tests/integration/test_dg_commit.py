@@ -268,7 +268,7 @@ def test_downstream_koji_build(sidetag_group):
             flexmock(koji_name=sidetag),
         )
         flexmock(SidetagGroupModel).should_receive("get_or_create").and_return(
-            flexmock(),
+            flexmock(name="test"),
         )
         flexmock(KojiHelper).should_receive("get_tag_info").and_return(None)
         flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(None)
@@ -299,7 +299,7 @@ def test_downstream_koji_build(sidetag_group):
             flexmock(koji_name=sidetag),
         )
         flexmock(SidetagGroupModel).should_receive("get_or_create").and_return(
-            flexmock(),
+            flexmock(name="test"),
         )
         flexmock(KojiHelper).should_receive("get_tag_info").and_return(None)
         flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(None)

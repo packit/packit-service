@@ -3054,16 +3054,16 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
         default_dg_branch="rawhide",
     ).and_return({"f39", "f40"})
 
-    sidetag_group = flexmock()
+    sidetag_group = flexmock(name="test")
     flexmock(SidetagGroupModel).should_receive("get_or_create").with_args(
         "test",
     ).and_return(sidetag_group)
     flexmock(SidetagModel).should_receive("get_or_create_for_updating").with_args(
-        sidetag_group,
+        sidetag_group.name,
         "f39",
     ).and_return(flexmock(koji_name="f39-build-side-12345", target="f39"))
     flexmock(SidetagModel).should_receive("get_or_create_for_updating").with_args(
-        sidetag_group,
+        sidetag_group.name,
         "f40",
     ).and_return(flexmock(koji_name="f40-build-side-12345", target="f40"))
     flexmock(KojiHelper).should_receive("get_tag_info").with_args(

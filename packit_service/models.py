@@ -4012,7 +4012,7 @@ class SidetagModel(Base):
     @contextmanager
     def get_or_create_for_updating(
         cls,
-        group: "SidetagGroupModel",
+        group_name: str,
         target: str,
     ) -> Generator["SidetagModel", None, None]:
         """
@@ -4020,10 +4020,16 @@ class SidetagModel(Base):
         provides a corresponding instance of `SidetagModel` to be updated within the context
         and commits the changes upon exiting the context, all within a single transaction.
         """
-        session = singleton_session or Session()
-        session.begin()
+        with sa_session_transaction(commit=True) as session:
+            # lock the sidetag group in the DB by using SELECT ... FOR UPDATE
+            # all other workers accessing this group will block here until the context is exited
+            group = (
+                session.query(SidetagGroupModel)
+                .filter_by(name=group_name)
+                .with_for_update()
+                .first()
+            )
 
-        try:
             sidetag = session.query(cls).filter_by(sidetag_group_id=group.id, target=target).first()
             if not sidetag:
                 sidetag = cls()
@@ -4032,24 +4038,9 @@ class SidetagModel(Base):
 
                 group.sidetags.append(sidetag)
                 session.add(group)
-        except Exception as ex:
-            logger.warning(f"Exception while working with database: {ex!r}")
-            session.rollback()
-            raise
 
-        try:
             yield sidetag
-        except Exception:
-            session.rollback()
-            raise
-
-        try:
             session.add(sidetag)
-            session.commit()
-        except Exception as ex:
-            logger.warning(f"Exception while working with database: {ex!r}")
-            session.rollback()
-            raise
 
     @classmethod
     def get_by_koji_name(cls, koji_name: str) -> Optional["SidetagModel"]:
