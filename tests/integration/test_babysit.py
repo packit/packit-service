@@ -37,6 +37,11 @@ from packit_service.worker.helpers.build.babysit import (
     check_pending_testing_farm_runs,
     update_copr_builds,
 )
+from packit_service.worker.tasks import (
+    run_copr_build_end_handler,
+    run_copr_build_start_handler,
+    run_testing_farm_results_handler,
+)
 
 
 def test_check_copr_build_no_build():
@@ -86,6 +91,22 @@ def test_check_copr_build_already_successful():
         ),
     )
     assert check_copr_build(build_id=1)
+
+
+def celery_run_async_stub(signatures, handlers) -> None:
+    results = []
+    handler = handlers.pop(0)
+    for sig in signatures:
+        event_dict = sig.kwargs["event"]
+        job_config = sig.kwargs["job_config"]
+        package_config = sig.kwargs["package_config"]
+
+        result = handler(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+        results.append(result)
 
 
 @pytest.mark.parametrize(
@@ -167,13 +188,20 @@ def test_check_copr_build_updated(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
             ],
-            packages={"package": CommonPackageConfig()},
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
         ),
     )
     flexmock(CoprBuildEndHandler).should_receive("run_job").and_return().once()
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_stub(
+            signatures, [run_copr_build_end_handler]
+        ),
+    )
+
     assert check_copr_build(build_id=1) is bool(build_ended_on)
 
 
@@ -247,13 +275,19 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
             ],
-            packages={"package": CommonPackageConfig()},
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
         ),
     )
     flexmock(CoprBuildStartHandler).should_receive("run_job").and_return().once()
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_stub(
+            signatures, [run_copr_build_start_handler]
+        ),
+    )
     assert not check_copr_build(build_id=1)
 
 
@@ -346,14 +380,19 @@ def test_check_copr_build_waiting_srpm_failed(add_pull_request_event_with_sha_12
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
             ],
-            packages={"package": CommonPackageConfig()},
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
         ),
     )
     flexmock(CoprBuildEndHandler).should_receive("run_job").and_return().once()
     flexmock(CoprBuildStartHandler).should_receive("run_job").and_return().once()
+    handlers = [run_copr_build_end_handler, run_copr_build_start_handler]
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_stub(signatures, handlers),
+    )
     assert not check_copr_build(build_id=1)
 
 
@@ -597,13 +636,19 @@ def test_check_pending_testing_farm_runs(created):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
             ],
-            packages={"package": CommonPackageConfig()},
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
         ),
     )
     flexmock(TestingFarmResultsHandler).should_receive("run_job").and_return().once()
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_stub(
+            signatures, [run_testing_farm_results_handler]
+        ),
+    )
     check_pending_testing_farm_runs()
 
 
@@ -685,6 +730,7 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
+                            specfile_path="some.spec",
                             identifier="first",
                         ),
                     },
@@ -694,6 +740,7 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
                     trigger=JobConfigTriggerType.pull_request,
                     packages={
                         "package": CommonPackageConfig(
+                            specfile_path="some.spec",
                             identifier="second",
                         ),
                     },
@@ -701,11 +748,17 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
                 ),
             ],
-            packages={"package": CommonPackageConfig()},
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
         ),
     )
     flexmock(TestingFarmResultsHandler).should_receive("run_job").and_return().once()
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_stub(
+            signatures, [run_testing_farm_results_handler]
+        ),
+    )
     check_pending_testing_farm_runs()

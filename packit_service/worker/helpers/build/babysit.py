@@ -8,8 +8,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+import celery
 import copr.v3
 import requests
+from celery.canvas import Signature
 from copr.v3 import Client as CoprClient
 from requests import HTTPError
 
@@ -53,6 +55,13 @@ from packit_service.worker.mixin import ConfigFromUrlMixin
 from packit_service.worker.parser import Parser
 
 logger = logging.getLogger(__name__)
+
+
+def celery_run_async(signatures: list[Signature]) -> None:
+    logger.debug("Signatures are going to be sent to Celery (from babysit task).")
+    # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
+    celery.group(signatures).apply_async()
+    logger.debug("Signatures were sent to Celery.")
 
 
 def check_pending_testing_farm_runs() -> None:
@@ -142,6 +151,7 @@ def update_testing_farm_run(event: TestingFarmResultsEvent, run: TFTTestRunTarge
     )
 
     event_dict = event.get_dict()
+    signatures = []
     for job_config in job_configs:
         package_config = (
             event.packages_config.get_package_config_for(job_config)
@@ -155,7 +165,9 @@ def update_testing_farm_run(event: TestingFarmResultsEvent, run: TFTTestRunTarge
         )
         # check for identifiers equality
         if handler.pre_check(package_config, job_config, event_dict):
-            handler.run_job()
+            signatures.append(handler.get_signature(event=event, job=job_config))
+
+    celery_run_async(signatures=signatures)
 
 
 def check_pending_copr_builds() -> None:
@@ -330,6 +342,7 @@ def update_srpm_build_state(
         handler_kls=CoprBuildEndHandler,
     )
 
+    signatures = []
     for job_config in job_configs:
         event_dict = event.get_dict()
         package_config = (
@@ -343,7 +356,9 @@ def update_srpm_build_state(
             event=event_dict,
         )
         if handler.pre_check(package_config, job_config, event_dict):
-            handler.run_job()
+            signatures.append(handler.get_signature(event=event, job=job_config))
+
+    celery_run_async(signatures=signatures)
 
 
 def update_copr_build_state(
@@ -406,6 +421,7 @@ def update_copr_build_state(
         handler_kls=handler_kls,
     )
 
+    signatures = []
     for job_config in job_configs:
         event_dict = event.get_dict()
         package_config = (
@@ -419,7 +435,9 @@ def update_copr_build_state(
             event=event_dict,
         )
         if handler.pre_check(package_config, job_config, event_dict):
-            handler.run_job()
+            signatures.append(handler.get_signature(event=event, job=job_config))
+
+    celery_run_async(signatures=signatures)
 
 
 class UpdateImageBuildHelper(ConfigFromUrlMixin, GetVMImageBuilderMixin):
