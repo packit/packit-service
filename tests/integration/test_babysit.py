@@ -7,8 +7,6 @@ import pytest
 import requests
 from copr.v3 import Client, CoprNoResultException
 from flexmock import flexmock
-
-import packit_service.worker.helpers.build.babysit
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -17,6 +15,8 @@ from packit.config import (
     PackageConfig,
 )
 from packit.copr_helper import CoprHelper
+
+import packit_service.worker.helpers.build.babysit
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
