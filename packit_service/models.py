@@ -1865,6 +1865,12 @@ class PipelineModel(Base):
         index=True,
     )
     koji_build_group = relationship("KojiBuildGroupModel", back_populates="runs")
+    koji_tag_request_group_id = Column(
+        Integer,
+        ForeignKey("koji_tag_request_groups.id"),
+        index=True,
+    )
+    koji_tag_request_group = relationship("KojiTagRequestGroupModel", back_populates="runs")
     vm_image_build_id = Column(
         Integer,
         ForeignKey("vm_image_build_targets.id"),
@@ -2820,6 +2826,143 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
             ]
             projects = [branch.project for branch in project_event_branches]
             return set(projects)
+
+
+class KojiTagRequestGroupModel(ProjectAndEventsConnector, GroupModel, Base):
+    __tablename__ = "koji_tag_request_groups"
+    id = Column(Integer, primary_key=True)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    runs = relationship("PipelineModel", back_populates="koji_tag_request_group")
+    koji_tag_request_targets = relationship(
+        "KojiTagRequestTargetModel",
+        back_populates="group_of_targets",
+    )
+
+    @property
+    def grouped_targets(self):
+        return self.koji_tag_request_targets
+
+    def __repr__(self) -> str:
+        return f"KojiTagRequestGroupModel(id={self.id}, submitted_time={self.submitted_time})"
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["KojiTagRequestGroupModel"]:
+        with sa_session_transaction() as session:
+            return session.query(KojiTagRequestGroupModel).filter_by(id=id_).first()
+
+    @classmethod
+    def create(cls, run_model: "PipelineModel") -> "KojiTagRequestGroupModel":
+        with sa_session_transaction(commit=True) as session:
+            tag_request_group = cls()
+            session.add(tag_request_group)
+            if run_model.koji_tag_request_group:
+                # Clone run model
+                new_run_model = PipelineModel.create(
+                    project_event=run_model.project_event,
+                    package_name=run_model.package_name,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.koji_tag_request_group = tag_request_group
+                session.add(new_run_model)
+            else:
+                run_model.koji_tag_request_group = tag_request_group
+                session.add(run_model)
+            return tag_request_group
+
+
+class KojiTagRequestTargetModel(GroupAndTargetModelConnector, Base):
+    """we create an entry for every target"""
+
+    __tablename__ = "koji_tag_request_targets"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(String, index=True)  # ID of the Koji tag task
+
+    # chroot, but we use the word target in our docs
+    target = Column(String)
+    # URL to koji web ui for the particular build
+    web_url = Column(String)
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the koji build is initiated, not when the table is made
+    tag_request_submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    sidetag = Column(String)
+    nvr = Column(String)
+
+    koji_tag_request_group_id = Column(Integer, ForeignKey("koji_tag_request_groups.id"))
+
+    group_of_targets = relationship(
+        "KojiTagRequestGroupModel",
+        back_populates="koji_tag_request_targets",
+    )
+
+    def set_web_url(self, web_url: str):
+        with sa_session_transaction(commit=True) as session:
+            self.web_url = web_url
+            session.add(self)
+
+    def set_task_id(self, task_id: str):
+        with sa_session_transaction(commit=True) as session:
+            self.task_id = task_id
+            session.add(self)
+
+    def set_tag_request_submitted_time(self, tag_request_submitted_time: Optional[DateTime]):
+        with sa_session_transaction(commit=True) as session:
+            self.tag_request_submitted_time = tag_request_submitted_time
+            session.add(self)
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["KojiTagRequestTargetModel"]:
+        with sa_session_transaction() as session:
+            return session.query(KojiTagRequestTargetModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_all(cls) -> Iterable["KojiTagRequestTargetModel"]:
+        with sa_session_transaction() as session:
+            return session.query(KojiTagRequestTargetModel)
+
+    @classmethod
+    def get_range(
+        cls,
+        first: int,
+        last: int,
+    ) -> Iterable["KojiTagRequestTargetModel"]:
+        with sa_session_transaction() as session:
+            query = session.query(KojiTagRequestTargetModel).order_by(
+                desc(KojiTagRequestTargetModel.id),
+            )
+
+            return query.slice(first, last)
+
+    @classmethod
+    def create(
+        cls,
+        task_id: Optional[str],
+        web_url: Optional[str],
+        target: str,
+        koji_tag_request_group: "KojiTagRequestGroupModel",
+        sidetag: Optional[str] = None,
+        nvr: Optional[str] = None,
+    ) -> "KojiTagRequestTargetModel":
+        with sa_session_transaction(commit=True) as session:
+            tag_request = cls()
+            tag_request.task_id = task_id
+            tag_request.web_url = web_url
+            tag_request.target = target
+            tag_request.sidetag = sidetag
+            tag_request.nvr = nvr
+            session.add(tag_request)
+
+            koji_tag_request_group.koji_tag_request_targets.append(tag_request)
+            session.add(koji_tag_request_group)
+
+            return tag_request
+
+    def __repr__(self):
+        return (
+            f"KojiTagRequestTargetModel(id={self.id}, "
+            f"tag_submitted_time={self.tag_request_submitted_time})"
+        )
 
 
 class SRPMBuildModel(ProjectAndEventsConnector, Base):

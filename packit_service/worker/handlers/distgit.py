@@ -41,6 +41,8 @@ from packit_service.constants import (
 from packit_service.models import (
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    KojiTagRequestGroupModel,
+    KojiTagRequestTargetModel,
     PipelineModel,
     SyncReleaseJobType,
     SyncReleaseModel,
@@ -74,6 +76,7 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
+    KojiTaskEvent,
     PullRequestCommentPagureEvent,
     PushPagureEvent,
     ReleaseEvent,
@@ -1093,12 +1096,33 @@ class TagIntoSidetagHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return (PermissionOnDistgit,)
 
-    def run_for_branch(self, package: str, sidetag_group: str, branch: str) -> None:
+    def run_for_branch(
+        self,
+        package: str,
+        sidetag_group: str,
+        branch: str,
+        tag_request_group: KojiTagRequestGroupModel,
+    ) -> None:
         # we need Kerberos ticket to tag a build into sidetag
         # and to create a new sidetag (if needed)
         self.packit_api.init_kerberos_ticket()
         sidetag = SidetagHelper.get_or_create_sidetag(sidetag_group, branch)
-        sidetag.tag_latest_stable_build(package)
+        if not (nvr := sidetag.get_latest_stable_nvr(package)):
+            logger.debug(f"Failed to find the latest stable build of {package}")
+            return
+        task_id = sidetag.tag_build(nvr)
+        web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
+            rpm_build_task_id=int(task_id),
+            koji_web_url=self.service_config.koji_web_url,
+        )
+        KojiTagRequestTargetModel.create(
+            task_id=task_id,
+            web_url=web_url,
+            target=branch,
+            sidetag=sidetag.koji_name,
+            nvr=str(nvr),
+            koji_tag_request_group=tag_request_group,
+        )
 
     def run(self) -> TaskResults:
         comment = self.data.event_dict.get("comment")
@@ -1124,11 +1148,17 @@ class TagIntoSidetagHandler(
                     branches = {self.pull_request.target_branch}
                 packages_to_tag[job.downstream_package_name][job.sidetag_group] |= branches
         for package, sidetag_groups in packages_to_tag.items():
+            tag_request_group = KojiTagRequestGroupModel.create(
+                run_model=PipelineModel.create(
+                    project_event=self.data.db_project_event,
+                    package_name=package,
+                ),
+            )
             for sidetag_group, branches in sidetag_groups.items():
                 logger.debug(
                     f"Running downstream Koji build tagging of {package} "
                     f"for {branches} in {sidetag_group}",
                 )
                 for branch in branches:
-                    self.run_for_branch(package, sidetag_group, branch)
+                    self.run_for_branch(package, sidetag_group, branch, tag_request_group)
         return TaskResults(success=True, details={})
