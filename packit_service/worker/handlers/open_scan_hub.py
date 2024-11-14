@@ -10,6 +10,7 @@ from packit.config import (
 )
 
 from packit_service.models import OSHScanStatus
+from packit_service.service.urls import get_openscanhub_info_url
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.open_scan_hub import RawhideX86Target
 from packit_service.worker.events import (
@@ -151,7 +152,7 @@ class OpenScanHubTaskFinishedHandler(
 
     def run(self) -> TaskResults:
         self.check_scan_and_build()
-
+        external_links = {"OpenScanHub task": self.event.scan.url}
         if self.event.status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
             number_of_new_findings = self.get_number_of_new_findings_identified()
@@ -162,15 +163,14 @@ class OpenScanHubTaskFinishedHandler(
                     f"{base_description} We were not able to analyse the findings; "
                     f"please check the URL."
                 )
-                external_links = {"Added issues": self.get_issues_added_url()}
+                external_links.update({"Added issues": self.get_issues_added_url()})
             elif number_of_new_findings > 0:
                 description = (
                     f"{base_description} {number_of_new_findings} new findings identified."
                 )
-                external_links = {"Added issues": self.get_issues_added_url()}
+                external_links.update({"Added issues": self.get_issues_added_url()})
             else:
                 description = f"{base_description} No new findings identified."
-                external_links = {}
 
             self.event.scan.set_status(OSHScanStatus.succeeded)
             self.event.scan.set_issues_added_url(self.event.issues_added_url)
@@ -179,7 +179,6 @@ class OpenScanHubTaskFinishedHandler(
         else:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {self.event.status} state."
-            external_links = {}
             if self.event.status == OpenScanHubTaskFinishedEvent.Status.cancel:
                 self.event.scan.set_status(OSHScanStatus.canceled)
             else:
@@ -188,7 +187,7 @@ class OpenScanHubTaskFinishedHandler(
         self.get_helper().report(
             state=state,
             description=description,
-            url=self.event.scan.url,
+            url=get_openscanhub_info_url(self.event.scan.id),
             links_to_external_services=external_links,
         )
 

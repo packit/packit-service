@@ -46,3 +46,7 @@ def get_propose_downstream_info_url(id_: int) -> str:
 
 def get_pull_from_upstream_info_url(id_: int) -> str:
     return _get_url_for_dashboard_results("pull-from-upstream", id_)
+
+
+def get_openscanhub_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("openscanhub", id_)

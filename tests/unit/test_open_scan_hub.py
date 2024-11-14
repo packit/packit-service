@@ -83,6 +83,7 @@ def prepare_openscanhub_db_and_handler(
 
     flexmock(celery_group).should_receive("apply_async")
     scan_mock = flexmock(
+        id=123,
         copr_build_target=db_build,
         url="https://openscanhub.fedoraproject.org/task/17514/",
         set_issues_added_url=lambda _: None,
@@ -256,6 +257,9 @@ def test_handle_scan_task_finished(
     assert len(processing_results) == num_of_handlers
 
     if processing_results:
+        links_to_external_services = {
+            "OpenScanHub task": "https://openscanhub.fedoraproject.org/task/17514/"
+        }
         if scan_status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
             description = "Scan in OpenScanHub is finished. " "2 new findings identified."
@@ -265,20 +269,22 @@ def test_handle_scan_task_finished(
             flexmock(OpenScanHubTaskFinishedHandler).should_receive(
                 "get_number_of_new_findings_identified"
             ).and_return(2)
-            links_to_external_services = {
-                "Added issues": ("https://openscanhub.fedoraproject.org/task/15649/log/added.html"),
-            }
+            links_to_external_services.update(
+                {
+                    "Added issues": (
+                        "https://openscanhub.fedoraproject.org/task/15649/log/added.html"
+                    ),
+                }
+            )
         elif scan_status == OpenScanHubTaskFinishedEvent.Status.cancel:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {scan_status} state."
-            links_to_external_services = {}
             flexmock(scan_mock).should_receive("set_status").with_args(
                 "canceled",
             ).once()
         else:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {scan_status} state."
-            links_to_external_services = {}
             flexmock(scan_mock).should_receive("set_status").with_args("failed").once()
         if num_of_handlers == 1:
             # one handler is always skipped because it is for fedora-stable ->
@@ -286,7 +292,7 @@ def test_handle_scan_task_finished(
             flexmock(OpenScanHubHelper).should_receive("report").with_args(
                 state=state,
                 description=description,
-                url="https://openscanhub.fedoraproject.org/task/17514/",
+                url="/jobs/openscanhub/123",
                 links_to_external_services=links_to_external_services,
             ).once().and_return()
 

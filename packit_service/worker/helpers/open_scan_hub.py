@@ -27,7 +27,7 @@ from packit_service.models import (
     OSHScanStatus,
     SRPMBuildModel,
 )
-from packit_service.service.urls import get_copr_build_info_url
+from packit_service.service.urls import get_copr_build_info_url, get_openscanhub_info_url
 from packit_service.utils import (
     download_file,
 )
@@ -131,7 +131,8 @@ class OpenScanHubHelper:
                             "Scan in OpenScanHub submitted successfully. "
                             "Check the URL for more details."
                         ),
-                        url=url,
+                        url=get_openscanhub_info_url(scan.id),
+                        links_to_external_services={"OpenScanHub task": url},
                     )
             except IntegrityError as ex:
                 logger.info(f"OpenScanHub already submitted: {ex}")
