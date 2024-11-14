@@ -522,7 +522,7 @@ def test_report_pending_build_and_test_on_build_submission(
         flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
             description="SRPM build in Copr was submitted...",
             state=BaseCommitStatus.running,
-            url="/results/srpm-builds/1",
+            url="/jobs/srpm/1",
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(
             "report_status_to_all_test_jobs",
@@ -537,7 +537,7 @@ def test_report_pending_build_and_test_on_build_submission(
                 if sync_test_job_statuses_with_builds
                 else BaseCommitStatus.pending
             ),
-            url="/results/srpm-builds/1",
+            url="/jobs/srpm/1",
         ).once()
 
     helper.report_running_build_and_test_on_build_submission("copr-url")
@@ -569,7 +569,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
         ).with_args(
             description="Starting RPM build...",
             state=BaseCommitStatus.running,
-            url="/results/copr-builds/1",
+            url="/jobs/copr/1",
             chroot=chroot,
             markdown_content=None,
             update_feedback_time=None,
@@ -579,7 +579,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
         ).with_args(
             description="Starting RPM build...",
             state=BaseCommitStatus.running,
-            url="/results/copr-builds/1",
+            url="/jobs/copr/1",
             chroot=chroot,
             markdown_content=None,
             links_to_external_services=None,
@@ -591,7 +591,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
         ).with_args(
             description="Starting RPM build...",
             state=BaseCommitStatus.running,
-            url="/results/copr-builds/1",
+            url="/jobs/copr/1",
             chroot=chroot,
         ).once()
         flexmock(CoprBuildJobHelper).should_receive(

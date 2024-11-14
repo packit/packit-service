@@ -1269,7 +1269,7 @@ def test_pr_test_command_handler_skip_build_option(
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Tests have been submitted ...",
         state=BaseCommitStatus.running,
-        url="https://dashboard.localhost/results/testing-farm/5",
+        url="https://dashboard.localhost/jobs/testing-farm/5",
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
         links_to_external_services=None,
@@ -2311,7 +2311,7 @@ def test_pr_test_command_handler_multiple_builds(
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Tests have been submitted ...",
         state=BaseCommitStatus.running,
-        url="https://dashboard.localhost/results/testing-farm/5",
+        url="https://dashboard.localhost/jobs/testing-farm/5",
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
         links_to_external_services=None,

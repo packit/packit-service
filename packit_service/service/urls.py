@@ -14,26 +14,26 @@ def _get_url_for_dashboard_results(job_type: str, id_: int) -> str:
     Args:
         job_type (str): Type of results. Represents route on dashboard.
 
-            Specifically: `srpm-builds`, `copr-builds`, `koji-builds`, `testing-farm`
-                or `propose-downstream`.
-        id_ (int): Packit ID of the build.
+            Specifically: `srpm`, `copr`, `koji`, `testing-farm`,
+                 `propose-downstream`, `pull-from-upstream` or `openscanhub`.
+        id_ (int): Packit ID of the item.
 
     Returns:
         URL to the results of `id_` entry of type `type`.
     """
-    return f"{DASHBOARD_URL}/results/{job_type}/{id_}"
+    return f"{DASHBOARD_URL}/jobs/{job_type}/{id_}"
 
 
 def get_srpm_build_info_url(id_: int) -> str:
-    return _get_url_for_dashboard_results("srpm-builds", id_)
+    return _get_url_for_dashboard_results("srpm", id_)
 
 
 def get_copr_build_info_url(id_: int) -> str:
-    return _get_url_for_dashboard_results("copr-builds", id_)
+    return _get_url_for_dashboard_results("copr", id_)
 
 
 def get_koji_build_info_url(id_: int) -> str:
-    return _get_url_for_dashboard_results("koji-builds", id_)
+    return _get_url_for_dashboard_results("koji", id_)
 
 
 def get_testing_farm_info_url(id_: int) -> str:
