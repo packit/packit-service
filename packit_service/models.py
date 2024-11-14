@@ -4064,6 +4064,7 @@ class OSHScanModel(Base):
     task_id = Column(Integer, unique=True)  # open scan hub id
     status = Column(Enum(OSHScanStatus))
     url = Column(String)
+    issues_added_count = Column(Integer)
     issues_added_url = Column(String)
     issues_fixed_url = Column(String)
     scan_results_url = Column(String)
@@ -4113,6 +4114,11 @@ class OSHScanModel(Base):
     def set_scan_results_url(self, scan_results_url: str) -> None:
         with sa_session_transaction(commit=True) as session:
             self.scan_results_url = scan_results_url
+            session.add(self)
+
+    def set_issues_added_count(self, issues_added_count: int) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.issues_added_count = issues_added_count
             session.add(self)
 
     @classmethod
