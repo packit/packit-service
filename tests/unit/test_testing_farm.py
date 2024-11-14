@@ -159,7 +159,7 @@ def test_testing_farm_response(
     flexmock(StatusReporter).should_receive("report").with_args(
         description=status_message,
         state=status_status,
-        url="https://dashboard.localhost/results/testing-farm/123",
+        url="https://dashboard.localhost/jobs/testing-farm/123",
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
         links_to_external_services={"Testing Farm": "some url"},
@@ -1383,7 +1383,7 @@ def test_trigger_build(copr_build, wait_for_build):
                 description="The latest build has not finished yet, "
                 "waiting until it finishes before running tests for it.",
                 target=target,
-                url="https://dashboard.localhost/results/copr-builds/1",
+                url="https://dashboard.localhost/jobs/copr/1",
             )
 
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(targets)
@@ -1467,7 +1467,7 @@ def test_trigger_build_manual_tests_dont_report():
             description="The latest build has not finished yet. "
             "Please retrigger the tests once it has finished.",
             target=target,
-            url="https://dashboard.localhost/results/copr-builds/1",
+            url="https://dashboard.localhost/jobs/copr/1",
         )
 
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(targets)

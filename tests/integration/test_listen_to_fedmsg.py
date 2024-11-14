@@ -777,7 +777,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
-        url="https://dashboard.localhost/results/testing-farm/5",
+        url="https://dashboard.localhost/jobs/testing-farm/5",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         markdown_content=None,
         links_to_external_services=None,

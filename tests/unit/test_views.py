@@ -103,7 +103,7 @@ def test_get_logs(client):
     )
 
     logs_url = get_copr_build_info_url(1)
-    assert logs_url == "https://localhost/results/copr-builds/1"
+    assert logs_url == "https://localhost/jobs/copr/1"
 
 
 def test_get_srpm_logs(client):
@@ -114,7 +114,7 @@ def test_get_srpm_logs(client):
     flexmock(SRPMBuildModel).should_receive("get_by_id").and_return(srpm_build_mock)
 
     logs_url = get_srpm_build_info_url(2)
-    assert logs_url == "https://localhost/results/srpm-builds/2"
+    assert logs_url == "https://localhost/jobs/srpm/2"
 
 
 def test_system_api(client):
