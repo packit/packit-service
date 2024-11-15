@@ -169,8 +169,10 @@ class OpenScanHubTaskFinishedHandler(
                     f"{base_description} {number_of_new_findings} new findings identified."
                 )
                 external_links.update({"Added issues": self.get_issues_added_url()})
+                self.event.scan.set_issues_added_count(number_of_new_findings)
             else:
                 description = f"{base_description} No new findings identified."
+                self.event.scan.set_issues_added_count(number_of_new_findings)
 
             self.event.scan.set_status(OSHScanStatus.succeeded)
             self.event.scan.set_issues_added_url(self.event.issues_added_url)

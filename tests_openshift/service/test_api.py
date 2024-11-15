@@ -979,6 +979,7 @@ def test_scan_info(
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
     assert response_dict["project_url"] == SampleValues.project_url
+    assert response_dict["issues_added_count"] == SampleValues.issues_added_count
 
 
 def test_scans_list(

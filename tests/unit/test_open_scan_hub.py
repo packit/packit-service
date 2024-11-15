@@ -266,6 +266,7 @@ def test_handle_scan_task_finished(
             flexmock(scan_mock).should_receive("set_status").with_args(
                 "succeeded",
             ).once()
+            flexmock(scan_mock).should_receive("set_issues_added_count").with_args(2).once()
             flexmock(OpenScanHubTaskFinishedHandler).should_receive(
                 "get_number_of_new_findings_identified"
             ).and_return(2)

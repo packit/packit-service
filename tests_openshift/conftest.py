@@ -168,6 +168,7 @@ class SampleValues:
     # scan
     task_id = 123
     scan_url = "https://scan-url"
+    issues_added_count = 3
     issues_added_url = "https://issues-added-url"
     issues_fixed_url = "https://issues-fixed-url"
     scan_results_url = "https://scan-results-url"
@@ -2503,4 +2504,5 @@ def a_scan(a_copr_build_for_pr):
     scan.issues_added_url = SampleValues.issues_added_url
     scan.issues_fixed_url = SampleValues.issues_fixed_url
     scan.scan_results_url = SampleValues.scan_results_url
+    scan.issues_added_count = SampleValues.issues_added_count
     yield scan
