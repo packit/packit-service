@@ -63,6 +63,7 @@ def get_scan_info(scan: OSHScanModel) -> dict:
         "task_id": scan.task_id,
         "status": scan.status,
         "url": scan.url,
+        "issues_added_count": scan.issues_added_count,
         "issues_added_url": scan.issues_added_url,
         "issues_fixed_url": scan.issues_fixed_url,
         "scan_results_url": scan.scan_results_url,
