@@ -55,6 +55,8 @@ body:
         - Copr builds
         - Testing Farm tests
         - Fedora release automation
+        - VM Image Builder
+        - OpenScanHub
         - Other
         - General
     validations:
