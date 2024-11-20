@@ -1096,6 +1096,18 @@ class TagIntoSidetagHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return (PermissionOnDistgit,)
 
+    @staticmethod
+    def get_handler_specific_task_accepted_message(
+        service_config: ServiceConfig,
+    ) -> str:
+        dashboard_url = service_config.dashboard_url
+
+        return (
+            "You can check the recent Koji tagging requests "
+            f"in [Packit dashboard]({dashboard_url}/jobs/koji-tag-requests). "
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}"
+        )
+
     def run_for_branch(
         self,
         package: str,

@@ -3035,7 +3035,11 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     pr_mock = (
         flexmock(target_branch="f40")
         .should_receive("comment")
-        .with_args(f"{TASK_ACCEPTED} ")
+        .with_args(
+            "The task was accepted. You can check the recent Koji tagging requests "
+            "in [Packit dashboard](/jobs/koji-tag-requests). "
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}",
+        )
         .once()
         .mock()
     )
