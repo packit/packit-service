@@ -991,3 +991,33 @@ def test_scans_list(
     response_dict = response.json
 
     assert len(response_dict) == 1
+
+
+def test_koji_tag_request_info(
+    client,
+    clean_before_and_after,
+    a_koji_tag_request,
+):
+    response = client.get(
+        url_for("api.koji-tag-requests_koji_tag_request_item", id=a_koji_tag_request.id),
+    )
+    response_dict = response.json
+    assert response_dict["task_id"] == SampleValues.build_id
+    assert response_dict["web_url"] == SampleValues.koji_web_url
+    assert response_dict["chroot"] == SampleValues.target
+    assert response_dict["sidetag"] == SampleValues.sidetag
+    assert response_dict["nvr"] == SampleValues.nvr
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["project_url"] == SampleValues.project_url
+
+
+def test_koji_tag_requests_list(
+    client,
+    clean_before_and_after,
+    a_koji_tag_request,
+):
+    response = client.get(url_for("api.koji-tag-requests_koji_tag_requests_list"))
+    response_dict = response.json
+
+    assert len(response_dict) == 1
