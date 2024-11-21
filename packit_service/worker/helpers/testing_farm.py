@@ -10,11 +10,11 @@ from typing import Any, Callable, Optional, Union
 import requests
 from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
+
 from packit.config import JobConfig, PackageConfig
 from packit.constants import HTTP_REQUEST_TIMEOUT
 from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
@@ -323,7 +323,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def is_test_comment_event(self) -> bool:
-        return self.is_comment_event() and self.comment_arguments.packit_command == "test"
+        return self.is_comment_event() and self.comment_arguments.packit_command in (
+            "test",
+            "retest-failed",
+        )
 
     def is_test_comment_pr_argument_present(self):
         return self.is_test_comment_event() and self.comment_arguments.pr_argument
