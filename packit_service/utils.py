@@ -217,7 +217,7 @@ def get_packit_commands_from_comment(
     return []
 
 
-def get_koji_task_id_and_url_from_stdout(stdout: str):
+def get_koji_task_id_and_url_from_stdout(stdout: str) -> tuple[Optional[int], Optional[str]]:
     task_id, task_url = None, None
 
     task_id_match = search(pattern=r"Created task: (\d+)", string=stdout)

@@ -27,9 +27,9 @@ def get_parameters_from_results(
     assert len(results) == 1
 
     event_dict = results[0]["details"]["event"]
-    job = results[0]["details"]["job"]
-    job_config = results[0]["details"]["job_config"]
-    package_config = results[0]["details"]["package_config"]
+    job = results[0]["details"].get("job")
+    job_config = results[0]["details"].get("job_config")
+    package_config = results[0]["details"].get("package_config")
     return event_dict, job, job_config, package_config
 
 

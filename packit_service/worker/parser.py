@@ -1736,6 +1736,7 @@ class Parser:
         target_repo = repo_from["name"] if repo_from else base_repo_name
         https_url = event["pullrequest"]["project"]["full_url"]
         commit_sha = event["pullrequest"]["commit_stop"]
+        target_branch = event["pullrequest"]["branch"]
 
         return PullRequestPagureEvent(
             action=PullRequestAction[action],
@@ -1748,6 +1749,7 @@ class Parser:
             project_url=https_url,
             commit_sha=commit_sha,
             user_login=pagure_login,
+            target_branch=target_branch,
         )
 
     @staticmethod
