@@ -113,6 +113,7 @@ class ServiceConfig(Config):
         package_config_path_override: Optional[str] = None,
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
+        enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -156,6 +157,10 @@ class ServiceConfig(Config):
         self.enabled_projects_for_internal_tf: set[str] = set(
             enabled_projects_for_internal_tf or [],
         )
+
+        # e.g.:
+        #  - https://src.fedoraproject.org/rpms/packit
+        self.enabled_projects_for_fedora_ci: set[str] = set(enabled_projects_for_fedora_ci or [])
 
         self.projects_to_sync = projects_to_sync or []
 
@@ -211,7 +216,8 @@ class ServiceConfig(Config):
             f"enabled_projects_for_srpm_in_copr= '{self.enabled_projects_for_srpm_in_copr}', "
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
-            f"package_config_path_override='{self.package_config_path_override}')"
+            f"package_config_path_override='{self.package_config_path_override}', "
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}')"
         )
 
     @classmethod

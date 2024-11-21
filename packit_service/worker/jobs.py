@@ -37,6 +37,7 @@ from packit_service.worker.events import (
     InstallationEvent,
     IssueCommentEvent,
     PullRequestCommentPagureEvent,
+    PullRequestPagureEvent,
 )
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
@@ -48,7 +49,7 @@ from packit_service.worker.events.event import (
     AbstractForgeIndependentEvent,
     AbstractResultEvent,
 )
-from packit_service.worker.events.koji import KojiBuildTagEvent
+from packit_service.worker.events.koji import KojiBuildTagEvent, KojiTaskEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -63,6 +64,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
+    SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI,
     JobHandler,
 )
 from packit_service.worker.handlers.bodhi import (
@@ -242,6 +244,13 @@ class SteveJobs:
                 ).apply_async()
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
+        elif (
+            isinstance(self.event, (PullRequestPagureEvent, KojiTaskEvent))
+            and self.event.db_project_object
+            and (url := self.event.db_project_object.project.project_url)
+            and url in self.service_config.enabled_projects_for_fedora_ci
+        ):
+            processing_results = self.process_fedora_ci_jobs()
         else:
             # Processing the jobs from the config.
             processing_results = self.process_jobs()
@@ -430,6 +439,55 @@ class SteveJobs:
         # False happens when service receives events for repos which don't have packit config
         # success=True - it's not an error that people don't have packit.yaml in their repo
         return self.event.packages_config
+
+    def process_fedora_ci_jobs(self) -> list[TaskResults]:
+        """
+        Create Celery tasks for a job handler (if the trigger matches) for Fedora CI.
+
+        Returns:
+            A list of task results for each task created.
+        """
+        matching_handlers = {
+            handler
+            for handler, supported_events in SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI.items()
+            if isinstance(self.event, tuple(supported_events))
+        }
+
+        if not matching_handlers:
+            logger.debug(f"No handler found for event {self.event} for Fedora CI.")
+            return []
+
+        # TODO: add allowlist checks here
+
+        processing_results: list[TaskResults] = []
+
+        for handler_kls in matching_handlers:
+            # TODO: pre-checks
+            # TODO: report task accepted
+
+            celery_signature = celery.signature(
+                handler_kls.task_name.value,
+                kwargs={
+                    "package_config": None,
+                    "job_config": None,
+                    "event": self.event.get_dict(),
+                },
+            )
+
+            celery_signature.apply_async()
+            logger.debug(f"Celery signature sent for handler {handler_kls}.")
+
+            processing_results.append(
+                TaskResults(
+                    success=True,
+                    details={
+                        "msg": "Job created.",
+                        "event": self.event.get_dict(),
+                    },
+                )
+            )
+
+        return processing_results
 
     def process_jobs(self) -> list[TaskResults]:
         """
