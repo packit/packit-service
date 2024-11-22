@@ -47,8 +47,8 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[set[str]] = None,
-        tests_targets_override: Optional[set[str]] = None,
+        build_targets_override: Optional[set[tuple[str, str]]] = None,
+        tests_targets_override: Optional[set[tuple[str, str]]] = None,
     ):
         super().__init__(
             service_config=service_config,

@@ -885,7 +885,8 @@ def test_deduced_copr_targets():
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,build_targets_override," "tests_targets_override,build_targets",
+    "jobs,job_config_trigger_type,build_targets_override,"
+    "tests_targets_override,build_targets,build_targets_for_job,tests_targets_for_job",
     [
         pytest.param(
             [
@@ -905,9 +906,11 @@ def test_deduced_copr_targets():
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"fedora-32-x86_64"},
+            {("fedora-32-x86_64", "")},
             None,
             {"fedora-32-x86_64"},
+            [{"fedora-32-x86_64"}],
+            [{"fedora-32-x86_64"}],
             id="target_in_config_for_both",
         ),
         pytest.param(
@@ -923,9 +926,11 @@ def test_deduced_copr_targets():
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"fedora-32-x86_64"},
+            {("fedora-32-x86_64", "")},
             None,
             {"fedora-32-x86_64"},
+            [{"fedora-32-x86_64"}],
+            None,
             id="target_in_config",
         ),
         pytest.param(
@@ -941,9 +946,11 @@ def test_deduced_copr_targets():
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"fedora-33-x86_64"},
+            {("fedora-33-x86_64", "")},
             None,
             set(),
+            [set()],
+            None,
             id="target_not_in_config",
         ),
         pytest.param(
@@ -962,8 +969,10 @@ def test_deduced_copr_targets():
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-7-x86_64"},
+            {("centos-7-x86_64", "")},
             {"epel-7-x86_64"},
+            None,
+            [{"centos-7-x86_64"}],
             id="build_test_mapping_test_overrides",
         ),
         pytest.param(
@@ -981,9 +990,11 @@ def test_deduced_copr_targets():
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"epel-7-x86_64"},
+            {("epel-7-x86_64", "")},
             None,
             {"epel-7-x86_64"},
+            None,
+            [{"centos-7-x86_64", "rhel-7-x86_64"}],
             id="build_test_mapping_build_overrides",
         ),
         pytest.param(
@@ -1000,8 +1011,10 @@ def test_deduced_copr_targets():
             ],
             JobConfigTriggerType.pull_request,
             None,
+            {("centos-stream-8-x86_64", "")},
             {"centos-stream-8-x86_64"},
-            {"centos-stream-8-x86_64"},
+            None,
+            [{"centos-stream-8-x86_64"}],
             id="targets_in_tests_no_mapping",
         ),
         pytest.param(
@@ -1023,8 +1036,10 @@ def test_deduced_copr_targets():
             ],
             JobConfigTriggerType.pull_request,
             None,
+            {("centos-stream-8-x86_64", "")},
             {"centos-stream-8-x86_64"},
-            {"centos-stream-8-x86_64"},
+            [{"centos-stream-8-x86_64"}],
+            [{"centos-stream-8-x86_64"}],
             id="targets_in_build_no_mapping",
         ),
         pytest.param(
@@ -1040,9 +1055,11 @@ def test_deduced_copr_targets():
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"epel-7-x86_64"},
+            {("epel-7-x86_64", "")},
             None,
             {"epel-7-x86_64"},
+            None,
+            [{"centos-7-x86_64"}],
             id="default_mapping_build_override",
         ),
         pytest.param(
@@ -1059,8 +1076,10 @@ def test_deduced_copr_targets():
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-7-x86_64"},
+            {("centos-7-x86_64", "")},
             {"epel-7-x86_64"},
+            None,
+            [{"centos-7-x86_64"}],
             id="default_mapping_test_override",
         ),
         pytest.param(
@@ -1076,9 +1095,11 @@ def test_deduced_copr_targets():
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"epel-7-ppc64le"},
+            {("epel-7-ppc64le", "")},
             None,
             {"epel-7-ppc64le"},
+            None,
+            [{"centos-7-ppc64le"}],
             id="default_mapping_build_override_different_arch",
         ),
         pytest.param(
@@ -1095,9 +1116,99 @@ def test_deduced_copr_targets():
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-7-ppc64le"},
+            {("centos-7-ppc64le", "")},
             {"epel-7-ppc64le"},
+            None,
+            [{"centos-7-ppc64le"}],
             id="default_mapping_test_override_different_arch",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-41-x86_64"], identifier="latest"
+                        ),
+                    },
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-rawhide-x86_64"],
+                        ),
+                    },
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            {("fedora-rawhide-x86_64", "")},
+            None,
+            {"fedora-rawhide-x86_64"},
+            None,
+            [{"fedora-rawhide-x86_64"}, set()],
+            id="rebuild_default_job_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-41-x86_64"], identifier="latest"
+                        ),
+                    },
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-rawhide-x86_64"],
+                        ),
+                    },
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            {("fedora-41-x86_64", "latest")},
+            None,
+            {"fedora-41-x86_64"},
+            None,
+            [set(), {"fedora-41-x86_64"}],
+            id="rebuild_latest_job_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-41-x86_64", "fedora-rawhide-x86_64"],
+                            identifier="latest",
+                        ),
+                    },
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-rawhide-x86_64"],
+                        ),
+                    },
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            {("fedora-41-x86_64", "latest")},
+            None,
+            {"fedora-41-x86_64"},
+            None,
+            [set(), {"fedora-41-x86_64"}],
+            id="rebuild_latest_job_targets_for_job_with_identifier",
         ),
     ],
 )
@@ -1107,6 +1218,8 @@ def test_build_targets_overrides(
     build_targets_override,
     tests_targets_override,
     build_targets,
+    build_targets_for_job,
+    tests_targets_for_job,
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
@@ -1149,7 +1262,30 @@ def test_build_targets_overrides(
         "centos-stream-8",
         default=None,
     ).and_return({"centos-stream-8-x86_64"})
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
+        "fedora-rawhide-x86_64",
+        "fedora-41-x86_64",
+        default=None,
+    ).and_return({"fedora-rawhide-x86_64", "fedora-41-x86_64"})
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
+        "fedora-41-x86_64",
+        default=None,
+    ).and_return({"fedora-41-x86_64"})
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
+        "fedora-rawhide-x86_64",
+        default=None,
+    ).and_return({"fedora-rawhide-x86_64"})
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
+        "fedora-41-x86_64",
+        "fedora-rawhide-x86_64",
+        default=None,
+    ).and_return({"fedora-rawhide-x86_64", "fedora-41-x86_64"})
+
     assert copr_build_helper.build_targets == build_targets
+    for job in [job for job in jobs if job.type == JobType.copr_build]:
+        assert copr_build_helper.build_targets_for_test_job(job) == build_targets_for_job.pop()
+    for job in [job for job in jobs if job.type == JobType.tests]:
+        assert copr_build_helper.tests_targets_for_test_job(job) == tests_targets_for_job.pop()
 
 
 @pytest.mark.parametrize(
@@ -1173,7 +1309,7 @@ def test_build_targets_overrides(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"fedora-32-x86_64"},
+            {("fedora-32-x86_64", "")},
             None,
             {"fedora-32-x86_64"},
             id="target_in_config_for_both",
@@ -1194,7 +1330,7 @@ def test_build_targets_overrides(
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-7-x86_64"},
+            {("centos-7-x86_64", "")},
             {"centos-7-x86_64"},
             id="build_test_mapping_test_overrides",
         ),
@@ -1213,7 +1349,7 @@ def test_build_targets_overrides(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"epel-7-x86_64"},
+            {("epel-7-x86_64", "")},
             None,
             {"centos-7-x86_64", "rhel-7-x86_64"},
             id="build_test_mapping_build_overrides",
@@ -1232,7 +1368,7 @@ def test_build_targets_overrides(
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-stream-8-x86_64"},
+            {("centos-stream-8-x86_64", "")},
             {"centos-stream-8-x86_64"},
             id="targets_in_tests_no_mapping",
         ),
@@ -1255,7 +1391,7 @@ def test_build_targets_overrides(
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-stream-8-x86_64"},
+            {("centos-stream-8-x86_64", "")},
             {"centos-stream-8-x86_64"},
             id="targets_in_build_no_mapping",
         ),
@@ -1272,7 +1408,7 @@ def test_build_targets_overrides(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"epel-7-x86_64"},
+            {("epel-7-x86_64", "")},
             None,
             {"centos-7-x86_64"},
             id="default_mapping_build_override",
@@ -1291,7 +1427,7 @@ def test_build_targets_overrides(
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-7-x86_64"},
+            {("centos-7-x86_64", "")},
             {"centos-7-x86_64"},
             id="default_mapping_test_override",
         ),
@@ -1308,7 +1444,7 @@ def test_build_targets_overrides(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"epel-7-ppc64le"},
+            {("epel-7-ppc64le", "")},
             None,
             {"centos-7-ppc64le"},
             id="default_mapping_build_override_different_arch",
@@ -1327,7 +1463,7 @@ def test_build_targets_overrides(
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-7-ppc64le"},
+            {("centos-7-ppc64le", "")},
             {"centos-7-ppc64le"},
             id="default_mapping_test_override_different_arch",
         ),
@@ -1344,7 +1480,7 @@ def test_build_targets_overrides(
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"fedora-rawhide-x86_64"},
+            {("fedora-rawhide-x86_64", "")},
             None,
             set(),
             id="build-target-not-in-test",
@@ -1782,7 +1918,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"f32"},
+            {("f32", "")},
             {"f32"},
             id="target_in_config",
         ),
@@ -1799,7 +1935,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            {"f33"},
+            {("f33", "")},
             set(),
             id="target_not_in_config",
         ),

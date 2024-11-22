@@ -279,7 +279,7 @@ def test_parse_check_rerun_commit(check_rerun):
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
-    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "")}
     assert event_object.actor == "lbarcziova"
 
 
@@ -321,7 +321,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
-    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "")}
 
 
 def test_parse_check_rerun_release(check_rerun):
@@ -347,7 +347,7 @@ def test_parse_check_rerun_release(check_rerun):
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.build_targets_override is None
-    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "")}
     assert event_object.actor == "lbarcziova"
 
 

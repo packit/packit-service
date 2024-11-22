@@ -53,8 +53,8 @@ class BaseBuildJobHelper(BaseJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[set[str]] = None,
-        tests_targets_override: Optional[set[str]] = None,
+        build_targets_override: Optional[set[tuple[str, str]]] = None,
+        tests_targets_override: Optional[set[tuple[str, str]]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
         super().__init__(
@@ -67,8 +67,8 @@ class BaseBuildJobHelper(BaseJobHelper):
             pushgateway=pushgateway,
         )
         self.run_model: Optional[PipelineModel] = None
-        self.build_targets_override: Optional[set[str]] = build_targets_override
-        self.tests_targets_override: Optional[set[str]] = tests_targets_override
+        self.build_targets_override: Optional[set[tuple[str, str]]] = build_targets_override
+        self.tests_targets_override: Optional[set[tuple[str, str]]] = tests_targets_override
         self.pushgateway = pushgateway
 
         # lazy properties
@@ -199,7 +199,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         if self.build_targets_override:
             logger.debug(f"Build targets override: {self.build_targets_override}")
-            return self.build_targets_all & self.build_targets_override
+            return self.build_targets_all & {target for target, _ in self.build_targets_override}
 
         return self.build_targets_all
 
@@ -270,13 +270,24 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         if self.build_targets_override:
             logger.debug(f"Build targets override: {self.build_targets_override}")
-            targets_override.update(self.build_targets_override)
+            targets_override.update(
+                [
+                    target
+                    for (target, identifier) in self.build_targets_override
+                    if identifier == (test_job_config.identifier or "")
+                ]
+            )
 
         if self.tests_targets_override:
             logger.debug(f"Test targets override: {self.tests_targets_override}")
             targets_override.update(
-                self.test_target2build_target_for_test_job(target, test_job_config)
-                for target in self.tests_targets_override
+                self.test_target2build_target_for_test_job(t, test_job_config)
+                for t in [
+                    target
+                    for (target, identifier) in self.tests_targets_override
+                    if identifier
+                    == (test_job_config.identifier if test_job_config.identifier else "")
+                ]
             )
 
         return configured_targets & targets_override if targets_override else configured_targets
@@ -314,14 +325,22 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         if self.build_targets_override:
             logger.debug(f"Build targets override: {self.build_targets_override}")
-            for target in self.build_targets_override:
-                targets_override.update(
-                    self.build_target2test_targets_for_test_job(target, test_job_config),
-                )
+            for target, identifier in self.build_targets_override:
+                if identifier == (test_job_config.identifier if test_job_config.identifier else ""):
+                    targets_override.update(
+                        self.build_target2test_targets_for_test_job(target, test_job_config),
+                    )
 
         if self.tests_targets_override:
             logger.debug(f"Test targets override: {self.tests_targets_override}")
-            targets_override.update(self.tests_targets_override)
+            targets_override.update(
+                [
+                    target
+                    for target, identifier in self.tests_targets_override
+                    if identifier
+                    == (test_job_config.identifier if test_job_config.identifier else "")
+                ]
+            )
 
         return (
             configured_targets & targets_override

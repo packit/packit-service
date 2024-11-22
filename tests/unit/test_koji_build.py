@@ -518,7 +518,7 @@ def test_koji_build_targets_override(
         _targets=["bright-future", "dark-past"],
         scratch=True,
         db_project_event=db_project_event,
-        build_targets_override={"bright-future"},
+        build_targets_override={("bright-future", "")},
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"],

@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
+from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -54,7 +55,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
-from packit.config import JobConfigTriggerType
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -202,11 +202,11 @@ def get_most_recent_targets(
     for model in models:
         submitted_time_of_current_model = get_submitted_time_from_model(model)
         if (
-            most_recent_models.get(model.target) is None
-            or get_submitted_time_from_model(most_recent_models[model.target])
+            most_recent_models.get((model.target, model.identifier)) is None
+            or get_submitted_time_from_model(most_recent_models[(model.target, model.identifier)])
             < submitted_time_of_current_model
         ):
-            most_recent_models[model.target] = model
+            most_recent_models[(model.target, model.identifier)] = model
 
     return list(most_recent_models.values())
 
@@ -254,12 +254,14 @@ def filter_most_recent_target_names_by_status(
         Iterable["TFTTestRunTargetModel"],
     ],
     statuses_to_filter_with: list[str],
-) -> Optional[set[str]]:
+) -> Optional[set[tuple[str, str]]]:
     filtered_models = filter_most_recent_target_models_by_status(
         models,
         statuses_to_filter_with,
     )
-    return {model.target for model in filtered_models} if filtered_models else None
+    return (
+        {(model.target, model.identifier) for model in filtered_models} if filtered_models else None
+    )
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
@@ -2102,7 +2104,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     scan = relationship("OSHScanModel", back_populates="copr_build_target")
 
-    identifier = Column(String, default="")
+    identifier = Column(String)
 
     def set_built_packages(self, built_packages):
         with sa_session_transaction(commit=True) as session:
