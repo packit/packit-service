@@ -23,7 +23,6 @@ from urllib.parse import urlparse
 
 from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
-from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -55,6 +54,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
+from packit.config import JobConfigTriggerType
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -2102,6 +2102,8 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     scan = relationship("OSHScanModel", back_populates="copr_build_target")
 
+    identifier = Column(String, default="")
+
     def set_built_packages(self, built_packages):
         with sa_session_transaction(commit=True) as session:
             self.built_packages = built_packages
@@ -2297,6 +2299,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         status: BuildStatus,
         copr_build_group: "CoprBuildGroupModel",
         task_accepted_time: Optional[datetime] = None,
+        identifier: Optional[str] = None,
     ) -> "CoprBuildTargetModel":
         with sa_session_transaction(commit=True) as session:
             build = cls()
@@ -2307,6 +2310,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             build.web_url = web_url
             build.target = target
             build.task_accepted_time = task_accepted_time
+            build.identifier = identifier or ""
             session.add(build)
 
             copr_build_group.copr_build_targets.append(build)
