@@ -1164,3 +1164,12 @@ def test_bodhi_model_get_all_successful_or_in_progress_by_nvrs(
 
     [model] = BodhiUpdateTargetModel.get_all_successful_or_in_progress_by_nvrs(SampleValues.nvr)
     assert model.id == successful_bodhi_update_model.id
+
+
+def test_create_koji_tag_request(clean_before_and_after, a_koji_tag_request):
+    assert a_koji_tag_request.task_id == SampleValues.build_id
+    assert a_koji_tag_request.web_url == SampleValues.koji_web_url
+    assert a_koji_tag_request.target == SampleValues.target
+    assert a_koji_tag_request.sidetag == SampleValues.sidetag
+    assert a_koji_tag_request.nvr == SampleValues.nvr
+    assert a_koji_tag_request.get_project().project_url == SampleValues.project_url

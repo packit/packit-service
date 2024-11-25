@@ -10,6 +10,7 @@ from packit_service.service.api.copr_builds import ns as copr_builds_ns
 from packit_service.service.api.healthz import ns as healthz_ns
 from packit_service.service.api.installations import ns as installations_ns
 from packit_service.service.api.koji_builds import koji_builds_ns
+from packit_service.service.api.koji_tag_requests import koji_tag_requests_ns
 from packit_service.service.api.osh_scans import ns as osh_scans_ns
 from packit_service.service.api.projects import ns as projects_ns
 from packit_service.service.api.propose_downstream import ns as propose_downstream_ns
@@ -38,6 +39,7 @@ api.add_namespace(testing_farm_ns)
 api.add_namespace(webhooks_ns)
 api.add_namespace(allowlist_ns)
 api.add_namespace(koji_builds_ns)
+api.add_namespace(koji_tag_requests_ns)
 api.add_namespace(srpm_builds_ns)
 api.add_namespace(runs_ns)
 api.add_namespace(propose_downstream_ns)

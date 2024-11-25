@@ -33,6 +33,8 @@ from packit_service.models import (
     IssueModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    KojiTagRequestGroupModel,
+    KojiTagRequestTargetModel,
     OSHScanModel,
     OSHScanStatus,
     PipelineModel,
@@ -210,6 +212,7 @@ def clean_db():
         session.query(CoprBuildTargetModel).delete()
         session.query(CoprBuildGroupModel).delete()
         session.query(KojiBuildTargetModel).delete()
+        session.query(KojiTagRequestTargetModel).delete()
         session.query(BodhiUpdateTargetModel).delete()
         session.query(SRPMBuildModel).delete()
         session.query(SyncReleaseTargetModel).delete()
@@ -2506,3 +2509,19 @@ def a_scan(a_copr_build_for_pr):
     scan.scan_results_url = SampleValues.scan_results_url
     scan.issues_added_count = SampleValues.issues_added_count
     yield scan
+
+
+@pytest.fixture()
+def a_koji_tag_request(branch_project_event_model):
+    group = KojiTagRequestGroupModel.create(
+        run_model=PipelineModel.create(project_event=branch_project_event_model),
+    )
+    koji_tag_request_model = KojiTagRequestTargetModel.create(
+        task_id=SampleValues.build_id,
+        web_url=SampleValues.koji_web_url,
+        target=SampleValues.target,
+        sidetag=SampleValues.sidetag,
+        nvr=SampleValues.nvr,
+        koji_tag_request_group=group,
+    )
+    yield koji_tag_request_model

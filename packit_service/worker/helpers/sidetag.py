@@ -58,18 +58,27 @@ class Sidetag:
                 result.add(latest_build)
         return result
 
-    def tag_build(self, nvr: NEVR) -> None:
-        logger.debug(f"Tagging {nvr} into {self.koji_name}")
-        self.koji_helper.tag_build(str(nvr), self.koji_name)
-
-    def tag_latest_stable_build(self, package: str) -> None:
+    def get_latest_stable_nvr(self, package: str) -> Optional[NEVR]:
         latest_stable_nvr = self.koji_helper.get_latest_stable_nvr(
             package,
             self.dist_git_branch,
         )
         if not latest_stable_nvr:
-            logger.debug(f"Failed to find the latest stable build of {package}")
-        self.tag_build(NEVR.from_string(latest_stable_nvr))
+            return None
+        return NEVR.from_string(latest_stable_nvr)
+
+    def tag_build(self, nvr: NEVR) -> Optional[str]:
+        """
+        Tags the specified build into the sidetag.
+
+        Args:
+            nvr: NVR of the build to be tagged.
+
+        Returns:
+            Koji task ID of the created tagging task.
+        """
+        logger.debug(f"Tagging {nvr} into {self.koji_name}")
+        return self.koji_helper.tag_build(str(nvr), self.koji_name)
 
 
 class SidetagHelperMeta(type):

@@ -42,6 +42,8 @@ from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    KojiTagRequestGroupModel,
+    KojiTagRequestTargetModel,
     PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
@@ -3033,7 +3035,11 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     pr_mock = (
         flexmock(target_branch="f40")
         .should_receive("comment")
-        .with_args(f"{TASK_ACCEPTED} ")
+        .with_args(
+            "The task was accepted. You can check the recent Koji tagging requests "
+            "in [Packit dashboard](/jobs/koji-tag-requests). "
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}",
+        )
         .once()
         .mock()
     )
@@ -3085,11 +3091,34 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
         flexmock(KojiHelper).should_receive("tag_build").with_args(
             "python-ogr-0.1-1.fc39",
             "f39-build-side-12345",
-        ).once()
+        ).and_return("123456").once()
     flexmock(KojiHelper).should_receive("tag_build").with_args(
         "python-ogr-0.1-1.fc40",
         "f40-build-side-12345",
+    ).and_return("654321").once()
+
+    flexmock(PipelineModel).should_receive("create").and_return(flexmock()).once()
+    koji_tag_request_group = flexmock()
+    flexmock(KojiTagRequestGroupModel).should_receive("create").and_return(
+        koji_tag_request_group
     ).once()
+    if all_branches:
+        flexmock(KojiTagRequestTargetModel).should_receive("create").with_args(
+            task_id="123456",
+            web_url=str,
+            target="f39",
+            sidetag="f39-build-side-12345",
+            nvr="python-ogr-0.1-1.fc39",
+            koji_tag_request_group=koji_tag_request_group,
+        ).and_return().once()
+    flexmock(KojiTagRequestTargetModel).should_receive("create").with_args(
+        task_id="654321",
+        web_url=str,
+        target="f40",
+        sidetag="f40-build-side-12345",
+        nvr="python-ogr-0.1-1.fc40",
+        koji_tag_request_group=koji_tag_request_group,
+    ).and_return().once()
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
