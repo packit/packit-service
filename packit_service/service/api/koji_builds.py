@@ -98,6 +98,7 @@ class KojiBuildItem(Resource):
             "srpm_build_id": srpm_build.id if srpm_build else None,
             "run_ids": sorted(run.id for run in build.group_of_targets.runs),
             "build_submission_stdout": build.build_submission_stdout,
+            "error": build.data.get("error") if build.data else None,
         }
 
         build_dict.update(get_project_info_from_build(build))

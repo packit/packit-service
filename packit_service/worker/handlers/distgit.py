@@ -924,6 +924,7 @@ class AbstractDownstreamKojiBuildHandler(
                     )
                 error = str(ex)
                 if isinstance(ex, PackitCommandFailedError):
+                    error += f"\n{ex.stderr_output}"
                     koji_build_model.set_build_submission_stdout(ex.stdout_output)
 
                 errors[branch] = error
