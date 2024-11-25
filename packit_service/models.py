@@ -2624,6 +2624,8 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
+    # stdout from the Koji build submission command
+    build_submission_stdout = Column(Text)
 
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
@@ -2684,6 +2686,11 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     def set_data(self, data: dict):
         with sa_session_transaction(commit=True) as session:
             self.data = data
+            session.add(self)
+
+    def set_build_submission_stdout(self, build_submission_stdout: str):
+        with sa_session_transaction(commit=True) as session:
+            self.build_submission_stdout = build_submission_stdout
             session.add(self)
 
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
