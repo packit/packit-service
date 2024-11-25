@@ -15,7 +15,7 @@ from packit_service.service.api.utils import get_project_info_from_build, respon
 
 logger = getLogger("packit_service")
 
-ns = Namespace("osh-scans", description="OpenScanHub scans")
+ns = Namespace("openscanhub-scans", description="OpenScanHub scans")
 
 
 @ns.route("")
@@ -37,7 +37,7 @@ class ScansList(Resource):
             result,
             status=HTTPStatus.PARTIAL_CONTENT,
         )
-        resp.headers["Content-Range"] = f"osh-scans {first + 1}-{last}/*"
+        resp.headers["Content-Range"] = f"openscanhub-scans {first + 1}-{last}/*"
         return resp
 
 

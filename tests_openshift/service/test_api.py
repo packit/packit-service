@@ -967,7 +967,7 @@ def test_scan_info(
     a_scan,
 ):
     response = client.get(
-        url_for("api.osh-scans_scan_item", id=a_scan.id),
+        url_for("api.openscanhub-scans_scan_item", id=a_scan.id),
     )
     response_dict = response.json
     assert response_dict["task_id"] == SampleValues.task_id
@@ -987,7 +987,7 @@ def test_scans_list(
     clean_before_and_after,
     a_scan,
 ):
-    response = client.get(url_for("api.osh-scans_scans_list"))
+    response = client.get(url_for("api.openscanhub-scans_scans_list"))
     response_dict = response.json
 
     assert len(response_dict) == 1
