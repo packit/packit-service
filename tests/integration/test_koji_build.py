@@ -22,7 +22,7 @@ from packit_service.models import (
     ProjectEventModelType,
 )
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events.pagure import (
+from packit_service.worker.events import (
     PushPagureEvent,
 )
 from packit_service.worker.handlers.distgit import (

@@ -57,13 +57,17 @@ from packit_service.worker.events.open_scan_hub import (
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
 )
-from packit_service.worker.events.pagure import (
-    AbstractPagureEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestFlagPagureEvent,
-    PullRequestPagureEvent,
-    PushPagureEvent,
+from packit_service.worker.events.pagure.abstract import PagureEvent as AbstractPagureEvent
+from packit_service.worker.events.pagure.pr import (
+    Comment as PullRequestCommentPagureEvent,
 )
+from packit_service.worker.events.pagure.pr import (
+    Flag as PullRequestFlagPagureEvent,
+)
+from packit_service.worker.events.pagure.pr import (
+    Synchronize as PullRequestPagureEvent,
+)
+from packit_service.worker.events.pagure.push import Push as PushPagureEvent
 from packit_service.worker.events.testing_farm import Result as TestingFarmResultsEvent
 from packit_service.worker.events.vm_image import Result as VMImageBuildResultEvent
 
@@ -89,6 +93,7 @@ __all__ = [
     PushPagureEvent.__name__,
     PullRequestCommentPagureEvent.__name__,
     PullRequestPagureEvent.__name__,
+    PullRequestFlagPagureEvent.__name__,
     TestingFarmResultsEvent.__name__,
     VMImageBuildResultEvent.__name__,
     PipelineGitlabEvent.__name__,
@@ -102,7 +107,6 @@ __all__ = [
     AbstractForgeIndependentEvent.__name__,
     ReleaseGitlabEvent.__name__,
     TagPushGitlabEvent.__name__,
-    PullRequestFlagPagureEvent.__name__,
     OpenScanHubTaskFinishedEvent.__name__,
     OpenScanHubTaskStartedEvent.__name__,
 ]

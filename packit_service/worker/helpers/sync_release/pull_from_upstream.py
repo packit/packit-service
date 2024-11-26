@@ -9,9 +9,8 @@ from packit.config import JobConfig, JobType, PackageConfig
 
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
-from packit_service.worker.events import EventData
+from packit_service.worker.events import EventData, PullRequestCommentPagureEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 
 logger = logging.getLogger(__name__)

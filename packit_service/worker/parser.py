@@ -46,7 +46,9 @@ from packit_service.worker.events import (
     PipelineGitlabEvent,
     PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
+    PullRequestFlagPagureEvent,
     PullRequestGithubEvent,
+    PullRequestPagureEvent,
     PushGitHubEvent,
     PushGitlabEvent,
     PushPagureEvent,
@@ -70,10 +72,6 @@ from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import (
     AnityaVersionUpdateEvent,
     NewHotnessUpdateEvent,
-)
-from packit_service.worker.events.pagure import (
-    PullRequestFlagPagureEvent,
-    PullRequestPagureEvent,
 )
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper

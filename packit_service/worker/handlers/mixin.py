@@ -21,6 +21,7 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.utils import get_packit_commands_from_comment
+from packit_service.worker.events import PullRequestCommentPagureEvent
 from packit_service.worker.events.copr import AbstractCoprBuildEvent
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github.pr import (
@@ -28,7 +29,6 @@ from packit_service.worker.events.github.pr import (
 )
 from packit_service.worker.events.gitlab import MergeRequestCommentGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
