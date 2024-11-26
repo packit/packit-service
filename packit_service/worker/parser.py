@@ -31,6 +31,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
+    AnityaVersionUpdateEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
@@ -41,6 +42,7 @@ from packit_service.worker.events import (
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    NewHotnessUpdateEvent,
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
     PipelineGitlabEvent,
@@ -69,10 +71,6 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
 from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
-from packit_service.worker.events.new_hotness import (
-    AnityaVersionUpdateEvent,
-    NewHotnessUpdateEvent,
-)
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
