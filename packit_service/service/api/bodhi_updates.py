@@ -82,7 +82,7 @@ class BodhiUpdateItem(Resource):
             "submitted_time": optional_timestamp(update.submitted_time),
             "update_creation_time": optional_timestamp(update.update_creation_time),
             "run_ids": sorted(run.id for run in update.group_of_targets.runs),
-            "error": update.data.get("error") if update.data else None,
+            "error_message": update.data.get("error") if update.data else None,
         }
 
         update_dict.update(get_project_info_from_build(update))
