@@ -3,6 +3,8 @@
 
 import logging
 
+from ogr.services.pagure import PagureProject
+
 from packit_service.constants import (
     KOJI_PRODUCTION_BUILDS_ISSUE,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
@@ -23,6 +25,11 @@ logger = logging.getLogger(__name__)
 class IsJobConfigTriggerMatching(Checker, GetKojiBuildJobHelperMixin):
     def pre_check(self) -> bool:
         return self.koji_build_helper.is_job_config_trigger_matching(self.job_config)
+
+
+class IsUpstreamKojiScratchBuild(Checker, GetKojiBuildJobHelperMixin):
+    def pre_check(self) -> bool:
+        return not isinstance(self.koji_build_helper.project, PagureProject)
 
 
 class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):

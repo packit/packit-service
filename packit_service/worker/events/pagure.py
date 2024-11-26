@@ -199,6 +199,7 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         project_url: str,
         commit_sha: str,
         user_login: str,
+        target_branch: str,
     ):
         super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
@@ -212,6 +213,7 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
         self.project_url = project_url
+        self.target_branch = target_branch
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()

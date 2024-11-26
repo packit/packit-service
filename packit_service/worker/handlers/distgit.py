@@ -25,6 +25,7 @@ from packit.exceptions import (
     PackitException,
     ReleaseSkippedPackitException,
 )
+from packit.utils import commands
 from packit.utils.koji_helper import KojiHelper
 
 from packit_service import sentry_integration
@@ -53,6 +54,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
 )
 from packit_service.service.urls import (
+    get_koji_build_info_url,
     get_propose_downstream_info_url,
     get_pull_from_upstream_info_url,
 )
@@ -79,6 +81,7 @@ from packit_service.worker.events import (
     IssueCommentGitlabEvent,
     KojiTaskEvent,
     PullRequestCommentPagureEvent,
+    PullRequestPagureEvent,
     PushPagureEvent,
     ReleaseEvent,
     ReleaseGitlabEvent,
@@ -91,10 +94,12 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
     reacts_to,
+    reacts_to_as_fedora_ci,
     run_for_check_rerun,
     run_for_comment,
 )
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
+from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
@@ -738,6 +743,146 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             # allow upstream git_project to be None
             self.packit_api.up._project_required = False
             return super().run()
+
+
+@reacts_to_as_fedora_ci(event=PullRequestPagureEvent)
+class DownstreamKojiScratchBuildHandler(
+    RetriableJobHandler, ConfigFromUrlMixin, LocalProjectMixin, PackitAPIWithDownstreamMixin
+):
+    """
+    This handler can submit a scratch build in Koji from a dist-git (Fedora CI).
+    """
+
+    task_name = TaskName.downstream_koji_scratch_build
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Task,
+        koji_group_model_id: Optional[int] = None,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+            celery_task=celery_task,
+        )
+        self._project_url = self.data.project_url
+        self._packit_api = None
+        self._koji_group_model_id = koji_group_model_id
+        self._ci_helper: Optional[FedoraCIHelper] = None
+
+    @property
+    def ci_helper(self) -> FedoraCIHelper:
+        if not self._ci_helper:
+            self._ci_helper = FedoraCIHelper(
+                project=self.project,
+                metadata=self.data,
+            )
+        return self._ci_helper
+
+    @property
+    def dist_git_branch(self) -> str:
+        return self.data.event_dict.get("target_branch")
+
+    @property
+    def repo_url(self) -> str:
+        event_dict = self.data.event_dict
+        full_repo_name = (
+            f"forks/{event_dict.get('base_repo_owner')}/"
+            f"{event_dict.get('base_repo_namespace')}/{event_dict.get('base_repo_name')}"
+        )
+        return f"git+https://src.fedoraproject.org/{full_repo_name}.git#{self.data.commit_sha}"
+
+    def run(self) -> TaskResults:
+        try:
+            self.packit_api.init_kerberos_ticket()
+        except PackitCommandFailedError as ex:
+            msg = f"Kerberos authentication error: {ex.stderr_output}"
+            logger.error(msg)
+            self.ci_helper.report(
+                state=BaseCommitStatus.error,
+                description=msg,
+                url=None,
+            )
+            return TaskResults(success=False, details={"msg": msg})
+
+        build_group = KojiBuildGroupModel.create(
+            run_model=PipelineModel.create(
+                project_event=self.data.db_project_event,
+            )
+        )
+
+        koji_build = KojiBuildTargetModel.create(
+            task_id=None,
+            web_url=None,
+            target=self.dist_git_branch,
+            status="pending",
+            scratch=True,
+            koji_build_group=build_group,
+        )
+        try:
+            stdout = self.run_koji_build()
+            if stdout:
+                task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)
+                koji_build.set_task_id(str(task_id))
+                koji_build.set_web_url(web_url)
+                koji_build.set_build_submission_stdout(stdout)
+            url = get_koji_build_info_url(koji_build.id)
+            self.ci_helper.report(
+                state=BaseCommitStatus.running,
+                description="RPM build was submitted ...",
+                url=url,
+            )
+        except Exception as ex:
+            sentry_integration.send_to_sentry(ex)
+            self.ci_helper.report(
+                state=BaseCommitStatus.error,
+                description=f"Submit of the build failed: {ex}",
+                url=None,
+            )
+            if isinstance(ex, PackitCommandFailedError):
+                error = f"{ex!s}\n{ex.stderr_output}"
+                koji_build.set_build_submission_stdout(ex.stdout_output)
+                koji_build.set_data({"error": error})
+
+            koji_build.set_status("error")
+            return TaskResults(
+                success=False,
+                details={
+                    "msg": "Koji scratch build submit was not successful.",
+                    "error": str(ex),
+                },
+            )
+
+        return TaskResults(success=True, details={})
+
+    def run_koji_build(
+        self,
+    ):
+        """
+        Perform a `koji build` from SCM.
+
+        Returns:
+            str output
+        """
+        cmd = [
+            "koji",
+            "build",
+            "--scratch",
+            "--nowait",
+            self.dist_git_branch,
+            self.repo_url,
+        ]
+        logger.info("Starting a Koji scratch build.")
+        return commands.run_command_remote(
+            cmd=cmd,
+            cwd=self.local_project.working_dir,
+            output=True,
+            print_live=True,
+        ).stdout
 
 
 class AbstractDownstreamKojiBuildHandler(

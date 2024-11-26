@@ -43,6 +43,9 @@ MAP_REQUIRED_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defau
     set,
 )
 SUPPORTED_EVENTS_FOR_HANDLER: dict[type["JobHandler"], set[type["Event"]]] = defaultdict(set)
+SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI: dict[type["JobHandler"], set[type["Event"]]] = defaultdict(
+    set
+)
 MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
@@ -84,7 +87,7 @@ def reacts_to(event: type["Event"]):
     """
     [class decorator]
     Specify an event for which we want to use this handler.
-    Matching is done via isinstance so you can use some abstract class as well.
+    Matching is done via `isinstance` so you can use some abstract class as well.
 
     Multiple decorators are allowed.
 
@@ -99,6 +102,30 @@ def reacts_to(event: type["Event"]):
 
     def _add_to_mapping(kls: type["JobHandler"]):
         SUPPORTED_EVENTS_FOR_HANDLER[kls].add(event)
+        return kls
+
+    return _add_to_mapping
+
+
+def reacts_to_as_fedora_ci(event: type["Event"]):
+    """
+    [class decorator]
+    Specify an event for which we want to use this handler as a Fedora CI.
+    Matching is done via `isinstance` so you can use some abstract class as well.
+
+    Multiple decorators are allowed.
+
+    Example:
+    ```
+    @reacts_to(ReleaseEvent)
+    @reacts_to(PullRequestGithubEvent)
+    @reacts_to(PushGitHubEvent)
+    class CoprBuildHandler(JobHandler):
+    ```
+    """
+
+    def _add_to_mapping(kls: type["JobHandler"]):
+        SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI[kls].add(event)
         return kls
 
     return _add_to_mapping
@@ -190,6 +217,8 @@ class TaskName(str, enum.Enum):
     tag_into_sidetag = "task.tag_into_sidetag"
     openscanhub_task_finished = "task.openscanhub_task_finished"
     openscanhub_task_started = "task.openscanhub_task_started"
+    downstream_koji_scratch_build = "task.run_downstream_koji_scratch_build_handler"
+    downstream_koji_scratch_build_report = "task.run_downstream_koji_scratch_build_report_handler"
 
 
 class Handler(PackitAPIProtocol, Config):

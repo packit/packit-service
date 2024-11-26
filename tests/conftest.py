@@ -333,6 +333,64 @@ def koji_build_pr():
 
 
 @pytest.fixture()
+def koji_build_pr_downstream():
+    project_model = flexmock(
+        repo_name="packit",
+        namespace="rpms",
+        project_url="https://src.fedoraproject.org/rpms/packit",
+    )
+    pr_model = flexmock(
+        id=1,
+        pr_id=123,
+        project=project_model,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        commit_sha="0011223344",
+    )
+    project_event_model = flexmock(
+        id=2,
+        type=ProjectEventModelType.pull_request,
+        event_id=1,
+        get_project_event_object=lambda: pr_model,
+    )
+    runs = []
+    srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
+    koji_build_model = flexmock(
+        id=1,
+        task_id="1",
+        commit_sha="0011223344",
+        project_name="some-project",
+        owner="some-owner",
+        web_url="https://some-url",
+        target="some-target",
+        status="some-status",
+        runs=runs,
+    )
+    koji_build_model._srpm_build_for_mocking = srpm_build
+    koji_build_model.get_project_event_object = lambda: pr_model
+    koji_build_model.get_srpm_build = lambda: srpm_build
+    koji_build_model.should_receive("get_project_event_model").and_return(
+        project_event_model,
+    )
+
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=pr_model.project_event_model_type,
+        event_id=pr_model.id,
+        commit_sha="0011223344",
+    ).and_return(project_event_model)
+
+    run_model = flexmock(
+        id=3,
+        job_project_event=project_event_model,
+        srpm_build=srpm_build,
+        copr_build=koji_build_model,
+    )
+    runs.append(run_model)
+
+    return koji_build_model
+
+
+@pytest.fixture()
 def add_pull_request_event_with_sha_123456():
     db_project_object = flexmock(
         project=flexmock(

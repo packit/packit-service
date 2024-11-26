@@ -71,6 +71,7 @@ from packit_service.worker.handlers.bodhi import (
 )
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
+    DownstreamKojiScratchBuildHandler,
     PullFromUpstreamHandler,
     RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
@@ -79,6 +80,7 @@ from packit_service.worker.handlers.forges import GithubFasVerificationHandler
 from packit_service.worker.handlers.koji import (
     KojiBuildReportHandler,
     KojiBuildTagHandler,
+    KojiTaskReportDownstreamHandler,
 )
 from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.helpers.build.babysit import (
@@ -391,6 +393,31 @@ def run_koji_build_report_handler(event: dict, package_config: dict, job_config:
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.downstream_koji_scratch_build_report, base=TaskWithRetry)
+def run_downstream_koji_scratch_build_report_handler(
+    event: dict, package_config: dict, job_config: dict
+):
+    handler = KojiTaskReportDownstreamHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(bind=True, name=TaskName.downstream_koji_scratch_build, base=TaskWithRetry)
+def run_downstream_koji_scratch_build_handler(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = DownstreamKojiScratchBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

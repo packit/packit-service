@@ -6,6 +6,7 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime
 from os import getenv
 from typing import Optional
@@ -40,6 +41,7 @@ from packit_service.utils import (
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.koji import (
     IsJobConfigTriggerMatching,
+    IsUpstreamKojiScratchBuild,
     PermissionOnKoji,
     SidetagExists,
 )
@@ -62,6 +64,7 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
     reacts_to,
+    reacts_to_as_fedora_ci,
     run_for_check_rerun,
     run_for_comment,
 )
@@ -69,6 +72,7 @@ from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
@@ -130,16 +134,9 @@ class KojiBuildHandler(
         return self.koji_build_helper.run_koji_build()
 
 
-@configured_as(job_type=JobType.production_build)
-@configured_as(job_type=JobType.upstream_koji_build)
-@reacts_to(event=KojiTaskEvent)
-class KojiTaskReportHandler(
-    JobHandler,
-    PackitAPIWithDownstreamMixin,
-    ConfigFromEventMixin,
+class AbstractKojiTaskReportHandler(
+    ABC, JobHandler, PackitAPIWithDownstreamMixin, ConfigFromEventMixin
 ):
-    task_name = TaskName.upstream_koji_build_report
-
     def __init__(
         self,
         package_config: PackageConfig,
@@ -156,6 +153,14 @@ class KojiTaskReportHandler(
         self._db_project_event: Optional[ProjectEventModel] = None
         self._build: Optional[KojiBuildTargetModel] = None
 
+    @abstractmethod
+    def report(self, description: str, commit_status: BaseCommitStatus, url: str): ...
+
+    @abstractmethod
+    def notify_about_failure_if_configured(
+        self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str
+    ): ...
+
     @property
     def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
@@ -171,21 +176,17 @@ class KojiTaskReportHandler(
         return self._db_project_event
 
     def run(self):
-        build = KojiBuildTargetModel.get_by_task_id(
-            task_id=str(self.koji_task_event.task_id),
-        )
-
-        if not build:
+        if not self.build:
             msg = f"Koji task {self.koji_task_event.task_id} not found in the database."
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
 
         logger.debug(
-            f"Build on {build.target} in koji changed state "
+            f"Build on {self.build.target} in Koji changed state "
             f"from {self.koji_task_event.old_state} to {self.koji_task_event.state}.",
         )
 
-        build.set_build_start_time(
+        self.build.set_build_start_time(
             (
                 datetime.utcfromtimestamp(self.koji_task_event.start_time)
                 if self.koji_task_event.start_time
@@ -193,7 +194,7 @@ class KojiTaskReportHandler(
             ),
         )
 
-        build.set_build_finished_time(
+        self.build.set_build_finished_time(
             (
                 datetime.utcfromtimestamp(self.koji_task_event.completion_time)
                 if self.koji_task_event.completion_time
@@ -201,15 +202,7 @@ class KojiTaskReportHandler(
             ),
         )
 
-        url = get_koji_build_info_url(build.id)
-        build_job_helper = KojiBuildJobHelper(
-            service_config=self.service_config,
-            package_config=self.package_config,
-            project=self.project,
-            metadata=self.data,
-            db_project_event=self.db_project_event,
-            job_config=self.job_config,
-        )
+        url = get_koji_build_info_url(self.build.id)
 
         new_commit_status = {
             KojiTaskState.free: BaseCommitStatus.pending,
@@ -233,7 +226,7 @@ class KojiTaskReportHandler(
             logger.debug(
                 f"We don't react to this koji build state change: {self.koji_task_event.state}",
             )
-        elif new_commit_status.value == build.status:
+        elif new_commit_status.value == self.build.status:
             logger.debug(
                 "Status was already processed (status in the DB is the "
                 "same as the one about to report)",
@@ -244,36 +237,100 @@ class KojiTaskReportHandler(
             )
 
         else:
-            build.set_status(new_commit_status.value)
-            build_job_helper.report_status_to_all_for_chroot(
-                description=description,
-                state=new_commit_status,
-                url=url,
-                chroot=build.target,
-            )
+            self.build.set_status(new_commit_status.value)
+            self.report(description, new_commit_status, url)
             koji_build_logs = self.koji_task_event.get_koji_build_rpm_tasks_logs_urls(
                 self.service_config.koji_logs_url,
             )
 
-            build.set_build_logs_urls(koji_build_logs)
+            self.build.set_build_logs_urls(koji_build_logs)
             koji_rpm_task_web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
-                rpm_build_task_id=int(build.task_id),
+                rpm_build_task_id=int(self.build.task_id),
                 koji_web_url=self.service_config.koji_web_url,
             )
-            build.set_web_url(koji_rpm_task_web_url)
+            self.build.set_web_url(koji_rpm_task_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
-                build_job_helper.notify_about_failure_if_configured(
+                self.notify_about_failure_if_configured(
                     packit_dashboard_url=url,
                     external_dashboard_url=koji_rpm_task_web_url,
                     logs_url=koji_build_logs,
                 )
 
         msg = (
-            f"Build on {build.target} in koji changed state "
+            f"Build on {self.build.target} in koji changed state "
             f"from {self.koji_task_event.old_state} to {self.koji_task_event.state}."
         )
         return TaskResults(success=True, details={"msg": msg})
+
+
+@configured_as(job_type=JobType.production_build)
+@configured_as(job_type=JobType.upstream_koji_build)
+@reacts_to(event=KojiTaskEvent)
+class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
+    task_name = TaskName.upstream_koji_build_report
+    _helper: Optional[KojiBuildJobHelper] = None
+
+    @property
+    def helper(self):
+        if not self._helper:
+            self._helper = KojiBuildJobHelper(
+                service_config=self.service_config,
+                package_config=self.package_config,
+                project=self.project,
+                metadata=self.data,
+                db_project_event=self.db_project_event,
+                job_config=self.job_config,
+            )
+        return self._helper
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (IsUpstreamKojiScratchBuild,)
+
+    def report(self, description: str, commit_status: BaseCommitStatus, url: str):
+        self.helper.report_status_to_all_for_chroot(
+            description=description,
+            state=commit_status,
+            url=url,
+            chroot=self.build.target,
+        )
+
+    def notify_about_failure_if_configured(
+        self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str
+    ):
+        self.helper.notify_about_failure_if_configured(
+            packit_dashboard_url=packit_dashboard_url,
+            external_dashboard_url=external_dashboard_url,
+            logs_url=logs_url,
+        )
+
+
+@reacts_to_as_fedora_ci(event=KojiTaskEvent)
+class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
+    task_name = TaskName.downstream_koji_build_report
+    _helper: Optional[FedoraCIHelper] = None
+
+    @property
+    def helper(self):
+        if not self._helper:
+            self._helper = FedoraCIHelper(
+                project=self.project,
+                metadata=self.data,
+            )
+        return self._helper
+
+    def report(self, description: str, commit_status: BaseCommitStatus, url: str):
+        self.helper.report(
+            state=commit_status,
+            description=description,
+            url=url,
+        )
+
+    def notify_about_failure_if_configured(
+        self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str
+    ):
+        pass
 
 
 @configured_as(job_type=JobType.koji_build)

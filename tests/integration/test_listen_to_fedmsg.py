@@ -59,6 +59,7 @@ from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 from packit_service.worker.tasks import (
     run_copr_build_end_handler,
     run_copr_build_start_handler,
+    run_downstream_koji_scratch_build_report_handler,
     run_koji_build_report_handler,
     run_koji_build_tag_handler,
     run_testing_farm_handler,
@@ -2559,6 +2560,64 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     assert json.dumps(event_dict)
 
     results = run_koji_build_report_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_koji_build_end_downstream(
+    koji_build_scratch_end, pc_koji_build_pr, koji_build_pr_downstream
+):
+    service_config = (
+        flexmock(
+            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/packit",
+            koji_logs_url="",
+            koji_web_url="",
+        )
+        .should_receive("get_project")
+        .and_return(flexmock(namespace="rpms", repo="packit"))
+        .mock()
+    )
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+    koji_build_pr_downstream.target = "rawhide"
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(KojiTaskEvent).should_receive("get_packages_config").and_return(
+        pc_koji_build_pr,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
+        koji_build_pr_downstream,
+    )
+    url = get_koji_build_info_url(1)
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
+
+    koji_build_pr_downstream.should_receive("set_build_start_time").once()
+    koji_build_pr_downstream.should_receive("set_build_finished_time").once()
+    koji_build_pr_downstream.should_receive("set_status").with_args("success").once()
+    koji_build_pr_downstream.should_receive("set_build_logs_urls")
+    koji_build_pr_downstream.should_receive("set_web_url")
+
+    # check if packit-service set correct PR status
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.success,
+        description="RPM build succeeded.",
+        url=url,
+        check_name="Packit - scratch build",
+    ).once()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    processing_results = SteveJobs().process_message(koji_build_scratch_end)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert json.dumps(event_dict)
+
+    results = run_downstream_koji_scratch_build_report_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,
