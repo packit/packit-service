@@ -53,9 +53,11 @@ from packit_service.worker.events.gitlab import (
     TagPushGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiTaskEvent
-from packit_service.worker.events.open_scan_hub import (
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
+from packit_service.worker.events.openscanhub.task import (
+    Finished as OpenScanHubTaskFinishedEvent,
+)
+from packit_service.worker.events.openscanhub.task import (
+    Started as OpenScanHubTaskStartedEvent,
 )
 from packit_service.worker.events.pagure.abstract import PagureEvent as AbstractPagureEvent
 from packit_service.worker.events.pagure.pr import (
