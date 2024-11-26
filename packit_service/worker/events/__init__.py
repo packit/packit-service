@@ -65,7 +65,7 @@ from packit_service.worker.events.pagure import (
     PushPagureEvent,
 )
 from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
-from packit_service.worker.events.vm_image import VMImageBuildResultEvent
+from packit_service.worker.events.vm_image import Result as VMImageBuildResultEvent
 
 __all__ = [
     Event.__name__,
