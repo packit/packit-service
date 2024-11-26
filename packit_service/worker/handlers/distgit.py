@@ -20,6 +20,7 @@ from ogr.services.github import GithubService
 from packit.config import Deployment, JobConfig, JobConfigTriggerType, JobType, aliases
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
+    PackitCommandFailedError,
     PackitDownloadFailedException,
     PackitException,
     ReleaseSkippedPackitException,
@@ -899,6 +900,7 @@ class AbstractDownstreamKojiBuildHandler(
                     task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)
                     koji_build_model.set_task_id(str(task_id))
                     koji_build_model.set_web_url(web_url)
+                    koji_build_model.set_build_submission_stdout(stdout)
             except PackitException as ex:
                 if self.celery_task and not self.celery_task.is_last_try():
                     kargs = self.celery_task.task.request.kwargs.copy()
@@ -921,6 +923,10 @@ class AbstractDownstreamKojiBuildHandler(
                         },
                     )
                 error = str(ex)
+                if isinstance(ex, PackitCommandFailedError):
+                    error += f"\n{ex.stderr_output}"
+                    koji_build_model.set_build_submission_stdout(ex.stdout_output)
+
                 errors[branch] = error
                 koji_build_model.set_data({"error": error})
                 koji_build_model.set_status("error")
