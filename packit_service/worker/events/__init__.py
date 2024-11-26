@@ -1,6 +1,12 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+from packit_service.worker.events.anitya.base import (
+    NewHotness as NewHotnessUpdateEvent,
+)
+from packit_service.worker.events.anitya.base import (
+    VersionUpdate as AnityaVersionUpdateEvent,
+)
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
     AbstractIssueCommentEvent,
@@ -111,4 +117,7 @@ __all__ = [
     TagPushGitlabEvent.__name__,
     OpenScanHubTaskFinishedEvent.__name__,
     OpenScanHubTaskStartedEvent.__name__,
+    # Anitya events
+    NewHotnessUpdateEvent.__name__,
+    AnityaVersionUpdateEvent.__name__,
 ]

@@ -14,7 +14,7 @@ from packit_service.models import (
     ProjectEventModelType,
     ProjectReleaseModel,
 )
-from packit_service.worker.events.new_hotness import (
+from packit_service.worker.events import (
     AnityaVersionUpdateEvent,
     NewHotnessUpdateEvent,
 )
