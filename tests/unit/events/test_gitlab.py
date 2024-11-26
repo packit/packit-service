@@ -9,9 +9,7 @@ from ogr.services.gitlab import GitlabProject
 
 from packit_service.config import PackageConfigGetter
 from packit_service.models import PullRequestModel
-from packit_service.worker.events.comment import CommitCommentEvent
-from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.gitlab import (
+from packit_service.worker.events import (
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
@@ -20,6 +18,8 @@ from packit_service.worker.events.gitlab import (
     ReleaseGitlabEvent,
     TagPushGitlabEvent,
 )
+from packit_service.worker.events.comment import CommitCommentEvent
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

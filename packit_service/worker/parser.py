@@ -35,6 +35,7 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    CommitCommentGitlabEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     IssueCommentEvent,
@@ -69,7 +70,6 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
-from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper

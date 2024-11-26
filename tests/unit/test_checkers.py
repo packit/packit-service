@@ -51,7 +51,9 @@ from packit_service.worker.checker.vm_image import (
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
+    MergeRequestGitlabEvent,
     PullRequestGithubEvent,
+    PushGitlabEvent,
     PushPagureEvent,
 )
 from packit_service.worker.events.event import EventData
@@ -59,7 +61,6 @@ from packit_service.worker.events.github.pr import (
     Comment as PullRequestCommentGithubEvent,
 )
 from packit_service.worker.events.github.push import Push as PushGitHubEvent
-from packit_service.worker.events.gitlab import MergeRequestGitlabEvent, PushGitlabEvent
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
 

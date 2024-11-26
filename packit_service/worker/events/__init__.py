@@ -49,14 +49,29 @@ from packit_service.worker.events.github.pr import (
 )
 from packit_service.worker.events.github.push import Push as PushGitHubEvent
 from packit_service.worker.events.github.release import Release as ReleaseEvent
-from packit_service.worker.events.gitlab import (
-    IssueCommentGitlabEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PipelineGitlabEvent,
-    PushGitlabEvent,
-    ReleaseGitlabEvent,
-    TagPushGitlabEvent,
+from packit_service.worker.events.gitlab.commit import (
+    Comment as CommitCommentGitlabEvent,
+)
+from packit_service.worker.events.gitlab.issue import (
+    Comment as IssueCommentGitlabEvent,
+)
+from packit_service.worker.events.gitlab.mr import (
+    Comment as MergeRequestCommentGitlabEvent,
+)
+from packit_service.worker.events.gitlab.mr import (
+    Synchronize as MergeRequestGitlabEvent,
+)
+from packit_service.worker.events.gitlab.pipeline import (
+    Pipeline as PipelineGitlabEvent,
+)
+from packit_service.worker.events.gitlab.push import (
+    Push as PushGitlabEvent,
+)
+from packit_service.worker.events.gitlab.push import (
+    TagPush as TagPushGitlabEvent,
+)
+from packit_service.worker.events.gitlab.release import (
+    Release as ReleaseGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiTaskEvent
 from packit_service.worker.events.openscanhub.task import (
@@ -92,9 +107,6 @@ __all__ = [
     IssueCommentEvent.__name__,
     InstallationEvent.__name__,
     ReleaseEvent.__name__,
-    PushGitlabEvent.__name__,
-    MergeRequestGitlabEvent.__name__,
-    MergeRequestCommentGitlabEvent.__name__,
     IssueCommentGitlabEvent.__name__,
     KojiTaskEvent.__name__,
     AbstractPagureEvent.__name__,
@@ -104,7 +116,6 @@ __all__ = [
     PullRequestFlagPagureEvent.__name__,
     TestingFarmResultsEvent.__name__,
     VMImageBuildResultEvent.__name__,
-    PipelineGitlabEvent.__name__,
     CheckRerunCommitEvent.__name__,
     CheckRerunPullRequestEvent.__name__,
     CheckRerunReleaseEvent.__name__,
@@ -113,10 +124,16 @@ __all__ = [
     AbstractPRCommentEvent.__name__,
     AbstractIssueCommentEvent.__name__,
     AbstractForgeIndependentEvent.__name__,
-    ReleaseGitlabEvent.__name__,
-    TagPushGitlabEvent.__name__,
     OpenScanHubTaskFinishedEvent.__name__,
     OpenScanHubTaskStartedEvent.__name__,
+    # GitLab events
+    ReleaseGitlabEvent.__name__,
+    TagPushGitlabEvent.__name__,
+    PipelineGitlabEvent.__name__,
+    PushGitlabEvent.__name__,
+    MergeRequestGitlabEvent.__name__,
+    MergeRequestCommentGitlabEvent.__name__,
+    CommitCommentGitlabEvent.__name__,
     # Anitya events
     NewHotnessUpdateEvent.__name__,
     AnityaVersionUpdateEvent.__name__,
