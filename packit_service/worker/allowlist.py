@@ -43,11 +43,11 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
+    ReleaseGitlabEvent,
     TestingFarmResultsEvent,
     github,
 )
 from packit_service.worker.events.comment import CommitCommentEvent
-from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
