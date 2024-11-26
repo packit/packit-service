@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+
 from typing import Optional, Union
 
 from packit_service.models import (
