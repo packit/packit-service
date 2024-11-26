@@ -13,7 +13,7 @@ from packit_service.worker.events.event import (
 )
 
 
-class VMImageBuildResultEvent(AbstractResultEvent):
+class Result(AbstractResultEvent):
     def __init__(
         self,
         build_id: str,
