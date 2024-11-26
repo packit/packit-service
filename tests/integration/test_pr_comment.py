@@ -66,8 +66,8 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
+from packit_service.worker.events import PullRequestCommentPagureEvent
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )

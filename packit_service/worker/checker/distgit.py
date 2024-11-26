@@ -16,11 +16,11 @@ from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
     IssueCommentEvent,
     IssueCommentGitlabEvent,
+    PullRequestCommentPagureEvent,
     PushPagureEvent,
 )
 from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
