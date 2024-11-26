@@ -16,7 +16,7 @@ from packit_service.models import (
 from packit_service.worker.events.event import AbstractResultEvent
 
 
-class TestingFarmResultsEvent(AbstractResultEvent):
+class Result(AbstractResultEvent):
     __test__ = False
 
     def __init__(
