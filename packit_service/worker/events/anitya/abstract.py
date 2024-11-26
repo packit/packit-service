@@ -8,17 +8,16 @@ from typing import Optional
 
 from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
-from packit.config import JobConfigTriggerType, PackageConfig
+from packit.config import PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import ProjectEventModel, ProjectReleaseModel
-from packit_service.worker.events import Event
-from packit_service.worker.events.event import use_for_job_config_trigger
+from packit_service.worker.events.event import Event
 
 logger = getLogger(__name__)
 
 
-class AnityaUpdateEvent(Event):
+class AnityaUpdate(Event):
     def __init__(
         self,
         package_name: str,
@@ -155,71 +154,3 @@ class AnityaUpdateEvent(Event):
         result.pop("project")
         result.pop("repo_url")
         return result
-
-
-# the decorator is needed in case the DB project event is not created (not valid arguments)
-# but we still want to report from pre_check of the PullFromUpstreamHandler
-@use_for_job_config_trigger(trigger_type=JobConfigTriggerType.release)
-class NewHotnessUpdateEvent(AnityaUpdateEvent):
-    def __init__(
-        self,
-        package_name: str,
-        version: str,
-        distgit_project_url: str,
-        bug_id: int,
-        anitya_project_id: int,
-        anitya_project_name: str,
-    ):
-        super().__init__(
-            package_name=package_name,
-            distgit_project_url=distgit_project_url,
-            anitya_project_id=anitya_project_id,
-            anitya_project_name=anitya_project_name,
-        )
-        self._version = version
-        self.bug_id = bug_id
-
-    @property
-    def version(self) -> str:
-        return self._version
-
-
-# TODO: Uncomment once it is possible to deduce the version for the sync-release
-# action.
-# @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.release)
-class AnityaVersionUpdateEvent(AnityaUpdateEvent):
-    def __init__(
-        self,
-        package_name: str,
-        versions: list[str],
-        distgit_project_url: str,
-        anitya_project_id: int,
-        anitya_project_name: str,
-    ):
-        super().__init__(
-            package_name=package_name,
-            distgit_project_url=distgit_project_url,
-            anitya_project_id=anitya_project_id,
-            anitya_project_name=anitya_project_name,
-        )
-
-        self._versions = versions
-
-    @property
-    def version(self) -> Optional[str]:
-        # we will decide the version just when syncing release
-        # (for the particular branch etc.),
-        # until that we work with all the new versions
-        return None
-
-    def _add_release_and_event(self):
-        if not self._db_project_object or not self._db_project_event:
-            (
-                self._db_project_object,
-                self._db_project_event,
-            ) = ProjectEventModel.add_anitya_multiple_versions_event(
-                versions=self._versions,
-                project_name=self.anitya_project_name,
-                project_id=self.anitya_project_id,
-                package=self.package_name,
-            )

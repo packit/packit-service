@@ -32,6 +32,7 @@ from packit_service.worker.events import (
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    NewHotnessUpdateEvent,
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
     PullRequestCommentGithubEvent,
@@ -48,7 +49,6 @@ from packit_service.worker.events import (
 from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
-from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
