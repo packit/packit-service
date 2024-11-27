@@ -162,10 +162,10 @@ def get_submitted_time_from_model(
 ) -> datetime:
     # TODO: unify `submitted_name` (or better -> create for both models `task_accepted_time`)
     # to delete this mess plz
-    if isinstance(model, CoprBuildTargetModel):
-        return model.build_submitted_time
-
-    return model.submitted_time
+    try:
+        return model.build_submitted_time  # type: ignore[union-attr]
+    except AttributeError:
+        return model.submitted_time  # type: ignore[union-attr]
 
 
 @overload

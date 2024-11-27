@@ -32,19 +32,15 @@ def copr_build_results_end():
 def copr_models():
     time = datetime(2000, 4, 28, 14, 9, 33, 860293)
     latest_time = datetime.utcnow()
-    fake_copr = flexmock(build_id="1", build_submitted_time=time, target="target")
-    flexmock(CoprBuildTargetModel).new_instances(fake_copr)
-    copr = CoprBuildTargetModel()
-    copr.__class__ = CoprBuildTargetModel
+    copr = flexmock(CoprBuildTargetModel).new_instances().mock()
+    copr.build_id = "1"
+    copr.build_submitted_time = time
+    copr.target = "target"
 
-    another_fake_copr = flexmock(
-        build_id="2",
-        build_submitted_time=latest_time,
-        target="target",
-    )
-    flexmock(CoprBuildTargetModel).new_instances(another_fake_copr)
-    another_copr = CoprBuildTargetModel()
-    another_copr.__class__ = CoprBuildTargetModel
+    another_copr = flexmock(CoprBuildTargetModel).new_instances().mock()
+    another_copr.build_id = "2"
+    another_copr.build_submitted_time = latest_time
+    another_copr.target = "target"
 
     yield [copr, another_copr]
 
