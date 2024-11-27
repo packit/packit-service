@@ -11,7 +11,6 @@ from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
 from packit.vm_image_build import ImageBuilder
-
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (
@@ -432,7 +431,7 @@ class GetCoprBuildJobHelperForIdMixin(
         # when reporting state of SRPM build built in Copr
         build_targets_override = (
             {
-                (build.target, build.identifier)
+                (build.target, build.identifier or "")
                 for build in CoprBuildTargetModel.get_all_by_build_id(
                     str(self.copr_event.build_id),
                 )
