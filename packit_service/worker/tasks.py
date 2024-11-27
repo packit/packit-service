@@ -409,7 +409,9 @@ def run_downstream_koji_scratch_build_report_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(bind=True, name=TaskName.downstream_koji_scratch_build, base=TaskWithRetry)
+@celery_app.task(
+    bind=True, name=TaskName.downstream_koji_scratch_build, base=TaskWithRetry, queue="long-running"
+)
 def run_downstream_koji_scratch_build_handler(
     self, event: dict, package_config: dict, job_config: dict
 ):
