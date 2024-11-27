@@ -308,7 +308,7 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
 
 @reacts_to_as_fedora_ci(event=KojiTaskEvent)
 class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
-    task_name = TaskName.downstream_koji_build_report
+    task_name = TaskName.downstream_koji_scratch_build_report
     _helper: Optional[FedoraCIHelper] = None
 
     @property
