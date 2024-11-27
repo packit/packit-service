@@ -72,8 +72,8 @@ class EventData:
         event_dict: Optional[dict],
         issue_id: Optional[int],
         task_accepted_time: Optional[datetime],
-        build_targets_override: Optional[list[str]],
-        tests_targets_override: Optional[list[str]],
+        build_targets_override: Optional[set[tuple[str, str]]],
+        tests_targets_override: Optional[set[tuple[str, str]]],
         branches_override: Optional[list[str]],
     ):
         self.event_type = event_type
@@ -119,8 +119,16 @@ class EventData:
         time = event.get("task_accepted_time")
         task_accepted_time = datetime.fromtimestamp(time, timezone.utc) if time else None
 
-        build_targets_override = event.get("build_targets_override")
-        tests_targets_override = event.get("tests_targets_override")
+        build_targets_override = (
+            {(target, identifier_) for [target, identifier_] in event.get("build_targets_override")}
+            if event.get("build_targets_override")
+            else set()
+        )
+        tests_targets_override = (
+            {(target, identifier_) for [target, identifier_] in event.get("tests_targets_override")}
+            if event.get("tests_targets_override")
+            else set()
+        )
         branches_override = event.get("branches_override")
 
         return EventData(
@@ -508,17 +516,19 @@ class Event:
         raise NotImplementedError("Please implement me!")
 
     @property
-    def build_targets_override(self) -> Optional[set[str]]:
+    def build_targets_override(self) -> Optional[set[tuple[str, str]]]:
         """
-        Return the targets to use for building of the all targets from config
+        Return the targets and identifiers to use for building
+        of the all targets from config
         for the relevant events (e.g.rerunning of a single check).
         """
         return None
 
     @property
-    def tests_targets_override(self) -> Optional[set[str]]:
+    def tests_targets_override(self) -> Optional[set[tuple[str, str]]]:
         """
-        Return the targets to use for testing of the all targets from config
+        Return the targets and identifiers to use for testing
+        of the all targets from config
         for the relevant events (e.g.rerunning of a single check).
         """
         return None
@@ -638,34 +648,44 @@ class AbstractForgeIndependentEvent(Event):
     def get_all_tf_targets_by_status(
         self,
         statuses_to_filter_with: list[str],
-    ) -> Optional[set[str]]:
+    ) -> Optional[set[tuple[str, str]]]:
         if self.commit_sha is None:
             return None
 
         logger.debug(
-            f"Getting failed Testing Farm targets for commit sha: {self.commit_sha}",
+            f"Getting Testing Farm targets for commit sha {self.commit_sha} "
+            f"and statuses {statuses_to_filter_with}",
         )
-        return filter_most_recent_target_names_by_status(
+        found_targets = filter_most_recent_target_names_by_status(
             models=TFTTestRunTargetModel.get_all_by_commit_target(
                 commit_sha=self.commit_sha,
             ),
             statuses_to_filter_with=statuses_to_filter_with,
         )
+        logger.debug(
+            f"Testing Farm found targets {found_targets}",
+        )
+        return found_targets
 
     def get_all_build_targets_by_status(
         self,
         statuses_to_filter_with: list[str],
-    ) -> Optional[set[str]]:
+    ) -> Optional[set[tuple[str, str]]]:
         if self.commit_sha is None or self.project.repo is None:
             return None
 
         logger.debug(
-            f"Getting failed COPR build targets for commit sha: {self.commit_sha}",
+            f"Getting COPR build targets for commit sha {self.commit_sha} "
+            f"and statuses {statuses_to_filter_with}",
         )
-        return filter_most_recent_target_names_by_status(
+        found_targets = filter_most_recent_target_names_by_status(
             models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),
             statuses_to_filter_with=statuses_to_filter_with,
         )
+        logger.debug(
+            f"Builds found targets {found_targets}",
+        )
+        return found_targets
 
     def get_non_serializable_attributes(self):
         return [

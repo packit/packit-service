@@ -62,8 +62,8 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         comment_id: int,
         commit_sha: str = "",
         comment_object: Optional[Comment] = None,
-        build_targets_override: Optional[set[str]] = None,
-        tests_targets_override: Optional[set[str]] = None,
+        build_targets_override: Optional[set[tuple[str, str]]] = None,
+        tests_targets_override: Optional[set[tuple[str, str]]] = None,
     ) -> None:
         super().__init__(
             pr_id=pr_id,
@@ -93,7 +93,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         return self._comment_object
 
     @property
-    def build_targets_override(self) -> Optional[set[str]]:
+    def build_targets_override(self) -> Optional[set[tuple[str, str]]]:
         if not self._build_targets_override and "rebuild-failed" in self.comment:
             self._build_targets_override = (
                 super().get_all_build_targets_by_status(
@@ -104,7 +104,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         return self._build_targets_override
 
     @property
-    def tests_targets_override(self) -> Optional[set[str]]:
+    def tests_targets_override(self) -> Optional[set[tuple[str, str]]]:
         if not self._tests_targets_override and "retest-failed" in self.comment:
             self._tests_targets_override = (
                 super().get_all_tf_targets_by_status(

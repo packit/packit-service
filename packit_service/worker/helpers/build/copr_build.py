@@ -80,8 +80,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[set[str]] = None,
-        tests_targets_override: Optional[set[str]] = None,
+        build_targets_override: Optional[set[tuple[str, str]]] = None,
+        tests_targets_override: Optional[set[tuple[str, str]]] = None,
         pushgateway: Optional[Pushgateway] = None,
         celery_task: Optional[CeleryTask] = None,
         copr_build_group_id: Optional[int] = None,
@@ -605,6 +605,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 status=BuildStatus.waiting_for_srpm,
                 copr_build_group=group,
                 task_accepted_time=self.metadata.task_accepted_time,
+                identifier=self.job_config.identifier,
             )
 
         if unprocessed_chroots:

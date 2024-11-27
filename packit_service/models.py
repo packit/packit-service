@@ -162,10 +162,10 @@ def get_submitted_time_from_model(
 ) -> datetime:
     # TODO: unify `submitted_name` (or better -> create for both models `task_accepted_time`)
     # to delete this mess plz
-    if isinstance(model, CoprBuildTargetModel):
-        return model.build_submitted_time
-
-    return model.submitted_time
+    try:
+        return model.build_submitted_time  # type: ignore[union-attr]
+    except AttributeError:
+        return model.submitted_time  # type: ignore[union-attr]
 
 
 @overload
@@ -202,11 +202,11 @@ def get_most_recent_targets(
     for model in models:
         submitted_time_of_current_model = get_submitted_time_from_model(model)
         if (
-            most_recent_models.get(model.target) is None
-            or get_submitted_time_from_model(most_recent_models[model.target])
+            most_recent_models.get((model.target, model.identifier)) is None
+            or get_submitted_time_from_model(most_recent_models[(model.target, model.identifier)])
             < submitted_time_of_current_model
         ):
-            most_recent_models[model.target] = model
+            most_recent_models[(model.target, model.identifier)] = model
 
     return list(most_recent_models.values())
 
@@ -254,12 +254,14 @@ def filter_most_recent_target_names_by_status(
         Iterable["TFTTestRunTargetModel"],
     ],
     statuses_to_filter_with: list[str],
-) -> Optional[set[str]]:
+) -> Optional[set[tuple[str, str]]]:
     filtered_models = filter_most_recent_target_models_by_status(
         models,
         statuses_to_filter_with,
     )
-    return {model.target for model in filtered_models} if filtered_models else None
+    return (
+        {(model.target, model.identifier) for model in filtered_models} if filtered_models else None
+    )
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
@@ -2102,6 +2104,8 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     scan = relationship("OSHScanModel", back_populates="copr_build_target")
 
+    identifier = Column(String)
+
     def set_built_packages(self, built_packages):
         with sa_session_transaction(commit=True) as session:
             self.built_packages = built_packages
@@ -2297,6 +2301,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         status: BuildStatus,
         copr_build_group: "CoprBuildGroupModel",
         task_accepted_time: Optional[datetime] = None,
+        identifier: Optional[str] = None,
     ) -> "CoprBuildTargetModel":
         with sa_session_transaction(commit=True) as session:
             build = cls()
@@ -2307,6 +2312,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             build.web_url = web_url
             build.target = target
             build.task_accepted_time = task_accepted_time
+            build.identifier = identifier or ""
             session.add(build)
 
             copr_build_group.copr_build_targets.append(build)

@@ -299,6 +299,7 @@ def test_check_copr_build_waiting_srpm_failed(add_pull_request_event_with_sha_12
             status=BuildStatus.waiting_for_srpm,
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
+            identifier="the-identifier",
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
             commit_sha="123456",

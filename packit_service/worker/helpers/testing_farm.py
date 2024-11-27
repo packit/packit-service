@@ -162,8 +162,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         metadata: EventData,
         db_project_event: ProjectEventModel,
         job_config: JobConfig,
-        build_targets_override: Optional[set[str]] = None,
-        tests_targets_override: Optional[set[str]] = None,
+        build_targets_override: Optional[set[tuple[str, str]]] = None,
+        tests_targets_override: Optional[set[tuple[str, str]]] = None,
         celery_task: Optional[CeleryTask] = None,
     ):
         super().__init__(
@@ -323,7 +323,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def is_test_comment_event(self) -> bool:
-        return self.is_comment_event() and self.comment_arguments.packit_command == "test"
+        return self.is_comment_event() and self.comment_arguments.packit_command in (
+            "test",
+            "retest-failed",
+        )
 
     def is_test_comment_pr_argument_present(self):
         return self.is_test_comment_event() and self.comment_arguments.pr_argument

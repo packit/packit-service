@@ -26,17 +26,14 @@ def mock_config():
 def tf_models():
     time = datetime(2000, 4, 28, 14, 9, 33, 860293)
     latest_time = datetime.utcnow()
-    fake_tf = flexmock(pipeline_id="1", submitted_time=time, target="target")
-    flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
-    tf = TFTTestRunTargetModel()
-    tf.__class__ = TFTTestRunTargetModel
+    tf = flexmock(TFTTestRunTargetModel).new_instances().mock()
+    tf.pipeline_id = "1"
+    tf.submitted_time = time
+    tf.target = "target"
 
-    another_fake_tf = flexmock(
-        pipeline_id="2",
-        submitted_time=latest_time,
-        target="target",
-    )
-    flexmock(TFTTestRunTargetModel).new_instances(another_fake_tf)
-    another_tf = TFTTestRunTargetModel()
-    another_tf.__class__ = TFTTestRunTargetModel
+    another_tf = flexmock(TFTTestRunTargetModel).new_instances().mock()
+    another_tf.pipeline_id = "2"
+    another_tf.submitted_time = latest_time
+    another_tf.target = "target"
+
     yield [tf, another_tf]
