@@ -11,6 +11,7 @@ from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
 from packit.vm_image_build import ImageBuilder
+
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (

@@ -8,13 +8,13 @@ from typing import Optional
 from celery import Task, signature
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
-
 from packit.config import (
     JobConfig,
     JobConfigTriggerType,
     JobType,
 )
 from packit.config.package_config import PackageConfig
+
 from packit_service import sentry_integration
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
