@@ -1,7 +1,7 @@
 """Add identifier to copr build
 
 Revision ID: d625d6c1122f
-Revises: f69687c314c5
+Revises: c91276691f38
 Create Date: 2024-11-22 13:05:49.763917
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "d625d6c1122f"
-down_revision = "f69687c314c5"
+down_revision = "c91276691f38"
 branch_labels = None
 depends_on = None
 
