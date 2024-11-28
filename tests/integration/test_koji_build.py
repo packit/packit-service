@@ -165,6 +165,7 @@ def test_koji_build_error_msg(distgit_push_packit):
     nvr = "package-1.2.3-1.fc40"
 
     koji_build = flexmock(
+        id=12,
         target="f36",
         status="queued",
         sidetag=None,
@@ -211,7 +212,9 @@ def test_koji_build_error_msg(distgit_push_packit):
         "<th>dist-git branch</th>"
         "<th>error</th>"
         "</tr>"
-        "<tr><td><code>f36</code></td><td><pre>error abc</pre></td></tr>\n"
+        "<tr><td><code>f36</code></td>"
+        '<td>See <a href="https://localhost/jobs/koji/12">https://localhost/jobs/koji/12</a></td>'
+        "</tr>\n"
         "</table>\n\n"
         "Fedora Koji build was triggered by push "
         "with sha ad0c308af91da45cf40b253cd82f07f63ea9cbbf."

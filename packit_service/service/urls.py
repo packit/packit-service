@@ -50,3 +50,7 @@ def get_pull_from_upstream_info_url(id_: int) -> str:
 
 def get_openscanhub_info_url(id_: int) -> str:
     return _get_url_for_dashboard_results("openscanhub", id_)
+
+
+def get_bodhi_update_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("bodhi", id_)
