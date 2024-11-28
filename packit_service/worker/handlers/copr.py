@@ -479,12 +479,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 and self.copr_event.chroot
                 in self.copr_build_helper.build_targets_for_test_job(job_config)
             ):
-                event_dict["tests_targets_override"] = list(
-                    self.copr_build_helper.build_target2test_targets_for_test_job(
+                event_dict["tests_targets_override"] = [
+                    (target, job_config.identifier or "")
+                    for target in self.copr_build_helper.build_target2test_targets_for_test_job(
                         self.copr_event.chroot,
                         job_config,
-                    ),
-                )
+                    )
+                ]
                 signature(
                     TaskName.testing_farm.value,
                     kwargs={
