@@ -1807,7 +1807,7 @@ def test_retest_failed(
     ).with_args(
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],
     ).and_return(
-        {("some_tf_target", "")},
+        {("some_tf_target", None)},
     )
     flexmock(packit_service.models).should_receive(
         "filter_most_recent_target_names_by_status",
@@ -1815,7 +1815,7 @@ def test_retest_failed(
         models=[model],
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],
     ).and_return(
-        {("some_target", "")},
+        {("some_target", None)},
     )
 
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
@@ -1832,7 +1832,7 @@ def test_retest_failed(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
-    assert event_dict["tests_targets_override"] == [("some_tf_target", "")]
+    assert event_dict["tests_targets_override"] == [("some_tf_target", None)]
     assert json.dumps(event_dict)
 
     run_testing_farm_handler(

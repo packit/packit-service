@@ -2312,7 +2312,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             build.web_url = web_url
             build.target = target
             build.task_accepted_time = task_accepted_time
-            build.identifier = identifier or ""
+            build.identifier = identifier
             session.add(build)
 
             copr_build_group.copr_build_targets.append(build)

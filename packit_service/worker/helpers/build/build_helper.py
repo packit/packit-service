@@ -274,7 +274,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 [
                     target
                     for (target, identifier) in self.build_targets_override
-                    if identifier == (test_job_config.identifier or "")
+                    if identifier == test_job_config.identifier
                 ]
             )
 
@@ -285,8 +285,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 for t in [
                     target
                     for (target, identifier) in self.tests_targets_override
-                    if identifier
-                    == (test_job_config.identifier if test_job_config.identifier else "")
+                    if identifier == test_job_config.identifier
                 ]
             )
 
@@ -326,7 +325,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         if self.build_targets_override:
             logger.debug(f"Build targets override: {self.build_targets_override}")
             for target, identifier in self.build_targets_override:
-                if identifier == (test_job_config.identifier if test_job_config.identifier else ""):
+                if identifier == (test_job_config.identifier):
                     targets_override.update(
                         self.build_target2test_targets_for_test_job(target, test_job_config),
                     )
@@ -338,7 +337,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                     target
                     for target, identifier in self.tests_targets_override
                     if identifier
-                    == (test_job_config.identifier if test_job_config.identifier else "")
+                    == (test_job_config.identifier)
                 ]
             )
 

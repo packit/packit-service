@@ -480,7 +480,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 in self.copr_build_helper.build_targets_for_test_job(job_config)
             ):
                 event_dict["tests_targets_override"] = [
-                    (target, job_config.identifier or "")
+                    (target, job_config.identifier)
                     for target in self.copr_build_helper.build_target2test_targets_for_test_job(
                         self.copr_event.chroot,
                         job_config,

@@ -432,7 +432,7 @@ class GetCoprBuildJobHelperForIdMixin(
         # when reporting state of SRPM build built in Copr
         build_targets_override = (
             {
-                (build.target, build.identifier or "")
+                (build.target, build.identifier)
                 for build in CoprBuildTargetModel.get_all_by_build_id(
                     str(self.copr_event.build_id),
                 )
