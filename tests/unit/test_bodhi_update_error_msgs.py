@@ -93,7 +93,8 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
         "in dist-git (an url):\n\n"
         "<table>"
         "<tr><th>dist-git branch</th><th>error</th></tr>"
-        "<tr><td><code>f36</code></td><td><pre>error abc</pre></td></tr>\n"
+        "<tr><td><code>f36</code></td>"
+        '<td>See <a href="/jobs/bodhi/12">/jobs/bodhi/12</a></td></tr>\n'
         "</table>\n\n"
         "Fedora Bodhi update was re-triggered by comment in dist-git PR with id 123.\n\n"
         "You can retrigger the update by adding a comment (`/packit create-update`) "
@@ -122,6 +123,7 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
         flexmock(
             grouped_targets=[
                 flexmock(
+                    id=12,
                     target="f36",
                     koji_nvrs="a_package_1.f36",
                     sidetag=None,

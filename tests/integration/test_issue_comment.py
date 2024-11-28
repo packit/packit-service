@@ -362,6 +362,7 @@ def mock_repository_issue_retriggering():
     nvr_f37 = "package-1.2.3-1.fc37"
 
     koji_build_f37 = flexmock(
+        id=12,
         target="f37",
         status="queued",
         sidetag=None,
@@ -376,6 +377,7 @@ def mock_repository_issue_retriggering():
     nvr_f38 = "package-1.2.3-1.fc38"
 
     koji_build_f38 = flexmock(
+        id=13,
         target="f38",
         status="queued",
         sidetag=None,
@@ -622,7 +624,9 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         "Packit failed on creating Koji build in dist-git (an url):"
         "\n\n<table><tr>"
         "<th>dist-git branch</th><th>error</th></tr>"
-        "<tr><td><code>f37</code></td><td><pre>error abc</pre></td></tr>\n</table>\n\n"
+        "<tr><td><code>f37</code></td>"
+        '<td>See <a href="https://localhost/jobs/koji/12">https://localhost/jobs/koji/12</a></td>'
+        "</tr>\n</table>\n\n"
         "Fedora Koji build was re-triggered by comment in issue 1.\n\n"
         "You can retrigger the build by adding a comment "
         "(`/packit koji-build`) into this issue.\n\n"

@@ -34,6 +34,7 @@ from packit_service.constants import (
     CONTACTS_URL,
     DEFAULT_RETRY_BACKOFF,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
+    MSG_DOWNSTREAM_JOB_ERROR_ROW,
     MSG_GET_IN_TOUCH,
     MSG_RETRIGGER,
     MSG_RETRIGGER_DISTGIT,
@@ -518,11 +519,8 @@ class AbstractSyncReleaseHandler(
             branch_errors = ""
             for model in sorted(models_with_errors, key=lambda model: model.branch):
                 dashboard_url = self.get_dashboard_url(model.id)
-                branch_errors += (
-                    "<tr>"
-                    f"<td><code>{model.branch}</code></td>"
-                    f'<td>See <a href="{dashboard_url}">{dashboard_url}</a></td>'
-                    "</tr>\n"
+                branch_errors += MSG_DOWNSTREAM_JOB_ERROR_ROW.format(
+                    branch=model.branch, url=dashboard_url
                 )
             branch_errors += "</table>\n"
 
@@ -1072,7 +1070,7 @@ class AbstractDownstreamKojiBuildHandler(
                     error += f"\n{ex.stderr_output}"
                     koji_build_model.set_build_submission_stdout(ex.stdout_output)
 
-                errors[branch] = error
+                errors[branch] = get_koji_build_info_url(koji_build_model.id)
                 koji_build_model.set_data({"error": error})
                 koji_build_model.set_status("error")
                 continue
@@ -1091,8 +1089,8 @@ class AbstractDownstreamKojiBuildHandler(
             object="Koji build",
             dist_git_url=self.packit_api.dg.local_project.git_url,
         )
-        for branch, ex in errors.items():
-            body += "<tr>" f"<td><code>{branch}</code></td>" f"<td><pre>{ex}</pre></td>" "</tr>\n"
+        for branch, url in errors.items():
+            body += MSG_DOWNSTREAM_JOB_ERROR_ROW.format(branch=branch, url=url)
         body += "</table>\n"
 
         msg_retrigger = MSG_RETRIGGER.format(

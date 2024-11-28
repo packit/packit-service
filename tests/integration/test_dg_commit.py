@@ -511,6 +511,7 @@ def test_downstream_koji_build_failure_issue_created():
     nvr = "package-1.2.3-1.fc40"
 
     koji_build = flexmock(
+        id=12,
         target="main",
         status="queued",
         sidetag=None,
@@ -620,6 +621,7 @@ def test_downstream_koji_build_failure_issue_comment():
     nvr = "package-1.2.3-1.fc40"
 
     koji_build = flexmock(
+        id=12,
         target="main",
         status="queued",
         sidetag=None,

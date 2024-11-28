@@ -19,6 +19,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     DEFAULT_RETRY_BACKOFF,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
+    MSG_DOWNSTREAM_JOB_ERROR_ROW,
     MSG_GET_IN_TOUCH,
     MSG_RETRIGGER,
 )
@@ -28,6 +29,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     PipelineModel,
 )
+from packit_service.service.urls import get_bodhi_update_info_url
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
     HasIssueCommenterRetriggeringPermissions,
@@ -187,7 +189,7 @@ class BodhiUpdateHandler(
                     )
 
                 error = str(ex)
-                errors[target_model.target] = error
+                errors[target_model.target] = get_bodhi_update_info_url(target_model.id)
 
                 target_model.set_status("error")
                 target_model.set_data({"error": error})
@@ -198,7 +200,7 @@ class BodhiUpdateHandler(
                     raise
 
                 error = f"Internal error, please contact us: {ex}"
-                errors[target_model.target] = error
+                errors[target_model.target] = get_bodhi_update_info_url(target_model.id)
 
                 target_model.set_status("error")
                 target_model.set_data({"error": error})
@@ -285,8 +287,8 @@ class BodhiUpdateHandler(
             object="Bodhi update",
             dist_git_url=self.packit_api.dg.local_project.git_url,
         )
-        for branch, ex in errors.items():
-            body += "<tr>" f"<td><code>{branch}</code></td>" f"<td><pre>{ex}</pre></td>" "</tr>\n"
+        for branch, url in errors.items():
+            body += MSG_DOWNSTREAM_JOB_ERROR_ROW.format(branch=branch, url=url)
         body += "</table>\n"
 
         msg_retrigger = MSG_RETRIGGER.format(

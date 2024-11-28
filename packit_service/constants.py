@@ -46,6 +46,10 @@ MSG_DOWNSTREAM_JOB_ERROR_HEADER = (
     "</tr>"
 )
 
+MSG_DOWNSTREAM_JOB_ERROR_ROW = (
+    '<tr><td><code>{branch}</code></td><td>See <a href="{url}">{url}</a></td></tr>\n'
+)
+
 MSG_GET_IN_TOUCH = f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
 
 MSG_RETRIGGER = (

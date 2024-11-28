@@ -324,6 +324,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     group_model = flexmock(
         grouped_targets=[
             flexmock(
+                id=12,
                 target="rawhide",
                 koji_nvrs="packit-0.43.0-1.fc36",
                 sidetag=None,
@@ -447,6 +448,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     group_model = flexmock(
         grouped_targets=[
             flexmock(
+                id=12,
                 target="rawhide",
                 koji_nvrs="packit-0.43.0-1.fc36",
                 sidetag=None,
