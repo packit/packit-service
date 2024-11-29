@@ -5,8 +5,8 @@ import logging
 from typing import Optional
 
 from ogr.abstract import CommitStatus
-from ogr.services.pagure import PagurePullRequest
 
+from packit_service.constants import CONTACTS_URL
 from packit_service.worker.reporting.enums import BaseCommitStatus
 
 from .base import StatusReporter
@@ -44,7 +44,7 @@ class StatusReporterPagure(StatusReporter):
 
         # Required because Pagure API doesn't accept empty url.
         if not url:
-            url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
+            url = CONTACTS_URL
 
         if self.pull_request_object:
             self.pull_request_object.set_flag(
