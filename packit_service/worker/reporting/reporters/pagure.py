@@ -50,7 +50,8 @@ class StatusReporterPagure(StatusReporter):
             # generate a custom uid from the check_name,
             # so that we can update flags we set previously,
             # instead of creating new ones (Pagure specific behaviour)
-            uid = hashlib.sha256(check_name.encode()).hexdigest()
+            # the max length of uid is 32 chars
+            uid = hashlib.sha256(check_name.encode()).hexdigest()[:32]
             self.pull_request_object.set_flag(
                 username=check_name,
                 comment=description,
