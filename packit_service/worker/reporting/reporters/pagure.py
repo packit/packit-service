@@ -6,6 +6,7 @@ from typing import Optional
 
 from ogr.abstract import CommitStatus
 
+from packit_service.constants import CONTACTS_URL
 from packit_service.worker.reporting.enums import BaseCommitStatus
 
 from .base import StatusReporter
@@ -43,13 +44,19 @@ class StatusReporterPagure(StatusReporter):
 
         # Required because Pagure API doesn't accept empty url.
         if not url:
-            url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
+            url = CONTACTS_URL
 
-        self.project_with_commit.set_commit_status(
-            self.commit_sha,
-            state_to_set,
-            url,
-            description,
-            check_name,
-            trim=True,
-        )
+        if self.pull_request_object:
+            self.pull_request_object.set_flag(
+                username=check_name, comment=description, url=url, status=state_to_set
+            )
+
+        else:
+            self.project_with_commit.set_commit_status(
+                self.commit_sha,
+                state_to_set,
+                url,
+                description,
+                check_name,
+                trim=True,
+            )
