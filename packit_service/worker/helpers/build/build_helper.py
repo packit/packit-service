@@ -10,13 +10,13 @@ from typing import Callable, Optional
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
+from sandcastle import SandcastleTimeoutReached
+
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.aliases import DEFAULT_VERSION
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitMergeException
 from packit.utils import PackitFormatter
-from sandcastle import SandcastleTimeoutReached
-
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAILURE_COMMENT_MESSAGE_VARIABLES
@@ -325,7 +325,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         if self.build_targets_override:
             logger.debug(f"Build targets override: {self.build_targets_override}")
             for target, identifier in self.build_targets_override:
-                if identifier == (test_job_config.identifier):
+                if identifier == test_job_config.identifier:
                     targets_override.update(
                         self.build_target2test_targets_for_test_job(target, test_job_config),
                     )
@@ -336,8 +336,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 [
                     target
                     for target, identifier in self.tests_targets_override
-                    if identifier
-                    == (test_job_config.identifier)
+                    if identifier == test_job_config.identifier
                 ]
             )
 

@@ -12,6 +12,9 @@ from ogr.abstract import AuthMethod
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
+
+import packit_service.models
+import packit_service.service.urls as urls
 from packit.api import PackitAPI
 from packit.config import (
     JobConfigTriggerType,
@@ -22,9 +25,6 @@ from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.upstream import GitUpstream
 from packit.utils.koji_helper import KojiHelper
-
-import packit_service.models
-import packit_service.service.urls as urls
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
@@ -1787,21 +1787,37 @@ def test_retest_failed(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(celery_group).should_receive("apply_async").once()
-    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(3).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(4).and_return(
         {"test-target"},
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         flexmock(status=BuildStatus.success),
     )
 
+    build_model = flexmock(
+        CoprBuildTargetModel,
+        status=TestingFarmResult.failed,
+        target="some_build_target",
+    )
     model = flexmock(
         TFTTestRunTargetModel,
         status=TestingFarmResult.failed,
         target="some_tf_target",
     )
+    flexmock(build_model).should_receive("get_all_by_commit_target").with_args(
+        commit_sha="12345",
+    ).and_return(build_model)
     flexmock(model).should_receive("get_all_by_commit_target").with_args(
         commit_sha="12345",
     ).and_return(model)
+    flexmock(AbstractForgeIndependentEvent).should_receive(
+        "get_all_build_targets_by_status",
+    ).with_args(
+        statuses_to_filter_with=[BuildStatus.failure],
+    ).and_return(
+        {("some_build_target", None)},
+    )
+
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_tf_targets_by_status",
     ).with_args(
