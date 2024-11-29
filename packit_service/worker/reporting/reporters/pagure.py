@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 
 from ogr.abstract import CommitStatus
+from ogr.services.pagure import PagurePullRequest
 
 from packit_service.worker.reporting.enums import BaseCommitStatus
 
@@ -45,11 +46,17 @@ class StatusReporterPagure(StatusReporter):
         if not url:
             url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
 
-        self.project_with_commit.set_commit_status(
-            self.commit_sha,
-            state_to_set,
-            url,
-            description,
-            check_name,
-            trim=True,
-        )
+        if self.pull_request_object:
+            self.pull_request_object.set_flag(
+                username=check_name, comment=description, url=url, status=state_to_set
+            )
+
+        else:
+            self.project_with_commit.set_commit_status(
+                self.commit_sha,
+                state_to_set,
+                url,
+                description,
+                check_name,
+                trim=True,
+            )
