@@ -305,7 +305,7 @@ def test_check_rerun_pr_testing_farm_handler(
         processing_results,
     )
     assert json.dumps(event_dict)
-    assert event_dict["tests_targets_override"] == [("fedora-rawhide-x86_64", "")]
+    assert event_dict["tests_targets_override"] == [("fedora-rawhide-x86_64", None)]
     results = run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
@@ -363,7 +363,7 @@ def test_check_rerun_pr_koji_build_handler(
         processing_results,
     )
     assert json.dumps(event_dict)
-    assert event_dict["build_targets_override"] == [("f34", "")]
+    assert event_dict["build_targets_override"] == [("f34", None)]
 
     results = run_koji_build_handler(
         package_config=package_config,
@@ -438,7 +438,7 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
         processing_results,
     )
     assert json.dumps(event_dict)
-    assert event_dict["build_targets_override"] == [("f34", "")]
+    assert event_dict["build_targets_override"] == [("f34", None)]
 
     results = run_koji_build_handler(
         package_config=package_config,
@@ -521,7 +521,7 @@ def test_check_rerun_push_testing_farm_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
-    assert event_dict["tests_targets_override"] == [("fedora-rawhide-x86_64", "")]
+    assert event_dict["tests_targets_override"] == [("fedora-rawhide-x86_64", None)]
     assert json.dumps(event_dict)
     results = run_testing_farm_handler(
         package_config=package_config,
@@ -581,7 +581,7 @@ def test_check_rerun_push_koji_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
-    assert event_dict["build_targets_override"] == [("f34", "")]
+    assert event_dict["build_targets_override"] == [("f34", None)]
     assert json.dumps(event_dict)
 
     results = run_koji_build_handler(
@@ -640,7 +640,7 @@ def test_check_rerun_release_koji_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
-    assert event_dict["build_targets_override"] == [("f34", "")]
+    assert event_dict["build_targets_override"] == [("f34", None)]
     assert json.dumps(event_dict)
 
     results = run_koji_build_handler(

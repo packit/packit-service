@@ -94,7 +94,16 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
 
     @property
     def build_targets_override(self) -> Optional[set[tuple[str, str]]]:
-        if not self._build_targets_override and "rebuild-failed" in self.comment:
+        # If we do not override the failing builds for the retest-failed comment
+        # we will later submit all tests.
+        # Overriding builds for the retest-failed comment will let the test jobs
+        # see that something has failed and only for those targets the
+        # tests will be submitted.
+        if (
+            not self._build_targets_override
+            and "rebuild-failed" in self.comment
+            or "retest-failed" in self.comment
+        ):
             self._build_targets_override = (
                 super().get_all_build_targets_by_status(
                     statuses_to_filter_with=[BuildStatus.failure],

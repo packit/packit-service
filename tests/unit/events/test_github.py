@@ -89,6 +89,14 @@ def check_rerun():
 
 
 @pytest.fixture()
+def check_rerun_with_identifier():
+    with open(
+        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested_with_identifier.json",
+    ) as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
 def github_pr_comment_created():
     with open(
         DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json",
@@ -279,7 +287,7 @@ def test_parse_check_rerun_commit(check_rerun):
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
-    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "")}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
     assert event_object.actor == "lbarcziova"
 
 
@@ -321,7 +329,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
     ).once()
     assert event_object.packages_config
     assert event_object.build_targets_override is None
-    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "")}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
 
 
 def test_parse_check_rerun_release(check_rerun):
@@ -347,8 +355,25 @@ def test_parse_check_rerun_release(check_rerun):
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.build_targets_override is None
-    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "")}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
     assert event_object.actor == "lbarcziova"
+
+
+def test_parse_check_rerun_with_identifier(check_rerun_with_identifier):
+    trigger = flexmock(ProjectEventModel, event_id=1234)
+    pr_model = PullRequestModel(pr_id=12)
+    flexmock(ProjectEventModel).should_receive("get_by_id").with_args(
+        123456,
+    ).and_return(trigger)
+    flexmock(trigger).should_receive("get_project_event_object").and_return(pr_model)
+
+    event_object = Parser.parse_event(check_rerun_with_identifier)
+
+    assert isinstance(event_object, CheckRerunPullRequestEvent)
+    assert event_object.check_name_job == "testing-farm"
+    assert event_object.check_name_target == "fedora-rawhide-x86_64"
+    assert event_object.build_targets_override is None
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", "lint-rawhide")}
 
 
 def test_parse_pr_comment_created(github_pr_comment_created):

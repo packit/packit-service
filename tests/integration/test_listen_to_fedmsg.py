@@ -818,7 +818,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
         [copr_build_pr],
     )
-    event_dict["tests_targets_override"] = [("fedora-rawhide-x86_64", "")]
+    event_dict["tests_targets_override"] = [("fedora-rawhide-x86_64", None)]
     run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
@@ -2084,7 +2084,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         job_config=job_config,
     )
 
-    event_dict["tests_targets_override"] = [("fedora-rawhide-x86_64", "")]
+    event_dict["tests_targets_override"] = [("fedora-rawhide-x86_64", None)]
     run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
@@ -2270,7 +2270,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         job_config=job_config,
     )
 
-    event_dict["tests_targets_override"] = [("fedora-rawhide-x86_64", "")]
+    event_dict["tests_targets_override"] = [("fedora-rawhide-x86_64", None)]
     task = run_testing_farm_handler.__wrapped__.__func__
     task(
         flexmock(
@@ -2695,7 +2695,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [
-            flexmock(target="fedora-33-x86_64", identifier="")
+            flexmock(target="fedora-33-x86_64", identifier=None)
             .should_receive("set_status")
             .with_args(BuildStatus.pending)
             .mock(),
@@ -2762,7 +2762,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
         Client(config={"username": "packit", "copr_url": "https://dummy.url"}),
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
-        [flexmock(target="fedora-33-x86_64", identifier="")],
+        [flexmock(target="fedora-33-x86_64", identifier=None)],
     )
     (
         flexmock(CoprBuildJobHelper)
@@ -2825,7 +2825,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
         Client(config={"username": "packit", "copr_url": "https://dummy.url"}),
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
-        [flexmock(target="fedora-33-x86_64", identifier="")],
+        [flexmock(target="fedora-33-x86_64", identifier=None)],
     )
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 

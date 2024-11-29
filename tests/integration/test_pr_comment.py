@@ -1787,27 +1787,43 @@ def test_retest_failed(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(celery_group).should_receive("apply_async").once()
-    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(3).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(4).and_return(
         {"test-target"},
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         flexmock(status=BuildStatus.success),
     )
 
+    build_model = flexmock(
+        CoprBuildTargetModel,
+        status=TestingFarmResult.failed,
+        target="some_build_target",
+    )
     model = flexmock(
         TFTTestRunTargetModel,
         status=TestingFarmResult.failed,
         target="some_tf_target",
     )
+    flexmock(build_model).should_receive("get_all_by_commit_target").with_args(
+        commit_sha="12345",
+    ).and_return(build_model)
     flexmock(model).should_receive("get_all_by_commit_target").with_args(
         commit_sha="12345",
     ).and_return(model)
+    flexmock(AbstractForgeIndependentEvent).should_receive(
+        "get_all_build_targets_by_status",
+    ).with_args(
+        statuses_to_filter_with=[BuildStatus.failure],
+    ).and_return(
+        {("some_build_target", None)},
+    )
+
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_tf_targets_by_status",
     ).with_args(
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],
     ).and_return(
-        {("some_tf_target", "")},
+        {("some_tf_target", None)},
     )
     flexmock(packit_service.models).should_receive(
         "filter_most_recent_target_names_by_status",
@@ -1815,7 +1831,7 @@ def test_retest_failed(
         models=[model],
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],
     ).and_return(
-        {("some_target", "")},
+        {("some_target", None)},
     )
 
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
@@ -1832,7 +1848,7 @@ def test_retest_failed(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
-    assert event_dict["tests_targets_override"] == [("some_tf_target", "")]
+    assert event_dict["tests_targets_override"] == [("some_tf_target", None)]
     assert json.dumps(event_dict)
 
     run_testing_farm_handler(

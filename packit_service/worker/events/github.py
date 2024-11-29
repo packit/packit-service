@@ -236,24 +236,16 @@ class CheckRerunEvent(AbstractGithubEvent):
         )
         self.job_identifier = job_identifier
 
-    def _parse_target_and_identifier(self, target_string: str) -> tuple[str, str]:
-        """Parse target and identifier from check name target string."""
-        if ":" in target_string:
-            target, identifier = target_string.split(":")
-        else:
-            target, identifier = target_string, ""
-        return target, identifier
-
     @property
     def build_targets_override(self) -> Optional[set[tuple[str, str]]]:
         if self.check_name_job in {"rpm-build", "production-build", "koji-build"}:
-            return {self._parse_target_and_identifier(self.check_name_target)}
+            return {(self.check_name_target, self.job_identifier)}
         return None
 
     @property
     def tests_targets_override(self) -> Optional[set[tuple[str, str]]]:
         if self.check_name_job == "testing-farm":
-            return {self._parse_target_and_identifier(self.check_name_target)}
+            return {(self.check_name_target, self.job_identifier)}
         return None
 
     @property
