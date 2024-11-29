@@ -1,6 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+import hashlib
 import logging
 from typing import Optional
 
@@ -47,8 +47,16 @@ class StatusReporterPagure(StatusReporter):
             url = CONTACTS_URL
 
         if self.pull_request_object:
+            # generate a custom uid from the check_name,
+            # so that we can update flags we set previously,
+            # instead of creating new ones (Pagure specific behaviour)
+            uid = hashlib.sha256(check_name.encode()).hexdigest()
             self.pull_request_object.set_flag(
-                username=check_name, comment=description, url=url, status=state_to_set
+                username=check_name,
+                comment=description,
+                url=url,
+                status=state_to_set,
+                uid=uid,
             )
 
         else:
