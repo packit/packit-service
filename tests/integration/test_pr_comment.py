@@ -12,9 +12,6 @@ from ogr.abstract import AuthMethod
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
-
-import packit_service.models
-import packit_service.service.urls as urls
 from packit.api import PackitAPI
 from packit.config import (
     JobConfigTriggerType,
@@ -25,6 +22,9 @@ from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.upstream import GitUpstream
 from packit.utils.koji_helper import KojiHelper
+
+import packit_service.models
+import packit_service.service.urls as urls
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,

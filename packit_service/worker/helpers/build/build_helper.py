@@ -10,13 +10,13 @@ from typing import Callable, Optional
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
-from sandcastle import SandcastleTimeoutReached
-
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.aliases import DEFAULT_VERSION
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitMergeException
 from packit.utils import PackitFormatter
+from sandcastle import SandcastleTimeoutReached
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAILURE_COMMENT_MESSAGE_VARIABLES

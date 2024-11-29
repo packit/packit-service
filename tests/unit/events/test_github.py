@@ -87,6 +87,7 @@ def check_rerun():
     ) as outfile:
         return json.load(outfile)
 
+
 @pytest.fixture()
 def check_rerun_with_identifier():
     with open(
@@ -356,6 +357,7 @@ def test_parse_check_rerun_release(check_rerun):
     assert event_object.build_targets_override is None
     assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
     assert event_object.actor == "lbarcziova"
+
 
 def test_parse_check_rerun_with_identifier(check_rerun_with_identifier):
     trigger = flexmock(ProjectEventModel, event_id=1234)
