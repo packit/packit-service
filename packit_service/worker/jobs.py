@@ -13,9 +13,9 @@ from typing import Callable, Optional, Union
 
 import celery
 from ogr.exceptions import GithubAppNotInstalledError
-
 from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType
 from packit.utils import nested_get
+
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
