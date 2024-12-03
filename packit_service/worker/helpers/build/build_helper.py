@@ -148,10 +148,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             return None
         if not self._job_build:
             for job in [self.job_config, *self.package_config.jobs]:
-                if (
-                    job.type == self.job_type_build
-                    and self.is_job_config_trigger_matching(job)
-                ):
+                if job.type == self.job_type_build and self.is_job_config_trigger_matching(job):
                     self._job_build = job
                     break
         return self._job_build
@@ -173,10 +170,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             self._job_tests_all = [
                 job
                 for job in self.package_config.jobs
-                if (
-                    job.type == self.job_type_test
-                    and self.is_job_config_trigger_matching(job)
-                )
+                if (job.type == self.job_type_test and self.is_job_config_trigger_matching(job))
             ]
 
         return self._job_tests_all

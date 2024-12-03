@@ -816,7 +816,8 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler, KojiBuildHandler},
-            id="config=build_for_pr+upstream_koji_build_for_pr" "&pull_request&PullRequestGithubEvent",
+            id="config=build_for_pr+upstream_koji_build_for_pr"
+            "&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
             CoprBuildStartEvent,
