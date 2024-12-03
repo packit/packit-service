@@ -13,9 +13,13 @@ from packit_service.worker.events.comment import (
     AbstractPRCommentEvent,
 )
 from packit_service.worker.events.copr import (
-    AbstractCoprBuildEvent,
-    CoprBuildEndEvent,
-    CoprBuildStartEvent,
+    CoprBuild as AbstractCoprBuildEvent,
+)
+from packit_service.worker.events.copr import (
+    End as CoprBuildEndEvent,
+)
+from packit_service.worker.events.copr import (
+    Start as CoprBuildStartEvent,
 )
 from packit_service.worker.events.event import (
     AbstractForgeIndependentEvent,
@@ -97,6 +101,7 @@ from packit_service.worker.events.vm_image import Result as VMImageBuildResultEv
 __all__ = [
     Event.__name__,
     EventData.__name__,
+    # Copr
     AbstractCoprBuildEvent.__name__,
     CoprBuildStartEvent.__name__,
     CoprBuildEndEvent.__name__,

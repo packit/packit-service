@@ -22,10 +22,10 @@ from packit_service.models import (
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.events import (
+    AbstractCoprBuildEvent,
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.worker.events.copr import AbstractCoprBuildEvent
 from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github.pr import (
     Comment as PullRequestCommentGithubEvent,

@@ -21,7 +21,7 @@ from packit_service.worker.events.event import AbstractResultEvent
 logger = getLogger(__name__)
 
 
-class AbstractCoprBuildEvent(AbstractResultEvent):
+class CoprBuild(AbstractResultEvent):
     build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
 
     def __init__(
@@ -97,7 +97,7 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         project_name: str,
         pkg: str,
         timestamp,
-    ) -> Optional["AbstractCoprBuildEvent"]:
+    ) -> Optional["CoprBuild"]:
         """Return cls instance or None if build_id not in CoprBuildDB"""
         build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
         if chroot == COPR_SRPM_CHROOT:
@@ -126,7 +126,7 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        return AbstractCoprBuildEvent.from_build_id(
+        return CoprBuild.from_build_id(
             topic=event.get("topic"),
             build_id=event.get("build_id"),
             chroot=event.get("chroot"),
@@ -168,9 +168,9 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         )
 
 
-class CoprBuildStartEvent(AbstractCoprBuildEvent):
+class Start(CoprBuild):
     pass
 
 
-class CoprBuildEndEvent(AbstractCoprBuildEvent):
+class End(CoprBuild):
     pass
