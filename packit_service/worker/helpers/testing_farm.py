@@ -900,7 +900,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             f"Running testing farm for target {test_run.target}, chroot={chroot}.",
         )
 
-        if not self.skip_build and chroot not in self.build_targets:
+        if not self.skip_build and chroot not in self.build_targets_all:
             self.report_missing_build_chroot(chroot)
             return TaskResults(
                 success=False,
