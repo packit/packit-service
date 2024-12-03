@@ -3,10 +3,10 @@
 
 from typing import Optional
 
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.abstract import ForgeIndependent
 
 
-class GitlabEvent(AbstractForgeIndependentEvent):
+class GitlabEvent(ForgeIndependent):
     def __init__(self, project_url: str, pr_id: Optional[int] = None, **kwargs):
         super().__init__(pr_id=pr_id)
         self.project_url: str = project_url

@@ -8,9 +8,9 @@ from packit_service.models import (
     VMImageBuildStatus,
     VMImageBuildTargetModel,
 )
+from packit_service.worker.events import AbstractResultEvent
 from packit_service.worker.events.event import (
     AbstractProjectObjectDbType,
-    AbstractResultEvent,
 )
 
 
