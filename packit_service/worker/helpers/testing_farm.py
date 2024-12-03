@@ -10,11 +10,11 @@ from typing import Any, Callable, Optional, Union
 import requests
 from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
+
 from packit.config import JobConfig, PackageConfig
 from packit.constants import HTTP_REQUEST_TIMEOUT
 from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
@@ -900,7 +900,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             f"Running testing farm for target {test_run.target}, chroot={chroot}.",
         )
 
-        if not self.skip_build and chroot not in self.build_targets:
+        if not self.skip_build and chroot not in self.build_targets_all:
             self.report_missing_build_chroot(chroot)
             return TaskResults(
                 success=False,
