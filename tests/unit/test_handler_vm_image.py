@@ -11,8 +11,8 @@ from packit_service.models import (
     VMImageBuildTargetModel,
 )
 from packit_service.worker.events import VMImageBuildResultEvent
-from packit_service.worker.events.github import (
-    PullRequestCommentGithubEvent,
+from packit_service.worker.events.github.pr import (
+    Comment as PullRequestCommentGithubEvent,
 )
 from packit_service.worker.handlers import (
     VMImageBuildHandler,

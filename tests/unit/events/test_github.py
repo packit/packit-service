@@ -19,22 +19,22 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
-from packit_service.worker.events.comment import CommitCommentEvent
-from packit_service.worker.events.enums import (
-    IssueCommentAction,
-    PullRequestAction,
-    PullRequestCommentAction,
-)
-from packit_service.worker.events.github import (
+from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
-    InstallationEvent,
     IssueCommentEvent,
     PullRequestCommentGithubEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
+    github,
+)
+from packit_service.worker.events.comment import CommitCommentEvent
+from packit_service.worker.events.enums import (
+    IssueCommentAction,
+    PullRequestAction,
+    PullRequestCommentAction,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -113,7 +113,7 @@ def commit_comment():
 def test_parse_installation(github_installation):
     event_object = Parser.parse_event(github_installation)
 
-    assert isinstance(event_object, InstallationEvent)
+    assert isinstance(event_object, github.installation.Installation)
     assert event_object.installation_id == 1708454
     assert event_object.account_login == "packit-service"
     assert event_object.account_id == 46870917

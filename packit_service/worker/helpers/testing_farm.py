@@ -40,6 +40,7 @@ from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
+    CommitCommentGitlabEvent,
     EventData,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
@@ -49,8 +50,7 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
 )
-from packit_service.worker.events.github import CommitCommentGithubEvent
-from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
+from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults

@@ -10,7 +10,7 @@ from ogr.services.github import GithubProject
 
 from packit_service.config import PackageConfigGetter
 from packit_service.models import CoprBuildTargetModel, get_most_recent_targets
-from packit_service.worker.events.copr import AbstractCoprBuildEvent
+from packit_service.worker.events import AbstractCoprBuildEvent
 from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR

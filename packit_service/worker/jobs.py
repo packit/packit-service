@@ -31,23 +31,21 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
+    AbstractForgeIndependentEvent,
+    AbstractResultEvent,
     CheckRerunEvent,
     Event,
     EventData,
-    InstallationEvent,
     IssueCommentEvent,
     PullRequestCommentPagureEvent,
     PullRequestPagureEvent,
+    github,
 )
 from packit_service.worker.events.comment import (
     AbstractCommentEvent,
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
     CommitCommentEvent,
-)
-from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
-    AbstractResultEvent,
 )
 from packit_service.worker.events.koji import KojiBuildTagEvent, KojiTaskEvent
 from packit_service.worker.handlers import (
@@ -223,7 +221,7 @@ class SteveJobs:
 
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
-        if isinstance(self.event, InstallationEvent):
+        if isinstance(self.event, github.installation.Installation):
             GithubAppInstallationHandler.get_signature(
                 event=self.event,
                 job=None,
