@@ -22,12 +22,12 @@ from packit_service.service.db_project_events import (
     AddIssueEventToDb,
     AddPullRequestEventToDb,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.abstract import ForgeIndependent
 
 logger = getLogger(__name__)
 
 
-class AbstractCommentEvent(AbstractForgeIndependentEvent):
+class AbstractCommentEvent(ForgeIndependent):
     def __init__(
         self,
         project_url: str,

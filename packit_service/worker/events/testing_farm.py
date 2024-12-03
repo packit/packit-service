@@ -14,10 +14,10 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
 )
-from packit_service.worker.events.event import AbstractResultEvent
+from packit_service.worker.events.abstract import Result as AbstractResult
 
 
-class Result(AbstractResultEvent):
+class Result(AbstractResult):
     __test__ = False
 
     def __init__(

@@ -1,6 +1,12 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+from packit_service.worker.events.abstract import (
+    ForgeIndependent as AbstractForgeIndependentEvent,
+)
+from packit_service.worker.events.abstract import (
+    Result as AbstractResultEvent,
+)
 from packit_service.worker.events.anitya.base import (
     NewHotness as NewHotnessUpdateEvent,
 )
@@ -22,7 +28,6 @@ from packit_service.worker.events.copr import (
     Start as CoprBuildStartEvent,
 )
 from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
     Event,
     EventData,
 )
@@ -128,7 +133,6 @@ __all__ = [
     AbstractCommentEvent.__name__,
     AbstractPRCommentEvent.__name__,
     AbstractIssueCommentEvent.__name__,
-    AbstractForgeIndependentEvent.__name__,
     OpenScanHubTaskFinishedEvent.__name__,
     OpenScanHubTaskStartedEvent.__name__,
     # GitLab events
@@ -142,4 +146,7 @@ __all__ = [
     # Anitya events
     NewHotnessUpdateEvent.__name__,
     AnityaVersionUpdateEvent.__name__,
+    # Abstracts
+    AbstractForgeIndependentEvent.__name__,
+    AbstractResultEvent.__name__,
 ]

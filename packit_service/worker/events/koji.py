@@ -18,15 +18,15 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
+from packit_service.worker.events.abstract import Result
 from packit_service.worker.events.event import (
-    AbstractResultEvent,
     use_for_job_config_trigger,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractKojiEvent(AbstractResultEvent):
+class AbstractKojiEvent(Result):
     def __init__(
         self,
         task_id: int,

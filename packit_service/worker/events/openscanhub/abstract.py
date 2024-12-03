@@ -13,12 +13,12 @@ from packit_service.models import (
     OSHScanModel,
     ProjectEventModel,
 )
-from packit_service.worker.events.event import AbstractResultEvent
+from packit_service.worker.events.abstract import Result
 
 logger = getLogger(__name__)
 
 
-class OpenScanHubEvent(AbstractResultEvent):
+class OpenScanHubEvent(Result):
     def __init__(
         self,
         task_id: int,

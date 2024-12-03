@@ -29,6 +29,8 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
+    AbstractForgeIndependentEvent,
+    AbstractResultEvent,
     CheckRerunEvent,
     Event,
     EventData,
@@ -42,10 +44,6 @@ from packit_service.worker.events.comment import (
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
     CommitCommentEvent,
-)
-from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
-    AbstractResultEvent,
 )
 from packit_service.worker.events.koji import KojiBuildTagEvent, KojiTaskEvent
 from packit_service.worker.handlers import (
