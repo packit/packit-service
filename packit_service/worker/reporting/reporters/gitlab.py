@@ -51,6 +51,7 @@ class StatusReporterGitlab(StatusReporter):
                 trim=True,
             )
         except GitlabAPIException as e:
+            logger.debug(f"Failed to set the status: {e}. Response code: {e.response_code}")
             # Ignoring Gitlab 'enqueue' error
             # https://github.com/packit-service/packit-service/issues/741
             if e.response_code != 400:
