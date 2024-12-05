@@ -71,7 +71,6 @@ def configured_as(job_type: JobType):
     E.g. CoprBuildHandler uses both copr_build and build:
     ```
     @configured_as(job_type=JobType.copr_build)
-    @configured_as(job_type=JobType.build)
     class CoprBuildHandler(JobHandler):
     ```
     """
@@ -146,7 +145,6 @@ def run_for_comment(command: str):
     ```
     @configured_as(job_type=JobType.propose_downstream)
     @run_for_comment(command="propose-downstream")
-    @run_for_comment(command="propose-update")
     @reacts_to(event=ReleaseEvent)
     @reacts_to(event=IssueCommentEvent)
     class ProposeDownstreamHandler(JobHandler):
@@ -173,7 +171,6 @@ def run_for_check_rerun(prefix: str):
     Example:
     ```
     @configured_as(job_type=JobType.copr_build)
-    @configured_as(job_type=JobType.build)
     @run_for_check_rerun(prefix="rpm-build")
     @reacts_to(CheckRerunPullRequestEvent)
     @reacts_to(CheckRerunCommitEvent)
