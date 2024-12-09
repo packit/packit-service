@@ -1,6 +1,6 @@
 # Image for the web service (httpd), for celery worker see files/docker/Dockerfile.worker
 
-FROM quay.io/packit/base:c9s
+FROM quay.io/packit/base:fedora
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \

@@ -11,14 +11,16 @@
     - name: Install all RPM/python packages needed to run packit-service worker
       ansible.builtin.dnf:
         name:
-          - python3-ipdb # for easy debugging
           - nss_wrapper # openshift anyuid passwd madness
           - python3-requests
           - python3-prometheus_client
           - python3-sqlalchemy
           - python3-psycopg2
-          - python3-redis # celery[redis]
+          - python3-redis
+          - python3-celery
           - python3-lazy-object-proxy
+          - python3-sentry-sdk
+          - python3-syslog-rfc5424-formatter # logging to Splunk
           - dnf-utils
           - make
           # for pip-installing sandcastle from git repo
@@ -29,7 +31,6 @@
           - python3-boto3 # AWS (S3)
           - python3-fasjson-client
           - python3-gevent # concurrency pool, see run_worker.sh
-          - python3-eventlet # concurrency pool, see run_worker.sh
           - bodhi-client
           # sandcastle deps
           - python3-charset-normalizer
@@ -38,10 +39,6 @@
           - python3-pyyaml
           - python3-requests-oauthlib
           - python3-websocket-client
-          # for full support of %autorelease and %autochangelog
-          - rpmautospec-rpm-macros
-          # for additional macros needed to parse certain spec files
-          - epel-rpm-macros
           # for the `pkg_tool` switch to allow centpkg
           - centpkg
         state: present
@@ -50,13 +47,7 @@
       ansible.builtin.pip:
         name:
           - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
-          # The above bodhi-client RPM installs python3-requests-2.25.1 and python3-urllib3-1.26.5
-          # The below sentry_sdk would then install urllib3-2.x because of its urllib3>=1.26.11 requirement
-          # and 'pip check' would then scream that "requests 2.25.1 has requirement urllib3<1.27"
-          - urllib3<1.27
-          - sentry-sdk
-          - syslog-rfc5424-formatter # Logging to Splunk
-          - celery==5.3.* # RHBZ#2032543
+          - eventlet
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
