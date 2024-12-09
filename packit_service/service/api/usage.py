@@ -7,8 +7,9 @@ from http import HTTPStatus
 from logging import getLogger
 from typing import Any
 
-from flask import Response, escape, redirect, request
+from flask import Response, redirect, request
 from flask_restx import Namespace, Resource
+from markupsafe import escape
 
 from packit_service.celerizer import celery_app
 from packit_service.constants import (

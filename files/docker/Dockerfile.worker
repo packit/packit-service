@@ -1,6 +1,6 @@
 # Celery worker which runs tasks (packit) from the web service
 
-FROM quay.io/packit/base:c9s
+FROM quay.io/packit/base:fedora
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \
