@@ -108,10 +108,12 @@ class SyncReleaseHelper(BaseJobHelper):
                         self._db_project_object.job_config_trigger_type == job.trigger
                         # pull-from-upstream can be retriggered by a dist-git PR comment,
                         # in which case the trigger types don't match
-                        or job.type == JobType.pull_from_upstream
-                        and self._db_project_object.job_config_trigger_type
-                        == JobConfigTriggerType.pull_request
-                        and job.trigger == JobConfigTriggerType.release
+                        or (
+                            job.type == JobType.pull_from_upstream
+                            and self._db_project_object.job_config_trigger_type
+                            == JobConfigTriggerType.pull_request
+                            and job.trigger == JobConfigTriggerType.release
+                        )
                     )
                 ):
                     self._job = job

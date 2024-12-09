@@ -100,10 +100,8 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         # see that something has failed and only for those targets the
         # tests will be submitted.
         if (
-            not self._build_targets_override
-            and "rebuild-failed" in self.comment
-            or "retest-failed" in self.comment
-        ):
+            not self._build_targets_override and "rebuild-failed" in self.comment
+        ) or "retest-failed" in self.comment:
             self._build_targets_override = (
                 super().get_all_build_targets_by_status(
                     statuses_to_filter_with=[BuildStatus.failure],
