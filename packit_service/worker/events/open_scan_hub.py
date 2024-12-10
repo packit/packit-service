@@ -10,6 +10,7 @@ from ogr.abstract import GitProject
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
+    CoprBuildTargetModel,
     OSHScanModel,
     ProjectEventModel,
 )
@@ -23,6 +24,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
         self,
         task_id: int,
         commit_sha: Optional[str] = None,
+        identifier: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -31,7 +33,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
         self.commit_sha = commit_sha
 
         self.scan = OSHScanModel.get_by_task_id(task_id)
-        self.build = None
+        self.build: Optional[CoprBuildTargetModel] = None
         if not self.scan:
             logger.warning(
                 f"Scan with id {task_id} not found in the database."
@@ -52,6 +54,7 @@ class OpenScanHubTaskAbstractEvent(AbstractResultEvent):
         # and have to be serialized to be later found in the
         # event metadata
         self.commit_sha = project_event.commit_sha if not self.commit_sha else self.commit_sha
+        self.identifier = identifier or self.build.identifier
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()
