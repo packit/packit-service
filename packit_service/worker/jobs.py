@@ -14,13 +14,11 @@ from typing import Callable, Optional, Union
 import celery
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType
-from packit.config.job_config import DEPRECATED_JOB_TYPES
 from packit.utils import nested_get
 
 from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
-    DOCS_CONFIGURATION_URL,
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
@@ -640,7 +638,7 @@ class SteveJobs:
             )
             return False
 
-        if not handler_kls.pre_check(
+        return handler_kls.pre_check(
             package_config=(
                 self.event.packages_config.get_package_config_for(job_config)
                 if self.event.packages_config
@@ -648,22 +646,7 @@ class SteveJobs:
             ),
             job_config=job_config,
             event=self.event.get_dict(),
-        ):
-            return False
-
-        if deprecation_msg := DEPRECATED_JOB_TYPES.get(job_config.type):
-            job_helper = self.initialize_job_helper(handler_kls, job_config)
-            job_helper.status_reporter.report(
-                state=BaseCommitStatus.error,
-                description=f"Job name `{job_config.type.name}` deprecated.",
-                url=f"{DOCS_CONFIGURATION_URL}/#supported-jobs",
-                check_names=f"config-deprecation-{job_config.type.name}",
-                markdown_content=f"{deprecation_msg}\n\n"
-                "The support for the old name will be removed "
-                "by the end of the year.",
-            )
-
-        return True
+        )
 
     def is_project_public_or_enabled_private(self) -> bool:
         """
