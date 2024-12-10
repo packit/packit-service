@@ -12,7 +12,12 @@ jobs:
     if: github.repository_owner == 'packit'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
+        archs:
+          - "amd64"
+          - "arm64"
+          - "ppc64le"
         include:
           - dockerfile: files/docker/Dockerfile
             image: packit-service
@@ -50,6 +55,7 @@ jobs:
           dockerfiles: ${{ matrix.dockerfile }}
           image: ${{ matrix.image }}
           tags: ${{ steps.branch_tag.outputs.tag }}
+          archs: ${{ matrix.archs }}
           # Uncomment once we stop using oc cluster up for tests
           #           oci: true
           build-args: |
