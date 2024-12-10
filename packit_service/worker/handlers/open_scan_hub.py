@@ -12,7 +12,7 @@ from packit.config import (
 from packit_service.models import OSHScanStatus
 from packit_service.service.urls import get_openscanhub_info_url
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.open_scan_hub import RawhideX86Target
+from packit_service.worker.checker.open_scan_hub import IsEventForJob, RawhideX86Target
 from packit_service.worker.events import (
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
@@ -52,7 +52,7 @@ class OpenScanHubAbstractHandler(
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return (RawhideX86Target,)
+        return (RawhideX86Target, IsEventForJob)
 
     def get_helper(self) -> OpenScanHubHelper:
         build_helper = CoprBuildJobHelper(

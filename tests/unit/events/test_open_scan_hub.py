@@ -41,6 +41,7 @@ def scan_config_and_db(add_pull_request_event_with_sha_123456):
     db_build = (
         flexmock(
             build_id="55",
+            identifier=None,
             status="success",
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
