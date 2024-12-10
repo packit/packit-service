@@ -14,6 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        image:
+          - packit-service
+          - packit-worker
+          - packit-service-tests
         archs:
           - "amd64"
           - "arm64"
