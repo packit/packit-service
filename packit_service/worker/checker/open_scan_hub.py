@@ -25,3 +25,15 @@ class RawhideX86Target(
             )
             return False
         return True
+
+
+class IsEventForJob(Checker):
+    def pre_check(self) -> bool:
+        if self.data.identifier != self.job_config.identifier:
+            logger.debug(
+                f"Skipping reporting, identifiers don't match "
+                f"(identifier of the OpenScanHub job to report: {self.data.identifier}, "
+                f"identifier from build job config: {self.job_config.identifier}).",
+            )
+            return False
+        return True
