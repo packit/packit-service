@@ -31,9 +31,9 @@ class GetVMImageBuildReporterFromJobHelperMixin(
 
     def get_build_check_name(self) -> str:
         if self.identifier:
-            return f"{self.status_name}-{self.chroot}-{self.identifier}"
+            return f"{self.status_name}:{self.chroot}:{self.identifier}"
 
-        return f"{self.status_name}-{self.chroot}"
+        return f"{self.status_name}:{self.chroot}"
 
     def report_pre_check_failure(self, markdown_content):
         self.report(
