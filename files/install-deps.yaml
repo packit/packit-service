@@ -37,6 +37,21 @@
           - python-setuptools_scm
         state: present
         install_weak_deps: False
+    - name: Install mod_wsgi from updates-testing
+      # mod_wsgi < 5.0.2 has issues with Python 3.13:
+      #
+      # [wsgi:error] [pid 13:tid 78] Exception ignored in: <_io.TextIOWrapper name='<wsgi.errors>' encoding='utf-8'>
+      # [wsgi:error] [pid 13:tid 78] RuntimeError: log object has expired
+      #
+      # install it from updates-testing (this can be removed when
+      # https://bodhi.fedoraproject.org/updates/FEDORA-2024-235cc1f0b3 reaches stable)
+      ansible.builtin.dnf:
+        enablerepo:
+          - updates-testing
+        name:
+          - python3-mod_wsgi
+        state: latest
+        install_weak_deps: False
     - import_tasks: tasks/setup-copr-repos.yaml
     - name: Install ogr, specfile and packit from copr
       ansible.builtin.dnf:
