@@ -14,7 +14,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     get_submitted_time_from_model,
 )
-from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
+from packit_service.worker.events import TestingFarmResultsEvent
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR

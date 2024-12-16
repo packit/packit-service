@@ -12,8 +12,8 @@ from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
+from packit_service.worker.events import MergeRequestGitlabEvent
 from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
     GetGithubCommentEventMixin,
