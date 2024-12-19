@@ -61,6 +61,7 @@ def prepare_openscanhub_db_and_handler(
     db_build = (
         flexmock(
             build_id="55",
+            identifier=None,
             status="success",
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
@@ -98,12 +99,17 @@ def prepare_openscanhub_db_and_handler(
 @pytest.mark.parametrize(
     "build_models",
     [
-        [("abcdef", [flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))])],
+        [
+            (
+                "abcdef",
+                [flexmock(identifier=None, get_srpm_build=lambda: flexmock(url="base-srpm-url"))],
+            )
+        ],
         [
             ("abcdef", []),
             (
                 "fedcba",
-                [flexmock(get_srpm_build=lambda: flexmock(url="base-srpm-url"))],
+                [flexmock(identifier=None, get_srpm_build=lambda: flexmock(url="base-srpm-url"))],
             ),
         ],
     ],
@@ -137,6 +143,7 @@ def test_handle_scan(build_models):
                 branch="main",
                 project="commit-project",
                 owner="user-123",
+                identifier=None,
             ),
         ],
     )
@@ -170,7 +177,7 @@ def test_handle_scan(build_models):
             project=project,
             metadata=flexmock(pr_id=12),
             db_project_event=flexmock(get_project_event_object=lambda: None),
-            job_config=flexmock(),
+            job_config=flexmock(identifier=None),
         ),
     ).handle_scan()
 

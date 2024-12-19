@@ -151,11 +151,14 @@ class OpenScanHubHelper:
         url: str,
         links_to_external_services: Optional[dict[str, str]] = None,
     ):
+        check_name = "osh-diff-scan:fedora-rawhide-x86_64"
+        if identifier := self.copr_build_helper.job_config.identifier:
+            check_name += f":{identifier}"
         self.copr_build_helper._report(
             state=state,
             description=description,
             url=url,
-            check_names=["osh-diff-scan:fedora-rawhide-x86_64"],
+            check_names=[check_name],
             markdown_content=OPEN_SCAN_HUB_FEATURE_DESCRIPTION,
             links_to_external_services=links_to_external_services,
         )
