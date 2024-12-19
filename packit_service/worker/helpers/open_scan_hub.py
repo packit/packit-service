@@ -183,7 +183,7 @@ class OpenScanHubHelper:
 
         for job in self.copr_build_helper.package_config.get_job_views():
             if (
-                job.type in (JobType.copr_build, JobType.build)
+                job.type == JobType.copr_build
                 and job.trigger == JobConfigTriggerType.commit
                 and (
                     (

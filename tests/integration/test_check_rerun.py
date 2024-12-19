@@ -380,7 +380,7 @@ def test_check_rerun_pr_koji_build_handler(
             [
                 {
                     "trigger": "pull_request",
-                    "job": "production_build",
+                    "job": "upstream_koji_build",
                     "metadata": {"targets": "fedora-all", "scratch": "true"},
                 },
             ],
@@ -406,22 +406,6 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
     flexmock(koji_build).should_receive("get_koji_targets").and_return(
         {"rawhide", "f34"},
     )
-    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
-        state=BaseCommitStatus.error,
-        description="Job name `production_build` deprecated.",
-        check_name="config-deprecation-production_build",
-        url="https://packit.dev/docs/configuration/#supported-jobs",
-        links_to_external_services=None,
-        markdown_content="The `production_build` name for upstream Koji build is misleading "
-        "because it is not used to run production/non-scratch builds and "
-        "because it can be confused with "
-        "the `koji_build` job that is triggered for dist-git commits. "
-        "(The `koji_build` job can trigger both scratch and "
-        "non-scratch/production builds.) "
-        "To be explicit, use `upstream_koji_build` for builds triggered in upstream and "
-        "`koji_build` for builds triggered in downstream.\n\n"
-        "The support for the old name will be removed by the end of the year.",
-    ).once()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
