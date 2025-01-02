@@ -52,9 +52,9 @@ class StatusReporterGitlab(StatusReporter):
             )
         except GitlabAPIException as e:
             logger.debug(f"Failed to set the status: {e}. Response code: {e.response_code}")
-            # Ignoring Gitlab 'enqueue' error
+            # Ignoring Gitlab error regarding reporting a status of the same state
             # https://github.com/packit-service/packit-service/issues/741
-            if e.response_code != 400:
+            if e.response_code != 400 or "Cannot transition status" not in str(e):
                 # 403: No permissions to set status, falling back to comment
                 # 404: Commit has not been found, e.g. used target project on GitLab
                 logger.debug(
