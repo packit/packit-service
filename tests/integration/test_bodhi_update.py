@@ -1148,8 +1148,7 @@ def test_bodhi_update_from_sidetag(
             0
             if missing_dependency
             or non_unique_builds
-            or existing_update
-            and " " in existing_update.koji_nvrs
+            or (existing_update and " " in existing_update.koji_nvrs)
             else 1
         ),
     )
