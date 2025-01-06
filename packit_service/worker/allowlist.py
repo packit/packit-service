@@ -48,7 +48,8 @@ from packit_service.worker.events import (
     github,
 )
 from packit_service.worker.events.comment import CommitCommentEvent
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus

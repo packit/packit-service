@@ -47,7 +47,7 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
-from packit_service.worker.events.koji import KojiBuildTagEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler

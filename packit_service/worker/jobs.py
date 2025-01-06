@@ -45,7 +45,8 @@ from packit_service.worker.events.comment import (
     AbstractPRCommentEvent,
     CommitCommentEvent,
 )
-from packit_service.worker.events.koji import KojiBuildTagEvent, KojiTaskEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
+from packit_service.worker.events.koji.base import Task as KojiTaskEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,

@@ -8,10 +8,14 @@ from packit.utils.koji_helper import KojiHelper
 
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import KojiBuildTargetModel
-from packit_service.worker.events.koji import (
-    KojiBuildEvent,
-    KojiBuildTagEvent,
-    KojiTaskEvent,
+from packit_service.worker.events.koji.base import (
+    Build as KojiBuildEvent,
+)
+from packit_service.worker.events.koji.base import (
+    BuildTag as KojiBuildTagEvent,
+)
+from packit_service.worker.events.koji.base import (
+    Task as KojiTaskEvent,
 )
 from packit_service.worker.parser import Parser
 

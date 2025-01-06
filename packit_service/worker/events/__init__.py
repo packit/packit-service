@@ -82,7 +82,7 @@ from packit_service.worker.events.gitlab.push import (
 from packit_service.worker.events.gitlab.release import (
     Release as ReleaseGitlabEvent,
 )
-from packit_service.worker.events.koji import KojiTaskEvent
+from packit_service.worker.events.koji.base import Task as KojiTaskEvent
 from packit_service.worker.events.openscanhub.task import (
     Finished as OpenScanHubTaskFinishedEvent,
 )

@@ -30,7 +30,8 @@ from packit_service.worker.events.event import EventData
 from packit_service.worker.events.github.pr import (
     Comment as PullRequestCommentGithubEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
