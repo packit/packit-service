@@ -43,10 +43,12 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     VMImageBuildResultEvent,
 )
-from packit_service.worker.events.koji import (
-    AbstractKojiEvent,
-    KojiBuildEvent,
-    KojiBuildTagEvent,
+from packit_service.worker.events.koji.abstract import KojiEvent as AbstractKojiEvent
+from packit_service.worker.events.koji.base import (
+    Build as KojiBuildEvent,
+)
+from packit_service.worker.events.koji.base import (
+    BuildTag as KojiBuildTagEvent,
 )
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,

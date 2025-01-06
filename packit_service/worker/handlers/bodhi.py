@@ -44,7 +44,7 @@ from packit_service.worker.events import (
     IssueCommentGitlabEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
     TaskName,

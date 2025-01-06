@@ -70,7 +70,8 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper

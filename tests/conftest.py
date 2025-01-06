@@ -27,7 +27,7 @@ from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR, SAVED_HTTPD_REQS, load_the_message_from_file
 

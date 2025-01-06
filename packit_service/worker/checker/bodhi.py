@@ -16,7 +16,8 @@ from packit_service.worker.events import (
     IssueCommentGitlabEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,

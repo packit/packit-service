@@ -20,7 +20,7 @@ from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
     PushPagureEvent,
 )
-from packit_service.worker.events.koji import KojiBuildTagEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
