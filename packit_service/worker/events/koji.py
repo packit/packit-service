@@ -88,8 +88,7 @@ class AbstractKojiEvent(AbstractResultEvent):
         You can redefine the Koji instance using the one defined in the service config.
         """
         return (
-            f"{koji_logs_url}//work/tasks/"
-            f"{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
+            f"{koji_logs_url}//work/tasks/{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
         )
 
     def get_koji_build_rpm_tasks_logs_urls(

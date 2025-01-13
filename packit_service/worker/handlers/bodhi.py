@@ -298,8 +298,7 @@ class BodhiUpdateHandler(
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
         body_msg = (
-            f"{body}\n{self.get_trigger_type_description()}\n\n"
-            f"{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
+            f"{body}\n{self.get_trigger_type_description()}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
         )
 
         body_msg = update_message_with_configured_failure_comment_message(
@@ -343,7 +342,7 @@ class CreateBodhiUpdateHandler(
 
     def get_trigger_type_description(self) -> str:
         for koji_build_data in self:
-            return f"Fedora Bodhi update was triggered by " f"Koji build {koji_build_data.nvr}."
+            return f"Fedora Bodhi update was triggered by Koji build {koji_build_data.nvr}."
         return ""
 
     def _get_or_create_bodhi_update_group_model(self) -> BodhiUpdateGroupModel:
@@ -398,7 +397,7 @@ class BodhiUpdateFromSidetagHandler(
 
     def get_trigger_type_description(self) -> str:
         for koji_build_data in self:
-            return f"Fedora Bodhi update was triggered by " f"Koji build {koji_build_data.nvr}."
+            return f"Fedora Bodhi update was triggered by Koji build {koji_build_data.nvr}."
         return ""
 
 
@@ -459,4 +458,4 @@ class IssueCommentRetriggerBodhiUpdateHandler(
         return (HasIssueCommenterRetriggeringPermissions,)
 
     def get_trigger_type_description(self) -> str:
-        return f"Fedora Bodhi update was re-triggered by " f"comment in issue {self.data.issue_id}."
+        return f"Fedora Bodhi update was re-triggered by comment in issue {self.data.issue_id}."

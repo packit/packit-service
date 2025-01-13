@@ -433,10 +433,7 @@ class Parser:
             )
         parsed_url = parse_git_repo(potential_url=project_url)
         logger.info(
-            f"Project: "
-            f"repo={parsed_url.repo} "
-            f"namespace={parsed_url.namespace} "
-            f"url={project_url}.",
+            f"Project: repo={parsed_url.repo} namespace={parsed_url.namespace} url={project_url}.",
         )
         ref = raw_ref.split("/", maxsplit=2)[-1]
 
@@ -774,10 +771,7 @@ class Parser:
             return None
         parsed_url = parse_git_repo(potential_url=project_url)
         logger.info(
-            f"Project: "
-            f"repo={parsed_url.repo} "
-            f"namespace={parsed_url.namespace} "
-            f"url={project_url}.",
+            f"Project: repo={parsed_url.repo} namespace={parsed_url.namespace} url={project_url}.",
         )
 
         actor = nested_get(event, "user", "username")
@@ -901,7 +895,7 @@ class Parser:
         comment = nested_get(event, "object_attributes", "note")
         comment_id = nested_get(event, "object_attributes", "id")
         logger.info(
-            f"Gitlab commit comment on #{commit_sha}: {comment!r} id#{comment_id} " " event.",
+            f"Gitlab commit comment on #{commit_sha}: {comment!r} id#{comment_id}  event.",
         )
 
         project_url = nested_get(event, "project", "web_url")
@@ -911,10 +905,7 @@ class Parser:
 
         parsed_url = parse_git_repo(potential_url=project_url)
         logger.info(
-            f"Project: "
-            f"repo={parsed_url.repo} "
-            f"namespace={parsed_url.namespace} "
-            f"url={project_url}.",
+            f"Project: repo={parsed_url.repo} namespace={parsed_url.namespace} url={project_url}.",
         )
 
         actor = nested_get(event, "user", "username")

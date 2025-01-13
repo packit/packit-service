@@ -16,8 +16,7 @@ class IsIssueInNotificationRepoChecker(Checker, GetIssueMixin):
         """
         if not (self.project.namespace == "packit" and self.project.repo == "notifications"):
             logger.debug(
-                "Packit verification comment command not placed"
-                "in packit/notifications repository.",
+                "Packit verification comment command not placedin packit/notifications repository.",
             )
             return False
 

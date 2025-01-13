@@ -200,8 +200,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
         valid = True
         msg_to_report = None
         issue_title = (
-            "Pull from upstream could not be run for update "
-            f"{self.data.event_dict.get('version')}"
+            f"Pull from upstream could not be run for update {self.data.event_dict.get('version')}"
         )
 
         if self.package_config.upstream_project_url and not (
