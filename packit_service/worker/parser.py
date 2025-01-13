@@ -31,23 +31,27 @@ from packit_service.models import (
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
+    AnityaVersionUpdateEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    CommitCommentGitlabEvent,
     CoprBuildEndEvent,
     CoprBuildStartEvent,
-    InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    NewHotnessUpdateEvent,
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
     PipelineGitlabEvent,
     PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
+    PullRequestFlagPagureEvent,
     PullRequestGithubEvent,
+    PullRequestPagureEvent,
     PushGitHubEvent,
     PushGitlabEvent,
     PushPagureEvent,
@@ -56,6 +60,7 @@ from packit_service.worker.events import (
     TagPushGitlabEvent,
     TestingFarmResultsEvent,
     VMImageBuildResultEvent,
+    github,
 )
 from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.events.enums import (
@@ -64,17 +69,9 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.github import CommitCommentGithubEvent
-from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
-from packit_service.worker.events.new_hotness import (
-    AnityaVersionUpdateEvent,
-    NewHotnessUpdateEvent,
-)
-from packit_service.worker.events.pagure import (
-    PullRequestFlagPagureEvent,
-    PullRequestPagureEvent,
-)
+from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -98,7 +95,7 @@ class Parser:
     ) -> Optional[
         Union[
             PullRequestGithubEvent,
-            InstallationEvent,
+            github.installation.Installation,
             ReleaseEvent,
             TestingFarmResultsEvent,
             PullRequestCommentGithubEvent,
@@ -1125,7 +1122,7 @@ class Parser:
         return event
 
     @staticmethod
-    def parse_installation_event(event) -> Optional[InstallationEvent]:
+    def parse_installation_event(event) -> Optional[github.installation.Installation]:
         """Look into the provided event and see if it is Github App installation details."""
         # Check if installation key in JSON isn't enough, we have to check the account as well
         if not nested_get(event, "installation", "account"):
@@ -1157,7 +1154,7 @@ class Parser:
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
 
-        return InstallationEvent(
+        return github.installation.Installation(
             installation_id,
             account_login,
             account_id,

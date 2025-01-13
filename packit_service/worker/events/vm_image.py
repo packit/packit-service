@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+
 from typing import Optional, Union
 
 from packit_service.models import (
@@ -7,13 +8,13 @@ from packit_service.models import (
     VMImageBuildStatus,
     VMImageBuildTargetModel,
 )
+from packit_service.worker.events import AbstractResultEvent
 from packit_service.worker.events.event import (
     AbstractProjectObjectDbType,
-    AbstractResultEvent,
 )
 
 
-class VMImageBuildResultEvent(AbstractResultEvent):
+class Result(AbstractResultEvent):
     def __init__(
         self,
         build_id: str,

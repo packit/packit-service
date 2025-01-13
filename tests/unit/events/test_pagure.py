@@ -8,13 +8,13 @@ from flexmock import flexmock
 from ogr.services.pagure import PagureProject
 
 from packit_service.config import PackageConfigGetter
-from packit_service.worker.events.enums import PullRequestAction
-from packit_service.worker.events.pagure import (
+from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
     PullRequestFlagPagureEvent,
     PullRequestPagureEvent,
     PushPagureEvent,
 )
+from packit_service.worker.events.enums import PullRequestAction
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

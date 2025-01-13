@@ -81,14 +81,14 @@ from packit_service.worker.events import (
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
+    NewHotnessUpdateEvent,
     PullRequestCommentPagureEvent,
     PullRequestPagureEvent,
     PushPagureEvent,
     ReleaseEvent,
     ReleaseGitlabEvent,
 )
-from packit_service.worker.events.koji import KojiBuildTagEvent
-from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     RetriableJobHandler,

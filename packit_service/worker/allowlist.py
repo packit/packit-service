@@ -27,12 +27,12 @@ from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     CheckRerunEvent,
     EventData,
-    InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    NewHotnessUpdateEvent,
     OpenScanHubTaskFinishedEvent,
     OpenScanHubTaskStartedEvent,
     PullRequestCommentGithubEvent,
@@ -43,12 +43,13 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
+    ReleaseGitlabEvent,
     TestingFarmResultsEvent,
+    github,
 )
 from packit_service.worker.events.comment import CommitCommentEvent
-from packit_service.worker.events.gitlab import ReleaseGitlabEvent
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
-from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
+from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -61,7 +62,7 @@ UncheckedEvent = Union[
     PullRequestCommentPagureEvent,
     AbstractCoprBuildEvent,
     TestingFarmResultsEvent,
-    InstallationEvent,
+    github.installation.Installation,
     KojiTaskEvent,
     KojiBuildEvent,
     CheckRerunEvent,
@@ -518,7 +519,7 @@ class Allowlist:
                 PullRequestCommentPagureEvent,
                 AbstractCoprBuildEvent,
                 TestingFarmResultsEvent,
-                InstallationEvent,
+                github.installation.Installation,
                 KojiTaskEvent,
                 KojiBuildEvent,
                 KojiBuildTagEvent,
