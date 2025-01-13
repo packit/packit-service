@@ -111,7 +111,7 @@ class AnityaUpdateEvent(Event):
         return self._package_config
 
     def get_packages_config(self) -> Optional[PackageConfig]:
-        logger.debug(f"Getting package_config:\n" f"\tproject: {self.project}\n")
+        logger.debug(f"Getting package_config:\n\tproject: {self.project}\n")
 
         return PackageConfigGetter.get_package_config_from_repo(
             base_project=None,

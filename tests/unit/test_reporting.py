@@ -35,12 +35,7 @@ create_table_content = StatusReporterGithubChecks._create_table
 
 
 @pytest.mark.parametrize(
-    (
-        "project,commit_sha,"
-        "pr_id,pr_object,"
-        "state,description,check_name,url,state_to_set,"
-        "uid"
-    ),
+    ("project,commit_sha,pr_id,pr_object,state,description,check_name,url,state_to_set,uid"),
     [
         pytest.param(
             flexmock(),
@@ -109,7 +104,7 @@ def test_set_status_pagure(
 
 
 @pytest.mark.parametrize(
-    ("commit_sha,pr_id,pr_object," "state,description,check_name,url,state_to_set"),
+    ("commit_sha,pr_id,pr_object,state,description,check_name,url,state_to_set"),
     [
         pytest.param(
             "7654321",

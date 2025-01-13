@@ -507,7 +507,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         status = VMImageBuildStatus.error
     except Exception as ex:
         message = (
-            f"There was an exception when getting status of the VM " f"Image Build {build_id}: {ex}"
+            f"There was an exception when getting status of the VM Image Build {build_id}: {ex}"
         )
         logger.error(message)
         # keep polling
@@ -546,8 +546,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     if not packages_config:
         build.set_status(status)
         logger.debug(
-            f"No package config found for {build.build_id}. "
-            "No feedback can be given to the user.",
+            f"No package config found for {build.build_id}. No feedback can be given to the user.",
         )
         return True
 

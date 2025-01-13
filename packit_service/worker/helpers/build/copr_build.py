@@ -917,7 +917,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
         except PackitCoprSettingsException as ex:
             # notify user first, PR if exists, commit comment otherwise
-            table = "| field | old value | new value |\n" "| ----- | --------- | --------- |\n"
+            table = "| field | old value | new value |\n| ----- | --------- | --------- |\n"
             for field, (old, new) in ex.fields_to_change.items():
                 table += f"| {field} | {old} | {new} |\n"
 

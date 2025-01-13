@@ -137,7 +137,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
     handler._packit_api = flexmock(copr_helper=flexmock())
 
     repo_download_url = (
-        "https://download.copr.fedorainfracloud.org/" "results/mmassari/knx-stack/fedora-36-x86_64/"
+        "https://download.copr.fedorainfracloud.org/results/mmassari/knx-stack/fedora-36-x86_64/"
     )
     handler.packit_api.copr_helper.should_receive("get_repo_download_url").with_args(
         owner="mmassari",

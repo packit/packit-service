@@ -85,7 +85,7 @@ class OpenScanHubAbstractHandler(
                 success=True,
                 details={
                     "msg": (
-                        "No job configuration found for OpenScanHub task" f" in {self.project.repo}"
+                        f"No job configuration found for OpenScanHub task in {self.project.repo}"
                     ),
                 },
             )
