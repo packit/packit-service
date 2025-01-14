@@ -79,7 +79,7 @@
     "created_at": "2019-08-08T15:22:24Z",
     "updated_at": "2019-08-08T15:22:24Z",
     "author_association": "NONE",
-    "body": "/packit production-build"
+    "body": "/packit upstream-koji-build"
   },
   "repository": {
     "id": 184635124,

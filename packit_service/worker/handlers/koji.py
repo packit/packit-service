@@ -84,11 +84,8 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-@configured_as(job_type=JobType.production_build)
 @configured_as(job_type=JobType.upstream_koji_build)
-@run_for_comment(command="production-build")
 @run_for_comment(command="upstream-koji-build")
-@run_for_check_rerun(prefix="production-build")
 @run_for_check_rerun(prefix="koji-build")
 @reacts_to(ReleaseEvent)
 @reacts_to(ReleaseGitlabEvent)
@@ -264,7 +261,6 @@ class AbstractKojiTaskReportHandler(
         return TaskResults(success=True, details={"msg": msg})
 
 
-@configured_as(job_type=JobType.production_build)
 @configured_as(job_type=JobType.upstream_koji_build)
 @reacts_to(event=KojiTaskEvent)
 class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
