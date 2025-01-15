@@ -164,7 +164,7 @@ def test_dist_git_push_release_handle(
     ).and_return(sync_release_pr_model)
 
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
@@ -290,7 +290,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     sync_release_pr_model,
 ):
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
     )
@@ -426,7 +426,7 @@ def test_dist_git_push_release_handle_one_failed(
     sync_release_pr_model,
 ):
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "targets:[], dist_git_branches: [fedora-all,]}]}"
     )
@@ -590,7 +590,7 @@ def test_dist_git_push_release_handle_all_failed(
     propose_downstream_target_models,
 ):
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
     )
@@ -730,7 +730,7 @@ def test_retry_propose_downstream_task(
     ).and_return(model)
 
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
@@ -848,7 +848,7 @@ def test_dont_retry_propose_downstream_task(
         branch="main",
     ).and_return(model)
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
@@ -967,7 +967,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
     propose_downstream_target_models,
 ):
     packit_yaml = (
-        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec'"
         ", jobs: ["
         "{trigger: release, job: propose_downstream, "
         "targets:[], dist_git_branches: fedora-all, notifications: "

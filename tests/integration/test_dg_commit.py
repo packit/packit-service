@@ -54,7 +54,7 @@ def distgit_commit_event():
 
 def test_sync_from_downstream():
     packit_yaml = (
-        "{'specfile_path': 'buildah.spec', 'synced_files': [],"
+        "{'specfile_path': 'buildah.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'buildah'}"
     )
@@ -139,7 +139,7 @@ def test_sync_from_downstream():
 
 def test_do_not_sync_from_downstream_on_a_different_branch():
     packit_yaml = (
-        "{'specfile_path': 'buildah.spec', 'synced_files': [],"
+        "{'specfile_path': 'buildah.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'buildah'}"
     )
@@ -211,7 +211,7 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
 )
 def test_downstream_koji_build(sidetag_group):
     packit_yaml = (
-        "{'specfile_path': 'buildah.spec', 'synced_files': [],"
+        "{'specfile_path': 'buildah.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers':"
         " ['rhcontainerbot']"
         + (f", 'sidetag_group': '{sidetag_group}'" if sidetag_group else "")
@@ -761,7 +761,7 @@ def test_downstream_koji_build_no_config():
 )
 def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
     packit_yaml = (
-        "{'specfile_path': 'buildah.spec', 'synced_files': [],"
+        "{'specfile_path': 'buildah.spec',"
         f"'jobs': {jobs_config},"
         "'downstream_package_name': 'buildah'}"
     )
@@ -899,7 +899,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
 )
 def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
     packit_yaml = (
-        "{'specfile_path': 'buildah.spec', 'synced_files': [],"
+        "{'specfile_path': 'buildah.spec',"
         f"'jobs': {jobs_config},"
         "'downstream_package_name': 'buildah'}"
     )

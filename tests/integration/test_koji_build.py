@@ -45,7 +45,7 @@ from tests.spellbook import first_dict_value, get_parameters_from_results
 def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
     koji_build_event = request.getfixturevalue(koji_build_fixture.__name__)
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -119,7 +119,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
 
 def test_koji_build_error_msg(distgit_push_packit):
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
         "'downstream_package_name': 'python-ogr', 'issue_repository': "
         "'https://github.com/packit/packit'}"

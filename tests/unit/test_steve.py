@@ -70,7 +70,6 @@ EVENT = {
 def test_process_message(event, private, enabled_private_namespaces, success):
     packit_yaml = {
         "specfile_path": "bar.spec",
-        "synced_files": [],
         "jobs": [{"trigger": "release", "job": "propose_downstream"}],
     }
     flexmock(Github, get_repo=lambda full_name_or_id: None)

@@ -51,7 +51,7 @@ from tests.spellbook import first_dict_value, get_parameters_from_results
 
 def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
         "'metadata': {'dist_git_branches': ['rawhide']}}],"
         "'downstream_package_name': 'packit'}"
@@ -628,7 +628,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     koji_build_start_old_format,
 ):
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
         "'metadata': {'dist_git_branches': ['rawhide']}}],"
         "'downstream_package_name': 'packit'}"
@@ -712,7 +712,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
 
 def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
         "'metadata': {'dist_git_branches': ['rawhide']}}],"
         "'downstream_package_name': 'packit'}"
@@ -804,7 +804,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
 
 def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format):
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
         "'metadata': {'dist_git_branches': ['a-different-branch']}}],"
         "'downstream_package_name': 'packit'}"
@@ -865,7 +865,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
 def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     """(Known build scenario.)"""
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update', 'dist_git_branches': ['f36']}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -1045,7 +1045,7 @@ def test_bodhi_update_from_sidetag(
     ).with_args(sidetag_name).and_return(existing_update)
 
     specfile_packit_yaml = (
-        "{'specfile_path': 'python-specfile.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-specfile.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'sidetag_group': 'test',"
         "'dependents': ['packit'], 'dist_git_branches': ['f40']}],"
         "'downstream_package_name': 'python-specfile'}"
@@ -1079,7 +1079,7 @@ def test_bodhi_update_from_sidetag(
     ).and_return(specfile_pagure_project)
 
     packit_packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'koji_build', 'job': 'bodhi_update', 'sidetag_group': 'test',"
         "'dependencies': ['python-specfile'], 'dist_git_branches': ['f40']}],"
         "'downstream_package_name': 'packit'}"

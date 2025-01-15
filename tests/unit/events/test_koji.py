@@ -79,7 +79,7 @@ def test_parse_koji_build_event_start_old_format(
     assert event_object.project.full_repo_name == "rpms/packit"
 
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'packit'}"
     )
@@ -120,7 +120,7 @@ def test_parse_koji_build_event_start_rawhide(koji_build_start_rawhide, mock_con
     assert event_object.project.full_repo_name == "rpms/python-ogr"
 
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -161,7 +161,7 @@ def test_parse_koji_build_event_start_f36(koji_build_start_f36, mock_config):
     assert event_object.project.full_repo_name == "rpms/python-ogr"
 
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -202,7 +202,7 @@ def test_parse_koji_build_event_start_epel8(koji_build_start_epel8, mock_config)
     assert event_object.project.full_repo_name == "rpms/python-ogr"
 
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -243,7 +243,7 @@ def test_parse_koji_build_event_completed_old_format(
     assert event_object.project.full_repo_name == "rpms/packit"
 
     packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'packit'}"
     )
@@ -287,7 +287,7 @@ def test_parse_koji_build_event_completed_rawhide(
     assert event_object.project.full_repo_name == "rpms/python-ogr"
 
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -329,7 +329,7 @@ def test_parse_koji_build_event_completed_f36(koji_build_completed_f36, mock_con
     assert event_object.project.full_repo_name == "rpms/python-ogr"
 
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
@@ -374,7 +374,7 @@ def test_parse_koji_build_event_completed_epel8(
     assert event_object.project.full_repo_name == "rpms/python-ogr"
 
     packit_yaml = (
-        "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-ogr.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
         "'downstream_package_name': 'python-ogr'}"
     )
