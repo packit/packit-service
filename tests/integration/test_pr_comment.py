@@ -153,11 +153,7 @@ def pr_wrong_packit_comment_event():
 
 @pytest.fixture
 def mock_pr_comment_functionality(request):
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(request.param)
-        + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(request.param) + "}"
 
     flexmock(
         GithubProject,
@@ -402,7 +398,6 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     packit_yaml = str(
         {
             "specfile_path": "the-specfile.spec",
-            "synced_files": [],
             "jobs": [
                 {
                     "trigger": "pull_request",
@@ -653,9 +648,7 @@ def test_pr_test_command_handler(
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -741,9 +734,7 @@ def test_pr_test_command_handler_identifiers(
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -906,9 +897,7 @@ def test_pr_test_command_handler_retries(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
@@ -1109,9 +1098,7 @@ def test_pr_test_command_handler_skip_build_option(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world",
@@ -1303,9 +1290,7 @@ def test_pr_test_command_handler_compose_not_present(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
@@ -1432,9 +1417,7 @@ def test_pr_test_command_handler_composes_not_available(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
@@ -1557,9 +1540,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     db_project_object, _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -1622,9 +1603,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -1870,9 +1849,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world",
@@ -2063,9 +2040,7 @@ def test_pr_test_command_handler_multiple_builds(
             "metadata": {"targets": ["fedora-rawhide-x86_64", "fedora-35-x86_64"]},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world",
@@ -2352,7 +2327,7 @@ def test_pr_test_command_handler_multiple_builds(
 
 def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     packit_yaml = (
-        "{'specfile_path': 'python-teamcity-messages.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-teamcity-messages.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
         "'downstream_package_name': 'python-ogr', 'issue_repository': "
         "'https://github.com/namespace/repo'}"
@@ -2492,7 +2467,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     project["url_path"] = "rpms/jouduv-dort"
 
     packit_yaml = (
-        "{'specfile_path': 'jouduv-dort.spec', 'synced_files': [],"
+        "{'specfile_path': 'jouduv-dort.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update'}],"
         "'downstream_package_name': 'jouduv-dort'}"
     )
@@ -2985,7 +2960,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
 )
 def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_branches):
     packit_yaml = (
-        "{'specfile_path': 'python-teamcity-messages.spec', 'synced_files': [],"
+        "{'specfile_path': 'python-teamcity-messages.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'sidetag_group': 'test',"
         "'dist_git_branches': ['fedora-stable']}],"
         "'downstream_package_name': 'python-ogr', 'issue_repository': "

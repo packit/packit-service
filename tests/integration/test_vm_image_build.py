@@ -31,7 +31,6 @@ from tests.spellbook import first_dict_value, get_parameters_from_results
 def test_vm_image_build(github_vm_image_build_comment):
     packit_yaml = (
         "{'specfile_path': 'python-knx-stack.spec',"
-        " 'synced_files': [],"
         " 'jobs': [{"
         "   'job': 'vm_image_build',"
         "   'trigger': 'pull_request',"

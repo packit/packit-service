@@ -39,11 +39,7 @@ def commit_build_comment_event():
 
 @pytest.fixture
 def mock_commit_comment_functionality(request):
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(request.param)
-        + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(request.param) + "}"
 
     flexmock(
         GithubProject,

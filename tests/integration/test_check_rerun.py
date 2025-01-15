@@ -90,11 +90,7 @@ def check_rerun_event_propose_downstream():
 
 @pytest.fixture
 def mock_pr_functionality(request):
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs':"
-        + str(request.param)
-        + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs':" + str(request.param) + "}"
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
@@ -139,11 +135,7 @@ def mock_pr_functionality(request):
 
 @pytest.fixture
 def mock_push_functionality(request):
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs':"
-        + str(request.param)
-        + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs':" + str(request.param) + "}"
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
@@ -189,11 +181,7 @@ def mock_push_functionality(request):
 
 @pytest.fixture
 def mock_release_functionality(request):
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs':"
-        + str(request.param)
-        + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs':" + str(request.param) + "}"
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
