@@ -1,22 +1,26 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from packit_service.worker.events.abstract import (
+from packit_service.worker.events.abstract.base import (
     ForgeIndependent as AbstractForgeIndependentEvent,
 )
-from packit_service.worker.events.abstract import (
+from packit_service.worker.events.abstract.base import (
     Result as AbstractResultEvent,
+)
+from packit_service.worker.events.abstract.comment import (
+    Comment as AbstractCommentEvent,
+)
+from packit_service.worker.events.abstract.comment import (
+    Issue as AbstractIssueCommentEvent,
+)
+from packit_service.worker.events.abstract.comment import (
+    PullRequest as AbstractPRCommentEvent,
 )
 from packit_service.worker.events.anitya.base import (
     NewHotness as NewHotnessUpdateEvent,
 )
 from packit_service.worker.events.anitya.base import (
     VersionUpdate as AnityaVersionUpdateEvent,
-)
-from packit_service.worker.events.comment import (
-    AbstractCommentEvent,
-    AbstractIssueCommentEvent,
-    AbstractPRCommentEvent,
 )
 from packit_service.worker.events.copr import (
     CoprBuild as AbstractCoprBuildEvent,

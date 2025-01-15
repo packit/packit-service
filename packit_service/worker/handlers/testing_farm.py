@@ -49,7 +49,7 @@ from packit_service.worker.events import (
     ReleaseGitlabEvent,
     TestingFarmResultsEvent,
 )
-from packit_service.worker.events.comment import CommitCommentEvent
+from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,

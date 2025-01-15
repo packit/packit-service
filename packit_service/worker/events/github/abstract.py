@@ -3,7 +3,7 @@
 
 from typing import Optional
 
-from packit_service.worker.events.abstract import ForgeIndependent
+from packit_service.worker.events.abstract.base import ForgeIndependent
 
 
 class GithubEvent(ForgeIndependent):

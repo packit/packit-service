@@ -10,7 +10,7 @@ from packit.vm_image_build import ImageBuilder
 
 from packit_service.config import ServiceConfig
 from packit_service.worker.events import EventData
-from packit_service.worker.events.comment import AbstractIssueCommentEvent
+from packit_service.worker.events.abstract.comment import Issue as AbstractIssueCommentEvent
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperMixin,
     GetVMImageBuilderMixin,

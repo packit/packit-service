@@ -39,11 +39,17 @@ from packit_service.worker.events import (
     PullRequestPagureEvent,
     github,
 )
-from packit_service.worker.events.comment import (
-    AbstractCommentEvent,
-    AbstractIssueCommentEvent,
-    AbstractPRCommentEvent,
-    CommitCommentEvent,
+from packit_service.worker.events.abstract.comment import (
+    Comment as AbstractCommentEvent,
+)
+from packit_service.worker.events.abstract.comment import (
+    Commit as CommitCommentEvent,
+)
+from packit_service.worker.events.abstract.comment import (
+    Issue as AbstractIssueCommentEvent,
+)
+from packit_service.worker.events.abstract.comment import (
+    PullRequest as AbstractPRCommentEvent,
 )
 from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.events.koji.base import Task as KojiTaskEvent

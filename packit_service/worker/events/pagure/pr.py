@@ -14,7 +14,7 @@ from packit_service.service.db_project_events import (
     AddPullRequestEventToDb,
 )
 from packit_service.utils import get_packit_commands_from_comment
-from packit_service.worker.events.comment import AbstractPRCommentEvent
+from packit_service.worker.events.abstract.comment import PullRequest as AbstractPRCommentEvent
 from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,

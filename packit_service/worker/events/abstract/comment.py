@@ -9,7 +9,8 @@ import re
 from logging import getLogger
 from typing import Optional, Union
 
-from ogr.abstract import Comment, Issue
+from ogr.abstract import Comment
+from ogr.abstract import Issue as OgrIssue
 
 from packit_service.models import (
     BuildStatus,
@@ -22,12 +23,12 @@ from packit_service.service.db_project_events import (
     AddIssueEventToDb,
     AddPullRequestEventToDb,
 )
-from packit_service.worker.events.abstract import ForgeIndependent
+from packit_service.worker.events.abstract.base import ForgeIndependent
 
 logger = getLogger(__name__)
 
 
-class AbstractCommentEvent(ForgeIndependent):
+class CommentEvent(ForgeIndependent):
     def __init__(
         self,
         project_url: str,
@@ -53,7 +54,7 @@ class AbstractCommentEvent(ForgeIndependent):
         return result
 
 
-class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
+class PullRequest(AddPullRequestEventToDb, CommentEvent):
     def __init__(
         self,
         pr_id: int,
@@ -132,7 +133,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         return result
 
 
-class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
+class Issue(AddIssueEventToDb, CommentEvent):
     def __init__(
         self,
         issue_id: int,
@@ -162,7 +163,7 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         self._tag_name = tag_name
         self._commit_sha: Optional[str] = None
         self._comment_object = comment_object
-        self._issue_object: Optional[Issue] = None
+        self._issue_object: Optional[OgrIssue] = None
 
     @property
     def tag_name(self):
@@ -180,7 +181,7 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         return self._commit_sha
 
     @property
-    def issue_object(self) -> Optional[Issue]:
+    def issue_object(self) -> Optional[OgrIssue]:
         if not self._issue_object:
             self._issue_object = self.project.get_issue(self.issue_id)
         return self._issue_object
@@ -200,7 +201,7 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         return result
 
 
-class CommitCommentEvent(AbstractCommentEvent):
+class Commit(CommentEvent):
     _trigger: Union[GitBranchModel, ProjectReleaseModel] = None
     _event: ProjectEventModel = None
 

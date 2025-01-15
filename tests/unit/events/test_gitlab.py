@@ -18,7 +18,7 @@ from packit_service.worker.events import (
     ReleaseGitlabEvent,
     TagPushGitlabEvent,
 )
-from packit_service.worker.events.comment import CommitCommentEvent
+from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR

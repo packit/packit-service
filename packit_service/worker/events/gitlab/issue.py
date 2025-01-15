@@ -4,8 +4,8 @@ from typing import Optional
 
 from ogr.abstract import Comment as OgrComment
 
-from packit_service.worker.events.comment import (
-    AbstractIssueCommentEvent,
+from packit_service.worker.events.abstract.comment import (
+    Issue as AbstractIssueCommentEvent,
 )
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.gitlab.abstract import GitlabEvent

@@ -36,7 +36,7 @@ from packit_service.worker.events import (
     PullRequestGithubEvent,
     ReleaseEvent,
 )
-from packit_service.worker.events.comment import CommitCommentEvent
+from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
 from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestAction,
