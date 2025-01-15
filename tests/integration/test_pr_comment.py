@@ -153,11 +153,7 @@ def pr_wrong_packit_comment_event():
 
 @pytest.fixture
 def mock_pr_comment_functionality(request):
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': "
-        + str(request.param)
-        + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(request.param) + "}"
 
     flexmock(
         GithubProject,
@@ -652,9 +648,7 @@ def test_pr_test_command_handler(
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -740,9 +734,7 @@ def test_pr_test_command_handler_identifiers(
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -905,9 +897,7 @@ def test_pr_test_command_handler_retries(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
@@ -1108,9 +1098,7 @@ def test_pr_test_command_handler_skip_build_option(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world",
@@ -1302,9 +1290,7 @@ def test_pr_test_command_handler_compose_not_present(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
@@ -1431,9 +1417,7 @@ def test_pr_test_command_handler_composes_not_available(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     _ = add_pull_request_event_with_sha_0011223344
     pr = flexmock(
         source_project=flexmock(
@@ -1556,9 +1540,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     db_project_object, _ = add_pull_request_event_with_pr_id_9
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -1621,9 +1603,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
             "metadata": {"targets": "fedora-rawhide-x86_64"},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -1869,9 +1849,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
             "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world",
@@ -2062,9 +2040,7 @@ def test_pr_test_command_handler_multiple_builds(
             "metadata": {"targets": ["fedora-rawhide-x86_64", "fedora-35-x86_64"]},
         },
     ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
-    )
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
     pr = flexmock(
         source_project=flexmock(
             get_web_url=lambda: "https://github.com/someone/hello-world",
