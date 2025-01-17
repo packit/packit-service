@@ -3325,7 +3325,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     # so it will run when the model is initiated, not when the table is made
     submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
-    tft_test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"))
+    tft_test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"), index=True)
 
     copr_builds = relationship(
         "CoprBuildTargetModel",
