@@ -625,7 +625,7 @@ class GetVMImageDataMixin(Config, GetCoprBuildJobHelper):
 
     @property
     def image_name(self) -> str:
-        return f"{self.owner}/" f"{self.project_name}/{self.data.pr_id}"
+        return f"{self.owner}/{self.project_name}/{self.data.pr_id}"
 
     @property
     def image_distribution(self) -> str:

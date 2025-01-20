@@ -191,7 +191,7 @@ class GithubFasVerificationHandler(
             TaskResults
         """
         logger.debug(
-            f"Going to run verification of FAS account triggered by comment:" f" {self.comment}",
+            f"Going to run verification of FAS account triggered by comment: {self.comment}",
         )
         # e.g. User Bebaabeni needs to be approved.
         _, account_login, _ = self.issue.title.split(maxsplit=2)
@@ -247,8 +247,7 @@ class GithubFasVerificationHandler(
             sender_login=self.sender_login,
         ):
             msg = (
-                f"Namespace `{namespace}` approved successfully "
-                f"using FAS account `{fas_account}`!"
+                f"Namespace `{namespace}` approved successfully using FAS account `{fas_account}`!"
             )
             logger.debug(msg)
             self.issue.comment(msg)

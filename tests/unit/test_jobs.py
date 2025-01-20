@@ -533,7 +533,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr_skip_build" "&pull_request&PullRequestGithubEvent",
+            id="config=test_for_pr_skip_build&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
             PullRequestGithubEvent,
@@ -749,7 +749,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=test_for_pr+build_for_commit+build_for_release" "&commit&PushGitHubEvent",
+            id="config=test_for_pr+build_for_commit+build_for_release&commit&PushGitHubEvent",
         ),
         pytest.param(
             TestingFarmResultsEvent,
@@ -816,8 +816,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler, KojiBuildHandler},
-            id="config=build_for_pr+upstream_koji_build_for_pr"
-            "&pull_request&PullRequestGithubEvent",
+            id="config=build_for_pr+upstream_koji_build_for_pr&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
             CoprBuildStartEvent,
@@ -835,7 +834,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildStartHandler},
-            id="config=build_for_pr+upstream_koji_build_for_pr" "&pull_request&CoprBuildStartEvent",
+            id="config=build_for_pr+upstream_koji_build_for_pr&pull_request&CoprBuildStartEvent",
         ),
         pytest.param(
             KojiTaskEvent,
@@ -853,7 +852,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {KojiTaskReportHandler},
-            id="config=build_for_pr+upstream_koji_build_for_pr" "&pull_request&KojiBuildEvent",
+            id="config=build_for_pr+upstream_koji_build_for_pr&pull_request&KojiBuildEvent",
         ),
         pytest.param(
             PushPagureEvent,
@@ -979,7 +978,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             set(),
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent" "&empty_comment",
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent&empty_comment",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -994,8 +993,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             set(),
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
-            "&empty_comment&stg",
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent&empty_comment&stg",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1010,7 +1008,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent" "&packit_build",
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent&packit_build",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1025,8 +1023,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=copr_build_for_pr&pull_request&PullRequestCommentGithubEvent"
-            "&packit_build",
+            id="config=copr_build_for_pr&pull_request&PullRequestCommentGithubEvent&packit_build",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1041,8 +1038,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
-            "&packit_copr-build",
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent&packit_copr-build",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1057,7 +1053,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent" "&packit_build",
+            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent&packit_build",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1072,7 +1068,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             {TestingFarmHandler},
-            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent" "&packit_test",
+            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent&packit_test",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1143,7 +1139,7 @@ def test_get_handlers_for_event(event_cls, db_project_object, jobs, result):
                 ),
             ],
             set(),
-            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent" "&packit_build&stg",
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent&packit_build&stg",
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -1237,7 +1233,7 @@ def test_get_handlers_for_comment_event(
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr&pull_request&CheckRerunPullRequestEvent" "&identifier_match",
+            id="config=build_for_pr&pull_request&CheckRerunPullRequestEvent&identifier_match",
         ),
         pytest.param(
             CheckRerunPullRequestEvent,
@@ -1670,8 +1666,7 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="build_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PushGitHubEvent",
+            id="build_for_pr+build_for_commit+build_for_release&CoprBuildHandler&PushGitHubEvent",
         ),
         pytest.param(
             CoprBuildHandler,
@@ -1717,7 +1712,7 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="build_for_pr+build_for_commit+build_for_release" "&CoprBuildHandler&ReleaseEvent",
+            id="build_for_pr+build_for_commit+build_for_release&CoprBuildHandler&ReleaseEvent",
         ),
         # Build for commit and release, test for pr
         pytest.param(
@@ -1801,8 +1796,7 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&PushGitHubEvent",
+            id="tests_for_pr+build_for_commit+build_for_release&CoprBuildHandler&PushGitHubEvent",
         ),
         pytest.param(
             CoprBuildHandler,
@@ -1848,7 +1842,7 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="tests_for_pr+build_for_commit+build_for_release" "&CoprBuildHandler&ReleaseEvent",
+            id="tests_for_pr+build_for_commit+build_for_release&CoprBuildHandler&ReleaseEvent",
         ),
         pytest.param(
             TestingFarmResultsHandler,
@@ -3665,6 +3659,6 @@ def test_unapproved_jobs():
 
     results = jobs.process_jobs()
     assert results and len(results) == 3, "we have gotten exactly 3 results"
-    assert all(
-        not result["success"] for result in results
-    ), "all of them must've failed the permission check"
+    assert all(not result["success"] for result in results), (
+        "all of them must've failed the permission check"
+    )

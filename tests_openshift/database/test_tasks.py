@@ -75,7 +75,7 @@ def packit_build_752():
         project_name="packit-service-packit-752",
         owner="packit",
         web_url=(
-            "https://download.copr.fedorainfracloud.org/" "results/packit/packit-service-packit-752"
+            "https://download.copr.fedorainfracloud.org/results/packit/packit-service-packit-752"
         ),
         target="fedora-rawhide-x86_64",
         status=BuildStatus.pending,

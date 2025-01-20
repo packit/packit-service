@@ -397,7 +397,7 @@ def upgrade():
                 for test, build in zip(test_group, matching_builds):
                     if len(build.runs) != 1:
                         PackitException(
-                            f"Build {build} does not have exactly one run:\n" f"{build.runs}",
+                            f"Build {build} does not have exactly one run:\n{build.runs}",
                         )
                     test_runs_attached += 1
                     build.runs[-1].test_run = test

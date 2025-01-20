@@ -271,8 +271,7 @@ class CommitCommentEvent(AbstractCommentEvent):
 
         if not release or release.git_tag.commit_sha != self.commit_sha:
             logger.debug(
-                "Release with tag name from comment doesn't exist or doesn't match "
-                "the commit SHA.",
+                "Release with tag name from comment doesn't exist or doesn't match the commit SHA.",
             )
             return
 

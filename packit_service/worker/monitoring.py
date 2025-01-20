@@ -149,8 +149,7 @@ class Pushgateway:
 
         self.events_not_handled = Counter(
             "events_not_handled",
-            "The number of events resulting in a Celery task, "
-            "but then dropped during processing",
+            "The number of events resulting in a Celery task, but then dropped during processing",
             registry=self.registry,
         )
 

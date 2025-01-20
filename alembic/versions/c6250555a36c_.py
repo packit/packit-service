@@ -548,7 +548,7 @@ def upgrade():
 
         status = copr_build.get("status")
         web_url = (
-            f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/" f"build/{build_id}/"
+            f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/build/{build_id}/"
         )
 
         try:
