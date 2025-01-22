@@ -48,11 +48,11 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
         Get the default branch of the distgit project.
         """
         if not self._default_dg_branch:
-            if self.metadata.event_type in (NewHotnessUpdateEvent.__name__,):
+            if self.metadata.event_type in (NewHotnessUpdateEvent.event_type(),):
                 distgit_project_url = self.metadata.event_dict.get(
                     "distgit_project_url",
                 )
-            elif self.metadata.event_type in (PullRequestCommentPagureEvent.__name__,):
+            elif self.metadata.event_type in (PullRequestCommentPagureEvent.event_type(),):
                 distgit_project_url = self.metadata.event_dict.get("project_url")
             git_project = self.service_config.get_project(url=distgit_project_url)
             self._default_dg_branch = git_project.default_branch

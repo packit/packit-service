@@ -667,7 +667,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             celery_task=celery_task,
             sync_release_run_id=sync_release_run_id,
         )
-        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+        if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
             # use upstream project URL when retriggering from dist-git PR
             self._project_url = package_config.upstream_project_url
         # allow self.project to be None
@@ -694,7 +694,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         In case of comment, take the argument from comment. The format in the comment
         should be /packit pull-from-upstream --resolve-bug rhbz#123,rhbz#124
         """
-        if self.data.event_type in (NewHotnessUpdateEvent.__name__,):
+        if self.data.event_type in (NewHotnessUpdateEvent.event_type(),):
             bug_id = self.data.event_dict.get("bug_id")
             return [f"rhbz#{bug_id}"]
 
@@ -1145,23 +1145,23 @@ class DownstreamKojiBuildHandler(
     def get_branches(self) -> list[str]:
         branch = (
             self.project.get_pr(self.data.pr_id).target_branch
-            if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
+            if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),)
             else self.dg_branch
         )
         return [branch]
 
     def get_trigger_type_description(self) -> str:
         trigger_type_description = ""
-        if self.data.event_type == PullRequestCommentPagureEvent.__name__:
+        if self.data.event_type == PullRequestCommentPagureEvent.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was re-triggered "
                 f"by comment in dist-git PR id {self.data.pr_id}."
             )
-        elif self.data.event_type == PushPagureEvent.__name__:
+        elif self.data.event_type == PushPagureEvent.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was triggered by push with sha {self.data.commit_sha}."
             )
-        elif self.data.event_type == KojiBuildTagEvent.__name__:
+        elif self.data.event_type == KojiBuildTagEvent.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was triggered "
                 f"by tagging of build {self.data.event_dict['build_id']} "

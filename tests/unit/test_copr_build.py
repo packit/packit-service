@@ -1025,7 +1025,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
             package_config,
             jobs[0],
             {
-                "event_type": "PullRequestGithubEvent",
+                "event_type": "github.pr.Synchronize",
                 "actor": "actor",
                 "project_url": "url",
                 "commit_sha": "abcdef",

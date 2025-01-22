@@ -25,6 +25,10 @@ class Release(AddReleaseEventToDb, GitlabEvent):
         self.tag_name = tag_name
         self._commit_sha = commit_sha
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.release.Release"
+
     @property
     def commit_sha(self):
         return self._commit_sha

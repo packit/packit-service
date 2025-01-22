@@ -25,3 +25,7 @@ class Push(AddBranchPushEventToDb, PagureEvent):
         self.commit_sha = commit_sha
         self.identifier = git_ref
         self.committer = committer
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.push.Push"

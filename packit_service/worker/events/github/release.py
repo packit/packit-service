@@ -17,6 +17,10 @@ class Release(AddReleaseEventToDb, GithubEvent):
         self.identifier = tag_name
         self._commit_sha: Optional[str] = None
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.release.Release"
+
     @property
     def commit_sha(self) -> Optional[str]:  # type:ignore
         # mypy does not like properties

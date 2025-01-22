@@ -43,7 +43,7 @@ class IsGitForgeProjectAndEventOk(
         self,
     ) -> bool:
         if (
-            self.data.event_type == MergeRequestGitlabEvent.__name__
+            self.data.event_type == MergeRequestGitlabEvent.event_type()
             and self.data.event_dict["action"] == GitlabEventAction.closed.value
         ):
             # Not interested in closed merge requests

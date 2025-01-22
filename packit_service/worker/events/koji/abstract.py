@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
 from typing import Optional, Union
 
 from packit_service.models import (
@@ -33,6 +34,11 @@ class KojiEvent(Result):
         self._target: Optional[str] = None
         self._build_model: Optional[KojiBuildTargetModel] = None
         self._build_model_searched = False
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.koji.Event"
 
     @property
     def build_model(self) -> Optional[KojiBuildTargetModel]:

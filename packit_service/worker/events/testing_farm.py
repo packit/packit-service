@@ -20,6 +20,10 @@ from packit_service.worker.events.abstract.base import Result as AbstractResult
 class Result(AbstractResult):
     __test__ = False
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "testing_farm.Result"
+
     def __init__(
         self,
         pipeline_id: str,

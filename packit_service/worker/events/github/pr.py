@@ -41,6 +41,10 @@ class Synchronize(AddPullRequestEventToDb, GithubEvent):
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.pr.Synchronize"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
@@ -84,6 +88,10 @@ class Comment(AbstractPRCommentEvent, GithubEvent):
         self.actor = actor
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.pr.Comment"
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()

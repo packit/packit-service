@@ -35,6 +35,10 @@ class NewHotness(AnityaUpdate):
         self._version = version
         self.bug_id = bug_id
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "anitya.NewHotness"
+
     @property
     def version(self) -> str:
         return self._version
@@ -60,6 +64,10 @@ class VersionUpdate(AnityaUpdate):
         )
 
         self._versions = versions
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "anitya.VersionUpdate"
 
     @property
     def version(self) -> Optional[str]:

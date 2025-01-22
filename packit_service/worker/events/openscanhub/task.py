@@ -6,7 +6,10 @@ import enum
 from packit_service.worker.events.openscanhub.abstract import OpenScanHubEvent
 
 
-class Started(OpenScanHubEvent): ...
+class Started(OpenScanHubEvent):
+    @classmethod
+    def event_type(cls) -> str:
+        return "openscanhub.task.Started"
 
 
 class Finished(OpenScanHubEvent):
@@ -30,3 +33,7 @@ class Finished(OpenScanHubEvent):
         self.issues_added_url = issues_added_url
         self.issues_fixed_url = issues_fixed_url
         self.scan_results_url = scan_results_url
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "openscanhub.task.Finished"

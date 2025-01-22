@@ -504,9 +504,9 @@ class GetGithubCommentEvent(Protocol):
 class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigFromEventMixin):
     def is_comment_event(self) -> bool:
         return self.data.event_type in (
-            PullRequestCommentGithubEvent.__name__,
-            MergeRequestCommentGitlabEvent.__name__,
-            PullRequestCommentPagureEvent.__name__,
+            PullRequestCommentGithubEvent.event_type(),
+            MergeRequestCommentGitlabEvent.event_type(),
+            PullRequestCommentPagureEvent.event_type(),
         )
 
     def is_copr_build_comment_event(self) -> bool:

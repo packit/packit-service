@@ -80,7 +80,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
     (
         pytest.param(
             False,
-            construct_dict(event=MergeRequestGitlabEvent.__name__, action="closed"),
+            construct_dict(event=MergeRequestGitlabEvent.event_type(), action="closed"),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -88,7 +88,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=PullRequestGithubEvent.event_type()),
             True,
             False,
             JobConfigTriggerType.pull_request,
@@ -96,7 +96,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            construct_dict(event=MergeRequestGitlabEvent.event_type()),
             True,
             False,
             JobConfigTriggerType.pull_request,
@@ -104,7 +104,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            construct_dict(event=MergeRequestGitlabEvent.event_type()),
             False,
             True,
             JobConfigTriggerType.pull_request,
@@ -112,7 +112,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             True,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=PullRequestGithubEvent.event_type()),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -120,7 +120,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             True,
-            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            construct_dict(event=MergeRequestGitlabEvent.event_type()),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -178,25 +178,25 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
     (
         pytest.param(
             False,
-            construct_dict(event=PushGitHubEvent.__name__),
+            construct_dict(event=PushGitHubEvent.event_type()),
             JobConfigTriggerType.commit,
             id="GitHub push to non-configured branch is ignored",
         ),
         pytest.param(
             False,
-            construct_dict(event=PushGitlabEvent.__name__),
+            construct_dict(event=PushGitlabEvent.event_type()),
             JobConfigTriggerType.commit,
             id="GitLab push to non-configured branch is ignored",
         ),
         pytest.param(
             False,
-            construct_dict(event=PushPagureEvent.__name__),
+            construct_dict(event=PushPagureEvent.event_type()),
             JobConfigTriggerType.commit,
             id="Pagure push to non-configured branch is ignored",
         ),
         pytest.param(
             True,
-            construct_dict(event=PushPagureEvent.__name__, git_ref="release"),
+            construct_dict(event=PushPagureEvent.event_type(), git_ref="release"),
             JobConfigTriggerType.commit,
             id="Pagure push to configured branch is not ignored",
         ),
@@ -242,28 +242,28 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
         pytest.param(
             "the-branch",
             True,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=PullRequestGithubEvent.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitHub PR target branch matches",
         ),
         pytest.param(
             "the-other-branch",
             False,
-            construct_dict(event=PullRequestGithubEvent.__name__),
+            construct_dict(event=PullRequestGithubEvent.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitHub PR target branch does not match",
         ),
         pytest.param(
             "the-branch",
             True,
-            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            construct_dict(event=MergeRequestGitlabEvent.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitLab PR target branch matches",
         ),
         pytest.param(
             "the-other-branch",
             False,
-            construct_dict(event=MergeRequestGitlabEvent.__name__),
+            construct_dict(event=MergeRequestGitlabEvent.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitLab PR target branch does not match",
         ),
@@ -356,7 +356,7 @@ def test_vm_image_is_copr_build_ok_for_chroot(
     checker = IsCoprBuildForChrootOk(
         package_config,
         job_config,
-        {"event_type": PullRequestCommentGithubEvent.__name__, "commit_sha": "1"},
+        {"event_type": PullRequestCommentGithubEvent.event_type(), "commit_sha": "1"},
     )
     checker.data._db_project_object = flexmock(id=1)
     checker.data._db_project_event = (
@@ -435,7 +435,7 @@ def test_vm_image_has_author_write_access(
         package_config,
         job_config,
         {
-            "event_type": PullRequestCommentGithubEvent.__name__,
+            "event_type": PullRequestCommentGithubEvent.event_type(),
             "actor": actor,
             "project_url": project_url,
         },
@@ -472,7 +472,7 @@ def test_koji_branch_merge_queue():
     )
 
     event = construct_dict(
-        event=PushGitHubEvent.__name__,
+        event=PushGitHubEvent.event_type(),
         git_ref="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
     )
 
@@ -543,7 +543,7 @@ def test_tf_comment_identifier(comment, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": PullRequestCommentGithubEvent.event_type(),
         "comment": comment,
     }
 
@@ -635,7 +635,7 @@ def test_tf_comment_default_identifier(
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": PullRequestCommentGithubEvent.event_type(),
         "comment": comment,
     }
 
@@ -699,7 +699,7 @@ def test_tf_comment_labels(comment, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": PullRequestCommentGithubEvent.event_type(),
         "comment": comment,
     }
 
@@ -787,7 +787,7 @@ def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": PullRequestCommentGithubEvent.event_type(),
         "comment": comment,
     }
 
@@ -849,7 +849,7 @@ def test_tf_comment_labels_none_in_config(comment, result):
     )
 
     event = {
-        "event_type": PullRequestCommentGithubEvent.__name__,
+        "event_type": PullRequestCommentGithubEvent.event_type(),
         "comment": comment,
     }
 

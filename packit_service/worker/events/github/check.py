@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import os
 from typing import Optional
 
 from packit_service.models import (
@@ -39,6 +40,11 @@ class Rerun(GithubEvent):
             db_project_event.get_project_event_object()
         )
         self.job_identifier = job_identifier
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.github.check.Rerun"
 
     @property
     def build_targets_override(self) -> Optional[set[tuple[str, str]]]:
@@ -89,6 +95,10 @@ class Commit(Rerun):
         self.identifier = git_ref
         self.git_ref = git_ref
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.check.Commit"
+
 
 class PullRequest(Rerun):
     _db_project_object: PullRequestModel
@@ -121,6 +131,10 @@ class PullRequest(Rerun):
         self.identifier = str(pr_id)
         self.git_ref = None
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.check.PullRequest"
+
 
 class Release(Rerun):
     _db_project_object: ProjectReleaseModel
@@ -152,3 +166,7 @@ class Release(Rerun):
         self.tag_name = tag_name
         self.git_ref = tag_name
         self.identifier = tag_name
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.check.Release"

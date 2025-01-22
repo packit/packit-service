@@ -23,6 +23,10 @@ class Push(AddBranchPushEventToDb, GitlabEvent):
         self.commit_sha = commit_sha
         self.identifier = git_ref
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.push.Push"
+
 
 class TagPush(AddBranchPushEventToDb, GitlabEvent):
     def __init__(
@@ -44,3 +48,7 @@ class TagPush(AddBranchPushEventToDb, GitlabEvent):
         self.commit_sha = commit_sha
         self.title = title
         self.message = message
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.push.TagPush"

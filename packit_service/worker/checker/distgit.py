@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
-        if self.data.event_type not in (PushPagureEvent.__name__,) or not (
+        if self.data.event_type not in (PushPagureEvent.event_type(),) or not (
             self.job_config.require.label.present or self.job_config.require.label.absent
         ):
             return True
@@ -47,8 +47,8 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
         if self.data.event_type in (
-            PushPagureEvent.__name__,
-            KojiBuildTagEvent.__name__,
+            PushPagureEvent.event_type(),
+            KojiBuildTagEvent.event_type(),
         ) and self.data.git_ref not in (
             configured_branches := get_branches(
                 *self.job_config.dist_git_branches,
@@ -62,7 +62,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
             )
             return False
 
-        if self.data.event_type in (PushPagureEvent.__name__,):
+        if self.data.event_type in (PushPagureEvent.event_type(),):
             if self.pull_request:
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")
@@ -94,7 +94,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                         f"configuration: {self.job_config.allowed_committers}.",
                     )
                     return False
-        elif self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+        elif self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
             comment = self.data.event_dict.get("comment", "")
             commands = get_packit_commands_from_comment(
                 comment,
@@ -136,8 +136,8 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker):
 
     def _pre_check(self) -> bool:
         if self.data.event_type in (
-            IssueCommentEvent.__name__,
-            IssueCommentGitlabEvent.__name__,
+            IssueCommentEvent.event_type(),
+            IssueCommentGitlabEvent.event_type(),
         ):
             logger.debug(
                 f"Re-triggering downstream koji-build through comment in "
@@ -181,7 +181,7 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
     """
 
     def pre_check(self) -> bool:
-        if self.data.event_type in (KojiBuildTagEvent.__name__,) and (
+        if self.data.event_type in (KojiBuildTagEvent.event_type(),) and (
             self.data.event_dict.get("package_name") == self.job_config.downstream_package_name
         ):
             logger.info("Skipping build triggered by tagging a build of self.")
@@ -214,12 +214,12 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             valid = False
 
         if self.package_config.upstream_project_url and (
-            self.data.event_type in (NewHotnessUpdateEvent.__name__,) and not self.data.tag_name
+            self.data.event_type in (NewHotnessUpdateEvent.event_type(),) and not self.data.tag_name
         ):
             msg_to_report = "We were not able to get the upstream tag name."
             valid = False
 
-        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+        if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
             commenter = self.data.actor
             logger.debug(
                 f"Triggering pull-from-upstream through comment by: {commenter}",

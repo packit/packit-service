@@ -20,3 +20,7 @@ class Push(AddBranchPushEventToDb, GithubEvent):
         self.git_ref = git_ref
         self.commit_sha = commit_sha
         self.identifier = git_ref
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.push.Push"

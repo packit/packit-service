@@ -43,9 +43,9 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
         """
 
         if self.data.event_type in (
-            PullRequestCommentPagureEvent.__name__,
-            KojiBuildEvent.__name__,
-            KojiBuildTagEvent.__name__,
+            PullRequestCommentPagureEvent.event_type(),
+            KojiBuildEvent.event_type(),
+            KojiBuildTagEvent.event_type(),
         ):
             for koji_build_data in self:
                 if koji_build_data.state != KojiBuildState.complete:
@@ -75,7 +75,7 @@ class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
     def pre_check(self) -> bool:
         """Check if the build submitter matches the configuration"""
 
-        if self.data.event_type in (KojiBuildEvent.__name__,):
+        if self.data.event_type in (KojiBuildEvent.event_type(),):
             owner = self.koji_build_event.owner
             configured_builders = self.job_config.allowed_builders
 
@@ -120,8 +120,8 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
     def _pre_check(self) -> bool:
         has_write_access = self.project.has_write_access(user=self.actor)
         if self.data.event_type in (
-            IssueCommentEvent.__name__,
-            IssueCommentGitlabEvent.__name__,
+            IssueCommentEvent.event_type(),
+            IssueCommentGitlabEvent.event_type(),
         ):
             logger.debug(
                 f"Re-triggering Bodhi update through comment in "
@@ -147,7 +147,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
                 return False
 
             return True
-        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+        if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
             logger.debug(
                 f"Re-triggering Bodhi update via dist-git comment in "
                 f"repo {self.project_url} and #PR {self.data.pr_id} "
@@ -179,7 +179,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
     def _pre_check(self) -> bool:
         if self.data.event_type not in (
-            PullRequestCommentPagureEvent.__name__,
+            PullRequestCommentPagureEvent.event_type(),
         ) or self.is_packager(user=self.actor):
             return True
 

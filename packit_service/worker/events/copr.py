@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import os
 from logging import getLogger
 from typing import Optional, Union
 
@@ -66,6 +67,11 @@ class CoprBuild(Result):
         self.project_name = project_name
         self.pkg = pkg
         self.timestamp = timestamp
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.copr.Build"
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()
@@ -169,8 +175,12 @@ class CoprBuild(Result):
 
 
 class Start(CoprBuild):
-    pass
+    @classmethod
+    def event_type(cls) -> str:
+        return "copr.build.Start"
 
 
 class End(CoprBuild):
-    pass
+    @classmethod
+    def event_type(cls) -> str:
+        return "copr.build.End"

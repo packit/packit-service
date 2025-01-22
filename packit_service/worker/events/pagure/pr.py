@@ -61,6 +61,10 @@ class Comment(AbstractPRCommentEvent, PagureEvent):
 
         self._repo_url: Optional[RepoUrl] = None
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.pr.Comment"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__
         d["repo_name"] = self.repo_name
@@ -170,6 +174,10 @@ class Synchronize(AddPullRequestEventToDb, PagureEvent):
         self.project_url = project_url
         self.target_branch = target_branch
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.pr.Synchronize"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
@@ -222,3 +230,7 @@ class Flag(PagureEvent):
         self.pr_source_branch = pr_source_branch
         self.project_name = project_name
         self.project_namespace = project_namespace
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.pr.Flag"

@@ -36,6 +36,10 @@ class Result(AbstractResultEvent):
 
         self.topic = "vm-image-build-state-change"
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "vm_image.Result"
+
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         model = VMImageBuildTargetModel.get_by_build_id(self.build_id)
         for run in model.runs:

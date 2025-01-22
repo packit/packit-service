@@ -22,12 +22,12 @@ from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
     "event_type, has_write_access, result",
     [
         pytest.param(
-            "PullRequestCommentPagureEvent",
+            "pagure.pr.Comment",
             True,
             True,
         ),
         pytest.param(
-            "PullRequestCommentPagureEvent",
+            "pagure.pr.Comment",
             False,
             False,
         ),
@@ -134,7 +134,7 @@ def test_check_is_author_a_packager(author_name: str, is_packager: bool, result:
         },
     )
     data = {
-        "event_type": "PullRequestCommentPagureEvent",
+        "event_type": "pagure.pr.Comment",
         "actor": author_name,
         "pr_id": 123,
     }

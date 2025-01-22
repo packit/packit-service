@@ -40,6 +40,10 @@ class Comment(AbstractIssueCommentEvent, GitlabEvent):
         self.action = action
         self.actor = actor
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.issue.Comment"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value

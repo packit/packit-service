@@ -28,3 +28,7 @@ class Pipeline(GitlabEvent):
         self.commit_sha = commit_sha
         self.source = source
         self.merge_request_url = merge_request_url
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.pipeline.Pipeline"

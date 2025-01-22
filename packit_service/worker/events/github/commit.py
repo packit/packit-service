@@ -5,4 +5,6 @@ from packit_service.worker.events.abstract.comment import Commit
 
 
 class Comment(Commit):
-    pass
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.commit.Comment"

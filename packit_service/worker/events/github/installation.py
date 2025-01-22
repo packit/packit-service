@@ -37,6 +37,10 @@ class Installation(Event):
         self.status = status
 
     @classmethod
+    def event_type(cls) -> str:
+        return "github.installation.Installation"
+
+    @classmethod
     def from_event_dict(cls, event: dict):
         return Installation(
             installation_id=event.get("installation_id"),

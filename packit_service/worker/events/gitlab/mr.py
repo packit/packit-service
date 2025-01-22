@@ -59,6 +59,10 @@ class Synchronize(AddPullRequestEventToDb, GitlabEvent):
         self.description = description
         self.url = url
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.mr.Synchronize"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
@@ -104,6 +108,10 @@ class Comment(AbstractPRCommentEvent, GitlabEvent):
         self.target_repo_name = target_repo_name
         self.actor = actor
         self.identifier = str(object_iid)
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "gitlab.mr.Comment"
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()

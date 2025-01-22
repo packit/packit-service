@@ -69,7 +69,7 @@ def test_create_one_issue_for_pr():
     )
 
 
-PAGURE_PULL_REQUEST_COMMENT_PROCESSED = '{"created_at": 1658228337, "project_url": "https://src.fedoraproject.org/rpms/python-teamcity-messages", "_pr_id": 36, "fail_when_config_file_missing": true, "actor": null, "_package_config_searched": true, "git_ref": null, "identifier": "36", "comment": "/packit koji-build", "comment_id": 110401, "_commit_sha": "beaf90bcecc51968a46663f8d6f092bfdc92e682", "action": "created", "base_repo_namespace": "rpms", "base_repo_name": "python-teamcity-messages", "base_repo_owner": "mmassari", "base_ref": null, "target_repo": "python-teamcity-messages", "user_login": "mmassari", "event_type": "PullRequestCommentPagureEvent", "event_id": null, "task_accepted_time": null, "commit_sha": "beaf90bcecc51968a46663f8d6f092bfdc92e682"}'  # noqa
+PAGURE_PULL_REQUEST_COMMENT_PROCESSED = '{"created_at": 1658228337, "project_url": "https://src.fedoraproject.org/rpms/python-teamcity-messages", "_pr_id": 36, "fail_when_config_file_missing": true, "actor": null, "_package_config_searched": true, "git_ref": null, "identifier": "36", "comment": "/packit koji-build", "comment_id": 110401, "_commit_sha": "beaf90bcecc51968a46663f8d6f092bfdc92e682", "action": "created", "base_repo_namespace": "rpms", "base_repo_name": "python-teamcity-messages", "base_repo_owner": "mmassari", "base_ref": null, "target_repo": "python-teamcity-messages", "user_login": "mmassari", "event_type": "pagure.pr.Comment", "event_id": null, "task_accepted_time": null, "commit_sha": "beaf90bcecc51968a46663f8d6f092bfdc92e682"}'  # noqa
 
 
 @pytest.mark.parametrize(

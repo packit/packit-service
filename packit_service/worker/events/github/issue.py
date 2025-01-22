@@ -44,6 +44,10 @@ class Comment(AbstractIssueCommentEvent, GithubEvent):
         self.target_repo = target_repo
         self.identifier = str(issue_id)
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "github.issue.Comment"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value

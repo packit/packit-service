@@ -175,14 +175,14 @@ class EventData:
         # TODO, do a better job
         # Probably, try to recreate original classes.
         if self.event_type in {
-            "PullRequestGithubEvent",
-            "PullRequestPagureEvent",
-            "MergeRequestGitlabEvent",
-            "PullRequestCommentGithubEvent",
-            "MergeRequestCommentGitlabEvent",
-            "PullRequestCommentPagureEvent",
-            "PullRequestFlagPagureEvent",
-            "CheckRerunPullRequestEvent",
+            "github.pr.Synchronize",
+            "pagure.pr.Synchronize",
+            "gitlab.mr.Synchronize",
+            "github.pr.Comment",
+            "pagure.pr.Comment",
+            "gitlab.mr.Comment",
+            "pagure.pr.Flag",
+            "github.check.PullRequest",
         }:
             (
                 self._db_project_object,
@@ -195,10 +195,10 @@ class EventData:
                 commit_sha=self.commit_sha,
             )
         elif self.event_type in {
-            "PushGitHubEvent",
-            "PushGitlabEvent",
-            "PushPagureEvent",
-            "CheckRerunCommitEvent",
+            "github.push.Push",
+            "gitlab.push.Push",
+            "pagure.push.Push",
+            "github.check.Push",
         }:
             (
                 self._db_project_object,
@@ -212,9 +212,9 @@ class EventData:
             )
 
         elif self.event_type in {
-            "ReleaseEvent",
-            "ReleaseGitlabEvent",
-            "CheckRerunReleaseEvent",
+            "github.release.Release",
+            "gitlab.release.Release",
+            "github.check.Release",
         }:
             (
                 self._db_project_object,
@@ -227,7 +227,7 @@ class EventData:
                 commit_hash=self.commit_sha,
             )
         elif self.event_type in {
-            "NewHotnessUpdateEvent",
+            "anitya.NewHotness",
         }:
             if not self.project_url:
                 (
@@ -259,8 +259,8 @@ class EventData:
                 commit_hash=self.commit_sha,
             )
         elif self.event_type in {
-            "IssueCommentEvent",
-            "IssueCommentGitlabEvent",
+            "github.issue.Comment",
+            "gitlab.issue.Comment",
         }:
             (
                 self._db_project_object,
@@ -272,7 +272,7 @@ class EventData:
                 project_url=self.project_url,
             )
         elif self.event_type in {
-            "KojiBuildTagEvent",
+            "koji.base.Tag",
         }:
             (
                 self._db_project_object,
@@ -285,7 +285,7 @@ class EventData:
                 project_url=self.project_url,
             )
         elif self.event_type in {
-            "KojiBuildEvent",
+            "koji.base.Build",
         }:
             (
                 self._db_project_object,
@@ -298,8 +298,8 @@ class EventData:
                 commit_sha=self.event_dict.get("commit_sha"),
             )
         elif self.event_type in {
-            "CommitCommentGithubEvent",
-            "CommitCommentGitlabEvent",
+            "github.commit.Comment",
+            "gitlab.commit.Comment",
         }:
             if self.tag_name:
                 (
@@ -392,6 +392,20 @@ class Event(ABC):
         self._db_project_object: Optional[AbstractProjectObjectDbType] = None
         self._db_project_event: Optional[ProjectEventModel] = None
 
+    @classmethod
+    @abstractmethod
+    def event_type(cls) -> str:
+        """Represents a string representation of the event type that's used for
+        Celery representation and deserialization from the Celery event.
+
+        For abstract classes also checks that it's being called »only« during
+        test runs.
+
+        Returns:
+            “Topic” or type of the event as a string.
+        """
+        ...
+
     @staticmethod
     def make_serializable(d: dict, skip: list) -> dict:
         """We need a JSON serializable dict (because of redis and celery tasks)
@@ -434,7 +448,8 @@ class Event(ABC):
         d = default_dict or self.__dict__
         # whole dict has to be JSON serializable because of redis
         d = self.make_serializable(d, self.get_non_serializable_attributes())
-        d["event_type"] = self.__class__.__name__
+        # [TODO] check correctness, removed ‹__class__›
+        d["event_type"] = self.__class__.event_type()
 
         # we are trying to be lazy => don't touch database if it is not needed
         d["event_id"] = self._db_project_object.id if self._db_project_object else None

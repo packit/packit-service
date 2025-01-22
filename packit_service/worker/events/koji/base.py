@@ -69,6 +69,10 @@ class Build(KojiEvent):
         self.project_url = project_url
         self.owner = owner
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "koji.base.Build"
+
     def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(
             f"Getting packages_config:\n"
@@ -160,6 +164,10 @@ class Task(KojiEvent):
         self._identifier: Optional[str] = None
         self._git_ref: Optional[str] = None
         self._commit_sha: Optional[str] = None
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "koji.base.Task"
 
     @property
     def pr_id(self) -> Optional[int]:
@@ -268,6 +276,10 @@ class BuildTag(KojiEvent):
         self.version = version
         self.release = release
         self.owner = owner
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "koji.base.BuildTag"
 
     @property
     def koji_helper(self) -> KojiHelper:

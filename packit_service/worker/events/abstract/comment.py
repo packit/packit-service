@@ -5,6 +5,7 @@
 abstract-comment event classes.
 """
 
+import os
 import re
 from logging import getLogger
 from typing import Optional, Union
@@ -79,6 +80,11 @@ class PullRequest(AddPullRequestEventToDb, CommentEvent):
         self._comment_object = comment_object
         self._build_targets_override = build_targets_override
         self._tests_targets_override = tests_targets_override
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.abstract.comment.PullRequest"
 
     @property
     def commit_sha(self) -> str:  # type:ignore
@@ -165,6 +171,11 @@ class Issue(AddIssueEventToDb, CommentEvent):
         self._comment_object = comment_object
         self._issue_object: Optional[OgrIssue] = None
 
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.abstract.comment.Issue"
+
     @property
     def tag_name(self):
         if not self._tag_name:
@@ -226,6 +237,11 @@ class Commit(CommentEvent):
         self.commit_sha = commit_sha
         self._tag_name: Optional[str] = None
         self._branch: Optional[str] = None
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.abstract.comment.Commit"
 
     @property
     def identifier(self) -> Optional[str]:
