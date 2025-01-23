@@ -103,7 +103,7 @@ def test_vm_image_build(github_vm_image_build_comment):
     )
     flexmock(group).should_receive("apply_async").times(1)
     repo_download_url = (
-        "https://download.copr.fedorainfracloud.org/" "results/mmassari/knx-stack/fedora-36-x86_64/"
+        "https://download.copr.fedorainfracloud.org/results/mmassari/knx-stack/fedora-36-x86_64/"
     )
     flexmock(CoprHelper).should_receive("get_repo_download_url").once().and_return(
         repo_download_url,

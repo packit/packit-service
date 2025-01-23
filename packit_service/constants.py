@@ -90,8 +90,7 @@ NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS = (
 NOTIFICATION_REPO = "https://github.com/packit/notifications"
 
 PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
-    "Only users with write or admin permissions to the repository "
-    "can trigger Packit-as-a-Service"
+    "Only users with write or admin permissions to the repository can trigger Packit-as-a-Service"
 )
 
 TASK_ACCEPTED = "The task was accepted."
@@ -137,7 +136,7 @@ CELERY_TASK_DEFAULT_QUEUE = "short-running"
 
 CELERY_DEFAULT_MAIN_TASK_NAME = "task.steve_jobs.process_message"
 
-MSG_TABLE_HEADER_WITH_DETAILS = "| Name/Job | URL |\n" "| --- | --- |\n"
+MSG_TABLE_HEADER_WITH_DETAILS = "| Name/Job | URL |\n| --- | --- |\n"
 
 DEFAULT_MAPPING_TF = {
     "epel-6": "centos-6",

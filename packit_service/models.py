@@ -546,9 +546,7 @@ class AnityaMultipleVersionsModel(BuildsAndTestsConnector, Base):
             return session.query(AnityaVersionModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return (
-            f"AnityaMultipleVersionsModel(" f"versions={self.versions}, " f"project={self.project})"
-        )
+        return f"AnityaMultipleVersionsModel(versions={self.versions}, project={self.project})"
 
 
 class AnityaVersionModel(BuildsAndTestsConnector, Base):
@@ -593,7 +591,7 @@ class AnityaVersionModel(BuildsAndTestsConnector, Base):
             return session.query(AnityaVersionModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return f"AnityaVersionModel(" f"version={self.version}, " f"project={self.project})"
+        return f"AnityaVersionModel(version={self.version}, project={self.project})"
 
 
 class GitProjectModel(Base):
@@ -1487,7 +1485,7 @@ class ProjectReleaseModel(BuildsAndTestsConnector, Base):
             return session.query(ProjectReleaseModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return f"ProjectReleaseModel(" f"tag_name={self.tag_name}, " f"project={self.project})"
+        return f"ProjectReleaseModel(tag_name={self.tag_name}, project={self.project})"
 
 
 class KojiBuildTagModel(BuildsAndTestsConnector, Base):
@@ -2330,8 +2328,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     def __repr__(self):
         return (
-            f"CoprBuildTargetModel(id={self.id}, "
-            f"build_submitted_time={self.build_submitted_time})"
+            f"CoprBuildTargetModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
         )
 
     def add_scan(self, task_id: int) -> "OSHScanModel":
@@ -2789,8 +2786,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     def __repr__(self):
         return (
-            f"KojiBuildTargetModel(id={self.id}, "
-            f"build_submitted_time={self.build_submitted_time})"
+            f"KojiBuildTargetModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
         )
 
     @classmethod

@@ -175,7 +175,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             return TaskResults(success=False, details={"msg": msg})
 
         if self.build.build_start_time is not None:
-            msg = f"Copr build start for {self.copr_event.build_id} is already" f" processed."
+            msg = f"Copr build start for {self.copr_event.build_id} is already processed."
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 

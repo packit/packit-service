@@ -458,7 +458,7 @@ class AbstractSyncReleaseHandler(
         )
         self.sync_release_helper.report_status_for_branch(
             branch=branch,
-            description=f"{self.job_name_for_reporting.capitalize()} " f"finished successfully.",
+            description=f"{self.job_name_for_reporting.capitalize()} finished successfully.",
             state=BaseCommitStatus.success,
             url=url,
         )
@@ -630,7 +630,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
 
         PackageConfigGetter.create_issue_if_needed(
             project=self.project,
-            title=f"{self.job_name_for_reporting.capitalize()} failed for " f"release {self.tag}",
+            title=f"{self.job_name_for_reporting.capitalize()} failed for release {self.tag}",
             message=body_msg,
             comment_to_existing=body_msg,
         )
@@ -715,8 +715,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 
     def _report_errors_for_each_branch(self, message: str) -> None:
         body_msg = (
-            f"{message}\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you "
-            f"need some help.*\n"
+            f"{message}\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*\n"
         )
         long_message = update_message_with_configured_failure_comment_message(
             body_msg,
@@ -1160,7 +1159,7 @@ class DownstreamKojiBuildHandler(
             )
         elif self.data.event_type == PushPagureEvent.__name__:
             trigger_type_description += (
-                f"Fedora Koji build was triggered " f"by push with sha {self.data.commit_sha}."
+                f"Fedora Koji build was triggered by push with sha {self.data.commit_sha}."
             )
         elif self.data.event_type == KojiBuildTagEvent.__name__:
             trigger_type_description += (
@@ -1225,7 +1224,7 @@ class RetriggerDownstreamKojiBuildHandler(
         return self.branches
 
     def get_trigger_type_description(self) -> str:
-        return f"Fedora Koji build was re-triggered " f"by comment in issue {self.data.issue_id}."
+        return f"Fedora Koji build was re-triggered by comment in issue {self.data.issue_id}."
 
 
 @configured_as(job_type=JobType.koji_build)

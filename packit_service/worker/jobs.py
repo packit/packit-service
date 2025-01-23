@@ -599,7 +599,7 @@ class SteveJobs:
                     handler_kls.get_signature(event=self.event, job=job_config),
                 )
                 logger.debug(
-                    f"Got signature for handler={handler_kls} " f"and job_config={job_config}.",
+                    f"Got signature for handler={handler_kls} and job_config={job_config}.",
                 )
                 processing_results.append(
                     TaskResults.create_from(
@@ -665,11 +665,11 @@ class SteveJobs:
         # CoprBuildEvent.get_project returns None when the build id is not known
         elif not self.event.project:
             logger.warning(
-                "Cannot obtain project from this event! " "Skipping private repository check!",
+                "Cannot obtain project from this event! Skipping private repository check!",
             )
         elif self.event.project.is_private():
             service_with_namespace = (
-                f"{self.event.project.service.hostname}/" f"{self.event.project.namespace}"
+                f"{self.event.project.service.hostname}/{self.event.project.namespace}"
             )
             if service_with_namespace not in self.service_config.enabled_private_namespaces:
                 logger.info(

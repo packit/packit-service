@@ -269,7 +269,7 @@ def test_handle_scan_task_finished(
         }
         if scan_status == OpenScanHubTaskFinishedEvent.Status.success:
             state = BaseCommitStatus.success
-            description = "Scan in OpenScanHub is finished. " "2 new findings identified."
+            description = "Scan in OpenScanHub is finished. 2 new findings identified."
             flexmock(scan_mock).should_receive("set_status").with_args(
                 "succeeded",
             ).once()

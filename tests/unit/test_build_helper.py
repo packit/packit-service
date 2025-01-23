@@ -1289,7 +1289,7 @@ def test_build_targets_overrides(
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,build_targets_override," "tests_targets_override,test_targets",
+    "jobs,job_config_trigger_type,build_targets_override,tests_targets_override,test_targets",
     [
         pytest.param(
             [
@@ -3042,7 +3042,7 @@ def test_local_project_not_called_when_initializing_api():
     "failure_comment,kwargs,result_comment",
     [
         pytest.param(
-            ("One of the Copr builds failed for " "commit {commit_sha}, ping @admin"),
+            ("One of the Copr builds failed for commit {commit_sha}, ping @admin"),
             {},
             "One of the Copr builds failed for commit 123, ping @admin",
             id="only commit_sha",

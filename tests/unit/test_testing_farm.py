@@ -272,7 +272,7 @@ def test_distro2compose(target, compose, use_internal_tf):
 
 
 @pytest.mark.parametrize(
-    ("build_id," "chroot," "built_packages," "packages_to_send"),
+    ("build_id,chroot,built_packages,packages_to_send"),
     [
         (
             "123456",
@@ -1721,7 +1721,7 @@ def test_get_additional_builds_wrong_format():
 
 
 @pytest.mark.parametrize(
-    ("chroot," "build," "additional_build," "result"),
+    ("chroot,build,additional_build,result"),
     [
         (
             "centos-stream-x86_64",

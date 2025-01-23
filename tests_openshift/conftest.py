@@ -1496,7 +1496,7 @@ def release_event_dict():
     return {
         "action": "published",
         "release": {
-            "html_url": "https://github.com/the-namespace/the-repo-name/" "releases/tag/v1.0.2",
+            "html_url": "https://github.com/the-namespace/the-repo-name/releases/tag/v1.0.2",
             "tag_name": "v1.0.2",
             "target_commitish": "master",
             "name": "test",
