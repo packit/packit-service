@@ -8,7 +8,6 @@
     - name: Install test RPM dependencies
       ansible.builtin.dnf:
         name:
-          - python3-flexmock
           - tar
           - rsync
         state: present
@@ -16,7 +15,8 @@
       ansible.builtin.pip:
         name:
           - requre
-          - pytest==8.0.2
+          - flexmock
+          - pytest
           - pytest-cov
           - pytest-flask
           - deepdiff < 8.0.0 # version 8.0.0 requires numpy, avoid it
