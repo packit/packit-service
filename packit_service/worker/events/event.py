@@ -151,8 +151,14 @@ class EventData:
         """
         Create an instance of Event class from the data in this class.
         """
-        mod = __import__("packit_service.worker.events", fromlist=[self.event_type])
-        kls = getattr(mod, self.event_type)
+        # Import the event class
+        event_submodule, event_kls_member = self.event_type.rsplit(".", maxsplit=1)
+        mod = __import__(
+            f"packit_service.worker.events.{event_submodule}", fromlist=[event_kls_member]
+        )
+        event_kls = getattr(mod, event_kls_member)
+
+        # Process the arguments for the event class' constructor
         kwargs = copy.copy(self.event_dict)
         # The following data should be reconstructed by the Event instance (when needed)
         kwargs.pop("event_type", None)
@@ -163,7 +169,9 @@ class EventData:
         kwargs.pop("branches_override", None)
         pr_id = kwargs.pop("_pr_id", None)
         kwargs["pr_id"] = pr_id
-        return kls(**kwargs)
+
+        # Construct the event
+        return event_kls(**kwargs)
 
     @property
     def project(self):
