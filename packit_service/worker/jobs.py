@@ -937,7 +937,7 @@ class SteveJobs:
         if not matching_jobs:
             logger.warning(
                 f"We did not find any config for {handler_kls} and a following event:\n"
-                f"{self.event.__class__}",
+                f"{self.event.event_type()}",
             )
 
         logger.debug(f"Jobs matching {handler_kls}: {matching_jobs}")
@@ -973,7 +973,7 @@ class SteveJobs:
             # we need more info why this has happened
             logger.debug(f"Event dict: {self.event}.")
             logger.error(
-                f"Event {self.event.__class__.event_type()} took more than 15s to process.",
+                f"Event {self.event.event_type()} took more than 15s to process.",
             )
         # set the time when the accepted status was set so that we
         # can use it later for measurements

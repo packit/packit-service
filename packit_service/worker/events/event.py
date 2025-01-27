@@ -456,8 +456,7 @@ class Event(ABC):
         d = default_dict or self.__dict__
         # whole dict has to be JSON serializable because of redis
         d = self.make_serializable(d, self.get_non_serializable_attributes())
-        # [TODO] check correctness, removed ‹__class__›
-        d["event_type"] = self.__class__.event_type()
+        d["event_type"] = self.event_type()
 
         # we are trying to be lazy => don't touch database if it is not needed
         d["event_id"] = self._db_project_object.id if self._db_project_object else None
