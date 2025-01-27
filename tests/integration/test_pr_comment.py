@@ -66,10 +66,7 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import PullRequestCommentPagureEvent
-from packit_service.worker.events.abstract.base import (
-    ForgeIndependent as AbstractForgeIndependentEvent,
-)
+from packit_service.worker.events import abstract, pagure
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
@@ -1791,7 +1788,7 @@ def test_retest_failed(
     flexmock(model).should_receive("get_all_by_commit_target").with_args(
         commit_sha="12345",
     ).and_return(model)
-    flexmock(AbstractForgeIndependentEvent).should_receive(
+    flexmock(abstract.base.ForgeIndependent).should_receive(
         "get_all_build_targets_by_status",
     ).with_args(
         statuses_to_filter_with=[BuildStatus.failure],
@@ -1799,7 +1796,7 @@ def test_retest_failed(
         {("some_build_target", None)},
     )
 
-    flexmock(AbstractForgeIndependentEvent).should_receive(
+    flexmock(abstract.base.ForgeIndependent).should_receive(
         "get_all_tf_targets_by_status",
     ).with_args(
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],
@@ -2772,7 +2769,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
-    flexmock(PullRequestCommentPagureEvent).should_receive(
+    flexmock(pagure.pr.Comment).should_receive(
         "get_base_project",
     ).once().and_return(distgit_project)
 
@@ -2938,7 +2935,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     flexmock(celery_group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
-    flexmock(PullRequestCommentPagureEvent).should_receive(
+    flexmock(pagure.pr.Comment).should_receive(
         "get_base_project",
     ).once().and_return(distgit_project)
 

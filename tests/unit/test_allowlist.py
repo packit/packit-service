@@ -29,19 +29,15 @@ from packit_service.models import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
-    AbstractGithubEvent,
-    EventData,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    ReleaseEvent,
+    abstract,
+    github,
 )
-from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
 from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestAction,
     PullRequestCommentAction,
 )
+from packit_service.worker.events.event import EventData
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
@@ -237,7 +233,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
     "event, mocked_model, approved, user_namespace",
     [
         (
-            PullRequestCommentGithubEvent(
+            github.pr.Comment(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="base",
@@ -255,7 +251,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "github.com/bar",
         ),
         (
-            IssueCommentEvent(
+            github.issue.Comment(
                 action=IssueCommentAction.created,
                 issue_id=0,
                 repo_namespace="foo",
@@ -271,7 +267,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "github.com/baz",
         ),
         (
-            PullRequestCommentGithubEvent(
+            github.pr.Comment(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="foo",
@@ -289,7 +285,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "github.com/lojzo",
         ),
         (
-            IssueCommentEvent(
+            github.issue.Comment(
                 action=IssueCommentAction.created,
                 issue_id=0,
                 repo_namespace="packit-service/src",
@@ -308,7 +304,7 @@ def test_is_denied(allowlist, account_name, mocked_model, is_denied):
             "gitlab.com/lojzo",
         ),
         (
-            PullRequestCommentGithubEvent(
+            github.pr.Comment(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="banned_namespace",
@@ -346,7 +342,7 @@ def test_check_and_report_calls_method(
         False,
     )
     mocked_pr_or_issue = flexmock(author=None)
-    if isinstance(event, IssueCommentEvent):
+    if isinstance(event, github.issue.Comment):
         flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
     else:
         flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
@@ -370,7 +366,7 @@ def test_check_and_report_calls_method(
 @pytest.mark.parametrize(
     "event",
     [
-        PullRequestCommentGithubEvent(
+        github.pr.Comment(
             action=PullRequestCommentAction.created,
             pr_id=0,
             base_repo_namespace="base",
@@ -383,7 +379,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        IssueCommentEvent(
+        github.issue.Comment(
             action=IssueCommentAction.created,
             issue_id=0,
             repo_namespace="foo",
@@ -394,7 +390,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        PullRequestCommentGithubEvent(
+        github.pr.Comment(
             action=PullRequestCommentAction.created,
             pr_id=0,
             base_repo_namespace="foo",
@@ -407,7 +403,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        IssueCommentEvent(
+        github.issue.Comment(
             action=IssueCommentAction.created,
             issue_id=0,
             repo_namespace="packit-service/src",
@@ -418,7 +414,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        PullRequestCommentGithubEvent(
+        github.pr.Comment(
             action=PullRequestCommentAction.created,
             pr_id=0,
             base_repo_namespace="banned_namespace",
@@ -431,7 +427,7 @@ def test_check_and_report_calls_method(
             comment="",
             comment_id=0,
         ),
-        CommitCommentEvent(
+        abstract.comment.Commit(
             repo_namespace="packit-service/src",
             repo_name="glibc",
             project_url="https://gitlab.com/packit-service/src/glibc",
@@ -447,13 +443,13 @@ def test_check_and_report_denied_project(allowlist, event):
     flexmock(Allowlist).should_receive("is_denied").and_return(False)
     flexmock(Allowlist).should_receive("is_namespace_or_parent_denied").and_return(True)
     mocked_pr_or_issue = flexmock(author=None)
-    if isinstance(event, IssueCommentEvent):
+    if isinstance(event, github.issue.Comment):
         flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
     else:
         flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
 
     msg = f"{Allowlist._strip_protocol_and_add_git(event.project_url)} or parent namespaces denied!"
-    if isinstance(event, CommitCommentEvent):
+    if isinstance(event, abstract.comment.Commit):
         flexmock(gp).should_receive("commit_comment").with_args(
             commit=event.commit_sha,
             body=msg,
@@ -473,14 +469,14 @@ def test_check_and_report_denied_project(allowlist, event):
 
 
 @pytest.fixture()
-def events(request) -> Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]]:
+def events(request) -> Iterable[tuple[github.abstract.GithubEvent, bool, Iterable[str]]]:
     """
     :param request: event type to create Event instances of that type
     :return: list of Events that check_and_report accepts together with whether they should pass
     """
     types = {
         "release": (
-            ReleaseEvent,
+            github.release.Release,
             lambda forge, namespace, repository: {
                 "repo_namespace": namespace,
                 "repo_name": repository,
@@ -489,7 +485,7 @@ def events(request) -> Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "pr": (
-            PullRequestGithubEvent,
+            github.pr.Synchronize,
             lambda forge, namespace, repository: {
                 "action": PullRequestAction.opened,
                 "pr_id": 1,
@@ -504,7 +500,7 @@ def events(request) -> Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "pr_comment": (
-            PullRequestCommentGithubEvent,
+            github.pr.Comment,
             lambda forge, namespace, repository: {
                 "action": PullRequestCommentAction.created,
                 "pr_id": 1,
@@ -520,7 +516,7 @@ def events(request) -> Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "issue_comment": (
-            IssueCommentEvent,
+            github.issue.Comment,
             lambda forge, namespace, repository: {
                 "action": IssueCommentAction.created,
                 "issue_id": 1,
@@ -534,7 +530,7 @@ def events(request) -> Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]]
             },
         ),
         "admin": (
-            PullRequestCommentGithubEvent,
+            github.pr.Comment,
             lambda forge, namespace, repository: {
                 "action": PullRequestCommentAction.created,
                 "pr_id": 1,
@@ -616,7 +612,7 @@ def test_check_and_report(
     add_pull_request_event_with_empty_sha,
     allowlist: Allowlist,
     allowlist_entries,
-    events: Iterable[tuple[AbstractGithubEvent, bool, Iterable[str]]],
+    events: Iterable[tuple[github.abstract.GithubEvent, bool, Iterable[str]]],
 ):
     """
     :param allowlist: fixture
@@ -646,7 +642,7 @@ def test_check_and_report(
             },
         ),
     ]
-    flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
+    flexmock(github.pr.Synchronize).should_receive("get_packages_config").and_return(
         flexmock(
             jobs=job_configs,
             get_package_config_for=lambda job_config: flexmock(
@@ -677,10 +673,10 @@ def test_check_and_report(
         flexmock(DBAllowlist).should_receive("get_namespace").with_args(
             actor_namespace,
         ).and_return()
-        if isinstance(event, ReleaseEvent) and not is_valid:
+        if isinstance(event, github.release.Release) and not is_valid:
             flexmock(git_project).should_receive("get_sha_from_tag")
             flexmock(git_project).should_receive("commit_comment")
-        if isinstance(event, PullRequestGithubEvent) and not is_valid:
+        if isinstance(event, github.pr.Synchronize) and not is_valid:
             notification_project_mock = flexmock()
             notification_project_mock.should_receive("get_issue_list").with_args(
                 author="packit-as-a-service[bot]",
@@ -753,7 +749,7 @@ def test_check_and_report(
 
 
 def test_check_and_report_actor_denied_issue(allowlist):
-    event = IssueCommentEvent(
+    event = github.issue.Comment(
         action=IssueCommentAction.created,
         issue_id=0,
         repo_namespace="foo",
@@ -813,7 +809,7 @@ def test_check_and_report_actor_pull_request(
     allowlist,
     add_pull_request_event_with_empty_sha,
 ):
-    event = PullRequestGithubEvent(
+    event = github.pr.Synchronize(
         action=PullRequestAction.opened,
         pr_id=0,
         base_repo_namespace="base",
@@ -845,7 +841,7 @@ def test_check_and_report_actor_pull_request(
             },
         ),
     ]
-    flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
+    flexmock(github.pr.Synchronize).should_receive("get_packages_config").and_return(
         flexmock(
             jobs=job_configs,
             get_package_config_for=lambda job_config: flexmock(

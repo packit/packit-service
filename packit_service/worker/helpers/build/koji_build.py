@@ -24,7 +24,7 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.utils import get_koji_task_id_and_url_from_stdout
-from packit_service.worker.events import EventData
+from packit_service.worker.events.event import EventData
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults

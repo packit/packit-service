@@ -25,7 +25,7 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
 )
-from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
+from packit_service.worker import events
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -182,7 +182,7 @@ def test_check_copr_build_updated(
             .mock(),
         ),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(events.copr.CoprBuild).should_receive("get_packages_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(
@@ -269,7 +269,7 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
             .mock(),
         ),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(events.copr.CoprBuild).should_receive("get_packages_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(
@@ -375,7 +375,7 @@ def test_check_copr_build_waiting_srpm_failed(add_pull_request_event_with_sha_12
             .mock(),
         ),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(events.copr.CoprBuild).should_receive("get_packages_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(
@@ -463,7 +463,7 @@ def test_check_copr_build_waiting_already_started(
             .mock(),
         ),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(events.copr.CoprBuild).should_receive("get_packages_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(
@@ -631,7 +631,7 @@ def test_check_pending_testing_farm_runs(created):
             ok=lambda: True,
         ),
     ).once()
-    flexmock(TestingFarmResultsEvent).should_receive("get_packages_config").and_return(
+    flexmock(events.testing_farm.Result).should_receive("get_packages_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(
@@ -723,7 +723,7 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
             ok=lambda: True,
         ),
     ).once()
-    flexmock(TestingFarmResultsEvent).should_receive("get_packages_config").and_return(
+    flexmock(events.testing_farm.Result).should_receive("get_packages_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(

@@ -206,7 +206,7 @@ class EventData:
             "github.push.Push",
             "gitlab.push.Push",
             "pagure.push.Push",
-            "github.check.Push",
+            "github.check.Commit",
         }:
             (
                 self._db_project_object,
@@ -280,7 +280,7 @@ class EventData:
                 project_url=self.project_url,
             )
         elif self.event_type in {
-            "koji.base.Tag",
+            "koji.Tag",
         }:
             (
                 self._db_project_object,
@@ -293,7 +293,7 @@ class EventData:
                 project_url=self.project_url,
             )
         elif self.event_type in {
-            "koji.base.Build",
+            "koji.Build",
         }:
             (
                 self._db_project_object,
@@ -372,7 +372,7 @@ class EventData:
             return None
         return ServiceConfig.get_service_config().get_project(
             url=self.project_url or self.db_project_object.project.project_url,
-            required=self.event_type not in ("NewHotnessUpdateEvent",),
+            required=self.event_type not in ("anitya.NewHotness",),
         )
 
 

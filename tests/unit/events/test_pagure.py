@@ -8,13 +8,11 @@ from flexmock import flexmock
 from ogr.services.pagure import PagureProject
 
 from packit_service.config import PackageConfigGetter
-from packit_service.worker.events import (
-    PullRequestCommentPagureEvent,
-    PullRequestFlagPagureEvent,
-    PullRequestPagureEvent,
-    PushPagureEvent,
-)
 from packit_service.worker.events.enums import PullRequestAction
+from packit_service.worker.events.pagure import (
+    pr,
+    push,
+)
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
@@ -52,7 +50,7 @@ def distgit_commit():
 def test_parse_pagure_flag(pagure_pr_flag_updated):
     event_object = Parser.parse_event(pagure_pr_flag_updated)
 
-    assert isinstance(event_object, PullRequestFlagPagureEvent)
+    assert isinstance(event_object, pr.Flag)
     assert event_object.project_url == "https://src.fedoraproject.org/rpms/packit"
     assert event_object.pr_id == 268
 
@@ -74,7 +72,7 @@ def test_parse_pagure_flag(pagure_pr_flag_updated):
 def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
     event_object = Parser.parse_event(pagure_pr_comment_added)
 
-    assert isinstance(event_object, PullRequestCommentPagureEvent)
+    assert isinstance(event_object, pr.Comment)
     assert event_object.pr_id == 36
     assert event_object.base_repo_namespace == "rpms"
     assert event_object.base_repo_name == "python-teamcity-messages"
@@ -111,7 +109,7 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
 def test_distgit_pagure_push(distgit_commit):
     event_object = Parser.parse_event(distgit_commit)
 
-    assert isinstance(event_object, PushPagureEvent)
+    assert isinstance(event_object, push.Push)
     assert event_object.repo_namespace == "rpms"
     assert event_object.repo_name == "buildah"
     assert event_object.commit_sha == "abcd"
@@ -122,7 +120,7 @@ def test_distgit_pagure_push(distgit_commit):
 def test_parse_pagure_pull_request_new(pagure_pr_new):
     event_object = Parser.parse_event(pagure_pr_new)
 
-    assert isinstance(event_object, PullRequestPagureEvent)
+    assert isinstance(event_object, pr.Synchronize)
     assert event_object.action == PullRequestAction.opened
     assert event_object.pr_id == 2
     assert event_object.base_repo_namespace == "rpms"
@@ -159,7 +157,7 @@ def test_parse_pagure_pull_request_new(pagure_pr_new):
 def test_parse_pagure_pull_request_updated(pagure_pr_updated):
     event_object = Parser.parse_event(pagure_pr_updated)
 
-    assert isinstance(event_object, PullRequestPagureEvent)
+    assert isinstance(event_object, pr.Synchronize)
     assert event_object.action == PullRequestAction.synchronize
     assert event_object.pr_id == 32
     assert event_object.base_repo_namespace == "rpms"
@@ -196,7 +194,7 @@ def test_parse_pagure_pull_request_updated(pagure_pr_updated):
 def test_parse_pagure_pull_request_rebased(pagure_pr_rebased):
     event_object = Parser.parse_event(pagure_pr_rebased)
 
-    assert isinstance(event_object, PullRequestPagureEvent)
+    assert isinstance(event_object, pr.Synchronize)
     assert event_object.action == PullRequestAction.synchronize
     assert event_object.pr_id == 6
     assert event_object.base_repo_namespace == "rpms"

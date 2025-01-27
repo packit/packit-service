@@ -8,13 +8,13 @@ from packit_service.models import (
     VMImageBuildStatus,
     VMImageBuildTargetModel,
 )
-from packit_service.worker.events import AbstractResultEvent
+from packit_service.worker.events.abstract.base import Result as AbstractResult
 from packit_service.worker.events.event import (
     AbstractProjectObjectDbType,
 )
 
 
-class Result(AbstractResultEvent):
+class Result(AbstractResult):
     def __init__(
         self,
         build_id: str,

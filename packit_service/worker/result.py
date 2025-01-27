@@ -6,7 +6,7 @@ from typing import Any, Optional
 from packit.config import JobConfig
 
 from packit_service.utils import dump_job_config, dump_package_config
-from packit_service.worker.events import Event
+from packit_service.worker.events.event import Event
 
 
 class TaskResults(dict):

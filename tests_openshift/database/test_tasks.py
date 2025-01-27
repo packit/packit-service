@@ -22,7 +22,7 @@ from packit_service.models import (
     ProjectEventModel,
     SRPMBuildModel,
 )
-from packit_service.worker.events import AbstractCoprBuildEvent
+from packit_service.worker.events.copr import CoprBuild
 from packit_service.worker.helpers.build.babysit import check_copr_build
 from packit_service.worker.monitoring import Pushgateway
 
@@ -92,7 +92,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             },
         ),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(CoprBuild).should_receive("get_packages_config").and_return(
         PackageConfig(
             packages={"packit": CommonPackageConfig()},
             jobs=[

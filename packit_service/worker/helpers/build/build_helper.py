@@ -29,7 +29,7 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.service.urls import get_srpm_build_info_url
-from packit_service.worker.events import EventData
+from packit_service.worker.events.event import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode

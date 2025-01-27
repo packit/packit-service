@@ -26,7 +26,6 @@ from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import IsIssueInNotificationRepoChecker
 from packit_service.worker.events import (
-    IssueCommentEvent,
     github,
 )
 from packit_service.worker.handlers.abstract import (
@@ -156,7 +155,7 @@ class GithubAppInstallationHandler(
         return TaskResults(success=True, details={"msg": msg})
 
 
-@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=github.issue.Comment)
 class GithubFasVerificationHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,

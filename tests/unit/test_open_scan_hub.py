@@ -23,9 +23,8 @@ from packit_service.models import (
     ProjectEventModelType,
 )
 from packit_service.worker.events import (
-    AbstractCoprBuildEvent,
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
+    copr,
+    openscanhub,
 )
 from packit_service.worker.handlers import OpenScanHubTaskFinishedHandler
 from packit_service.worker.handlers.copr import OpenScanHubHelper
@@ -116,7 +115,7 @@ def prepare_openscanhub_db_and_handler(
 )
 def test_handle_scan(build_models):
     srpm_mock = flexmock(url="https://some-url/my-srpm.src.rpm")
-    flexmock(AbstractCoprBuildEvent).should_receive("from_event_dict").and_return(
+    flexmock(copr.CoprBuild).should_receive("from_event_dict").and_return(
         flexmock(chroot="fedora-rawhide-x86_64", build_id="123", pr_id=12),
     )
     flexmock(open_scan_hub).should_receive("download_file").twice().and_return(True)
@@ -189,42 +188,42 @@ def test_handle_scan(build_models):
             JobType.copr_build,
             JobConfigTriggerType.commit,
             ["fedora-rawhide-x86_64"],
-            OpenScanHubTaskFinishedEvent.Status.success,
+            openscanhub.task.Finished.Status.success,
             0,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-stable"],
-            OpenScanHubTaskFinishedEvent.Status.success,
+            openscanhub.task.Finished.Status.success,
             0,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-rawhide-x86_64"],
-            OpenScanHubTaskFinishedEvent.Status.success,
+            openscanhub.task.Finished.Status.success,
             1,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-rawhide-x86_64"],
-            OpenScanHubTaskFinishedEvent.Status.fail,
+            openscanhub.task.Finished.Status.fail,
             1,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-rawhide-x86_64"],
-            OpenScanHubTaskFinishedEvent.Status.cancel,
+            openscanhub.task.Finished.Status.cancel,
             1,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.commit,
             ["fedora-rawhide-x86_64"],
-            OpenScanHubTaskFinishedEvent.Status.interrupt,
+            openscanhub.task.Finished.Status.interrupt,
             0,
         ),
     ],
@@ -238,7 +237,7 @@ def test_handle_scan_task_finished(
     scan_status,
     num_of_handlers,
 ):
-    flexmock(OpenScanHubTaskFinishedEvent).should_receive(
+    flexmock(openscanhub.task.Finished).should_receive(
         "get_packages_config",
     ).and_return(
         PackageConfig(
@@ -267,7 +266,7 @@ def test_handle_scan_task_finished(
         links_to_external_services = {
             "OpenScanHub task": "https://openscanhub.fedoraproject.org/task/17514/"
         }
-        if scan_status == OpenScanHubTaskFinishedEvent.Status.success:
+        if scan_status == openscanhub.task.Finished.Status.success:
             state = BaseCommitStatus.success
             description = "Scan in OpenScanHub is finished. 2 new findings identified."
             flexmock(scan_mock).should_receive("set_status").with_args(
@@ -284,7 +283,7 @@ def test_handle_scan_task_finished(
                     ),
                 }
             )
-        elif scan_status == OpenScanHubTaskFinishedEvent.Status.cancel:
+        elif scan_status == openscanhub.task.Finished.Status.cancel:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {scan_status} state."
             flexmock(scan_mock).should_receive("set_status").with_args(
@@ -348,7 +347,7 @@ def test_handle_scan_task_started(
     job_config_targets,
     num_of_handlers,
 ):
-    flexmock(OpenScanHubTaskStartedEvent).should_receive(
+    flexmock(openscanhub.task.Started).should_receive(
         "get_packages_config",
     ).and_return(
         PackageConfig(

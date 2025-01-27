@@ -52,7 +52,7 @@ def test_copr_metrics_pushed():
 
 def test_delayed():
     created_at = datetime.datetime(2023, 3, 14)
-    event = flexmock(created_at=created_at)
+    event = flexmock(created_at=created_at, event_type=lambda: "event.Delayed")
 
     counter = flexmock()
     counter.should_receive("inc").once()

@@ -29,15 +29,15 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
-from packit_service.worker.events import (
+from packit_service.worker.events.event import (
     EventData,
 )
 
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
 # and so stop the test discovery warnings.
-from packit_service.worker.events import (
-    TestingFarmResultsEvent as TFResultsEvent,
+from packit_service.worker.events.testing_farm import (
+    Result as TFResultsEvent,
 )
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
@@ -1865,7 +1865,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Synchronize", "commit_sha": "abcdef"},
             False,
             id="one_internal_test_job",
         ),
@@ -1895,7 +1895,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Synchronize", "commit_sha": "abcdef"},
             False,
             id="multiple_test_jobs_build_required",
         ),
@@ -1926,7 +1926,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Synchronize", "commit_sha": "abcdef"},
             True,
             id="multiple_test_jobs_build_required_internal_job_skip_build",
         ),
@@ -1960,7 +1960,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Synchronize", "commit_sha": "abcdef"},
             True,
             id="multiple_test_jobs_build_required_internal_job_skip_build_manual_trigger",
         ),

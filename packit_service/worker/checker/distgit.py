@@ -14,13 +14,12 @@ from packit_service.utils import (
 from packit_service.worker.checker.abstract import ActorChecker, Checker
 from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.events import (
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-    NewHotnessUpdateEvent,
-    PullRequestCommentPagureEvent,
-    PushPagureEvent,
+    anitya,
+    github,
+    gitlab,
+    koji,
+    pagure,
 )
-from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
@@ -32,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
-        if self.data.event_type not in (PushPagureEvent.event_type(),) or not (
+        if self.data.event_type not in (pagure.push.Push.event_type(),) or not (
             self.job_config.require.label.present or self.job_config.require.label.absent
         ):
             return True
@@ -47,8 +46,8 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
         if self.data.event_type in (
-            PushPagureEvent.event_type(),
-            KojiBuildTagEvent.event_type(),
+            pagure.push.Push.event_type(),
+            koji.BuildTag.event_type(),
         ) and self.data.git_ref not in (
             configured_branches := get_branches(
                 *self.job_config.dist_git_branches,
@@ -62,7 +61,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
             )
             return False
 
-        if self.data.event_type in (PushPagureEvent.event_type(),):
+        if self.data.event_type in (pagure.push.Push.event_type(),):
             if self.pull_request:
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")
@@ -94,7 +93,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                         f"configuration: {self.job_config.allowed_committers}.",
                     )
                     return False
-        elif self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
+        elif self.data.event_type in (pagure.pr.Comment.event_type(),):
             comment = self.data.event_dict.get("comment", "")
             commands = get_packit_commands_from_comment(
                 comment,
@@ -136,8 +135,8 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker):
 
     def _pre_check(self) -> bool:
         if self.data.event_type in (
-            IssueCommentEvent.event_type(),
-            IssueCommentGitlabEvent.event_type(),
+            github.issue.Comment.event_type(),
+            gitlab.issue.Comment.event_type(),
         ):
             logger.debug(
                 f"Re-triggering downstream koji-build through comment in "
@@ -181,7 +180,7 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
     """
 
     def pre_check(self) -> bool:
-        if self.data.event_type in (KojiBuildTagEvent.event_type(),) and (
+        if self.data.event_type in (koji.BuildTag.event_type(),) and (
             self.data.event_dict.get("package_name") == self.job_config.downstream_package_name
         ):
             logger.info("Skipping build triggered by tagging a build of self.")
@@ -214,12 +213,12 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             valid = False
 
         if self.package_config.upstream_project_url and (
-            self.data.event_type in (NewHotnessUpdateEvent.event_type(),) and not self.data.tag_name
+            self.data.event_type in (anitya.NewHotness.event_type(),) and not self.data.tag_name
         ):
             msg_to_report = "We were not able to get the upstream tag name."
             valid = False
 
-        if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
+        if self.data.event_type in (pagure.pr.Comment.event_type(),):
             commenter = self.data.actor
             logger.debug(
                 f"Triggering pull-from-upstream through comment by: {commenter}",

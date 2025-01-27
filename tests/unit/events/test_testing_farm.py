@@ -14,7 +14,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     get_submitted_time_from_model,
 )
-from packit_service.worker.events import TestingFarmResultsEvent
+from packit_service.worker.events.testing_farm import Result
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -74,7 +74,7 @@ def test_parse_testing_farm_notification(
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, Result)
     assert event_object.pipeline_id == request_id
     assert event_object.result == TestingFarmResult.passed
     assert event_object.project_url == "https://github.com/packit/packit"
@@ -112,7 +112,7 @@ def test_parse_testing_farm_notification_error(
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, Result)
     assert event_object.pipeline_id == request_id
     assert event_object.result == TestingFarmResult.error
     assert event_object.project_url == "https://github.com/packit/packit"
@@ -143,7 +143,7 @@ def test_get_project_testing_farm_notification(
     )
     event_object = Parser.parse_event(testing_farm_notification)
 
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, Result)
     assert isinstance(event_object.pipeline_id, str)
     assert event_object.pipeline_id == request_id
     assert event_object.project_url == "abc"

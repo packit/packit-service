@@ -71,7 +71,7 @@ class Build(KojiEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "koji.base.Build"
+        return "koji.Build"
 
     def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(
@@ -167,7 +167,7 @@ class Task(KojiEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "koji.base.Task"
+        return "koji.Task"
 
     @property
     def pr_id(self) -> Optional[int]:
@@ -279,7 +279,7 @@ class BuildTag(KojiEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "koji.base.BuildTag"
+        return "koji.BuildTag"
 
     @property
     def koji_helper(self) -> KojiHelper:

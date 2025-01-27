@@ -38,18 +38,11 @@ from packit_service.worker.checker.testing_farm import (
     IsLabelFromCommentMatching,
 )
 from packit_service.worker.events import (
-    AbstractPRCommentEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    MergeRequestGitlabEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-    ReleaseEvent,
-    ReleaseGitlabEvent,
-    TestingFarmResultsEvent,
+    abstract,
+    github,
+    gitlab,
+    testing_farm,
 )
-from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
@@ -77,16 +70,16 @@ logger = logging.getLogger(__name__)
 @run_for_comment(command="copr-build")
 @run_for_comment(command="retest-failed")
 @run_for_check_rerun(prefix="testing-farm")
-@reacts_to(ReleaseEvent)
-@reacts_to(ReleaseGitlabEvent)
-@reacts_to(PullRequestGithubEvent)
-@reacts_to(PushGitHubEvent)
-@reacts_to(PushGitlabEvent)
-@reacts_to(MergeRequestGitlabEvent)
-@reacts_to(AbstractPRCommentEvent)
-@reacts_to(CheckRerunPullRequestEvent)
-@reacts_to(CheckRerunCommitEvent)
-@reacts_to(CommitCommentEvent)
+@reacts_to(github.release.Release)
+@reacts_to(gitlab.release.Release)
+@reacts_to(github.pr.Synchronize)
+@reacts_to(github.push.Push)
+@reacts_to(gitlab.push.Push)
+@reacts_to(gitlab.mr.Synchronize)
+@reacts_to(abstract.comment.PullRequest)
+@reacts_to(github.check.PullRequest)
+@reacts_to(github.check.Commit)
+@reacts_to(abstract.comment.Commit)
 @configured_as(job_type=JobType.tests)
 class TestingFarmHandler(
     RetriableJobHandler,
@@ -333,7 +326,7 @@ class TestingFarmHandler(
 
 
 @configured_as(job_type=JobType.tests)
-@reacts_to(event=TestingFarmResultsEvent)
+@reacts_to(event=testing_farm.Result)
 class TestingFarmResultsHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,

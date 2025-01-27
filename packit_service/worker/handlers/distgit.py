@@ -76,19 +76,13 @@ from packit_service.worker.checker.distgit import (
     ValidInformationForPullFromUpstream,
 )
 from packit_service.worker.events import (
-    AbstractIssueCommentEvent,
-    CheckRerunReleaseEvent,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-    KojiTaskEvent,
-    NewHotnessUpdateEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestPagureEvent,
-    PushPagureEvent,
-    ReleaseEvent,
-    ReleaseGitlabEvent,
+    abstract,
+    anitya,
+    github,
+    gitlab,
+    koji,
+    pagure,
 )
-from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     RetriableJobHandler,
@@ -159,7 +153,7 @@ class ChoosenGithubAuthMethod:
 
 
 @configured_as(job_type=JobType.sync_from_downstream)
-@reacts_to(event=PushPagureEvent)
+@reacts_to(event=pagure.push.Push)
 class SyncFromDownstream(
     JobHandler,
     GetProjectToSyncMixin,
@@ -577,10 +571,10 @@ class AbortSyncRelease(Exception):
 @configured_as(job_type=JobType.propose_downstream)
 @run_for_comment(command="propose-downstream")
 @run_for_check_rerun(prefix="propose-downstream")
-@reacts_to(event=ReleaseEvent)
-@reacts_to(event=ReleaseGitlabEvent)
-@reacts_to(event=AbstractIssueCommentEvent)
-@reacts_to(event=CheckRerunReleaseEvent)
+@reacts_to(event=github.release.Release)
+@reacts_to(event=gitlab.release.Release)
+@reacts_to(event=abstract.comment.Issue)
+@reacts_to(event=github.check.Release)
 class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.propose_downstream
@@ -642,8 +636,8 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
 
 @configured_as(job_type=JobType.pull_from_upstream)
 @run_for_comment(command="pull-from-upstream")
-@reacts_to(event=NewHotnessUpdateEvent)
-@reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=anitya.NewHotness)
+@reacts_to(event=pagure.pr.Comment)
 class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     task_name = TaskName.pull_from_upstream
     helper_kls = PullFromUpstreamHelper
@@ -667,7 +661,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             celery_task=celery_task,
             sync_release_run_id=sync_release_run_id,
         )
-        if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),):
+        if self.data.event_type in (pagure.pr.Comment.event_type(),):
             # use upstream project URL when retriggering from dist-git PR
             self._project_url = package_config.upstream_project_url
         # allow self.project to be None
@@ -694,7 +688,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         In case of comment, take the argument from comment. The format in the comment
         should be /packit pull-from-upstream --resolve-bug rhbz#123,rhbz#124
         """
-        if self.data.event_type in (NewHotnessUpdateEvent.event_type(),):
+        if self.data.event_type in (anitya.NewHotness.event_type(),):
             bug_id = self.data.event_dict.get("bug_id")
             return [f"rhbz#{bug_id}"]
 
@@ -740,7 +734,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             return super().run()
 
 
-@reacts_to_as_fedora_ci(event=PullRequestPagureEvent)
+@reacts_to_as_fedora_ci(event=pagure.pr.Synchronize)
 class DownstreamKojiScratchBuildHandler(
     RetriableJobHandler, ConfigFromUrlMixin, LocalProjectMixin, PackitAPIWithDownstreamMixin
 ):
@@ -1115,8 +1109,8 @@ class AbstractDownstreamKojiBuildHandler(
 
 @configured_as(job_type=JobType.koji_build)
 @run_for_comment(command="koji-build")
-@reacts_to(event=PushPagureEvent)
-@reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=pagure.push.Push)
+@reacts_to(event=pagure.pr.Comment)
 class DownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,
     ConfigFromEventMixin,
@@ -1145,23 +1139,23 @@ class DownstreamKojiBuildHandler(
     def get_branches(self) -> list[str]:
         branch = (
             self.project.get_pr(self.data.pr_id).target_branch
-            if self.data.event_type in (PullRequestCommentPagureEvent.event_type(),)
+            if self.data.event_type in (pagure.pr.Comment.event_type(),)
             else self.dg_branch
         )
         return [branch]
 
     def get_trigger_type_description(self) -> str:
         trigger_type_description = ""
-        if self.data.event_type == PullRequestCommentPagureEvent.event_type():
+        if self.data.event_type == pagure.pr.Comment.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was re-triggered "
                 f"by comment in dist-git PR id {self.data.pr_id}."
             )
-        elif self.data.event_type == PushPagureEvent.event_type():
+        elif self.data.event_type == pagure.push.Push.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was triggered by push with sha {self.data.commit_sha}."
             )
-        elif self.data.event_type == KojiBuildTagEvent.event_type():
+        elif self.data.event_type == koji.BuildTag.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was triggered "
                 f"by tagging of build {self.data.event_dict['build_id']} "
@@ -1193,8 +1187,8 @@ class DownstreamKojiBuildHandler(
 
 @configured_as(job_type=JobType.koji_build)
 @run_for_comment(command="koji-build")
-@reacts_to(event=IssueCommentEvent)
-@reacts_to(event=IssueCommentGitlabEvent)
+@reacts_to(event=github.issue.Comment)
+@reacts_to(event=gitlab.issue.Comment)
 class RetriggerDownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,
     ConfigFromDistGitUrlMixin,
@@ -1229,7 +1223,7 @@ class RetriggerDownstreamKojiBuildHandler(
 
 @configured_as(job_type=JobType.koji_build)
 @run_for_comment(command="koji-tag")
-@reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=pagure.pr.Comment)
 class TagIntoSidetagHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,
@@ -1269,7 +1263,7 @@ class TagIntoSidetagHandler(
             logger.debug(f"Failed to find the latest stable build of {package}")
             return
         task_id = sidetag.tag_build(nvr)
-        web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
+        web_url = koji.Task.get_koji_rpm_build_web_url(
             rpm_build_task_id=int(task_id),
             koji_web_url=self.service_config.koji_web_url,
         )

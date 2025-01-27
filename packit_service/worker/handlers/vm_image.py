@@ -24,9 +24,9 @@ from packit_service.worker.checker.vm_image import (
     IsCoprBuildForChrootOk,
 )
 from packit_service.worker.events import (
-    MergeRequestCommentGitlabEvent,
-    PullRequestCommentGithubEvent,
-    VMImageBuildResultEvent,
+    github,
+    gitlab,
+    vm_image,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -49,8 +49,8 @@ logger = logging.getLogger(__name__)
 
 @configured_as(job_type=JobType.vm_image_build)
 @run_for_comment(command="vm-image-build")
-@reacts_to(PullRequestCommentGithubEvent)
-@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(github.pr.Comment)
+@reacts_to(gitlab.mr.Comment)
 class VMImageBuildHandler(
     RetriableJobHandler,
     PackitAPIWithDownstreamMixin,
@@ -120,7 +120,7 @@ class VMImageBuildHandler(
 
 
 @configured_as(job_type=JobType.vm_image_build)
-@reacts_to(VMImageBuildResultEvent)
+@reacts_to(vm_image.Result)
 class VMImageBuildResultHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,

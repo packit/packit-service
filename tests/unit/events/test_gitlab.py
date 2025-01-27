@@ -9,17 +9,15 @@ from ogr.services.gitlab import GitlabProject
 
 from packit_service.config import PackageConfigGetter
 from packit_service.models import PullRequestModel
-from packit_service.worker.events import (
-    IssueCommentGitlabEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PipelineGitlabEvent,
-    PushGitlabEvent,
-    ReleaseGitlabEvent,
-    TagPushGitlabEvent,
-)
-from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
+from packit_service.worker.events import abstract
 from packit_service.worker.events.enums import GitlabEventAction
+from packit_service.worker.events.gitlab import (
+    issue,
+    mr,
+    pipeline,
+    push,
+    release,
+)
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
@@ -99,7 +97,7 @@ def test_parse_gitlab_release(gitlab_release):
 
     flexmock(GitlabProject).should_receive("get_sha_from_tag").and_return("123456")
 
-    assert isinstance(event_object, ReleaseGitlabEvent)
+    assert isinstance(event_object, release.Release)
     assert event_object.repo_namespace == "fedora/src"
     assert event_object.repo_name == "python-teamcity-messages"
     assert event_object.tag_name == "v1.32"
@@ -111,7 +109,7 @@ def test_parse_gitlab_release(gitlab_release):
 def test_parse_gitlab_tag_push(gitlab_tag_push):
     event_object = Parser.parse_event(gitlab_tag_push)
 
-    assert isinstance(event_object, TagPushGitlabEvent)
+    assert isinstance(event_object, push.TagPush)
     assert event_object.repo_namespace == "fedora/src"
     assert event_object.repo_name == "python-teamcity-messages"
     assert event_object.commit_sha == "6147b3de219ecdda30ba727cf74a0414ca1e618a"
@@ -126,7 +124,7 @@ def test_parse_gitlab_tag_push(gitlab_tag_push):
 def test_parse_mr(merge_request):
     event_object = Parser.parse_event(merge_request)
 
-    assert isinstance(event_object, MergeRequestGitlabEvent)
+    assert isinstance(event_object, mr.Synchronize)
     assert event_object.action == GitlabEventAction.opened
     assert event_object.object_id == 58759529
     assert event_object.identifier == "1"
@@ -159,7 +157,7 @@ def test_parse_mr(merge_request):
 
 def test_parse_mr_action(merge_request_update):
     event_object = Parser.parse_event(merge_request_update)
-    assert isinstance(event_object, MergeRequestGitlabEvent)
+    assert isinstance(event_object, mr.Synchronize)
     assert event_object.action == GitlabEventAction.update
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
     assert event_object.oldrev == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
@@ -185,14 +183,14 @@ def test_parse_mr_action(merge_request_update):
 
 def test_parse_mr_closed(merge_request_closed):
     event_object = Parser.parse_event(merge_request_closed)
-    assert isinstance(event_object, MergeRequestGitlabEvent)
+    assert isinstance(event_object, mr.Synchronize)
     assert event_object.action == GitlabEventAction.closed
 
 
 def test_parse_mr_comment(gitlab_mr_comment):
     event_object = Parser.parse_event(gitlab_mr_comment)
 
-    assert isinstance(event_object, MergeRequestCommentGitlabEvent)
+    assert isinstance(event_object, mr.Comment)
     assert event_object.action == GitlabEventAction.opened
     assert event_object.pr_id == 2
     assert event_object.source_repo_namespace == "testing/packit"
@@ -227,7 +225,7 @@ def test_parse_mr_comment(gitlab_mr_comment):
 def test_parse_commit_comment(gitlab_commit_comment):
     event_object = Parser.parse_event(gitlab_commit_comment)
 
-    assert isinstance(event_object, CommitCommentEvent)
+    assert isinstance(event_object, abstract.comment.Commit)
     assert event_object.repo_namespace == "gitlabhq"
     assert event_object.repo_name == "gitlab-test"
     assert event_object.project_url == "http://gitlab.com/gitlabhq/gitlab-test"
@@ -255,7 +253,7 @@ def test_parse_commit_comment(gitlab_commit_comment):
 def test_parse_gitlab_issue_comment(gitlab_issue_comment):
     event_object = Parser.parse_event(gitlab_issue_comment)
 
-    assert isinstance(event_object, IssueCommentGitlabEvent)
+    assert isinstance(event_object, issue.Comment)
     assert event_object.action == GitlabEventAction.opened
     assert event_object.issue_id == 1
     assert event_object.repo_namespace == "testing/packit"
@@ -289,7 +287,7 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
 def test_parse_gitlab_push(gitlab_push):
     event_object = Parser.parse_event(gitlab_push)
 
-    assert isinstance(event_object, PushGitlabEvent)
+    assert isinstance(event_object, push.Push)
     assert event_object.repo_namespace == "testing/packit"
     assert event_object.repo_name == "hello-there"
     assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
@@ -317,7 +315,7 @@ def test_parse_gitlab_push(gitlab_push):
 def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
     event_object = Parser.parse_event(gitlab_push_many_commits)
 
-    assert isinstance(event_object, PushGitlabEvent)
+    assert isinstance(event_object, push.Push)
     assert event_object.repo_namespace == "packit-service/rpms"
     assert event_object.repo_name == "open-vm-tools"
     assert event_object.commit_sha == "15af92227f9e965b392e85ba2f08a41a5aeb278a"
@@ -345,7 +343,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
 def test_parse_gitlab_pipeline(gitlab_mr_pipeline):
     event_object = Parser.parse_event(gitlab_mr_pipeline)
 
-    assert isinstance(event_object, PipelineGitlabEvent)
+    assert isinstance(event_object, pipeline.Pipeline)
     assert event_object.project_url == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta"
     assert event_object.project_name == "luksmeta"
     assert event_object.pipeline_id == 384095584

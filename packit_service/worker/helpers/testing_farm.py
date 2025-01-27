@@ -39,18 +39,8 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import (
-    CommitCommentGitlabEvent,
-    EventData,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-)
-from packit_service.worker.events.github.commit import Comment as CommitCommentGithubEvent
+from packit_service.worker.events import github, gitlab, pagure
+from packit_service.worker.events.event import EventData
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -311,9 +301,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def is_comment_event(self) -> bool:
         return self.metadata.event_type in (
-            PullRequestCommentGithubEvent.event_type(),
-            MergeRequestCommentGitlabEvent.event_type(),
-            PullRequestCommentPagureEvent.event_type(),
+            github.pr.Comment.event_type(),
+            gitlab.mr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
         )
 
     def is_copr_build_comment_event(self) -> bool:
@@ -343,12 +333,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # for comment event requesting copr build
             self.metadata.event_type
             in (
-                PushGitHubEvent.event_type(),
-                PushGitlabEvent.event_type(),
-                PullRequestGithubEvent.event_type(),
-                MergeRequestGitlabEvent.event_type(),
-                CommitCommentGithubEvent.event_type(),
-                CommitCommentGitlabEvent.event_type(),
+                github.push.Push.event_type(),
+                github.pr.Synchronize.event_type(),
+                github.commit.Comment.event_type(),
+                gitlab.push.Push.event_type(),
+                gitlab.mr.Synchronize.event_type(),
+                gitlab.commit.Comment.event_type(),
             )
             or self.is_copr_build_comment_event()
         )

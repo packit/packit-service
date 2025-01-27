@@ -20,14 +20,7 @@ from packit_service.models import (
     ProjectEventModelType,
     PullRequestModel,
 )
-from packit_service.worker.events import (
-    MergeRequestGitlabEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushPagureEvent,
-    ReleaseEvent,
-)
-from packit_service.worker.events.koji.base import Build as KojiBuildEvent
+from packit_service.worker import events
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR, SAVED_HTTPD_REQS, load_the_message_from_file
 
@@ -483,7 +476,7 @@ def github_release_webhook() -> dict:
 
 
 @pytest.fixture(scope="module")
-def release_event(github_release_webhook) -> ReleaseEvent:
+def release_event(github_release_webhook) -> events.github.release.Release:
     return Parser.parse_release_event(github_release_webhook)
 
 
@@ -508,12 +501,12 @@ def github_vm_image_build_comment():
 
 
 @pytest.fixture(scope="module")
-def github_pr_event(github_pr_webhook) -> PullRequestGithubEvent:
+def github_pr_event(github_pr_webhook) -> events.github.pr.Synchronize:
     return Parser.parse_pr_event(github_pr_webhook)
 
 
 @pytest.fixture(scope="module")
-def github_push_event(github_push_webhook) -> PushGitHubEvent:
+def github_push_event(github_push_webhook) -> events.github.push.Push:
     return Parser.parse_github_push_event(github_push_webhook)
 
 
@@ -530,12 +523,12 @@ def distgit_push_packit():
 
 
 @pytest.fixture(scope="module")
-def distgit_push_event(distgit_push_packit) -> PushPagureEvent:
+def distgit_push_event(distgit_push_packit) -> events.pagure.push.Push:
     return Parser.parse_pagure_push_event(distgit_push_packit)
 
 
 @pytest.fixture(scope="module")
-def gitlab_mr_event(gitlab_mr_webhook) -> MergeRequestGitlabEvent:
+def gitlab_mr_event(gitlab_mr_webhook) -> events.gitlab.mr.Synchronize:
     return Parser.parse_mr_event(gitlab_mr_webhook)
 
 
@@ -603,7 +596,7 @@ def koji_build_completed_rawhide():
 
 
 @pytest.fixture()
-def koji_build_completed_event(koji_build_completed_rawhide) -> KojiBuildEvent:
+def koji_build_completed_event(koji_build_completed_rawhide) -> events.koji.base.Build:
     return Parser.parse_koji_build_event(koji_build_completed_rawhide)
 
 

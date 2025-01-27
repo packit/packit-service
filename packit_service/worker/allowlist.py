@@ -24,32 +24,17 @@ from packit_service.constants import (
 )
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
-    AbstractCoprBuildEvent,
-    CheckRerunEvent,
-    EventData,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-    KojiTaskEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    NewHotnessUpdateEvent,
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestGithubEvent,
-    PullRequestPagureEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-    PushPagureEvent,
-    ReleaseEvent,
-    ReleaseGitlabEvent,
-    TestingFarmResultsEvent,
+    abstract,
+    anitya,
+    copr,
     github,
+    gitlab,
+    koji,
+    openscanhub,
+    pagure,
+    testing_farm,
 )
-from packit_service.worker.events.abstract.comment import Commit as CommitCommentEvent
-from packit_service.worker.events.koji.base import Build as KojiBuildEvent
-from packit_service.worker.events.koji.base import BuildTag as KojiBuildTagEvent
+from packit_service.worker.events.event import EventData
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -57,16 +42,16 @@ from packit_service.worker.reporting import BaseCommitStatus
 logger = logging.getLogger(__name__)
 
 UncheckedEvent = Union[
-    PushPagureEvent,
-    PullRequestPagureEvent,
-    PullRequestCommentPagureEvent,
-    AbstractCoprBuildEvent,
-    TestingFarmResultsEvent,
+    anitya.NewHotness,
+    copr.CoprBuild,
+    github.check.Rerun,
     github.installation.Installation,
-    KojiTaskEvent,
-    KojiBuildEvent,
-    CheckRerunEvent,
-    NewHotnessUpdateEvent,
+    koji.Task,
+    koji.Build,
+    pagure.pr.Comment,
+    pagure.pr.Synchronize,
+    pagure.push.Push,
+    testing_farm.Result,
 ]
 
 
@@ -303,7 +288,7 @@ class Allowlist:
 
     def _check_release_push_event(
         self,
-        event: Union[ReleaseEvent, PushGitHubEvent, PushGitlabEvent],
+        event: Union[github.release.Release, github.push.Push, gitlab.push.Push],
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
@@ -329,10 +314,10 @@ class Allowlist:
     def _check_pr_event(
         self,
         event: Union[
-            PullRequestGithubEvent,
-            PullRequestCommentGithubEvent,
-            MergeRequestGitlabEvent,
-            MergeRequestCommentGitlabEvent,
+            github.pr.Synchronize,
+            github.pr.Comment,
+            gitlab.mr.Synchronize,
+            gitlab.mr.Comment,
         ],
         project: GitProject,
         job_configs: Iterable[JobConfig],
@@ -373,7 +358,7 @@ class Allowlist:
         logger.debug(msg)
         if isinstance(
             event,
-            (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent),
+            (github.pr.Comment, gitlab.mr.Comment),
         ):
             project.get_pr(event.pr_id).comment(msg)
         else:
@@ -437,7 +422,7 @@ class Allowlist:
 
     def _check_issue_comment_event(
         self,
-        event: Union[IssueCommentEvent, IssueCommentGitlabEvent],
+        event: Union[github.issue.Comment, gitlab.issue.Comment],
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
@@ -449,7 +434,7 @@ class Allowlist:
 
     def _check_commit_comment_event(
         self,
-        event: CommitCommentEvent,
+        event: abstract.comment.Commit,
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
@@ -464,7 +449,7 @@ class Allowlist:
 
     def _check_issue_and_commit_comment_event(
         self,
-        event: Union[CommitCommentEvent, IssueCommentEvent, IssueCommentGitlabEvent],
+        event: Union[abstract.comment.Commit, github.issue.Comment, gitlab.issue.Comment],
         project: GitProject,
         comment_fn: Callable[[str], Any],
     ) -> bool:
@@ -514,37 +499,37 @@ class Allowlist:
             Callable,
         ] = {
             (  # events that are not checked against allowlist
-                PushPagureEvent,
-                PullRequestPagureEvent,
-                PullRequestCommentPagureEvent,
-                AbstractCoprBuildEvent,
-                TestingFarmResultsEvent,
+                pagure.push.Push,
+                pagure.pr.Synchronize,
+                pagure.pr.Comment,
+                copr.CoprBuild,
+                testing_farm.Result,
                 github.installation.Installation,
-                KojiTaskEvent,
-                KojiBuildEvent,
-                KojiBuildTagEvent,
-                CheckRerunEvent,
-                NewHotnessUpdateEvent,
-                OpenScanHubTaskFinishedEvent,
-                OpenScanHubTaskStartedEvent,
+                koji.Task,
+                koji.Build,
+                koji.BuildTag,
+                github.check.Rerun,
+                anitya.NewHotness,
+                openscanhub.task.Started,
+                openscanhub.task.Finished,
             ): self._check_unchecked_event,
             (
-                ReleaseEvent,
-                ReleaseGitlabEvent,
-                PushGitHubEvent,
-                PushGitlabEvent,
+                github.release.Release,
+                gitlab.release.Release,
+                github.push.Push,
+                gitlab.push.Push,
             ): self._check_release_push_event,
             (
-                PullRequestGithubEvent,
-                PullRequestCommentGithubEvent,
-                MergeRequestGitlabEvent,
-                MergeRequestCommentGitlabEvent,
+                github.pr.Synchronize,
+                github.pr.Comment,
+                gitlab.mr.Synchronize,
+                gitlab.mr.Comment,
             ): self._check_pr_event,
             (
-                IssueCommentEvent,
-                IssueCommentGitlabEvent,
+                github.issue.Comment,
+                gitlab.issue.Comment,
             ): self._check_issue_comment_event,
-            (CommitCommentEvent): self._check_commit_comment_event,
+            (abstract.comment.Commit,): self._check_commit_comment_event,
         }
 
         # Administrators

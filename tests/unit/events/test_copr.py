@@ -10,7 +10,7 @@ from ogr.services.github import GithubProject
 
 from packit_service.config import PackageConfigGetter
 from packit_service.models import CoprBuildTargetModel, get_most_recent_targets
-from packit_service.worker.events import AbstractCoprBuildEvent
+from packit_service.worker.events.copr import End, Start
 from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -57,7 +57,7 @@ def test_parse_copr_build_event_start(
 
     event_object = Parser.parse_event(copr_build_results_start)
 
-    assert isinstance(event_object, AbstractCoprBuildEvent)
+    assert isinstance(event_object, Start)
     assert event_object.topic == FedmsgTopic.copr_build_started
     assert event_object.build_id == int(build_id)
     assert event_object.chroot == "fedora-rawhide-x86_64"
@@ -103,7 +103,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
 
     event_object = Parser.parse_event(copr_build_results_end)
 
-    assert isinstance(event_object, AbstractCoprBuildEvent)
+    assert isinstance(event_object, End)
     assert event_object.topic == FedmsgTopic.copr_build_finished
     assert event_object.build_id == 1044215
     assert event_object.chroot == "fedora-rawhide-x86_64"

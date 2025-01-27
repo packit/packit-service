@@ -22,9 +22,7 @@ from packit_service.models import (
     ProjectEventModelType,
 )
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import (
-    PushPagureEvent,
-)
+from packit_service.worker.events import pagure
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
 )
@@ -151,7 +149,7 @@ def test_koji_build_error_msg(distgit_push_packit):
     db_project_event = (
         flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
     )
-    flexmock(PushPagureEvent).should_receive("db_project_object").and_return(
+    flexmock(pagure.push.Push).should_receive("db_project_object").and_return(
         db_project_object,
     )
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(

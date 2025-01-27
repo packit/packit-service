@@ -26,7 +26,7 @@ from packit_service.models import (
     PipelineModel,
     ProjectEventModel,
 )
-from packit_service.worker.events import EventData
+from packit_service.worker.events.event import EventData
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 

@@ -12,7 +12,7 @@ from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
-from packit_service.worker.events import MergeRequestGitlabEvent
+from packit_service.worker.events import gitlab
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
@@ -39,7 +39,7 @@ class IsEventOk(
 ):
     def pre_check(self) -> bool:
         if (
-            self.data.event_type == MergeRequestGitlabEvent.__name__
+            self.data.event_type == gitlab.mr.Synchronize.event_type()
             and self.data.event_dict["action"] == GitlabEventAction.closed.value
         ):
             # Not interested in closed merge requests
