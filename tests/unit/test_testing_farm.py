@@ -29,7 +29,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
-from packit_service.worker.events.event import (
+from packit_service.worker.events.event_data import (
     EventData,
 )
 

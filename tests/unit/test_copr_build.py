@@ -54,7 +54,7 @@ from packit_service.worker.events import (
     github,
     gitlab,
 )
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.handlers import CoprBuildHandler
 from packit_service.worker.helpers.build.copr_build import (
     BaseBuildJobHelper,

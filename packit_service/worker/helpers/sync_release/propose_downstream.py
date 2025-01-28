@@ -9,7 +9,7 @@ from packit.config import JobConfig, JobType, PackageConfig
 
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.reporting import BaseCommitStatus
 

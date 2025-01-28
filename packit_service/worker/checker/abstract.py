@@ -8,7 +8,7 @@ from typing import Optional
 from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
 
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,

@@ -40,7 +40,7 @@ from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import github, gitlab, pagure
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults

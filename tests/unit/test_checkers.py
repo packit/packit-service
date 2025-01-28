@@ -55,7 +55,7 @@ from packit_service.worker.events import (
     gitlab,
     pagure,
 )
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
 

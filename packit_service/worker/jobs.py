@@ -34,7 +34,8 @@ from packit_service.worker.events import (
     koji,
     pagure,
 )
-from packit_service.worker.events.event import Event, EventData
+from packit_service.worker.events.event import Event
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,

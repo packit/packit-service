@@ -28,7 +28,8 @@ from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.events.event import Event, EventData
+from packit_service.worker.events.event import Event
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.mixin import (
     Config,
     PackitAPIProtocol,

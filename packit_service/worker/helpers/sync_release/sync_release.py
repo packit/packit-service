@@ -15,7 +15,7 @@ from packit.config import (
 
 from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 
 logger = logging.getLogger(__name__)

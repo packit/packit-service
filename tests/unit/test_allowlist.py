@@ -37,7 +37,7 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.event import EventData
+from packit_service.worker.events.event_data import EventData
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
