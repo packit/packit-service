@@ -7,14 +7,15 @@ from ogr.abstract import Comment as OgrComment
 from packit_service.worker.events.abstract.comment import (
     Issue as AbstractIssueCommentEvent,
 )
-from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.gitlab.abstract import GitlabEvent
+
+from .abstract import GitlabEvent
+from .enums import Action
 
 
 class Comment(AbstractIssueCommentEvent, GitlabEvent):
     def __init__(
         self,
-        action: GitlabEventAction,
+        action: Action,
         issue_id: int,
         repo_namespace: str,
         repo_name: str,

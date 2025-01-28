@@ -10,8 +10,8 @@ from ogr.services.gitlab import GitlabProject
 from packit_service.config import PackageConfigGetter
 from packit_service.models import PullRequestModel
 from packit_service.worker.events import abstract
-from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.gitlab import (
+    enums,
     issue,
     mr,
     pipeline,
@@ -125,7 +125,7 @@ def test_parse_mr(merge_request):
     event_object = Parser.parse_event(merge_request)
 
     assert isinstance(event_object, mr.Synchronize)
-    assert event_object.action == GitlabEventAction.opened
+    assert event_object.action == enums.Action.opened
     assert event_object.object_id == 58759529
     assert event_object.identifier == "1"
     assert event_object.source_repo_namespace == "testing/packit"
@@ -158,7 +158,7 @@ def test_parse_mr(merge_request):
 def test_parse_mr_action(merge_request_update):
     event_object = Parser.parse_event(merge_request_update)
     assert isinstance(event_object, mr.Synchronize)
-    assert event_object.action == GitlabEventAction.update
+    assert event_object.action == enums.Action.update
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
     assert event_object.oldrev == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
     assert event_object.identifier == "2"
@@ -184,14 +184,14 @@ def test_parse_mr_action(merge_request_update):
 def test_parse_mr_closed(merge_request_closed):
     event_object = Parser.parse_event(merge_request_closed)
     assert isinstance(event_object, mr.Synchronize)
-    assert event_object.action == GitlabEventAction.closed
+    assert event_object.action == enums.Action.closed
 
 
 def test_parse_mr_comment(gitlab_mr_comment):
     event_object = Parser.parse_event(gitlab_mr_comment)
 
     assert isinstance(event_object, mr.Comment)
-    assert event_object.action == GitlabEventAction.opened
+    assert event_object.action == enums.Action.opened
     assert event_object.pr_id == 2
     assert event_object.source_repo_namespace == "testing/packit"
     assert event_object.source_repo_name == "hello-there"
@@ -254,7 +254,7 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
     event_object = Parser.parse_event(gitlab_issue_comment)
 
     assert isinstance(event_object, issue.Comment)
-    assert event_object.action == GitlabEventAction.opened
+    assert event_object.action == enums.Action.opened
     assert event_object.issue_id == 1
     assert event_object.repo_namespace == "testing/packit"
     assert event_object.repo_name == "hello-there"

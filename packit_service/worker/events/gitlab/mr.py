@@ -12,14 +12,15 @@ from packit_service.service.db_project_events import (
 from packit_service.worker.events.abstract.comment import (
     PullRequest as AbstractPRCommentEvent,
 )
-from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.gitlab.abstract import GitlabEvent
+
+from .abstract import GitlabEvent
+from .enums import Action
 
 
 class Synchronize(AddPullRequestEventToDb, GitlabEvent):
     def __init__(
         self,
-        action: GitlabEventAction,
+        action: Action,
         actor: str,
         object_id: int,
         object_iid: int,
@@ -78,7 +79,7 @@ class Synchronize(AddPullRequestEventToDb, GitlabEvent):
 class Comment(AbstractPRCommentEvent, GitlabEvent):
     def __init__(
         self,
-        action: GitlabEventAction,
+        action: Action,
         object_id: int,
         object_iid: int,
         source_repo_namespace: str,

@@ -42,7 +42,6 @@ from packit_service.worker.events import (
     vm_image,
 )
 from packit_service.worker.events.enums import (
-    GitlabEventAction,
     IssueCommentAction,
     PullRequestAction,
     PullRequestCommentAction,
@@ -222,7 +221,7 @@ class Parser:
         url = nested_get(event, "object_attributes", "url")
 
         return gitlab.mr.Synchronize(
-            action=GitlabEventAction[action],
+            action=gitlab.enums.Action[action],
             actor=actor,
             object_id=object_id,
             object_iid=object_iid,
@@ -752,7 +751,7 @@ class Parser:
             return None
 
         return gitlab.issue.Comment(
-            action=GitlabEventAction[action],
+            action=gitlab.enums.Action[action],
             issue_id=issue_id,
             repo_namespace=parsed_url.namespace,
             repo_name=parsed_url.repo,
@@ -836,7 +835,7 @@ class Parser:
             return None
 
         return gitlab.mr.Comment(
-            action=GitlabEventAction[action],
+            action=gitlab.enums.Action[action],
             object_id=object_id,
             object_iid=object_iid,
             source_repo_namespace=parsed_source_url.namespace,

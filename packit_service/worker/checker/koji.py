@@ -12,7 +12,6 @@ from packit_service.constants import (
 from packit_service.models import SidetagModel
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.events import github, gitlab
-from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -33,7 +32,7 @@ class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
     def pre_check(self) -> bool:
         if (
             self.data.event_type == gitlab.mr.Synchronize.event_type()
-            and self.data.event_dict["action"] == GitlabEventAction.closed.value
+            and self.data.event_dict["action"] == gitlab.enums.Action.closed.value
         ):
             # Not interested in closed merge requests
             return False
