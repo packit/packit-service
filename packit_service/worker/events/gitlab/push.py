@@ -7,7 +7,7 @@ from packit_service.service.db_project_events import (
 from packit_service.worker.events.gitlab.abstract import GitlabEvent
 
 
-class Push(AddBranchPushEventToDb, GitlabEvent):
+class Commit(AddBranchPushEventToDb, GitlabEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -25,10 +25,10 @@ class Push(AddBranchPushEventToDb, GitlabEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "gitlab.push.Push"
+        return "gitlab.push.Commit"
 
 
-class TagPush(AddBranchPushEventToDb, GitlabEvent):
+class Tag(AddBranchPushEventToDb, GitlabEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -51,4 +51,4 @@ class TagPush(AddBranchPushEventToDb, GitlabEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "gitlab.push.TagPush"
+        return "gitlab.push.Tag"

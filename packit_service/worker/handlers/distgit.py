@@ -153,7 +153,7 @@ class ChoosenGithubAuthMethod:
 
 
 @configured_as(job_type=JobType.sync_from_downstream)
-@reacts_to(event=pagure.push.Push)
+@reacts_to(event=pagure.push.Commit)
 class SyncFromDownstream(
     JobHandler,
     GetProjectToSyncMixin,
@@ -1109,7 +1109,7 @@ class AbstractDownstreamKojiBuildHandler(
 
 @configured_as(job_type=JobType.koji_build)
 @run_for_comment(command="koji-build")
-@reacts_to(event=pagure.push.Push)
+@reacts_to(event=pagure.push.Commit)
 @reacts_to(event=pagure.pr.Comment)
 class DownstreamKojiBuildHandler(
     AbstractDownstreamKojiBuildHandler,
@@ -1151,7 +1151,7 @@ class DownstreamKojiBuildHandler(
                 f"Fedora Koji build was re-triggered "
                 f"by comment in dist-git PR id {self.data.pr_id}."
             )
-        elif self.data.event_type == pagure.push.Push.event_type():
+        elif self.data.event_type == pagure.push.Commit.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was triggered by push with sha {self.data.commit_sha}."
             )

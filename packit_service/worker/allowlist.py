@@ -50,7 +50,7 @@ UncheckedEvent = Union[
     koji.Build,
     pagure.pr.Comment,
     pagure.pr.Synchronize,
-    pagure.push.Push,
+    pagure.push.Commit,
     testing_farm.Result,
 ]
 
@@ -288,7 +288,7 @@ class Allowlist:
 
     def _check_release_push_event(
         self,
-        event: Union[github.release.Release, github.push.Push, gitlab.push.Push],
+        event: Union[github.release.Release, github.push.Commit, gitlab.push.Commit],
         project: GitProject,
         job_configs: Iterable[JobConfig],
     ) -> bool:
@@ -499,7 +499,7 @@ class Allowlist:
             Callable,
         ] = {
             (  # events that are not checked against allowlist
-                pagure.push.Push,
+                pagure.push.Commit,
                 pagure.pr.Synchronize,
                 pagure.pr.Comment,
                 copr.CoprBuild,
@@ -516,8 +516,8 @@ class Allowlist:
             (
                 github.release.Release,
                 gitlab.release.Release,
-                github.push.Push,
-                gitlab.push.Push,
+                github.push.Commit,
+                gitlab.push.Commit,
             ): self._check_release_push_event,
             (
                 github.pr.Synchronize,

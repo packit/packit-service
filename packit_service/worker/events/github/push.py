@@ -5,7 +5,7 @@ from packit_service.service.db_project_events import AddBranchPushEventToDb
 from packit_service.worker.events.github.abstract import GithubEvent
 
 
-class Push(AddBranchPushEventToDb, GithubEvent):
+class Commit(AddBranchPushEventToDb, GithubEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -23,4 +23,4 @@ class Push(AddBranchPushEventToDb, GithubEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "github.push.Push"
+        return "github.push.Commit"

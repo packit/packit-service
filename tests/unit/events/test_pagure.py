@@ -109,7 +109,7 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
 def test_distgit_pagure_push(distgit_commit):
     event_object = Parser.parse_event(distgit_commit)
 
-    assert isinstance(event_object, push.Push)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "rpms"
     assert event_object.repo_name == "buildah"
     assert event_object.commit_sha == "abcd"

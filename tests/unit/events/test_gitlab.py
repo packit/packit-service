@@ -109,7 +109,7 @@ def test_parse_gitlab_release(gitlab_release):
 def test_parse_gitlab_tag_push(gitlab_tag_push):
     event_object = Parser.parse_event(gitlab_tag_push)
 
-    assert isinstance(event_object, push.TagPush)
+    assert isinstance(event_object, push.Tag)
     assert event_object.repo_namespace == "fedora/src"
     assert event_object.repo_name == "python-teamcity-messages"
     assert event_object.commit_sha == "6147b3de219ecdda30ba727cf74a0414ca1e618a"
@@ -287,7 +287,7 @@ def test_parse_gitlab_issue_comment(gitlab_issue_comment):
 def test_parse_gitlab_push(gitlab_push):
     event_object = Parser.parse_event(gitlab_push)
 
-    assert isinstance(event_object, push.Push)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "testing/packit"
     assert event_object.repo_name == "hello-there"
     assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
@@ -315,7 +315,7 @@ def test_parse_gitlab_push(gitlab_push):
 def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
     event_object = Parser.parse_event(gitlab_push_many_commits)
 
-    assert isinstance(event_object, push.Push)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "packit-service/rpms"
     assert event_object.repo_name == "open-vm-tools"
     assert event_object.commit_sha == "15af92227f9e965b392e85ba2f08a41a5aeb278a"

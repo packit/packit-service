@@ -7,7 +7,7 @@ from packit_service.service.db_project_events import AddBranchPushEventToDb
 from packit_service.worker.events.pagure.abstract import PagureEvent
 
 
-class Push(AddBranchPushEventToDb, PagureEvent):
+class Commit(AddBranchPushEventToDb, PagureEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -28,4 +28,4 @@ class Push(AddBranchPushEventToDb, PagureEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "pagure.push.Push"
+        return "pagure.push.Commit"

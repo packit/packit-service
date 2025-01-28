@@ -165,7 +165,7 @@ def test_parse_pr(github_pr_webhook):
 def test_parse_github_push(github_push_branch):
     event_object = Parser.parse_event(github_push_branch)
 
-    assert isinstance(event_object, push.Push)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
@@ -193,7 +193,7 @@ def test_parse_github_push(github_push_branch):
 def test_parse_github_push_branch(github_push_branch):
     event_object = Parser.parse_event(github_push_branch)
 
-    assert isinstance(event_object, push.Push)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"

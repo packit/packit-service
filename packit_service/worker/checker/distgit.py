@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
-        if self.data.event_type not in (pagure.push.Push.event_type(),) or not (
+        if self.data.event_type not in (pagure.push.Commit.event_type(),) or not (
             self.job_config.require.label.present or self.job_config.require.label.absent
         ):
             return True
@@ -46,7 +46,7 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
         if self.data.event_type in (
-            pagure.push.Push.event_type(),
+            pagure.push.Commit.event_type(),
             koji.BuildTag.event_type(),
         ) and self.data.git_ref not in (
             configured_branches := get_branches(
@@ -61,7 +61,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
             )
             return False
 
-        if self.data.event_type in (pagure.push.Push.event_type(),):
+        if self.data.event_type in (pagure.push.Commit.event_type(),):
             if self.pull_request:
                 pr_author = self.get_pr_author()
                 logger.debug(f"PR author: {pr_author}")

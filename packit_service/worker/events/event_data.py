@@ -172,9 +172,9 @@ class EventData:
                 commit_sha=self.commit_sha,
             )
         elif self.event_type in {
-            "github.push.Push",
-            "gitlab.push.Push",
-            "pagure.push.Push",
+            "github.push.Commit",
+            "gitlab.push.Commit",
+            "pagure.push.Commit",
             "github.check.Commit",
         }:
             (

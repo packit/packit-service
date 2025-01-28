@@ -42,7 +42,7 @@ def build_helper(
     event: Union[
         github.pr.Synchronize,
         github.pr.Comment,
-        github.push.Push,
+        github.push.Commit,
         github.release.Release,
     ],
     _targets=None,

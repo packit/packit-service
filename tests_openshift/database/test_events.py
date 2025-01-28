@@ -83,7 +83,7 @@ def test_push_branch_event_existing_branch(
     push_branch_event_dict,
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
-    assert isinstance(event_object, github.push.Push)
+    assert isinstance(event_object, github.push.Commit)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -103,7 +103,7 @@ def test_push_branch_event_non_existing_branch(
     push_branch_event_dict,
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
-    assert isinstance(event_object, github.push.Push)
+    assert isinstance(event_object, github.push.Commit)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -176,7 +176,7 @@ def test_push_gitlab_event(
     push_gitlab_event_dict,
 ):
     event_object = Parser.parse_event(push_gitlab_event_dict)
-    assert isinstance(event_object, gitlab.push.Push)
+    assert isinstance(event_object, gitlab.push.Commit)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"

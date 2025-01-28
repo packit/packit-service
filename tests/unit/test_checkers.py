@@ -173,25 +173,25 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
     (
         pytest.param(
             False,
-            construct_dict(event=github.push.Push.event_type()),
+            construct_dict(event=github.push.Commit.event_type()),
             JobConfigTriggerType.commit,
             id="GitHub push to non-configured branch is ignored",
         ),
         pytest.param(
             False,
-            construct_dict(event=gitlab.push.Push.event_type()),
+            construct_dict(event=gitlab.push.Commit.event_type()),
             JobConfigTriggerType.commit,
             id="GitLab push to non-configured branch is ignored",
         ),
         pytest.param(
             False,
-            construct_dict(event=pagure.push.Push.event_type()),
+            construct_dict(event=pagure.push.Commit.event_type()),
             JobConfigTriggerType.commit,
             id="Pagure push to non-configured branch is ignored",
         ),
         pytest.param(
             True,
-            construct_dict(event=pagure.push.Push.event_type(), git_ref="release"),
+            construct_dict(event=pagure.push.Commit.event_type(), git_ref="release"),
             JobConfigTriggerType.commit,
             id="Pagure push to configured branch is not ignored",
         ),
@@ -467,7 +467,7 @@ def test_koji_branch_merge_queue():
     )
 
     event = construct_dict(
-        event=github.push.Push.event_type(),
+        event=github.push.Commit.event_type(),
         git_ref="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
     )
 

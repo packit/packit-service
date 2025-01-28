@@ -79,14 +79,14 @@ class Parser:
             github.pr.Synchronize,
             github.issue.Comment,
             github.installation.Installation,
-            github.push.Push,
+            github.push.Commit,
             github.release.Release,
             gitlab.issue.Comment,
             gitlab.mr.Comment,
             gitlab.mr.Synchronize,
             gitlab.pipeline.Pipeline,
-            gitlab.push.Push,
-            gitlab.push.TagPush,
+            gitlab.push.Commit,
+            gitlab.push.Tag,
             gitlab.release.Release,
             koji.Build,
             koji.BuildTag,
@@ -96,7 +96,7 @@ class Parser:
             pagure.pr.Comment,
             pagure.pr.Flag,
             pagure.pr.Synchronize,
-            pagure.push.Push,
+            pagure.push.Commit,
             testing_farm.Result,
             vm_image.Result,
         ]
@@ -411,7 +411,7 @@ class Parser:
         return actor, project_url, parsed_url, ref, head_commit
 
     @staticmethod
-    def parse_gitlab_tag_push_event(event) -> Optional[gitlab.push.TagPush]:
+    def parse_gitlab_tag_push_event(event) -> Optional[gitlab.push.Tag]:
         """
         Look into the provided event and see if it's one for a new push to the gitlab branch.
         https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#tag-events
@@ -440,7 +440,7 @@ class Parser:
             f"url={project_url}.",
         )
 
-        return gitlab.push.TagPush(
+        return gitlab.push.Tag(
             repo_namespace=parsed_url.namespace,
             repo_name=parsed_url.repo,
             actor=actor,
@@ -452,7 +452,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_gitlab_push_event(event) -> Optional[gitlab.push.Push]:
+    def parse_gitlab_push_event(event) -> Optional[gitlab.push.Commit]:
         """
         Look into the provided event and see if it's one for a new push to the gitlab branch.
         https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
@@ -473,7 +473,7 @@ class Parser:
             logger.info(e)
             return None
 
-        return gitlab.push.Push(
+        return gitlab.push.Commit(
             repo_namespace=parsed_url.namespace,
             repo_name=parsed_url.repo,
             git_ref=ref,
@@ -482,7 +482,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_github_push_event(event) -> Optional[github.push.Push]:
+    def parse_github_push_event(event) -> Optional[github.push.Commit]:
         """
         Look into the provided event and see if it's one for a new push to the github branch.
         """
@@ -525,7 +525,7 @@ class Parser:
 
         repo_url = nested_get(event, "repository", "html_url")
 
-        return github.push.Push(
+        return github.push.Commit(
             repo_namespace=repo_namespace,
             repo_name=repo_name,
             git_ref=ref,
@@ -1165,7 +1165,7 @@ class Parser:
         return github.release.Release(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
-    def parse_pagure_push_event(event) -> Optional[pagure.push.Push]:
+    def parse_pagure_push_event(event) -> Optional[pagure.push.Commit]:
         """this corresponds to dist-git event when someone pushes new commits"""
         topic = event.get("topic")
         if topic != "org.fedoraproject.prod.pagure.git.receive":
@@ -1198,7 +1198,7 @@ class Parser:
 
         dg_pr_id = nested_get(event, "pull_request_id")
 
-        return pagure.push.Push(
+        return pagure.push.Commit(
             repo_namespace=dg_repo_namespace,
             repo_name=dg_repo_name,
             git_ref=dg_branch,

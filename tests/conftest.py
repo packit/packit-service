@@ -506,7 +506,7 @@ def github_pr_event(github_pr_webhook) -> events.github.pr.Synchronize:
 
 
 @pytest.fixture(scope="module")
-def github_push_event(github_push_webhook) -> events.github.push.Push:
+def github_push_event(github_push_webhook) -> events.github.push.Commit:
     return Parser.parse_github_push_event(github_push_webhook)
 
 
@@ -523,7 +523,7 @@ def distgit_push_packit():
 
 
 @pytest.fixture(scope="module")
-def distgit_push_event(distgit_push_packit) -> events.pagure.push.Push:
+def distgit_push_event(distgit_push_packit) -> events.pagure.push.Commit:
     return Parser.parse_pagure_push_event(distgit_push_packit)
 
 

@@ -121,7 +121,7 @@ from packit_service.worker.result import TaskResults
             id="config=build_for_pr&pull_request&gitlab.mr.Synchronize",
         ),
         pytest.param(
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -131,10 +131,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_push&commit&github.push.Push",
+            id="config=build_for_push&commit&github.push.Commit",
         ),
         pytest.param(
-            gitlab.push.Push,
+            gitlab.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -144,7 +144,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_push&commit&gitlab.push.Push",
+            id="config=build_for_push&commit&gitlab.push.Commit",
         ),
         pytest.param(
             github.release.Release,
@@ -254,7 +254,7 @@ from packit_service.worker.result import TaskResults
             id="config=upstream_koji_build_for_pr&pull_request&gitlab.mr.Synchronize",
         ),
         pytest.param(
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -264,10 +264,10 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {KojiBuildHandler},
-            id="config=upstream_koji_build_for_commit&commit&github.push.Push",
+            id="config=upstream_koji_build_for_commit&commit&github.push.Commit",
         ),
         pytest.param(
-            gitlab.push.Push,
+            gitlab.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -277,7 +277,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {KojiBuildHandler},
-            id="config=upstream_koji_build_for_commit&commit&gitlab.push.Push",
+            id="config=upstream_koji_build_for_commit&commit&gitlab.push.Commit",
         ),
         pytest.param(
             github.release.Release,
@@ -404,7 +404,7 @@ from packit_service.worker.result import TaskResults
             "&pull_request&github.pr.Synchronize",
         ),
         pytest.param(
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -424,7 +424,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=build_for_pr+build_for_commit+build_for_release&commit&github.push.Push",
+            id="config=build_for_pr+build_for_commit+build_for_release&commit&github.push.Commit",
         ),
         pytest.param(
             github.release.Release,
@@ -538,7 +538,7 @@ from packit_service.worker.result import TaskResults
             id="config=copr_build_for_pr+test_for_pr_skip_build&pull_request&github.pr.Synchronize",
         ),
         pytest.param(
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -564,7 +564,7 @@ from packit_service.worker.result import TaskResults
             ],
             {CoprBuildHandler},
             id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
-            "&commit&github.push.Push",
+            "&commit&github.push.Commit",
         ),
         pytest.param(
             copr.Start,
@@ -708,7 +708,7 @@ from packit_service.worker.result import TaskResults
             "&pull_request&github.pr.Synchronize",
         ),
         pytest.param(
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -728,7 +728,7 @@ from packit_service.worker.result import TaskResults
                 ),
             ],
             {CoprBuildHandler},
-            id="config=test_for_pr+build_for_commit+build_for_release&commit&github.push.Push",
+            id="config=test_for_pr+build_for_commit+build_for_release&commit&github.push.Commit",
         ),
         pytest.param(
             testing_farm.Result,
@@ -833,7 +833,7 @@ from packit_service.worker.result import TaskResults
             id="config=build_for_pr+upstream_koji_build_for_pr&pull_request&koji.Build",
         ),
         pytest.param(
-            pagure.push.Push,
+            pagure.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -1597,7 +1597,7 @@ def test_get_handlers_for_check_rerun_event(
         ),
         pytest.param(
             CoprBuildHandler,
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -1639,7 +1639,7 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="build_for_pr+build_for_commit+build_for_release&CoprBuildHandler&github.push.Push",
+            id="build_for_pr+build_for_commit+build_for_release&CoprBuildHandler&github.push.Commit",
         ),
         pytest.param(
             CoprBuildHandler,
@@ -1727,7 +1727,7 @@ def test_get_handlers_for_check_rerun_event(
         ),
         pytest.param(
             CoprBuildHandler,
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -1769,7 +1769,7 @@ def test_get_handlers_for_check_rerun_event(
                     },
                 ),
             ],
-            id="tests_for_pr+build_for_commit+build_for_release&CoprBuildHandler&github.push.Push",
+            id="tests_for_pr+build_for_commit+build_for_release&CoprBuildHandler&github.push.Commit",
         ),
         pytest.param(
             CoprBuildHandler,
@@ -1923,7 +1923,7 @@ def test_get_handlers_for_check_rerun_event(
         ),
         pytest.param(
             CoprBuildHandler,
-            github.push.Push,
+            github.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -1975,7 +1975,7 @@ def test_get_handlers_for_check_rerun_event(
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
-            "&CoprBuildHandler&github.push.Push",
+            "&CoprBuildHandler&github.push.Commit",
         ),
         pytest.param(
             CoprBuildHandler,
@@ -2397,7 +2397,7 @@ def test_get_handlers_for_check_rerun_event(
         ),
         pytest.param(
             DownstreamKojiBuildHandler,
-            pagure.push.Push,
+            pagure.push.Commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
@@ -2413,7 +2413,7 @@ def test_get_handlers_for_check_rerun_event(
                     packages={"package": CommonPackageConfig()},
                 ),
             ],
-            id="koji_build_for_commit&DownstreamKojiBuildHandler&pagure.push.Push",
+            id="koji_build_for_commit&DownstreamKojiBuildHandler&pagure.push.Commit",
         ),
         pytest.param(
             KojiBuildReportHandler,
@@ -2647,7 +2647,7 @@ def test_handler_matches_to_job(event_kls, handler: type[JobHandler], allowed_ha
     "event_kls,handler,allowed_handlers",
     [
         pytest.param(
-            pagure.push.Push,
+            pagure.push.Commit,
             CoprBuildHandler,
             {DownstreamKojiBuildHandler},
         ),
