@@ -294,7 +294,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build)
     flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build).times(4)
-    flexmock(github.pr.Synchronize).should_receive("db_project_object").and_return(
+    flexmock(github.pr.Action).should_receive("db_project_object").and_return(
         flexmock(),
     )
 
@@ -399,7 +399,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             flexmock(),
         ),
     )
-    flexmock(github.pr.Synchronize).should_receive("db_project_object").and_return(
+    flexmock(github.pr.Action).should_receive("db_project_object").and_return(
         flexmock(),
     )
 
@@ -1024,7 +1024,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
             package_config,
             jobs[0],
             {
-                "event_type": "github.pr.Synchronize",
+                "event_type": "github.pr.Action",
                 "actor": "actor",
                 "project_url": "url",
                 "commit_sha": "abcdef",

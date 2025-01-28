@@ -38,7 +38,7 @@ class IsEventOk(
 ):
     def pre_check(self) -> bool:
         if (
-            self.data.event_type == gitlab.mr.Synchronize.event_type()
+            self.data.event_type == gitlab.mr.Action.event_type()
             and self.data.event_dict["action"] == gitlab.enums.Action.closed.value
         ):
             # Not interested in closed merge requests

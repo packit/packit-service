@@ -14,13 +14,13 @@ from packit_service.worker.events.abstract.comment import (
 )
 
 from .abstract import GitlabEvent
-from .enums import Action
+from .enums import Action as GitlabAction
 
 
-class Synchronize(AddPullRequestEventToDb, GitlabEvent):
+class Action(AddPullRequestEventToDb, GitlabEvent):
     def __init__(
         self,
-        action: Action,
+        action: GitlabAction,
         actor: str,
         object_id: int,
         object_iid: int,
@@ -62,7 +62,7 @@ class Synchronize(AddPullRequestEventToDb, GitlabEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "gitlab.mr.Synchronize"
+        return "gitlab.mr.Action"
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
@@ -79,7 +79,7 @@ class Synchronize(AddPullRequestEventToDb, GitlabEvent):
 class Comment(AbstractPRCommentEvent, GitlabEvent):
     def __init__(
         self,
-        action: Action,
+        action: GitlabAction,
         object_id: int,
         object_iid: int,
         source_repo_namespace: str,

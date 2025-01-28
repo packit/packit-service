@@ -152,9 +152,9 @@ class EventData:
         # TODO, do a better job
         # Probably, try to recreate original classes.
         if self.event_type in {
-            "github.pr.Synchronize",
-            "pagure.pr.Synchronize",
-            "gitlab.mr.Synchronize",
+            "github.pr.Action",
+            "pagure.pr.Action",
+            "gitlab.mr.Action",
             "github.pr.Comment",
             "pagure.pr.Comment",
             "gitlab.mr.Comment",

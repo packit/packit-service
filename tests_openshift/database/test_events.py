@@ -119,7 +119,7 @@ def test_push_branch_event_non_existing_branch(
 
 def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, github.pr.Synchronize)
+    assert isinstance(event_object, github.pr.Action)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -137,7 +137,7 @@ def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
 
 def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
     event_object = Parser.parse_event(mr_event_dict)
-    assert isinstance(event_object, gitlab.mr.Synchronize)
+    assert isinstance(event_object, gitlab.mr.Action)
 
     assert event_object.git_ref is None
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
@@ -193,7 +193,7 @@ def test_push_gitlab_event(
 
 def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, github.pr.Synchronize)
+    assert isinstance(event_object, github.pr.Action)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None

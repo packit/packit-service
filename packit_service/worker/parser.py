@@ -76,14 +76,14 @@ class Parser:
             github.check.PullRequest,
             github.check.Release,
             github.pr.Comment,
-            github.pr.Synchronize,
+            github.pr.Action,
             github.issue.Comment,
             github.installation.Installation,
             github.push.Commit,
             github.release.Release,
             gitlab.issue.Comment,
             gitlab.mr.Comment,
-            gitlab.mr.Synchronize,
+            gitlab.mr.Action,
             gitlab.pipeline.Pipeline,
             gitlab.push.Commit,
             gitlab.push.Tag,
@@ -95,7 +95,7 @@ class Parser:
             openscanhub.task.Started,
             pagure.pr.Comment,
             pagure.pr.Flag,
-            pagure.pr.Synchronize,
+            pagure.pr.Action,
             pagure.push.Commit,
             testing_farm.Result,
             vm_image.Result,
@@ -158,7 +158,7 @@ class Parser:
         return None
 
     @staticmethod
-    def parse_mr_event(event) -> Optional[gitlab.mr.Synchronize]:
+    def parse_mr_event(event) -> Optional[gitlab.mr.Action]:
         """Look into the provided event and see if it's one for a new gitlab MR."""
         if event.get("object_kind") != "merge_request":
             return None
@@ -220,7 +220,7 @@ class Parser:
         description = nested_get(event, "object_attributes", "description")
         url = nested_get(event, "object_attributes", "url")
 
-        return gitlab.mr.Synchronize(
+        return gitlab.mr.Action(
             action=gitlab.enums.Action[action],
             actor=actor,
             object_id=object_id,
@@ -241,7 +241,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_pr_event(event) -> Optional[github.pr.Synchronize]:
+    def parse_pr_event(event) -> Optional[github.pr.Action]:
         """Look into the provided event and see if it's one for a new github PR."""
         if not event.get("pull_request"):
             return None
@@ -293,7 +293,7 @@ class Parser:
 
         commit_sha = nested_get(event, "pull_request", "head", "sha")
         https_url = event["repository"]["html_url"]
-        return github.pr.Synchronize(
+        return github.pr.Action(
             action=PullRequestAction[action],
             pr_id=pr_id,
             base_repo_namespace=base_repo_namespace,
@@ -1673,7 +1673,7 @@ class Parser:
     @staticmethod
     def parse_pagure_pull_request_event(
         event,
-    ) -> Optional[pagure.pr.Synchronize]:
+    ) -> Optional[pagure.pr.Action]:
         if (topic := event.get("topic", "")) not in (
             "org.fedoraproject.prod.pagure.pull-request.new",
             "org.fedoraproject.prod.pagure.pull-request.updated",
@@ -1700,7 +1700,7 @@ class Parser:
         commit_sha = event["pullrequest"]["commit_stop"]
         target_branch = event["pullrequest"]["branch"]
 
-        return pagure.pr.Synchronize(
+        return pagure.pr.Action(
             action=PullRequestAction[action],
             pr_id=pr_id,
             base_repo_namespace=base_repo_namespace,

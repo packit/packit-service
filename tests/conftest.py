@@ -501,7 +501,7 @@ def github_vm_image_build_comment():
 
 
 @pytest.fixture(scope="module")
-def github_pr_event(github_pr_webhook) -> events.github.pr.Synchronize:
+def github_pr_event(github_pr_webhook) -> events.github.pr.Action:
     return Parser.parse_pr_event(github_pr_webhook)
 
 
@@ -528,7 +528,7 @@ def distgit_push_event(distgit_push_packit) -> events.pagure.push.Commit:
 
 
 @pytest.fixture(scope="module")
-def gitlab_mr_event(gitlab_mr_webhook) -> events.gitlab.mr.Synchronize:
+def gitlab_mr_event(gitlab_mr_webhook) -> events.gitlab.mr.Action:
     return Parser.parse_mr_event(gitlab_mr_webhook)
 
 

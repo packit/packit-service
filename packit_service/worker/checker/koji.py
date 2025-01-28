@@ -31,15 +31,15 @@ class IsUpstreamKojiScratchBuild(Checker, GetKojiBuildJobHelperMixin):
 class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
     def pre_check(self) -> bool:
         if (
-            self.data.event_type == gitlab.mr.Synchronize.event_type()
+            self.data.event_type == gitlab.mr.Action.event_type()
             and self.data.event_dict["action"] == gitlab.enums.Action.closed.value
         ):
             # Not interested in closed merge requests
             return False
 
         if self.data.event_type in (
-            github.pr.Synchronize.event_type(),
-            gitlab.mr.Synchronize.event_type(),
+            github.pr.Action.event_type(),
+            gitlab.mr.Action.event_type(),
         ):
             user_can_merge_pr = self.project.can_merge_pr(self.data.actor)
             if not (user_can_merge_pr or self.data.actor in self.service_config.admins):

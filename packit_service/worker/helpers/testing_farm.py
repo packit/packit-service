@@ -334,10 +334,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self.metadata.event_type
             in (
                 github.push.Commit.event_type(),
-                github.pr.Synchronize.event_type(),
+                github.pr.Action.event_type(),
                 github.commit.Comment.event_type(),
                 gitlab.push.Commit.event_type(),
-                gitlab.mr.Synchronize.event_type(),
+                gitlab.mr.Action.event_type(),
                 gitlab.commit.Comment.event_type(),
             )
             or self.is_copr_build_comment_event()

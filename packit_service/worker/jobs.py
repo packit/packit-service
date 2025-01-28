@@ -231,7 +231,7 @@ class SteveJobs:
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
         elif (
-            isinstance(self.event, (pagure.pr.Synchronize, koji.Task))
+            isinstance(self.event, (pagure.pr.Action, koji.Task))
             and self.event.db_project_object
             and (url := self.event.db_project_object.project.project_url)
             and url in self.service_config.enabled_projects_for_fedora_ci

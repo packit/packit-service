@@ -131,7 +131,7 @@ def test_parse_release(github_release_webhook):
 def test_parse_pr(github_pr_webhook):
     event_object = Parser.parse_event(github_pr_webhook)
 
-    assert isinstance(event_object, pr.Synchronize)
+    assert isinstance(event_object, pr.Action)
     assert event_object.action == PullRequestAction.opened
     assert event_object.pr_id == 342
     assert event_object.base_repo_namespace == "lbarcziova"
@@ -222,7 +222,7 @@ def test_parse_github_push_branch(github_push_branch):
 def test_get_project_pr(github_pr_webhook, mock_config):
     event_object = Parser.parse_event(github_pr_webhook)
 
-    assert isinstance(event_object, pr.Synchronize)
+    assert isinstance(event_object, pr.Action)
 
     assert isinstance(event_object.project, GithubProject)
     assert isinstance(event_object.project.service, GithubService)

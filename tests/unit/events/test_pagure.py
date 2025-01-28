@@ -120,7 +120,7 @@ def test_distgit_pagure_push(distgit_commit):
 def test_parse_pagure_pull_request_new(pagure_pr_new):
     event_object = Parser.parse_event(pagure_pr_new)
 
-    assert isinstance(event_object, pr.Synchronize)
+    assert isinstance(event_object, pr.Action)
     assert event_object.action == PullRequestAction.opened
     assert event_object.pr_id == 2
     assert event_object.base_repo_namespace == "rpms"
@@ -157,7 +157,7 @@ def test_parse_pagure_pull_request_new(pagure_pr_new):
 def test_parse_pagure_pull_request_updated(pagure_pr_updated):
     event_object = Parser.parse_event(pagure_pr_updated)
 
-    assert isinstance(event_object, pr.Synchronize)
+    assert isinstance(event_object, pr.Action)
     assert event_object.action == PullRequestAction.synchronize
     assert event_object.pr_id == 32
     assert event_object.base_repo_namespace == "rpms"
@@ -194,7 +194,7 @@ def test_parse_pagure_pull_request_updated(pagure_pr_updated):
 def test_parse_pagure_pull_request_rebased(pagure_pr_rebased):
     event_object = Parser.parse_event(pagure_pr_rebased)
 
-    assert isinstance(event_object, pr.Synchronize)
+    assert isinstance(event_object, pr.Action)
     assert event_object.action == PullRequestAction.synchronize
     assert event_object.pr_id == 6
     assert event_object.base_repo_namespace == "rpms"

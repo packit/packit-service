@@ -40,7 +40,7 @@ from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 def build_helper(
     event: Union[
-        github.pr.Synchronize,
+        github.pr.Action,
         github.pr.Comment,
         github.push.Commit,
         github.release.Release,

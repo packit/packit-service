@@ -124,7 +124,7 @@ def test_parse_gitlab_tag_push(gitlab_tag_push):
 def test_parse_mr(merge_request):
     event_object = Parser.parse_event(merge_request)
 
-    assert isinstance(event_object, mr.Synchronize)
+    assert isinstance(event_object, mr.Action)
     assert event_object.action == enums.Action.opened
     assert event_object.object_id == 58759529
     assert event_object.identifier == "1"
@@ -157,7 +157,7 @@ def test_parse_mr(merge_request):
 
 def test_parse_mr_action(merge_request_update):
     event_object = Parser.parse_event(merge_request_update)
-    assert isinstance(event_object, mr.Synchronize)
+    assert isinstance(event_object, mr.Action)
     assert event_object.action == enums.Action.update
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
     assert event_object.oldrev == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
@@ -183,7 +183,7 @@ def test_parse_mr_action(merge_request_update):
 
 def test_parse_mr_closed(merge_request_closed):
     event_object = Parser.parse_event(merge_request_closed)
-    assert isinstance(event_object, mr.Synchronize)
+    assert isinstance(event_object, mr.Action)
     assert event_object.action == enums.Action.closed
 
 

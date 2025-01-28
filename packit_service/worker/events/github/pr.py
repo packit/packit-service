@@ -15,7 +15,7 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.events.github.abstract import GithubEvent
 
 
-class Synchronize(AddPullRequestEventToDb, GithubEvent):
+class Action(AddPullRequestEventToDb, GithubEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -43,7 +43,7 @@ class Synchronize(AddPullRequestEventToDb, GithubEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "github.pr.Synchronize"
+        return "github.pr.Action"
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()

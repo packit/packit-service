@@ -145,7 +145,7 @@ class Comment(AbstractPRCommentEvent, PagureEvent):
         return self.repo_url.repo if self.repo_url else None
 
 
-class Synchronize(AddPullRequestEventToDb, PagureEvent):
+class Action(AddPullRequestEventToDb, PagureEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -176,7 +176,7 @@ class Synchronize(AddPullRequestEventToDb, PagureEvent):
 
     @classmethod
     def event_type(cls) -> str:
-        return "pagure.pr.Synchronize"
+        return "pagure.pr.Action"
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()

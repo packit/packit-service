@@ -49,7 +49,7 @@ UncheckedEvent = Union[
     koji.Task,
     koji.Build,
     pagure.pr.Comment,
-    pagure.pr.Synchronize,
+    pagure.pr.Action,
     pagure.push.Commit,
     testing_farm.Result,
 ]
@@ -314,9 +314,9 @@ class Allowlist:
     def _check_pr_event(
         self,
         event: Union[
-            github.pr.Synchronize,
+            github.pr.Action,
             github.pr.Comment,
-            gitlab.mr.Synchronize,
+            gitlab.mr.Action,
             gitlab.mr.Comment,
         ],
         project: GitProject,
@@ -500,7 +500,7 @@ class Allowlist:
         ] = {
             (  # events that are not checked against allowlist
                 pagure.push.Commit,
-                pagure.pr.Synchronize,
+                pagure.pr.Action,
                 pagure.pr.Comment,
                 copr.CoprBuild,
                 testing_farm.Result,
@@ -520,9 +520,9 @@ class Allowlist:
                 gitlab.push.Commit,
             ): self._check_release_push_event,
             (
-                github.pr.Synchronize,
+                github.pr.Action,
                 github.pr.Comment,
-                gitlab.mr.Synchronize,
+                gitlab.mr.Action,
                 gitlab.mr.Comment,
             ): self._check_pr_event,
             (

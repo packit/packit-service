@@ -485,7 +485,7 @@ def events(request) -> Iterable[tuple[github.abstract.GithubEvent, bool, Iterabl
             },
         ),
         "pr": (
-            github.pr.Synchronize,
+            github.pr.Action,
             lambda forge, namespace, repository: {
                 "action": PullRequestAction.opened,
                 "pr_id": 1,
@@ -642,7 +642,7 @@ def test_check_and_report(
             },
         ),
     ]
-    flexmock(github.pr.Synchronize).should_receive("get_packages_config").and_return(
+    flexmock(github.pr.Action).should_receive("get_packages_config").and_return(
         flexmock(
             jobs=job_configs,
             get_package_config_for=lambda job_config: flexmock(
@@ -676,7 +676,7 @@ def test_check_and_report(
         if isinstance(event, github.release.Release) and not is_valid:
             flexmock(git_project).should_receive("get_sha_from_tag")
             flexmock(git_project).should_receive("commit_comment")
-        if isinstance(event, github.pr.Synchronize) and not is_valid:
+        if isinstance(event, github.pr.Action) and not is_valid:
             notification_project_mock = flexmock()
             notification_project_mock.should_receive("get_issue_list").with_args(
                 author="packit-as-a-service[bot]",
@@ -809,7 +809,7 @@ def test_check_and_report_actor_pull_request(
     allowlist,
     add_pull_request_event_with_empty_sha,
 ):
-    event = github.pr.Synchronize(
+    event = github.pr.Action(
         action=PullRequestAction.opened,
         pr_id=0,
         base_repo_namespace="base",
@@ -841,7 +841,7 @@ def test_check_and_report_actor_pull_request(
             },
         ),
     ]
-    flexmock(github.pr.Synchronize).should_receive("get_packages_config").and_return(
+    flexmock(github.pr.Action).should_receive("get_packages_config").and_return(
         flexmock(
             jobs=job_configs,
             get_package_config_for=lambda job_config: flexmock(

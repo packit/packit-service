@@ -734,7 +734,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             return super().run()
 
 
-@reacts_to_as_fedora_ci(event=pagure.pr.Synchronize)
+@reacts_to_as_fedora_ci(event=pagure.pr.Action)
 class DownstreamKojiScratchBuildHandler(
     RetriableJobHandler, ConfigFromUrlMixin, LocalProjectMixin, PackitAPIWithDownstreamMixin
 ):

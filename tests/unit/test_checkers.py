@@ -75,7 +75,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
     (
         pytest.param(
             False,
-            construct_dict(event=gitlab.mr.Synchronize.event_type(), action="closed"),
+            construct_dict(event=gitlab.mr.Action.event_type(), action="closed"),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -83,7 +83,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=github.pr.Synchronize.event_type()),
+            construct_dict(event=github.pr.Action.event_type()),
             True,
             False,
             JobConfigTriggerType.pull_request,
@@ -91,7 +91,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=gitlab.mr.Synchronize.event_type()),
+            construct_dict(event=gitlab.mr.Action.event_type()),
             True,
             False,
             JobConfigTriggerType.pull_request,
@@ -99,7 +99,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             False,
-            construct_dict(event=gitlab.mr.Synchronize.event_type()),
+            construct_dict(event=gitlab.mr.Action.event_type()),
             False,
             True,
             JobConfigTriggerType.pull_request,
@@ -107,7 +107,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             True,
-            construct_dict(event=github.pr.Synchronize.event_type()),
+            construct_dict(event=github.pr.Action.event_type()),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -115,7 +115,7 @@ def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
         ),
         pytest.param(
             True,
-            construct_dict(event=gitlab.mr.Synchronize.event_type()),
+            construct_dict(event=gitlab.mr.Action.event_type()),
             True,
             True,
             JobConfigTriggerType.pull_request,
@@ -237,28 +237,28 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
         pytest.param(
             "the-branch",
             True,
-            construct_dict(event=github.pr.Synchronize.event_type()),
+            construct_dict(event=github.pr.Action.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitHub PR target branch matches",
         ),
         pytest.param(
             "the-other-branch",
             False,
-            construct_dict(event=github.pr.Synchronize.event_type()),
+            construct_dict(event=github.pr.Action.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitHub PR target branch does not match",
         ),
         pytest.param(
             "the-branch",
             True,
-            construct_dict(event=gitlab.mr.Synchronize.event_type()),
+            construct_dict(event=gitlab.mr.Action.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitLab PR target branch matches",
         ),
         pytest.param(
             "the-other-branch",
             False,
-            construct_dict(event=gitlab.mr.Synchronize.event_type()),
+            construct_dict(event=gitlab.mr.Action.event_type()),
             JobConfigTriggerType.pull_request,
             id="GitLab PR target branch does not match",
         ),
