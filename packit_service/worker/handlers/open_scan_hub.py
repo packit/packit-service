@@ -150,7 +150,7 @@ class OpenScanHubTaskFinishedHandler(
     def run(self) -> TaskResults:
         self.check_scan_and_build()
         external_links = {"OpenScanHub task": self.event.scan.url}
-        if self.event.status == openscanhub.task.Finished.Status.success:
+        if self.event.status == openscanhub.task.Status.success:
             state = BaseCommitStatus.success
             number_of_new_findings = self.get_number_of_new_findings_identified()
             base_description = "Scan in OpenScanHub is finished."
@@ -178,7 +178,7 @@ class OpenScanHubTaskFinishedHandler(
         else:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {self.event.status} state."
-            if self.event.status == openscanhub.task.Finished.Status.cancel:
+            if self.event.status == openscanhub.task.Status.cancel:
                 self.event.scan.set_status(OSHScanStatus.canceled)
             else:
                 self.event.scan.set_status(OSHScanStatus.failed)

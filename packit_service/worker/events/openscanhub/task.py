@@ -6,6 +6,13 @@ import enum
 from packit_service.worker.events.openscanhub.abstract import OpenScanHubEvent
 
 
+class Status(str, enum.Enum):
+    success = "success"
+    cancel = "cancel"
+    interrupt = "interrupt"
+    fail = "fail"
+
+
 class Started(OpenScanHubEvent):
     @classmethod
     def event_type(cls) -> str:
@@ -13,12 +20,6 @@ class Started(OpenScanHubEvent):
 
 
 class Finished(OpenScanHubEvent):
-    class Status(str, enum.Enum):
-        success = "success"
-        cancel = "cancel"
-        interrupt = "interrupt"
-        fail = "fail"
-
     def __init__(
         self,
         status: Status,

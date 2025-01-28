@@ -188,42 +188,42 @@ def test_handle_scan(build_models):
             JobType.copr_build,
             JobConfigTriggerType.commit,
             ["fedora-rawhide-x86_64"],
-            openscanhub.task.Finished.Status.success,
+            openscanhub.task.Status.success,
             0,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-stable"],
-            openscanhub.task.Finished.Status.success,
+            openscanhub.task.Status.success,
             0,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-rawhide-x86_64"],
-            openscanhub.task.Finished.Status.success,
+            openscanhub.task.Status.success,
             1,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-rawhide-x86_64"],
-            openscanhub.task.Finished.Status.fail,
+            openscanhub.task.Status.fail,
             1,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.pull_request,
             ["fedora-rawhide-x86_64"],
-            openscanhub.task.Finished.Status.cancel,
+            openscanhub.task.Status.cancel,
             1,
         ),
         (
             JobType.copr_build,
             JobConfigTriggerType.commit,
             ["fedora-rawhide-x86_64"],
-            openscanhub.task.Finished.Status.interrupt,
+            openscanhub.task.Status.interrupt,
             0,
         ),
     ],
@@ -266,7 +266,7 @@ def test_handle_scan_task_finished(
         links_to_external_services = {
             "OpenScanHub task": "https://openscanhub.fedoraproject.org/task/17514/"
         }
-        if scan_status == openscanhub.task.Finished.Status.success:
+        if scan_status == openscanhub.task.Status.success:
             state = BaseCommitStatus.success
             description = "Scan in OpenScanHub is finished. 2 new findings identified."
             flexmock(scan_mock).should_receive("set_status").with_args(
@@ -283,7 +283,7 @@ def test_handle_scan_task_finished(
                     ),
                 }
             )
-        elif scan_status == openscanhub.task.Finished.Status.cancel:
+        elif scan_status == openscanhub.task.Status.cancel:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {scan_status} state."
             flexmock(scan_mock).should_receive("set_status").with_args(
