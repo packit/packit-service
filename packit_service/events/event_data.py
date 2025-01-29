@@ -147,8 +147,19 @@ class EventData:
         return self._project
 
     def _add_project_object_and_event(self):
-        # TODO, do a better job
-        # Probably, try to recreate original classes.
+        # [TODO] Improve handling of this matching against hard-coded values.
+        # 1. Switching from hard-coded values to using ‹.event_type()› on the
+        #    classes themselves would be possible, but that would introduce
+        #    circular imports.
+        # 2. Better approach would be importing based on the ‹self.event_type›
+        #    and inheriting a “mixin” within the event class that could handle
+        #    this logic. However ‹self.project› (used below) is a property, and
+        #    the return values are assigned to ‹self›. Also the type signature
+        #    for the methods introduced by a mixin would be complicated, as the
+        #    least amount of copy-paste basically leads to having both named
+        #    arguments and ‹**kwargs› to catch any additional unused parameters.
+        #    We would also lose silent fail on some of the currently ignored
+        #    events (right now we log a warning).
         if self.event_type in {
             "github.pr.Action",
             "pagure.pr.Action",
