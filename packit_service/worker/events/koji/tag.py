@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.koji_build)
 class Build(KojiEvent):
+    """Represents an event of tagging a Koji build.
+
+    Docs: https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#buildsys-tag
+    """
+
     _koji_helper: Optional[KojiHelper] = None
 
     def __init__(

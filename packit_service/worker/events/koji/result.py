@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 
 @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.commit)
 class Build(KojiEvent):
+    """Represents a change in the state of the non-scratch Koji build.
+
+    Docs: https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#buildsys-build-state-change
+    """
+
     def __init__(
         self,
         build_id: int,
@@ -136,8 +141,9 @@ class Build(KojiEvent):
 
 
 class Task(KojiEvent):
-    """
-    Used for scratch builds.
+    """Represents a change in the result of the scratch build task.
+
+    Docs: https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#buildsys-task-state-change
     """
 
     def __init__(
