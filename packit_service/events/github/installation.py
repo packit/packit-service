@@ -30,7 +30,7 @@ class Installation(Event):
         self.account_id = account_id
         self.account_url = account_url
         self.account_type = account_type
-        # repos within the account/namespace
+        # repos within the account/namespace in the scope of the installation
         self.repositories = repositories
         # sender == user who installed the app into 'account'
         self.sender_id = sender_id
