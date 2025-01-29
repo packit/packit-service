@@ -584,7 +584,7 @@ def test_koji_build_targets_override(
     ],
 )
 def test_get_koji_build_logs_url(id_, result):
-    assert koji.Task.get_koji_build_logs_url(rpm_build_task_id=id_) == result
+    assert koji.result.Task.get_koji_build_logs_url(rpm_build_task_id=id_) == result
 
 
 @pytest.mark.parametrize(
@@ -601,4 +601,4 @@ def test_get_koji_build_logs_url(id_, result):
     ],
 )
 def test_get_koji_rpm_build_web_url(id_, result):
-    assert koji.Task.get_koji_rpm_build_web_url(rpm_build_task_id=id_) == result
+    assert koji.result.Task.get_koji_rpm_build_web_url(rpm_build_task_id=id_) == result

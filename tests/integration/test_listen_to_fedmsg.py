@@ -2460,7 +2460,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build_pr):
     koji_build_pr.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(koji.Task).should_receive("get_packages_config").and_return(
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(
         pc_koji_build_pr,
     )
 
@@ -2522,7 +2522,7 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr):
     koji_build_pr.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(koji.Task).should_receive("get_packages_config").and_return(
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(
         pc_koji_build_pr,
     )
 
@@ -2583,7 +2583,7 @@ def test_koji_build_end_downstream(
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
     koji_build_pr_downstream.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(koji.Task).should_receive("get_packages_config").and_return(
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(
         pc_koji_build_pr,
     )
 
@@ -2634,7 +2634,7 @@ def test_koji_build_tag(
         {"task_id": 7654321},
     )
 
-    flexmock(koji.BuildTag).should_receive("get_packages_config").and_return(
+    flexmock(koji.tag.Build).should_receive("get_packages_config").and_return(
         pc_koji_build_tag_specfile,
     )
 

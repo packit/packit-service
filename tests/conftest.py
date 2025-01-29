@@ -596,7 +596,7 @@ def koji_build_completed_rawhide():
 
 
 @pytest.fixture()
-def koji_build_completed_event(koji_build_completed_rawhide) -> events.koji.base.Build:
+def koji_build_completed_event(koji_build_completed_rawhide) -> events.koji.result.Build:
     return Parser.parse_koji_build_event(koji_build_completed_rawhide)
 
 

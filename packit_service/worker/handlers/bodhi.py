@@ -316,7 +316,7 @@ class BodhiUpdateHandler(
 
 
 @configured_as(job_type=JobType.bodhi_update)
-@reacts_to(event=koji.Build)
+@reacts_to(event=koji.result.Build)
 class CreateBodhiUpdateHandler(
     BodhiUpdateHandler,
     RetriableJobHandler,

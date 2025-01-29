@@ -47,7 +47,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
         if self.data.event_type in (
             pagure.push.Commit.event_type(),
-            koji.BuildTag.event_type(),
+            koji.tag.Build.event_type(),
         ) and self.data.git_ref not in (
             configured_branches := get_branches(
                 *self.job_config.dist_git_branches,
@@ -180,7 +180,7 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
     """
 
     def pre_check(self) -> bool:
-        if self.data.event_type in (koji.BuildTag.event_type(),) and (
+        if self.data.event_type in (koji.tag.Build.event_type(),) and (
             self.data.event_dict.get("package_name") == self.job_config.downstream_package_name
         ):
             logger.info("Skipping build triggered by tagging a build of self.")

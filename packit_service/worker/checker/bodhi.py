@@ -43,8 +43,8 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
 
         if self.data.event_type in (
             pagure.pr.Comment.event_type(),
-            koji.Build.event_type(),
-            koji.BuildTag.event_type(),
+            koji.result.Build.event_type(),
+            koji.tag.Build.event_type(),
         ):
             for koji_build_data in self:
                 if koji_build_data.state != KojiBuildState.complete:
@@ -74,7 +74,7 @@ class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
     def pre_check(self) -> bool:
         """Check if the build submitter matches the configuration"""
 
-        if self.data.event_type in (koji.Build.event_type(),):
+        if self.data.event_type in (koji.result.Build.event_type(),):
             owner = self.koji_build_event.owner
             configured_builders = self.job_config.allowed_builders
 

@@ -45,16 +45,16 @@ class GetKojiBuildEvent(Protocol):
 
     @property
     @abstractmethod
-    def koji_build_event(self) -> koji.Build: ...
+    def koji_build_event(self) -> koji.result.Build: ...
 
 
 class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
-    _koji_build_event: Optional[koji.Build] = None
+    _koji_build_event: Optional[koji.result.Build] = None
 
     @property
     def koji_build_event(self):
         if not self._koji_build_event:
-            self._koji_build_event = koji.Build.from_event_dict(
+            self._koji_build_event = koji.result.Build.from_event_dict(
                 self.data.event_dict,
             )
         return self._koji_build_event
@@ -186,13 +186,13 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
     ConfigFromEventMixin,
     GetKojiBuildData,
 ):
-    _koji_build_tag_event: Optional[koji.BuildTag] = None
+    _koji_build_tag_event: Optional[koji.tag.Build] = None
     _sidetag: Optional[Sidetag] = None
 
     @property
-    def koji_build_tag_event(self) -> koji.BuildTag:
+    def koji_build_tag_event(self) -> koji.tag.Build:
         if not self._koji_build_tag_event:
-            self._koji_build_tag_event = koji.BuildTag.from_event_dict(
+            self._koji_build_tag_event = koji.tag.Build.from_event_dict(
                 self.data.event_dict,
             )
         return self._koji_build_tag_event

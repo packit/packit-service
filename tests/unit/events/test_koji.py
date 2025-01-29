@@ -8,15 +8,7 @@ from packit.utils.koji_helper import KojiHelper
 
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import KojiBuildTargetModel
-from packit_service.worker.events.koji.base import (
-    Build as KojiBuildEvent,
-)
-from packit_service.worker.events.koji.base import (
-    BuildTag as KojiBuildTagEvent,
-)
-from packit_service.worker.events.koji.base import (
-    Task as KojiTaskEvent,
-)
+from packit_service.worker.events import koji as events
 from packit_service.worker.parser import Parser
 
 
@@ -27,7 +19,7 @@ def test_parse_koji_build_scratch_event_start(koji_build_scratch_start, koji_bui
 
     event_object = Parser.parse_event(koji_build_scratch_start)
 
-    assert isinstance(event_object, KojiTaskEvent)
+    assert isinstance(event_object, events.result.Task)
     assert event_object.task_id == 45270170
     assert event_object.state == KojiTaskState.open
     assert not event_object.rpm_build_task_ids
@@ -43,7 +35,7 @@ def test_parse_koji_build_scratch_event_end(koji_build_scratch_end, koji_build_p
 
     event_object = Parser.parse_event(koji_build_scratch_end)
 
-    assert isinstance(event_object, KojiTaskEvent)
+    assert isinstance(event_object, events.result.Task)
     assert event_object.task_id == 45270170
     assert event_object.state == KojiTaskState.closed
     assert event_object.rpm_build_task_ids == {"noarch": 45270227}
@@ -64,7 +56,7 @@ def test_parse_koji_build_event_start_old_format(
 ):
     event_object = Parser.parse_event(koji_build_start_old_format)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1864700
     assert event_object.state == KojiBuildState.building
     assert not event_object.old_state
@@ -102,7 +94,7 @@ def test_parse_koji_build_event_start_old_format(
 def test_parse_koji_build_event_start_rawhide(koji_build_start_rawhide, mock_config):
     event_object = Parser.parse_event(koji_build_start_rawhide)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1874074
     assert event_object.state == KojiBuildState.building
     assert not event_object.old_state
@@ -143,7 +135,7 @@ def test_parse_koji_build_event_start_rawhide(koji_build_start_rawhide, mock_con
 def test_parse_koji_build_event_start_f36(koji_build_start_f36, mock_config):
     event_object = Parser.parse_event(koji_build_start_f36)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1874070
     assert event_object.state == KojiBuildState.building
     assert not event_object.old_state
@@ -184,7 +176,7 @@ def test_parse_koji_build_event_start_f36(koji_build_start_f36, mock_config):
 def test_parse_koji_build_event_start_epel8(koji_build_start_epel8, mock_config):
     event_object = Parser.parse_event(koji_build_start_epel8)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1874072
     assert event_object.state == KojiBuildState.building
     assert not event_object.old_state
@@ -228,7 +220,7 @@ def test_parse_koji_build_event_completed_old_format(
 ):
     event_object = Parser.parse_event(koji_build_completed_old_format)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1864700
     assert event_object.state == KojiBuildState.complete
     assert event_object.old_state == KojiBuildState.building
@@ -269,7 +261,7 @@ def test_parse_koji_build_event_completed_rawhide(
 ):
     event_object = Parser.parse_event(koji_build_completed_rawhide)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1874074
     assert event_object.state == KojiBuildState.complete
     assert event_object.old_state == KojiBuildState.building
@@ -310,7 +302,7 @@ def test_parse_koji_build_event_completed_rawhide(
 def test_parse_koji_build_event_completed_f36(koji_build_completed_f36, mock_config):
     event_object = Parser.parse_event(koji_build_completed_f36)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1874070
     assert event_object.state == KojiBuildState.complete
     assert event_object.old_state == KojiBuildState.building
@@ -355,7 +347,7 @@ def test_parse_koji_build_event_completed_epel8(
 ):
     event_object = Parser.parse_event(koji_build_completed_epel8)
 
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, events.result.Build)
     assert event_object.build_id == 1874072
     assert event_object.state == KojiBuildState.complete
     assert event_object.old_state == KojiBuildState.building
@@ -401,7 +393,7 @@ def test_parse_koji_tag_event(koji_build_tagged):
 
     event_object = Parser.parse_event(koji_build_tagged)
 
-    assert isinstance(event_object, KojiBuildTagEvent)
+    assert isinstance(event_object, events.tag.Build)
     assert event_object.build_id == 1234567
     assert event_object.task_id == 7654321
     assert event_object.tag_id == 12345

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from . import abstract
-from .base import NewHotness, VersionUpdate
+from .update import NewHotness, VersionUpdate
 
 __all__ = [
     abstract.__name__,

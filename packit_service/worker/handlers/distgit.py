@@ -1155,7 +1155,7 @@ class DownstreamKojiBuildHandler(
             trigger_type_description += (
                 f"Fedora Koji build was triggered by push with sha {self.data.commit_sha}."
             )
-        elif self.data.event_type == koji.BuildTag.event_type():
+        elif self.data.event_type == koji.tag.Build.event_type():
             trigger_type_description += (
                 f"Fedora Koji build was triggered "
                 f"by tagging of build {self.data.event_dict['build_id']} "
@@ -1263,7 +1263,7 @@ class TagIntoSidetagHandler(
             logger.debug(f"Failed to find the latest stable build of {package}")
             return
         task_id = sidetag.tag_build(nvr)
-        web_url = koji.Task.get_koji_rpm_build_web_url(
+        web_url = koji.result.Task.get_koji_rpm_build_web_url(
             rpm_build_task_id=int(task_id),
             koji_web_url=self.service_config.koji_web_url,
         )

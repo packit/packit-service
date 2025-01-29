@@ -231,7 +231,7 @@ class SteveJobs:
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
         elif (
-            isinstance(self.event, (pagure.pr.Action, koji.Task))
+            isinstance(self.event, (pagure.pr.Action, koji.result.Task))
             and self.event.db_project_object
             and (url := self.event.db_project_object.project.project_url)
             and url in self.service_config.enabled_projects_for_fedora_ci
@@ -741,7 +741,7 @@ class SteveJobs:
                     # after a failed release event
                     # (which has created the issue)
                     matching_jobs.append(job)
-        elif isinstance(self.event, koji.BuildTag):
+        elif isinstance(self.event, koji.tag.Build):
             # create a virtual job config
             job_config = JobConfig(
                 JobType.koji_build_tag,

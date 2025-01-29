@@ -135,7 +135,7 @@ class AbstractKojiTaskReportHandler(
             job_config=job_config,
             event=event,
         )
-        self.koji_task_event: koji.Task = koji.Task.from_event_dict(event)
+        self.koji_task_event: koji.result.Task = koji.result.Task.from_event_dict(event)
         self._db_project_object: Optional[AbstractProjectObjectDbType] = None
         self._db_project_event: Optional[ProjectEventModel] = None
         self._build: Optional[KojiBuildTargetModel] = None
@@ -231,7 +231,7 @@ class AbstractKojiTaskReportHandler(
             )
 
             self.build.set_build_logs_urls(koji_build_logs)
-            koji_rpm_task_web_url = koji.Task.get_koji_rpm_build_web_url(
+            koji_rpm_task_web_url = koji.result.Task.get_koji_rpm_build_web_url(
                 rpm_build_task_id=int(self.build.task_id),
                 koji_web_url=self.service_config.koji_web_url,
             )
@@ -252,7 +252,7 @@ class AbstractKojiTaskReportHandler(
 
 
 @configured_as(job_type=JobType.upstream_koji_build)
-@reacts_to(event=koji.Task)
+@reacts_to(event=koji.result.Task)
 class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
     task_name = TaskName.upstream_koji_build_report
     _helper: Optional[KojiBuildJobHelper] = None
@@ -292,7 +292,7 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
         )
 
 
-@reacts_to_as_fedora_ci(event=koji.Task)
+@reacts_to_as_fedora_ci(event=koji.result.Task)
 class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
     task_name = TaskName.downstream_koji_scratch_build_report
     _helper: Optional[FedoraCIHelper] = None
@@ -321,7 +321,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
 
 @configured_as(job_type=JobType.koji_build)
 @configured_as(job_type=JobType.bodhi_update)
-@reacts_to(event=koji.Build)
+@reacts_to(event=koji.result.Build)
 class KojiBuildReportHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,
@@ -340,7 +340,7 @@ class KojiBuildReportHandler(
             job_config=job_config,
             event=event,
         )
-        self.koji_build_event: koji.Build = koji.Build.from_event_dict(event)
+        self.koji_build_event: koji.result.Build = koji.result.Build.from_event_dict(event)
         self._db_project_object: Optional[AbstractProjectObjectDbType] = None
         self._build: Optional[KojiBuildTargetModel] = None
 
@@ -422,7 +422,7 @@ class KojiBuildReportHandler(
 
         if not self.build.web_url:
             self.build.set_web_url(
-                koji.Build.get_koji_rpm_build_web_url(
+                koji.result.Build.get_koji_rpm_build_web_url(
                     rpm_build_task_id=self.koji_build_event.task_id,
                     koji_web_url=self.service_config.koji_web_url,
                 ),
@@ -437,7 +437,7 @@ class KojiBuildReportHandler(
 
 
 @configured_as(job_type=JobType.koji_build_tag)
-@reacts_to(event=koji.BuildTag)
+@reacts_to(event=koji.tag.Build)
 class KojiBuildTagHandler(
     JobHandler,
     ConfigFromEventMixin,

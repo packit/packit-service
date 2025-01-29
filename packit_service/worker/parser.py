@@ -88,9 +88,9 @@ class Parser:
             gitlab.push.Commit,
             gitlab.push.Tag,
             gitlab.release.Release,
-            koji.Build,
-            koji.BuildTag,
-            koji.Task,
+            koji.result.Build,
+            koji.tag.Build,
+            koji.result.Task,
             openscanhub.task.Finished,
             openscanhub.task.Started,
             pagure.pr.Comment,
@@ -1400,7 +1400,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_koji_task_event(event) -> Optional[koji.Task]:
+    def parse_koji_task_event(event) -> Optional[koji.result.Task]:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.task.state.change":
             return None
 
@@ -1424,7 +1424,7 @@ class Parser:
             if children.get("method") == "buildArch":
                 rpm_build_task_ids[children.get("arch")] = children.get("id")
 
-        return koji.Task(
+        return koji.result.Task(
             task_id=task_id,
             state=state_enum,
             old_state=old_state,
@@ -1434,7 +1434,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_koji_build_event(event) -> Optional[koji.Build]:
+    def parse_koji_build_event(event) -> Optional[koji.result.Build]:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.build.state.change":
             return None
 
@@ -1482,7 +1482,7 @@ class Parser:
             if children.get("method") == "buildArch":
                 rpm_build_task_ids[children.get("arch")] = children.get("id")
 
-        return koji.Build(
+        return koji.result.Build(
             build_id=build_id,
             rpm_build_task_ids=rpm_build_task_ids,
             state=new_state,
@@ -1496,7 +1496,7 @@ class Parser:
             version=version,
             release=release,
             task_id=task_id,
-            web_url=koji.Build.get_koji_rpm_build_web_url(
+            web_url=koji.result.Build.get_koji_rpm_build_web_url(
                 rpm_build_task_id=task_id,
                 koji_web_url=ServiceConfig.get_service_config().koji_web_url,
             ),
@@ -1507,7 +1507,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_koji_build_tag_event(event) -> Optional[koji.BuildTag]:
+    def parse_koji_build_tag_event(event) -> Optional[koji.tag.Build]:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.tag":
             return None
 
@@ -1528,7 +1528,7 @@ class Parser:
         dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
         distgit_project_url = f"{dg_base_url}rpms/{package_name}"
 
-        return koji.BuildTag(
+        return koji.tag.Build(
             build_id=build_id,
             tag_name=tag_name,
             tag_id=tag_id,

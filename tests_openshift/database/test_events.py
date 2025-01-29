@@ -349,7 +349,7 @@ def test_koji_build_scratch_start(
     koji_build_scratch_start_dict,
 ):
     event_object = Parser.parse_event(koji_build_scratch_start_dict)
-    assert isinstance(event_object, koji.Task)
+    assert isinstance(event_object, koji.result.Task)
 
     assert event_object.task_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.open
@@ -370,7 +370,7 @@ def test_koji_build_scratch_end(
     koji_build_scratch_end_dict,
 ):
     event_object = Parser.parse_event(koji_build_scratch_end_dict)
-    assert isinstance(event_object, koji.Task)
+    assert isinstance(event_object, koji.result.Task)
 
     assert event_object.task_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.closed
