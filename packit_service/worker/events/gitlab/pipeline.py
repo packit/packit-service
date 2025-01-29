@@ -3,7 +3,7 @@
 
 from typing import Optional
 
-from packit_service.worker.events.gitlab.abstract import GitlabEvent
+from .abstract import GitlabEvent
 
 
 class Pipeline(GitlabEvent):

@@ -10,7 +10,8 @@ from packit_service.models import (
     KojiBuildTargetModel,
     ProjectEventModel,
 )
-from packit_service.worker.events.abstract.base import Result
+
+from ..abstract.base import Result
 
 logger = logging.getLogger(__name__)
 

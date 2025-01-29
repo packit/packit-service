@@ -13,7 +13,8 @@ from packit_service.models import (
     OSHScanModel,
     ProjectEventModel,
 )
-from packit_service.worker.events.abstract.base import Result
+
+from ..abstract.base import Result
 
 logger = getLogger(__name__)
 

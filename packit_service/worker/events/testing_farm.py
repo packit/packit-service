@@ -14,7 +14,8 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
 )
-from packit_service.worker.events.abstract.base import Result as AbstractResult
+
+from .abstract.base import Result as AbstractResult
 
 
 class Result(AbstractResult):

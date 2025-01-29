@@ -7,8 +7,9 @@ from typing import Optional
 from packit.config import JobConfigTriggerType
 
 from packit_service.models import ProjectEventModel
-from packit_service.worker.events.anitya.abstract import AnityaUpdate
-from packit_service.worker.events.event import use_for_job_config_trigger
+
+from ..event import use_for_job_config_trigger
+from .abstract import AnityaUpdate
 
 logger = getLogger(__name__)
 

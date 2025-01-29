@@ -15,7 +15,8 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
-from packit_service.worker.events.event import Event
+
+from ..event import Event
 
 logger = getLogger(__name__)
 

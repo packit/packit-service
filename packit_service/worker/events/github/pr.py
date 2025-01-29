@@ -7,12 +7,13 @@ from ogr.abstract import Comment as OgrComment
 from ogr.abstract import GitProject
 
 from packit_service.service.db_project_events import AddPullRequestEventToDb
-from packit_service.worker.events.abstract.comment import PullRequest as AbstractPRCommentEvent
-from packit_service.worker.events.enums import (
+
+from ..abstract.comment import PullRequest as AbstractPRCommentEvent
+from ..enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.github.abstract import GithubEvent
+from .abstract import GithubEvent
 
 
 class Action(AddPullRequestEventToDb, GithubEvent):

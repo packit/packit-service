@@ -4,7 +4,8 @@
 from typing import Optional
 
 from packit_service.service.db_project_events import AddReleaseEventToDb
-from packit_service.worker.events.github.abstract import GithubEvent
+
+from .abstract import GithubEvent
 
 
 class Release(AddReleaseEventToDb, GithubEvent):

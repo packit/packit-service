@@ -4,7 +4,8 @@
 from typing import Optional
 
 from packit_service.service.db_project_events import AddBranchPushEventToDb
-from packit_service.worker.events.pagure.abstract import PagureEvent
+
+from .abstract import PagureEvent
 
 
 class Commit(AddBranchPushEventToDb, PagureEvent):

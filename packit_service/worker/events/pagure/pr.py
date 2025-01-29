@@ -14,12 +14,13 @@ from packit_service.service.db_project_events import (
     AddPullRequestEventToDb,
 )
 from packit_service.utils import get_packit_commands_from_comment
-from packit_service.worker.events.abstract.comment import PullRequest as AbstractPRCommentEvent
-from packit_service.worker.events.enums import (
+
+from ..abstract.comment import PullRequest as AbstractPRCommentEvent
+from ..enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.pagure.abstract import PagureEvent
+from .abstract import PagureEvent
 
 logger = getLogger(__name__)
 

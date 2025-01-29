@@ -9,10 +9,10 @@ from ogr.abstract import GitProject
 from packit_service.service.db_project_events import (
     AddPullRequestEventToDb,
 )
-from packit_service.worker.events.abstract.comment import (
+
+from ..abstract.comment import (
     PullRequest as AbstractPRCommentEvent,
 )
-
 from .abstract import GitlabEvent
 from .enums import Action as GitlabAction
 

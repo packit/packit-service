@@ -4,10 +4,9 @@ from typing import Optional
 
 from ogr.abstract import Comment as OgrComment
 
-from packit_service.worker.events.abstract.comment import (
+from ..abstract.comment import (
     Issue as AbstractIssueCommentEvent,
 )
-
 from .abstract import GitlabEvent
 from .enums import Action
 

@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 from packit_service.service.db_project_events import AddBranchPushEventToDb
-from packit_service.worker.events.github.abstract import GithubEvent
+
+from .abstract import GithubEvent
 
 
 class Commit(AddBranchPushEventToDb, GithubEvent):

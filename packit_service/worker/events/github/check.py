@@ -11,7 +11,8 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
-from packit_service.worker.events.github.abstract import GithubEvent
+
+from .abstract import GithubEvent
 
 
 class Rerun(GithubEvent):

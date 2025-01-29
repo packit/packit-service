@@ -5,9 +5,9 @@ from typing import Optional
 
 from ogr.abstract import Comment as OgrComment
 
-from packit_service.worker.events.abstract.comment import Issue as AbstractIssueCommentEvent
-from packit_service.worker.events.enums import IssueCommentAction
-from packit_service.worker.events.github.abstract import GithubEvent
+from ..abstract.comment import Issue as AbstractIssueCommentEvent
+from ..enums import IssueCommentAction
+from .abstract import GithubEvent
 
 
 class Comment(AbstractIssueCommentEvent, GithubEvent):

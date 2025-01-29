@@ -15,10 +15,11 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
-from packit_service.worker.events.event import (
+
+from ..event import (
     use_for_job_config_trigger,
 )
-from packit_service.worker.events.koji.abstract import KojiEvent
+from .abstract import KojiEvent
 
 logger = logging.getLogger(__name__)
 

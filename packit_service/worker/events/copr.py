@@ -16,8 +16,9 @@ from packit_service.models import (
     ProjectEventModelType,
     SRPMBuildModel,
 )
-from packit_service.worker.events.abstract.base import Result
-from packit_service.worker.events.enums import FedmsgTopic
+
+from .abstract.base import Result
+from .enums import FedmsgTopic
 
 logger = getLogger(__name__)
 

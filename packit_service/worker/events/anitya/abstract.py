@@ -12,7 +12,8 @@ from packit.config import PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import ProjectEventModel, ProjectReleaseModel
-from packit_service.worker.events.event import Event
+
+from ..event import Event
 
 logger = getLogger(__name__)
 

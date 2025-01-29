@@ -3,7 +3,7 @@
 
 import enum
 
-from packit_service.worker.events.openscanhub.abstract import OpenScanHubEvent
+from .abstract import OpenScanHubEvent
 
 
 class Status(str, enum.Enum):

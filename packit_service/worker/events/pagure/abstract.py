@@ -7,7 +7,8 @@ from typing import Optional
 from packit.config import PackageConfig
 
 from packit_service.config import PackageConfigGetter
-from packit_service.worker.events.abstract.base import ForgeIndependent
+
+from ..abstract.base import ForgeIndependent
 
 logger = getLogger(__name__)
 

@@ -24,7 +24,8 @@ from packit_service.service.db_project_events import (
     AddIssueEventToDb,
     AddPullRequestEventToDb,
 )
-from packit_service.worker.events.abstract.base import ForgeIndependent
+
+from .base import ForgeIndependent
 
 logger = getLogger(__name__)
 

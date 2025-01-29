@@ -4,7 +4,8 @@
 from typing import Optional, Union
 
 from packit_service.models import AllowlistStatus
-from packit_service.worker.events.event import Event
+
+from ..event import Event
 
 
 class Installation(Event):

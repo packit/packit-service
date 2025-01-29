@@ -4,7 +4,8 @@
 from packit_service.service.db_project_events import (
     AddBranchPushEventToDb,
 )
-from packit_service.worker.events.gitlab.abstract import GitlabEvent
+
+from .abstract import GitlabEvent
 
 
 class Commit(AddBranchPushEventToDb, GitlabEvent):
