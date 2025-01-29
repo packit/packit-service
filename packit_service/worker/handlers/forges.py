@@ -16,6 +16,9 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
+from packit_service.events import (
+    github,
+)
 from packit_service.models import (
     AllowlistModel,
     AllowlistStatus,
@@ -25,10 +28,6 @@ from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import IsIssueInNotificationRepoChecker
-from packit_service.worker.events import (
-    InstallationEvent,
-    IssueCommentEvent,
-)
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -44,7 +43,7 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-@reacts_to(event=InstallationEvent)
+@reacts_to(event=github.installation.Installation)
 class GithubAppInstallationHandler(
     JobHandler,
     ConfigFromEventMixin,
@@ -66,7 +65,7 @@ class GithubAppInstallationHandler(
             event=event,
         )
 
-        self.installation_event = InstallationEvent.from_event_dict(event)
+        self.installation_event = github.installation.Installation.from_event_dict(event)
         self.account_type = self.installation_event.account_type
         self.account_login = self.installation_event.account_login
         self.sender_login = self.installation_event.sender_login
@@ -156,7 +155,7 @@ class GithubAppInstallationHandler(
         return TaskResults(success=True, details={"msg": msg})
 
 
-@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=github.issue.Comment)
 class GithubFasVerificationHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,

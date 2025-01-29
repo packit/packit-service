@@ -26,6 +26,8 @@ from packit_service.constants import (
     TESTING_FARM_INSTALLABILITY_TEST_REF,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
+from packit_service.events import github, gitlab, pagure
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -39,18 +41,6 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import (
-    EventData,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-)
-from packit_service.worker.events.github import CommitCommentGithubEvent
-from packit_service.worker.events.gitlab import CommitCommentGitlabEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -311,9 +301,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def is_comment_event(self) -> bool:
         return self.metadata.event_type in (
-            PullRequestCommentGithubEvent.__name__,
-            MergeRequestCommentGitlabEvent.__name__,
-            PullRequestCommentPagureEvent.__name__,
+            github.pr.Comment.event_type(),
+            gitlab.mr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
         )
 
     def is_copr_build_comment_event(self) -> bool:
@@ -343,12 +333,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # for comment event requesting copr build
             self.metadata.event_type
             in (
-                PushGitHubEvent.__name__,
-                PushGitlabEvent.__name__,
-                PullRequestGithubEvent.__name__,
-                MergeRequestGitlabEvent.__name__,
-                CommitCommentGithubEvent.__name__,
-                CommitCommentGitlabEvent.__name__,
+                github.push.Commit.event_type(),
+                github.pr.Action.event_type(),
+                github.commit.Comment.event_type(),
+                gitlab.push.Commit.event_type(),
+                gitlab.mr.Action.event_type(),
+                gitlab.commit.Comment.event_type(),
             )
             or self.is_copr_build_comment_event()
         )

@@ -6,17 +6,17 @@ import logging
 from packit.config.aliases import get_branches
 
 from packit_service.constants import MSG_GET_IN_TOUCH, KojiBuildState
+from packit_service.events import (
+    github,
+    gitlab,
+    koji,
+    pagure,
+)
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
 from packit_service.worker.checker.helper import DistgitAccountsChecker
-from packit_service.worker.events import (
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-    PullRequestCommentPagureEvent,
-)
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,
@@ -42,9 +42,9 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
         """
 
         if self.data.event_type in (
-            PullRequestCommentPagureEvent.__name__,
-            KojiBuildEvent.__name__,
-            KojiBuildTagEvent.__name__,
+            pagure.pr.Comment.event_type(),
+            koji.result.Build.event_type(),
+            koji.tag.Build.event_type(),
         ):
             for koji_build_data in self:
                 if koji_build_data.state != KojiBuildState.complete:
@@ -74,7 +74,7 @@ class IsKojiBuildOwnerMatchingConfiguration(Checker, GetKojiBuildEventMixin):
     def pre_check(self) -> bool:
         """Check if the build submitter matches the configuration"""
 
-        if self.data.event_type in (KojiBuildEvent.__name__,):
+        if self.data.event_type in (koji.result.Build.event_type(),):
             owner = self.koji_build_event.owner
             configured_builders = self.job_config.allowed_builders
 
@@ -119,8 +119,8 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
     def _pre_check(self) -> bool:
         has_write_access = self.project.has_write_access(user=self.actor)
         if self.data.event_type in (
-            IssueCommentEvent.__name__,
-            IssueCommentGitlabEvent.__name__,
+            github.issue.Comment.event_type(),
+            gitlab.issue.Comment.event_type(),
         ):
             logger.debug(
                 f"Re-triggering Bodhi update through comment in "
@@ -146,7 +146,7 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
                 return False
 
             return True
-        if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+        if self.data.event_type in (pagure.pr.Comment.event_type(),):
             logger.debug(
                 f"Re-triggering Bodhi update via dist-git comment in "
                 f"repo {self.project_url} and #PR {self.data.pr_id} "
@@ -177,9 +177,9 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 
 class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
     def _pre_check(self) -> bool:
-        if self.data.event_type not in (
-            PullRequestCommentPagureEvent.__name__,
-        ) or self.is_packager(user=self.actor):
+        if self.data.event_type not in (pagure.pr.Comment.event_type(),) or self.is_packager(
+            user=self.actor
+        ):
             return True
 
         title = "Re-triggering Bodhi update through dist-git comment in PR failed"

@@ -18,6 +18,16 @@ from packit.local_project import LocalProject
 import packit_service.models
 import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.events.event_data import (
+    EventData,
+)
+
+# These names are definitely not nice, still they help with making classes
+# whose names start with Testing* or Test* to become invisible for pytest,
+# and so stop the test discovery warnings.
+from packit_service.events.testing_farm import (
+    Result as TFResultsEvent,
+)
 from packit_service.models import (
     BuildStatus,
     PipelineModel,
@@ -29,16 +39,6 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
-from packit_service.worker.events import (
-    EventData,
-)
-
-# These names are definitely not nice, still they help with making classes
-# whose names start with Testing* or Test* to become invisible for pytest,
-# and so stop the test discovery warnings.
-from packit_service.worker.events import (
-    TestingFarmResultsEvent as TFResultsEvent,
-)
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.helpers.testing_farm import (
@@ -1865,7 +1865,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Action", "commit_sha": "abcdef"},
             False,
             id="one_internal_test_job",
         ),
@@ -1895,7 +1895,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Action", "commit_sha": "abcdef"},
             False,
             id="multiple_test_jobs_build_required",
         ),
@@ -1926,7 +1926,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Action", "commit_sha": "abcdef"},
             True,
             id="multiple_test_jobs_build_required_internal_job_skip_build",
         ),
@@ -1960,7 +1960,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
                     },
                 ),
             ],
-            {"event_type": "PullRequestGithubEvent", "commit_sha": "abcdef"},
+            {"event_type": "github.pr.Action", "commit_sha": "abcdef"},
             True,
             id="multiple_test_jobs_build_required_internal_job_skip_build_manual_trigger",
         ),

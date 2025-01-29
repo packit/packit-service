@@ -14,6 +14,14 @@ from packit.vm_image_build import ImageBuilder
 
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
+from packit_service.events import (
+    copr,
+    github,
+    gitlab,
+    koji,
+    pagure,
+)
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -21,12 +29,6 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.utils import get_packit_commands_from_comment
-from packit_service.worker.events.copr import AbstractCoprBuildEvent
-from packit_service.worker.events.event import EventData
-from packit_service.worker.events.github import PullRequestCommentGithubEvent
-from packit_service.worker.events.gitlab import MergeRequestCommentGitlabEvent
-from packit_service.worker.events.koji import KojiBuildEvent, KojiBuildTagEvent
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
@@ -43,16 +45,16 @@ class GetKojiBuildEvent(Protocol):
 
     @property
     @abstractmethod
-    def koji_build_event(self) -> KojiBuildEvent: ...
+    def koji_build_event(self) -> koji.result.Build: ...
 
 
 class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
-    _koji_build_event: Optional[KojiBuildEvent] = None
+    _koji_build_event: Optional[koji.result.Build] = None
 
     @property
     def koji_build_event(self):
         if not self._koji_build_event:
-            self._koji_build_event = KojiBuildEvent.from_event_dict(
+            self._koji_build_event = koji.result.Build.from_event_dict(
                 self.data.event_dict,
             )
         return self._koji_build_event
@@ -184,13 +186,13 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
     ConfigFromEventMixin,
     GetKojiBuildData,
 ):
-    _koji_build_tag_event: Optional[KojiBuildTagEvent] = None
+    _koji_build_tag_event: Optional[koji.tag.Build] = None
     _sidetag: Optional[Sidetag] = None
 
     @property
-    def koji_build_tag_event(self) -> KojiBuildTagEvent:
+    def koji_build_tag_event(self) -> koji.tag.Build:
         if not self._koji_build_tag_event:
-            self._koji_build_tag_event = KojiBuildTagEvent.from_event_dict(
+            self._koji_build_tag_event = koji.tag.Build.from_event_dict(
                 self.data.event_dict,
             )
         return self._koji_build_tag_event
@@ -314,16 +316,16 @@ class GetCoprBuildEvent(Protocol):
 
     @property
     @abstractmethod
-    def copr_event(self) -> AbstractCoprBuildEvent: ...
+    def copr_event(self) -> copr.CoprBuild: ...
 
 
 class GetCoprBuildEventMixin(ConfigFromEventMixin, GetCoprBuildEvent):
-    _copr_build_event: Optional[AbstractCoprBuildEvent] = None
+    _copr_build_event: Optional[copr.CoprBuild] = None
 
     @property
     def copr_event(self):
         if not self._copr_build_event:
-            self._copr_build_event = AbstractCoprBuildEvent.from_event_dict(
+            self._copr_build_event = copr.CoprBuild.from_event_dict(
                 self.data.event_dict,
             )
         return self._copr_build_event
@@ -499,9 +501,9 @@ class GetGithubCommentEvent(Protocol):
 class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigFromEventMixin):
     def is_comment_event(self) -> bool:
         return self.data.event_type in (
-            PullRequestCommentGithubEvent.__name__,
-            MergeRequestCommentGitlabEvent.__name__,
-            PullRequestCommentPagureEvent.__name__,
+            github.pr.Comment.event_type(),
+            gitlab.mr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
         )
 
     def is_copr_build_comment_event(self) -> bool:

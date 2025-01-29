@@ -4,72 +4,28 @@
 from logging import getLogger
 from typing import Optional
 
-from ogr.abstract import Comment, GitProject
+from ogr.abstract import Comment as OgrComment
+from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
 from packit.config import PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.service.db_project_events import (
-    AddBranchPushEventToDb,
     AddPullRequestEventToDb,
 )
 from packit_service.utils import get_packit_commands_from_comment
-from packit_service.worker.events.comment import AbstractPRCommentEvent
-from packit_service.worker.events.enums import (
+
+from ..abstract.comment import PullRequest as AbstractPRCommentEvent
+from ..enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from .abstract import PagureEvent
 
 logger = getLogger(__name__)
 
 
-class AbstractPagureEvent(AbstractForgeIndependentEvent):
-    def __init__(self, project_url: str, pr_id: Optional[int] = None, **kwargs):
-        super().__init__(pr_id=pr_id)
-        self.project_url: str = project_url
-        self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
-        self.identifier: Optional[str] = (
-            None  # will be shown to users -- e.g. in logs or in the copr-project name
-        )
-
-    def get_packages_config(self) -> Optional[PackageConfig]:
-        logger.debug(
-            f"Getting packages_config:\n"
-            f"\tproject: {self.project}\n"
-            f"\tdefault_branch: {self.project.default_branch}\n",
-        )
-
-        return PackageConfigGetter.get_package_config_from_repo(
-            base_project=None,
-            project=self.project,
-            pr_id=None,
-            reference=self.project.default_branch,
-            fail_when_missing=self.fail_when_config_file_missing,
-        )
-
-
-class PushPagureEvent(AddBranchPushEventToDb, AbstractPagureEvent):
-    def __init__(
-        self,
-        repo_namespace: str,
-        repo_name: str,
-        git_ref: str,
-        project_url: str,
-        commit_sha: str,
-        committer: str,
-        pr_id: Optional[int],
-    ):
-        super().__init__(project_url=project_url, pr_id=pr_id)
-        self.repo_namespace = repo_namespace
-        self.repo_name = repo_name
-        self.git_ref = git_ref
-        self.commit_sha = commit_sha
-        self.identifier = git_ref
-        self.committer = committer
-
-
-class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent):
+class Comment(AbstractPRCommentEvent, PagureEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -84,7 +40,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         comment: str,
         comment_id: int,
         commit_sha: str = "",
-        comment_object: Optional[Comment] = None,
+        comment_object: Optional[OgrComment] = None,
     ):
         super().__init__(
             pr_id=pr_id,
@@ -105,6 +61,10 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         self.git_ref = None  # pr_id will be used for checkout
 
         self._repo_url: Optional[RepoUrl] = None
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.pr.Comment"
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__
@@ -186,7 +146,7 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         return self.repo_url.repo if self.repo_url else None
 
 
-class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
+class Action(AddPullRequestEventToDb, PagureEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -215,6 +175,10 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         self.project_url = project_url
         self.target_branch = target_branch
 
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.pr.Action"
+
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
@@ -240,7 +204,7 @@ class PullRequestPagureEvent(AddPullRequestEventToDb, AbstractPagureEvent):
         )
 
 
-class PullRequestFlagPagureEvent(AbstractPagureEvent):
+class Flag(PagureEvent):
     def __init__(
         self,
         username: str,
@@ -267,3 +231,7 @@ class PullRequestFlagPagureEvent(AbstractPagureEvent):
         self.pr_source_branch = pr_source_branch
         self.project_name = project_name
         self.project_namespace = project_namespace
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "pagure.pr.Flag"

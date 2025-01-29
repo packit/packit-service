@@ -37,6 +37,11 @@ from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_LIMIT_OUTAGE,
 )
+from packit_service.events import (
+    github,
+    gitlab,
+)
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildGroupModel,
@@ -50,12 +55,6 @@ from packit_service.models import (
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
-from packit_service.worker.events import (
-    EventData,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-)
 from packit_service.worker.handlers import CoprBuildHandler
 from packit_service.worker.helpers.build.copr_build import (
     BaseBuildJobHelper,
@@ -84,13 +83,13 @@ create_table_content = StatusReporterGithubChecks._create_table
 
 
 @pytest.fixture(scope="module")
-def branch_push_event() -> PushGitHubEvent:
+def branch_push_event() -> github.push.Commit:
     file_content = (DATA_DIR / "webhooks" / "github" / "push_branch.json").read_text()
     return Parser.parse_github_push_event(json.loads(file_content))
 
 
 @pytest.fixture(scope="module")
-def branch_push_event_gitlab() -> PushGitlabEvent:
+def branch_push_event_gitlab() -> gitlab.push.Commit:
     file_content = (DATA_DIR / "webhooks" / "gitlab" / "push_branch.json").read_text()
     return Parser.parse_gitlab_push_event(json.loads(file_content))
 
@@ -295,7 +294,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build)
     flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(build).times(4)
-    flexmock(PullRequestGithubEvent).should_receive("db_project_object").and_return(
+    flexmock(github.pr.Action).should_receive("db_project_object").and_return(
         flexmock(),
     )
 
@@ -400,7 +399,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             flexmock(),
         ),
     )
-    flexmock(PullRequestGithubEvent).should_receive("db_project_object").and_return(
+    flexmock(github.pr.Action).should_receive("db_project_object").and_return(
         flexmock(),
     )
 
@@ -1025,7 +1024,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
             package_config,
             jobs[0],
             {
-                "event_type": "PullRequestGithubEvent",
+                "event_type": "github.pr.Action",
                 "actor": "actor",
                 "project_url": "url",
                 "commit_sha": "abcdef",

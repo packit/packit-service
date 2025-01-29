@@ -19,6 +19,10 @@ from packit.upstream import GitUpstream
 
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
+from packit_service.events import (
+    github,
+    koji,
+)
 from packit_service.models import (
     BuildStatus,
     KojiBuildGroupModel,
@@ -29,13 +33,6 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.events import (
-    KojiTaskEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-)
 from packit_service.worker.helpers.build import koji_build
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -43,10 +40,10 @@ from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 def build_helper(
     event: Union[
-        PullRequestGithubEvent,
-        PullRequestCommentGithubEvent,
-        PushGitHubEvent,
-        ReleaseEvent,
+        github.pr.Action,
+        github.pr.Comment,
+        github.push.Commit,
+        github.release.Release,
     ],
     _targets=None,
     owner=None,
@@ -587,7 +584,7 @@ def test_koji_build_targets_override(
     ],
 )
 def test_get_koji_build_logs_url(id_, result):
-    assert KojiTaskEvent.get_koji_build_logs_url(rpm_build_task_id=id_) == result
+    assert koji.result.Task.get_koji_build_logs_url(rpm_build_task_id=id_) == result
 
 
 @pytest.mark.parametrize(
@@ -604,4 +601,4 @@ def test_get_koji_build_logs_url(id_, result):
     ],
 )
 def test_get_koji_rpm_build_web_url(id_, result):
-    assert KojiTaskEvent.get_koji_rpm_build_web_url(rpm_build_task_id=id_) == result
+    assert koji.result.Task.get_koji_rpm_build_web_url(rpm_build_task_id=id_) == result

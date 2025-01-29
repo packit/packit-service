@@ -11,6 +11,15 @@ from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 
 from packit_service.config import PackageConfigGetter
+from packit_service.events import (
+    abstract,
+)
+from packit_service.events.enums import (
+    IssueCommentAction,
+    PullRequestAction,
+    PullRequestCommentAction,
+)
+from packit_service.events.github import check, installation, issue, pr, push, release
 from packit_service.models import (
     AllowlistStatus,
     GitBranchModel,
@@ -18,23 +27,6 @@ from packit_service.models import (
     ProjectEventModelType,
     ProjectReleaseModel,
     PullRequestModel,
-)
-from packit_service.worker.events.comment import CommitCommentEvent
-from packit_service.worker.events.enums import (
-    IssueCommentAction,
-    PullRequestAction,
-    PullRequestCommentAction,
-)
-from packit_service.worker.events.github import (
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    InstallationEvent,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -113,7 +105,7 @@ def commit_comment():
 def test_parse_installation(github_installation):
     event_object = Parser.parse_event(github_installation)
 
-    assert isinstance(event_object, InstallationEvent)
+    assert isinstance(event_object, installation.Installation)
     assert event_object.installation_id == 1708454
     assert event_object.account_login == "packit-service"
     assert event_object.account_id == 46870917
@@ -129,7 +121,7 @@ def test_parse_installation(github_installation):
 def test_parse_release(github_release_webhook):
     event_object = Parser.parse_event(github_release_webhook)
 
-    assert isinstance(event_object, ReleaseEvent)
+    assert isinstance(event_object, release.Release)
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "hello-world"
     assert event_object.tag_name == "0.3.0"
@@ -139,7 +131,7 @@ def test_parse_release(github_release_webhook):
 def test_parse_pr(github_pr_webhook):
     event_object = Parser.parse_event(github_pr_webhook)
 
-    assert isinstance(event_object, PullRequestGithubEvent)
+    assert isinstance(event_object, pr.Action)
     assert event_object.action == PullRequestAction.opened
     assert event_object.pr_id == 342
     assert event_object.base_repo_namespace == "lbarcziova"
@@ -173,7 +165,7 @@ def test_parse_pr(github_pr_webhook):
 def test_parse_github_push(github_push_branch):
     event_object = Parser.parse_event(github_push_branch)
 
-    assert isinstance(event_object, PushGitHubEvent)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
@@ -201,7 +193,7 @@ def test_parse_github_push(github_push_branch):
 def test_parse_github_push_branch(github_push_branch):
     event_object = Parser.parse_event(github_push_branch)
 
-    assert isinstance(event_object, PushGitHubEvent)
+    assert isinstance(event_object, push.Commit)
     assert event_object.repo_namespace == "packit-service"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
@@ -230,7 +222,7 @@ def test_parse_github_push_branch(github_push_branch):
 def test_get_project_pr(github_pr_webhook, mock_config):
     event_object = Parser.parse_event(github_pr_webhook)
 
-    assert isinstance(event_object, PullRequestGithubEvent)
+    assert isinstance(event_object, pr.Action)
 
     assert isinstance(event_object.project, GithubProject)
     assert isinstance(event_object.project.service, GithubService)
@@ -241,7 +233,7 @@ def test_get_project_pr(github_pr_webhook, mock_config):
 def test_get_project_release(github_release_webhook, mock_config):
     event_object = Parser.parse_event(github_release_webhook)
 
-    assert isinstance(event_object, ReleaseEvent)
+    assert isinstance(event_object, release.Release)
 
     assert isinstance(event_object.project, GithubProject)
     assert isinstance(event_object.project.service, GithubService)
@@ -260,7 +252,7 @@ def test_parse_check_rerun_commit(check_rerun):
     )
     event_object = Parser.parse_event(check_rerun)
 
-    assert isinstance(event_object, CheckRerunCommitEvent)
+    assert isinstance(event_object, check.Commit)
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
@@ -300,7 +292,7 @@ def test_parse_check_rerun_pull_request(check_rerun):
     flexmock(trigger).should_receive("get_project_event_object").and_return(pr_model)
     event_object = Parser.parse_event(check_rerun)
 
-    assert isinstance(event_object, CheckRerunPullRequestEvent)
+    assert isinstance(event_object, check.PullRequest)
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
@@ -344,7 +336,7 @@ def test_parse_check_rerun_release(check_rerun):
 
     event_object = Parser.parse_event(check_rerun)
 
-    assert isinstance(event_object, CheckRerunReleaseEvent)
+    assert isinstance(event_object, check.Release)
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
@@ -369,7 +361,7 @@ def test_parse_check_rerun_with_identifier(check_rerun_with_identifier):
 
     event_object = Parser.parse_event(check_rerun_with_identifier)
 
-    assert isinstance(event_object, CheckRerunPullRequestEvent)
+    assert isinstance(event_object, check.PullRequest)
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.build_targets_override is None
@@ -379,7 +371,7 @@ def test_parse_check_rerun_with_identifier(check_rerun_with_identifier):
 def test_parse_pr_comment_created(github_pr_comment_created):
     event_object = Parser.parse_event(github_pr_comment_created)
 
-    assert isinstance(event_object, PullRequestCommentGithubEvent)
+    assert isinstance(event_object, pr.Comment)
     assert event_object.action == PullRequestCommentAction.created
     assert event_object.pr_id == 9
     assert event_object.base_repo_namespace == "phracek"
@@ -417,7 +409,7 @@ def test_parse_pr_comment_created(github_pr_comment_created):
 def test_parse_pr_comment_empty(github_pr_comment_empty):
     event_object = Parser.parse_event(github_pr_comment_empty)
 
-    assert isinstance(event_object, PullRequestCommentGithubEvent)
+    assert isinstance(event_object, pr.Comment)
     assert event_object.action == PullRequestCommentAction.created
     assert event_object.pr_id == 9
     assert event_object.base_repo_namespace == "phracek"
@@ -456,7 +448,7 @@ def test_parse_pr_comment_empty(github_pr_comment_empty):
 def test_parse_issue_comment(github_issue_comment_propose_downstream):
     event_object = Parser.parse_event(github_issue_comment_propose_downstream)
 
-    assert isinstance(event_object, IssueCommentEvent)
+    assert isinstance(event_object, issue.Comment)
     assert event_object.action == IssueCommentAction.created
     assert event_object.issue_id == 512
     assert event_object.repo_namespace == "packit-service"
@@ -492,7 +484,7 @@ def test_parse_issue_comment(github_issue_comment_propose_downstream):
 def test_parse_issue_comment_no_handler(github_issue_comment_no_handler):
     event_object = Parser.parse_event(github_issue_comment_no_handler)
 
-    assert isinstance(event_object, IssueCommentEvent)
+    assert isinstance(event_object, issue.Comment)
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit-service/packit"
     assert not event_object.base_project
@@ -727,7 +719,7 @@ def test_parse_check_name(check_name, db_project_object, result):
 def test_parse_commit_comment(commit_comment):
     event_object = Parser.parse_event(commit_comment)
 
-    assert isinstance(event_object, CommitCommentEvent)
+    assert isinstance(event_object, abstract.comment.Commit)
     assert event_object.commit_sha == "eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_namespace == "packit"
@@ -758,7 +750,7 @@ def test_parse_commit_comment_commit(commit_comment):
     event_object.comment = "/packit build --commit stable"
     commit_sha = "eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"
 
-    assert isinstance(event_object, CommitCommentEvent)
+    assert isinstance(event_object, abstract.comment.Commit)
     assert event_object.commit_sha == commit_sha
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_namespace == "packit"
@@ -809,7 +801,7 @@ def test_parse_commit_comment_release(commit_comment):
     event_object.comment = "/packit build --release 1.0.0"
     commit_sha = "eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"
 
-    assert isinstance(event_object, CommitCommentEvent)
+    assert isinstance(event_object, abstract.comment.Commit)
     assert event_object.commit_sha == commit_sha
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_namespace == "packit"

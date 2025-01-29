@@ -6,6 +6,12 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject
 
 from packit_service.constants import KojiTaskState
+from packit_service.events import (
+    github,
+    gitlab,
+    koji,
+    testing_farm,
+)
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -16,20 +22,6 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
-)
-from packit_service.worker.events import (
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    KojiTaskEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-    ReleaseEvent,
-    TestingFarmResultsEvent,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser
@@ -46,7 +38,7 @@ def test_release_event_existing_release(
     )
 
     event_object = Parser.parse_event(release_event_dict)
-    assert isinstance(event_object, ReleaseEvent)
+    assert isinstance(event_object, github.release.Release)
 
     assert event_object.identifier == "v1.0.2"
     assert event_object.git_ref == "v1.0.2"
@@ -69,7 +61,7 @@ def test_release_event_non_existing_release(clean_before_and_after, release_even
     )
 
     event_object = Parser.parse_event(release_event_dict)
-    assert isinstance(event_object, ReleaseEvent)
+    assert isinstance(event_object, github.release.Release)
 
     assert event_object.identifier == "v1.0.2"
     assert event_object.git_ref == "v1.0.2"
@@ -91,7 +83,7 @@ def test_push_branch_event_existing_branch(
     push_branch_event_dict,
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
-    assert isinstance(event_object, PushGitHubEvent)
+    assert isinstance(event_object, github.push.Commit)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -111,7 +103,7 @@ def test_push_branch_event_non_existing_branch(
     push_branch_event_dict,
 ):
     event_object = Parser.parse_event(push_branch_event_dict)
-    assert isinstance(event_object, PushGitHubEvent)
+    assert isinstance(event_object, github.push.Commit)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -127,7 +119,7 @@ def test_push_branch_event_non_existing_branch(
 
 def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, PullRequestGithubEvent)
+    assert isinstance(event_object, github.pr.Action)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -145,7 +137,7 @@ def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
 
 def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
     event_object = Parser.parse_event(mr_event_dict)
-    assert isinstance(event_object, MergeRequestGitlabEvent)
+    assert isinstance(event_object, gitlab.mr.Action)
 
     assert event_object.git_ref is None
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
@@ -162,7 +154,7 @@ def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
 
 def test_merge_request_comment_event(clean_before_and_after, mr_comment_event_dict):
     event_object = Parser.parse_event(mr_comment_event_dict)
-    assert isinstance(event_object, MergeRequestCommentGitlabEvent)
+    assert isinstance(event_object, gitlab.mr.Comment)
 
     assert event_object.pr_id == 2
     assert event_object.identifier == "2"
@@ -184,7 +176,7 @@ def test_push_gitlab_event(
     push_gitlab_event_dict,
 ):
     event_object = Parser.parse_event(push_gitlab_event_dict)
-    assert isinstance(event_object, PushGitlabEvent)
+    assert isinstance(event_object, gitlab.push.Commit)
 
     assert event_object.identifier == "build-branch"
     assert event_object.git_ref == "build-branch"
@@ -201,7 +193,7 @@ def test_push_gitlab_event(
 
 def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, PullRequestGithubEvent)
+    assert isinstance(event_object, github.pr.Action)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -222,7 +214,7 @@ def test_pr_comment_event_existing_pr(
     pr_comment_event_dict_packit_build,
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
-    assert isinstance(event_object, PullRequestCommentGithubEvent)
+    assert isinstance(event_object, github.pr.Comment)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -248,7 +240,7 @@ def test_pr_comment_event_non_existing_pr(
     pr_comment_event_dict_packit_build,
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
-    assert isinstance(event_object, PullRequestCommentGithubEvent)
+    assert isinstance(event_object, github.pr.Comment)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -278,7 +270,7 @@ def test_testing_farm_response_existing_pr(
         SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, testing_farm.Result)
 
     assert event_object.commit_sha == SampleValues.commit_sha
 
@@ -300,7 +292,7 @@ def test_testing_farm_response_non_existing_pr(
         SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, testing_farm.Result)
 
     assert event_object.commit_sha == SampleValues.different_commit_sha
 
@@ -319,7 +311,7 @@ def test_testing_farm_response_existing_branch_push(
     ).and_return(tf_result)
     branch_model = branch_project_event_model.get_project_event_object()
     event_object = Parser.parse_event(tf_notification)
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, testing_farm.Result)
 
     assert event_object.commit_sha == SampleValues.commit_sha
 
@@ -342,7 +334,7 @@ def test_testing_farm_response_non_existing_branch_push(
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
 
-    assert isinstance(event_object, TestingFarmResultsEvent)
+    assert isinstance(event_object, testing_farm.Result)
 
     # For backwards compatibility, unknown results are treated as pull-requests
     assert event_object.commit_sha == SampleValues.different_commit_sha
@@ -357,7 +349,7 @@ def test_koji_build_scratch_start(
     koji_build_scratch_start_dict,
 ):
     event_object = Parser.parse_event(koji_build_scratch_start_dict)
-    assert isinstance(event_object, KojiTaskEvent)
+    assert isinstance(event_object, koji.result.Task)
 
     assert event_object.task_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.open
@@ -378,7 +370,7 @@ def test_koji_build_scratch_end(
     koji_build_scratch_end_dict,
 ):
     event_object = Parser.parse_event(koji_build_scratch_end_dict)
-    assert isinstance(event_object, KojiTaskEvent)
+    assert isinstance(event_object, koji.result.Task)
 
     assert event_object.task_id == SampleValues.build_id
     assert event_object.state == KojiTaskState.closed
@@ -403,7 +395,7 @@ def test_parse_check_rerun_commit(
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
-    assert isinstance(event_object, CheckRerunCommitEvent)
+    assert isinstance(event_object, github.check.Commit)
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
@@ -430,7 +422,7 @@ def test_parse_check_rerun_pull_request(
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
-    assert isinstance(event_object, CheckRerunPullRequestEvent)
+    assert isinstance(event_object, github.check.PullRequest)
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
@@ -458,7 +450,7 @@ def test_parse_check_rerun_release(
     )
     event_object = Parser.parse_event(check_rerun_event_dict_commit)
 
-    assert isinstance(event_object, CheckRerunReleaseEvent)
+    assert isinstance(event_object, github.check.Release)
     assert event_object.repo_namespace == "packit"
     assert event_object.repo_name == "hello-world"
     assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"

@@ -22,6 +22,7 @@ from packit.utils.koji_helper import KojiHelper
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
+from packit_service.events import github, gitlab
 from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
@@ -41,7 +42,6 @@ from packit_service.models import (
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.distgit import (
     RetriggerDownstreamKojiBuildHandler,
@@ -143,11 +143,11 @@ jobs:
     [
         (
             (GithubProject, GithubRelease, "github", "phracek"),
-            IssueCommentEvent,
+            github.issue.Comment,
         ),
         (
             (GitlabProject, GitlabRelease, "gitlab", "shreyaspapi"),
-            IssueCommentGitlabEvent,
+            gitlab.issue.Comment,
         ),
     ],
     indirect=[
@@ -201,7 +201,7 @@ def test_issue_comment_propose_downstream_handler(
         job_config_trigger_type=JobConfigTriggerType.release,
         project_event_model_type=ProjectEventModelType.issue,
     )
-    flexmock(IssueCommentGitlabEvent).should_receive("db_project_object").and_return(
+    flexmock(gitlab.issue.Comment).should_receive("db_project_object").and_return(
         db_project_object,
     )
     db_project_event = (
@@ -345,7 +345,7 @@ def mock_repository_issue_retriggering():
         job_config_trigger_type=JobConfigTriggerType.release,
         project_event_model_type=ProjectEventModelType.issue,
     )
-    flexmock(IssueCommentEvent).should_receive("db_project_object").and_return(
+    flexmock(github.issue.Comment).should_receive("db_project_object").and_return(
         db_project_object,
     )
 

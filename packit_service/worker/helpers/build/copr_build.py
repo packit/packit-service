@@ -43,6 +43,7 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     NOT_ALLOWED_TO_BUILD_IN_COPR,
 )
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildGroupModel,
@@ -57,7 +58,6 @@ from packit_service.service.urls import (
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import EventData
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus

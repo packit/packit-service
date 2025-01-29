@@ -8,10 +8,9 @@ from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, PackageConfig
 
 from packit_service.config import ServiceConfig
+from packit_service.events import anitya, pagure
+from packit_service.events.event_data import EventData
 from packit_service.models import ProjectEventModel
-from packit_service.worker.events import EventData
-from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
-from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 
 logger = logging.getLogger(__name__)
@@ -46,11 +45,11 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
         Get the default branch of the distgit project.
         """
         if not self._default_dg_branch:
-            if self.metadata.event_type in (NewHotnessUpdateEvent.__name__,):
+            if self.metadata.event_type in (anitya.NewHotness.event_type(),):
                 distgit_project_url = self.metadata.event_dict.get(
                     "distgit_project_url",
                 )
-            elif self.metadata.event_type in (PullRequestCommentPagureEvent.__name__,):
+            elif self.metadata.event_type in (pagure.pr.Comment.event_type(),):
                 distgit_project_url = self.metadata.event_dict.get("project_url")
             git_project = self.service_config.get_project(url=distgit_project_url)
             self._default_dg_branch = git_project.default_branch

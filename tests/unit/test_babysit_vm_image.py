@@ -9,12 +9,12 @@ from requests import HTTPError
 
 import packit_service
 from packit_service.config import ServiceConfig
+from packit_service.events.vm_image import Result
 from packit_service.models import (
     ProjectEventModelType,
     VMImageBuildStatus,
     VMImageBuildTargetModel,
 )
-from packit_service.worker.events import VMImageBuildResultEvent
 from packit_service.worker.handlers import VMImageBuildResultHandler
 from packit_service.worker.helpers.build.babysit import (
     UpdateImageBuildHelper,
@@ -133,7 +133,7 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
             )
             .mock(),
         )
-    flexmock(VMImageBuildResultEvent).should_receive(
+    flexmock(Result).should_receive(
         "job_config_trigger_type",
     ).and_return(JobConfigTriggerType.pull_request)
     vm_image_model = (

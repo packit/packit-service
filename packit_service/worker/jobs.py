@@ -22,32 +22,20 @@ from packit_service.constants import (
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
+from packit_service.events import (
+    abstract,
+    github,
+    koji,
+    pagure,
+)
+from packit_service.events.event import Event
+from packit_service.events.event_data import EventData
 from packit_service.utils import (
     elapsed_seconds,
     get_packit_commands_from_comment,
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.events import (
-    CheckRerunEvent,
-    Event,
-    EventData,
-    InstallationEvent,
-    IssueCommentEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestPagureEvent,
-)
-from packit_service.worker.events.comment import (
-    AbstractCommentEvent,
-    AbstractIssueCommentEvent,
-    AbstractPRCommentEvent,
-    CommitCommentEvent,
-)
-from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
-    AbstractResultEvent,
-)
-from packit_service.worker.events.koji import KojiBuildTagEvent, KojiTaskEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -92,7 +80,7 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-MANUAL_OR_RESULT_EVENTS = [AbstractCommentEvent, AbstractResultEvent, CheckRerunEvent]
+MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, github.check.Rerun]
 
 
 def get_handlers_for_comment(
@@ -221,14 +209,14 @@ class SteveJobs:
 
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
-        if isinstance(self.event, InstallationEvent):
+        if isinstance(self.event, github.installation.Installation):
             GithubAppInstallationHandler.get_signature(
                 event=self.event,
                 job=None,
             ).apply_async()
         elif isinstance(
             self.event,
-            IssueCommentEvent,
+            github.issue.Comment,
         ) and self.is_fas_verification_comment(self.event.comment):
             if GithubFasVerificationHandler.pre_check(
                 package_config=None,
@@ -243,7 +231,7 @@ class SteveJobs:
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
         elif (
-            isinstance(self.event, (PullRequestPagureEvent, KojiTaskEvent))
+            isinstance(self.event, (pagure.pr.Action, koji.result.Task))
             and self.event.db_project_object
             and (url := self.event.db_project_object.project.project_url)
             and url in self.service_config.enabled_projects_for_fedora_ci
@@ -334,7 +322,7 @@ class SteveJobs:
                 status has been updated.
         """
         number_of_build_targets = None
-        if isinstance(self.event, AbstractCommentEvent) and handler_kls in (
+        if isinstance(self.event, abstract.comment.CommentEvent) and handler_kls in (
             PullFromUpstreamHandler,
             DownstreamKojiBuildHandler,
             BodhiUpdateHandler,
@@ -384,7 +372,7 @@ class SteveJobs:
         Returns:
             A tuple (`dist_git_repo_url`, `dist_git_package_config`) or `None`
         """
-        if not isinstance(self.event, AbstractIssueCommentEvent):
+        if not isinstance(self.event, abstract.comment.Issue):
             # not a comment, doesn't matter
             return None
 
@@ -409,7 +397,7 @@ class SteveJobs:
         Returns:
             Whether the Packit configuration is present in the repo.
         """
-        if isinstance(self.event, AbstractCommentEvent) and (
+        if isinstance(self.event, abstract.comment.CommentEvent) and (
             handlers := get_handlers_for_comment(
                 self.event.comment,
                 packit_comment_command_prefix=self.service_config.comment_command_prefix,
@@ -419,7 +407,7 @@ class SteveJobs:
             # but not when it is triggered through an issue in the issues repository
             dist_git_package_config = None
             if (
-                isinstance(self.event, AbstractIssueCommentEvent)
+                isinstance(self.event, abstract.comment.Issue)
                 # for propose-downstream we want to load the package config
                 # from upstream repo
                 and ProposeDownstreamHandler not in handlers
@@ -497,7 +485,7 @@ class SteveJobs:
         """
         if isinstance(
             self.event,
-            AbstractCommentEvent,
+            abstract.comment.CommentEvent,
         ) and not get_handlers_for_comment(
             self.event.comment,
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
@@ -659,7 +647,7 @@ class SteveJobs:
             `False` otherwise.
         """
         # do the check only for events triggering the pipeline
-        if isinstance(self.event, AbstractResultEvent):
+        if isinstance(self.event, abstract.base.Result):
             logger.debug("Skipping private repository check for this type of event.")
 
         # CoprBuildEvent.get_project returns None when the build id is not known
@@ -709,7 +697,7 @@ class SteveJobs:
             return commands[0] == "koji-tag"
 
         matching_jobs: list[JobConfig] = []
-        if isinstance(self.event, PullRequestCommentPagureEvent):
+        if isinstance(self.event, pagure.pr.Comment):
             for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in [JobType.koji_build, JobType.bodhi_update]
@@ -735,7 +723,7 @@ class SteveJobs:
                     # A pull_from_upstream job with release trigger
                     # can be re-triggered by a comment in a dist-git PR
                     matching_jobs.append(job)
-        elif isinstance(self.event, AbstractIssueCommentEvent):
+        elif isinstance(self.event, abstract.comment.Issue):
             for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in (JobType.koji_build, JobType.bodhi_update)
@@ -753,7 +741,7 @@ class SteveJobs:
                     # after a failed release event
                     # (which has created the issue)
                     matching_jobs.append(job)
-        elif isinstance(self.event, KojiBuildTagEvent):
+        elif isinstance(self.event, koji.tag.Build):
             # create a virtual job config
             job_config = JobConfig(
                 JobType.koji_build_tag,
@@ -782,7 +770,7 @@ class SteveJobs:
             if (
                 job.trigger == self.event.job_config_trigger_type
                 and (
-                    not isinstance(self.event, CheckRerunEvent)
+                    not isinstance(self.event, github.check.Rerun)
                     or self.event.job_identifier == job.identifier
                 )
                 and job not in jobs_matching_trigger
@@ -796,7 +784,7 @@ class SteveJobs:
                 and (
                     job.trigger != JobConfigTriggerType.pull_request
                     or not (job.require.label.present or job.require.label.absent)
-                    or not isinstance(self.event, AbstractForgeIndependentEvent)
+                    or not isinstance(self.event, abstract.base.ForgeIndependent)
                     or pr_labels_match_configuration(
                         pull_request=self.event.pull_request_object,
                         configured_labels_absent=job.require.label.absent,
@@ -823,7 +811,7 @@ class SteveJobs:
         """
         handlers_triggered_by_job = None
 
-        if isinstance(self.event, AbstractCommentEvent):
+        if isinstance(self.event, abstract.comment.CommentEvent):
             handlers_triggered_by_job = get_handlers_for_comment(
                 self.event.comment,
                 self.service_config.comment_command_prefix,
@@ -831,11 +819,11 @@ class SteveJobs:
 
             if handlers_triggered_by_job and not isinstance(
                 self.event,
-                (PullRequestCommentPagureEvent, CommitCommentEvent),
+                (pagure.pr.Comment, abstract.comment.Commit),
             ):
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
 
-        if isinstance(self.event, CheckRerunEvent):
+        if isinstance(self.event, github.check.Rerun):
             handlers_triggered_by_job = get_handlers_for_check_rerun(
                 self.event.check_name_job,
             )
@@ -874,7 +862,7 @@ class SteveJobs:
 
         if not matching_handlers:
             logger.debug(
-                f"We did not find any handler for a following event:\n{self.event.__class__}",
+                f"We did not find any handler for a following event:\n{self.event.event_type()}",
             )
 
         logger.debug(f"Matching handlers: {matching_handlers}")
@@ -950,7 +938,7 @@ class SteveJobs:
         if not matching_jobs:
             logger.warning(
                 f"We did not find any config for {handler_kls} and a following event:\n"
-                f"{self.event.__class__}",
+                f"{self.event.event_type()}",
             )
 
         logger.debug(f"Jobs matching {handler_kls}: {matching_jobs}")
@@ -986,7 +974,7 @@ class SteveJobs:
             # we need more info why this has happened
             logger.debug(f"Event dict: {self.event}.")
             logger.error(
-                f"Event {self.event.__class__.__name__} took more than 15s to process.",
+                f"Event {self.event.event_type()} took more than 15s to process.",
             )
         # set the time when the accepted status was set so that we
         # can use it later for measurements
@@ -1050,7 +1038,7 @@ class SteveJobs:
         """
         if not isinstance(
             self.event,
-            (AbstractIssueCommentEvent, AbstractPRCommentEvent),
+            (abstract.comment.Issue, abstract.comment.PullRequest),
         ):
             logger.debug(
                 "Not a comment event, not reporting task was accepted via comment.",
@@ -1062,7 +1050,7 @@ class SteveJobs:
             f"{handler_kls.get_handler_specific_task_accepted_message(self.service_config)}"
         )
 
-        if isinstance(self.event, AbstractPRCommentEvent):
+        if isinstance(self.event, abstract.comment.PullRequest):
             self.event.pull_request_object.comment(message)
-        if isinstance(self.event, AbstractIssueCommentEvent):
+        if isinstance(self.event, abstract.comment.Issue):
             self.event.issue_object.comment(message)

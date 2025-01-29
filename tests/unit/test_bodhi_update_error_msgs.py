@@ -13,12 +13,12 @@ from packit.config import (
 from packit.exceptions import PackitException
 
 from packit_service.config import ServiceConfig
+from packit_service.events import (
+    pagure,
+)
+from packit_service.events.enums import PullRequestAction
 from packit_service.models import BodhiUpdateTargetModel
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import (
-    PullRequestCommentPagureEvent,
-)
-from packit_service.worker.events.enums import PullRequestAction
 from packit_service.worker.handlers import bodhi
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
@@ -61,13 +61,13 @@ def package_config__job_config():
 @pytest.fixture(scope="module")
 def package_config__job_config__pull_request_event(package_config__job_config):
     package_config, job_config = package_config__job_config
-    flexmock(PullRequestCommentPagureEvent).should_receive("commit_sha").and_return(
+    flexmock(pagure.pr.Comment).should_receive("commit_sha").and_return(
         "abcdef",
     )
-    flexmock(PullRequestCommentPagureEvent).should_receive(
+    flexmock(pagure.pr.Comment).should_receive(
         "get_packages_config",
     ).and_return(package_config)
-    data = PullRequestCommentPagureEvent(
+    data = pagure.pr.Comment(
         pr_id=123,
         action=PullRequestAction.opened,
         base_repo_namespace="a_namespace",

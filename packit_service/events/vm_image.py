@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+
 from typing import Optional, Union
 
 from packit_service.models import (
@@ -7,13 +8,14 @@ from packit_service.models import (
     VMImageBuildStatus,
     VMImageBuildTargetModel,
 )
-from packit_service.worker.events.event import (
+
+from .abstract.base import Result as AbstractResult
+from .event import (
     AbstractProjectObjectDbType,
-    AbstractResultEvent,
 )
 
 
-class VMImageBuildResultEvent(AbstractResultEvent):
+class Result(AbstractResult):
     def __init__(
         self,
         build_id: str,
@@ -34,6 +36,10 @@ class VMImageBuildResultEvent(AbstractResultEvent):
         self.message = message
 
         self.topic = "vm-image-build-state-change"
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "vm_image.Result"
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         model = VMImageBuildTargetModel.get_by_build_id(self.build_id)

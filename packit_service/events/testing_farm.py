@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+
 from datetime import datetime
 from typing import Optional
 
@@ -13,11 +14,16 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
 )
-from packit_service.worker.events.event import AbstractResultEvent
+
+from .abstract.base import Result as AbstractResult
 
 
-class TestingFarmResultsEvent(AbstractResultEvent):
+class Result(AbstractResult):
     __test__ = False
+
+    @classmethod
+    def event_type(cls) -> str:
+        return "testing_farm.Result"
 
     def __init__(
         self,

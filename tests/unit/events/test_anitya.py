@@ -9,14 +9,11 @@ from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
 from packit_service.config import PackageConfigGetter
+from packit_service.events.anitya import NewHotness, VersionUpdate
 from packit_service.models import (
     ProjectEventModel,
     ProjectEventModelType,
     ProjectReleaseModel,
-)
-from packit_service.worker.events.new_hotness import (
-    AnityaVersionUpdateEvent,
-    NewHotnessUpdateEvent,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -122,7 +119,7 @@ def test_parse_new_hotness_update(
         flexmock(project_event_model_type=ProjectEventModelType.release, id="123"),
     )
 
-    assert isinstance(event_object, NewHotnessUpdateEvent)
+    assert isinstance(event_object, NewHotness)
     assert isinstance(event_object.project, PagureProject)
     assert event_object.package_name == "redis"
     assert event_object.anitya_project_id == 4181
@@ -163,7 +160,7 @@ def test_parse_anitya_version_update(anitya_version_update):
         commit_sha=None,
     ).and_return(flexmock())
 
-    assert isinstance(event, AnityaVersionUpdateEvent)
+    assert isinstance(event, VersionUpdate)
     assert isinstance(event.project, GitlabProject)
     assert event.package_name == "python3-mypy-boto3"
     assert event.anitya_project_id == 40221

@@ -4,15 +4,15 @@
 from celery import Celery
 from flexmock import Mock, flexmock
 
+from packit_service.events import (
+    github,
+    vm_image,
+)
 from packit_service.models import (
     PipelineModel,
     ProjectEventModel,
     VMImageBuildStatus,
     VMImageBuildTargetModel,
-)
-from packit_service.worker.events import VMImageBuildResultEvent
-from packit_service.worker.events.github import (
-    PullRequestCommentGithubEvent,
 )
 from packit_service.worker.handlers import (
     VMImageBuildHandler,
@@ -121,7 +121,7 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
         package_config,
         job_config,
         {
-            "event_type": PullRequestCommentGithubEvent.__name__,
+            "event_type": github.pr.Comment.event_type(),
             "project_url": "https://github.com/majamassarini/knx-stack",
             "commit_sha": "4321aa",
             "pr_id": 21,
@@ -191,7 +191,7 @@ def test_vm_image_build_result_handler_ok(
         package_config,
         job_config,
         {
-            "event_type": VMImageBuildResultEvent.__name__,
+            "event_type": vm_image.Result.event_type(),
             "build_id": 1,
             "status": "error",
             "message": "Build failed bla bla bla",
@@ -236,7 +236,7 @@ def test_vm_image_build_result_handler_ko(
         package_config,
         job_config,
         {
-            "event_type": VMImageBuildResultEvent.__name__,
+            "event_type": vm_image.Result.event_type(),
             "build_id": 1,
             "status": "error",
         },

@@ -13,6 +13,7 @@
 # the repo. Unless a later match takes precedence
 *	@packit/the-packit-team
 
-packit_service/worker/allowlist.py		@mfocko
-packit_service/worker/helpers/testing_farm.py	@mfocko
-packit_service/worker/reporting/*		@mfocko
+packit_service/worker/allowlist.py              @mfocko
+packit_service/worker/events/*                  @mfocko
+packit_service/worker/helpers/testing_farm.py   @mfocko
+packit_service/worker/reporting/*               @mfocko

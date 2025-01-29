@@ -10,13 +10,6 @@ class PullRequestAction(Enum):
     synchronize = "synchronize"
 
 
-class GitlabEventAction(Enum):
-    opened = "opened"  # from state
-    closed = "closed"  # from state
-    reopen = "reopen"  # from action
-    update = "update"  # from action
-
-
 class PullRequestCommentAction(Enum):
     created = "created"
     edited = "edited"

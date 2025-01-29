@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import os
 from logging import getLogger
 from typing import Optional, Union
 
@@ -15,13 +16,14 @@ from packit_service.models import (
     ProjectEventModelType,
     SRPMBuildModel,
 )
-from packit_service.worker.events.enums import FedmsgTopic
-from packit_service.worker.events.event import AbstractResultEvent
+
+from .abstract.base import Result
+from .enums import FedmsgTopic
 
 logger = getLogger(__name__)
 
 
-class AbstractCoprBuildEvent(AbstractResultEvent):
+class CoprBuild(Result):
     build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
 
     def __init__(
@@ -67,6 +69,11 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         self.pkg = pkg
         self.timestamp = timestamp
 
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.copr.Build"
+
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()
 
@@ -97,7 +104,7 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         project_name: str,
         pkg: str,
         timestamp,
-    ) -> Optional["AbstractCoprBuildEvent"]:
+    ) -> Optional["CoprBuild"]:
         """Return cls instance or None if build_id not in CoprBuildDB"""
         build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
         if chroot == COPR_SRPM_CHROOT:
@@ -126,7 +133,7 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        return AbstractCoprBuildEvent.from_build_id(
+        return CoprBuild.from_build_id(
             topic=event.get("topic"),
             build_id=event.get("build_id"),
             chroot=event.get("chroot"),
@@ -168,9 +175,13 @@ class AbstractCoprBuildEvent(AbstractResultEvent):
         )
 
 
-class CoprBuildStartEvent(AbstractCoprBuildEvent):
-    pass
+class Start(CoprBuild):
+    @classmethod
+    def event_type(cls) -> str:
+        return "copr.build.Start"
 
 
-class CoprBuildEndEvent(AbstractCoprBuildEvent):
-    pass
+class End(CoprBuild):
+    @classmethod
+    def event_type(cls) -> str:
+        return "copr.build.End"

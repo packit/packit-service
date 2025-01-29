@@ -8,12 +8,11 @@ from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
 )
+from packit_service.events import gitlab
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
-from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
     GetGithubCommentEventMixin,
@@ -39,8 +38,8 @@ class IsEventOk(
 ):
     def pre_check(self) -> bool:
         if (
-            self.data.event_type == MergeRequestGitlabEvent.__name__
-            and self.data.event_dict["action"] == GitlabEventAction.closed.value
+            self.data.event_type == gitlab.mr.Action.event_type()
+            and self.data.event_dict["action"] == gitlab.enums.Action.closed.value
         ):
             # Not interested in closed merge requests
             return False

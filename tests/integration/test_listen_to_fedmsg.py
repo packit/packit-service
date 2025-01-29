@@ -28,6 +28,7 @@ from packit.utils.koji_helper import KojiHelper
 import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
+from packit_service.events import copr, koji
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -46,8 +47,6 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
-from packit_service.worker.events.koji import KojiBuildTagEvent
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
@@ -348,7 +347,7 @@ def test_copr_build_end(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -436,7 +435,7 @@ def test_copr_build_end_push(
         # we cannot comment for branch push events
         flexmock(source_project=flexmock()).should_receive("comment").never(),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_push,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -508,7 +507,7 @@ def test_copr_build_end_release(
         # we cannot comment for branch push events
         flexmock(source_project=flexmock()).should_receive("comment").never().mock(),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_release,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -620,7 +619,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -883,7 +882,7 @@ def test_copr_build_end_testing_farm_pr_branch(copr_build_end, copr_build_pr):
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -1018,7 +1017,7 @@ def test_copr_build_end_testing_farm_different_pr_branch(copr_build_end, copr_bu
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -1164,7 +1163,7 @@ def test_copr_build_end_testing_farm_manual_trigger(
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -1314,7 +1313,7 @@ def test_copr_build_end_testing_farm_labels_matching(copr_build_end, copr_build_
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -1453,7 +1452,7 @@ def test_copr_build_end_testing_farm_labels_not_matching(copr_build_end, copr_bu
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -1564,7 +1563,7 @@ def test_copr_build_end_push_testing_farm(copr_build_end_push, copr_build_branch
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(PackageConfigGetter).should_receive(
@@ -1675,7 +1674,7 @@ def test_copr_build_end_push_testing_farm_different_branch(
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(PackageConfigGetter).should_receive(
@@ -1812,7 +1811,7 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -1955,7 +1954,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2145,7 +2144,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         ],
     )
 
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         config,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2289,7 +2288,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock()),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2344,7 +2343,7 @@ def test_copr_build_start_already_ended(copr_build_start, pc_build_pr, copr_buil
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock()),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2397,7 +2396,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock()).should_receive("comment").never(),
     )
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2461,7 +2460,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build_pr):
     koji_build_pr.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(KojiTaskEvent).should_receive("get_packages_config").and_return(
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(
         pc_koji_build_pr,
     )
 
@@ -2523,7 +2522,7 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr):
     koji_build_pr.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(KojiTaskEvent).should_receive("get_packages_config").and_return(
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(
         pc_koji_build_pr,
     )
 
@@ -2584,7 +2583,7 @@ def test_koji_build_end_downstream(
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
     koji_build_pr_downstream.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(KojiTaskEvent).should_receive("get_packages_config").and_return(
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(
         pc_koji_build_pr,
     )
 
@@ -2635,7 +2634,7 @@ def test_koji_build_tag(
         {"task_id": 7654321},
     )
 
-    flexmock(KojiBuildTagEvent).should_receive("get_packages_config").and_return(
+    flexmock(koji.tag.Build).should_receive("get_packages_config").and_return(
         pc_koji_build_tag_specfile,
     )
 
@@ -2687,7 +2686,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
     pr = flexmock(source_project=flexmock())
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2755,7 +2754,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
     pr = flexmock(source_project=flexmock())
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -2818,7 +2817,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
     pr = flexmock(source_project=flexmock())
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    flexmock(AbstractCoprBuildEvent).should_receive("get_packages_config").and_return(
+    flexmock(copr.CoprBuild).should_receive("get_packages_config").and_return(
         pc_build_pr,
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(

@@ -9,14 +9,11 @@ from packit.config import (
     JobType,
 )
 
+from packit_service.events import openscanhub
 from packit_service.models import OSHScanStatus
 from packit_service.service.urls import get_openscanhub_info_url
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.open_scan_hub import IsEventForJob, RawhideX86Target
-from packit_service.worker.events import (
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
-)
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
     TaskName,
@@ -46,7 +43,7 @@ class OpenScanHubAbstractHandler(
 ):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.event: Union[OpenScanHubTaskFinishedEvent | OpenScanHubTaskStartedEvent] = (
+        self.event: Union[openscanhub.task.Started, openscanhub.task.Finished] = (
             self.data.to_event()
         )
 
@@ -94,11 +91,11 @@ class OpenScanHubAbstractHandler(
 
 
 @configured_as(job_type=JobType.copr_build)
-@reacts_to(OpenScanHubTaskFinishedEvent)
+@reacts_to(openscanhub.task.Finished)
 class OpenScanHubTaskFinishedHandler(
     OpenScanHubAbstractHandler,
 ):
-    event: OpenScanHubTaskFinishedEvent
+    event: openscanhub.task.Finished
     task_name = TaskName.openscanhub_task_finished
 
     def get_number_of_new_findings_identified(self) -> Optional[int]:
@@ -153,7 +150,7 @@ class OpenScanHubTaskFinishedHandler(
     def run(self) -> TaskResults:
         self.check_scan_and_build()
         external_links = {"OpenScanHub task": self.event.scan.url}
-        if self.event.status == OpenScanHubTaskFinishedEvent.Status.success:
+        if self.event.status == openscanhub.task.Status.success:
             state = BaseCommitStatus.success
             number_of_new_findings = self.get_number_of_new_findings_identified()
             base_description = "Scan in OpenScanHub is finished."
@@ -181,7 +178,7 @@ class OpenScanHubTaskFinishedHandler(
         else:
             state = BaseCommitStatus.neutral
             description = f"Scan in OpenScanHub is finished in a {self.event.status} state."
-            if self.event.status == OpenScanHubTaskFinishedEvent.Status.cancel:
+            if self.event.status == openscanhub.task.Status.cancel:
                 self.event.scan.set_status(OSHScanStatus.canceled)
             else:
                 self.event.scan.set_status(OSHScanStatus.failed)
@@ -200,7 +197,7 @@ class OpenScanHubTaskFinishedHandler(
 
 
 @configured_as(job_type=JobType.copr_build)
-@reacts_to(OpenScanHubTaskStartedEvent)
+@reacts_to(openscanhub.task.Started)
 class OpenScanHubTaskStartedHandler(
     OpenScanHubAbstractHandler,
 ):
@@ -208,7 +205,7 @@ class OpenScanHubTaskStartedHandler(
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.event: OpenScanHubTaskStartedEvent = self.data.to_event()
+        self.event: openscanhub.task.Started = self.data.to_event()
 
     def run(self) -> TaskResults:
         self.check_scan_and_build()

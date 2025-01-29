@@ -20,6 +20,12 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
 )
+from packit_service.events import (
+    abstract,
+    copr,
+    github,
+    gitlab,
+)
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -41,21 +47,6 @@ from packit_service.worker.checker.copr import (
     IsJobConfigTriggerMatching,
     IsPackageMatchingJobView,
 )
-from packit_service.worker.events import (
-    AbstractPRCommentEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
-    CoprBuildEndEvent,
-    CoprBuildStartEvent,
-    MergeRequestGitlabEvent,
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-    ReleaseEvent,
-    ReleaseGitlabEvent,
-)
-from packit_service.worker.events.comment import CommitCommentEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     RetriableJobHandler,
@@ -84,17 +75,15 @@ logger = logging.getLogger(__name__)
 @run_for_comment(command="copr-build")
 @run_for_comment(command="rebuild-failed")
 @run_for_check_rerun(prefix="rpm-build")
-@reacts_to(ReleaseEvent)
-@reacts_to(ReleaseGitlabEvent)
-@reacts_to(PullRequestGithubEvent)
-@reacts_to(PushGitHubEvent)
-@reacts_to(PushGitlabEvent)
-@reacts_to(MergeRequestGitlabEvent)
-@reacts_to(AbstractPRCommentEvent)
-@reacts_to(CheckRerunPullRequestEvent)
-@reacts_to(CheckRerunCommitEvent)
-@reacts_to(CheckRerunReleaseEvent)
-@reacts_to(CommitCommentEvent)
+@reacts_to(github.release.Release)
+@reacts_to(gitlab.release.Release)
+@reacts_to(github.pr.Action)
+@reacts_to(github.push.Commit)
+@reacts_to(gitlab.push.Commit)
+@reacts_to(gitlab.mr.Action)
+@reacts_to(github.check.Rerun)
+@reacts_to(abstract.comment.Commit)
+@reacts_to(abstract.comment.PullRequest)
 class CoprBuildHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,
@@ -143,7 +132,7 @@ class AbstractCoprBuildReportHandler(
 
 
 @configured_as(job_type=JobType.copr_build)
-@reacts_to(event=CoprBuildStartEvent)
+@reacts_to(event=copr.Start)
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     task_name = TaskName.copr_build_start
@@ -227,7 +216,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
 
 @configured_as(job_type=JobType.copr_build)
-@reacts_to(event=CoprBuildEndEvent)
+@reacts_to(event=copr.End)
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     task_name = TaskName.copr_build_end

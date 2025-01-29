@@ -23,6 +23,12 @@ from packit_service.constants import (
     MSG_GET_IN_TOUCH,
     MSG_RETRIGGER,
 )
+from packit_service.events import (
+    github,
+    gitlab,
+    koji,
+    pagure,
+)
 from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
@@ -39,12 +45,6 @@ from packit_service.worker.checker.bodhi import (
     IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildOwnerMatchingConfiguration,
 )
-from packit_service.worker.events import (
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
-    PullRequestCommentPagureEvent,
-)
-from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
     TaskName,
@@ -316,7 +316,7 @@ class BodhiUpdateHandler(
 
 
 @configured_as(job_type=JobType.bodhi_update)
-@reacts_to(event=KojiBuildEvent)
+@reacts_to(event=koji.result.Build)
 class CreateBodhiUpdateHandler(
     BodhiUpdateHandler,
     RetriableJobHandler,
@@ -402,7 +402,7 @@ class BodhiUpdateFromSidetagHandler(
 
 
 @configured_as(job_type=JobType.bodhi_update)
-@reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=pagure.pr.Comment)
 @run_for_comment(command="create-update")
 class RetriggerBodhiUpdateHandler(
     BodhiUpdateHandler,
@@ -434,8 +434,8 @@ class RetriggerBodhiUpdateHandler(
 
 
 @configured_as(job_type=JobType.bodhi_update)
-@reacts_to(event=IssueCommentEvent)
-@reacts_to(event=IssueCommentGitlabEvent)
+@reacts_to(event=github.issue.Comment)
+@reacts_to(event=gitlab.issue.Comment)
 @run_for_comment(command="create-update")
 class IssueCommentRetriggerBodhiUpdateHandler(
     BodhiUpdateHandler,

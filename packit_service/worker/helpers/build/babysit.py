@@ -24,6 +24,12 @@ from packit_service.constants import (
     DEFAULT_JOB_TIMEOUT,
     TESTING_FARM_API_URL,
 )
+from packit_service.events import copr as copr_events
+from packit_service.events import (
+    testing_farm,
+    vm_image,
+)
+from packit_service.events.enums import FedmsgTopic
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -34,14 +40,6 @@ from packit_service.models import (
     VMImageBuildTargetModel,
 )
 from packit_service.utils import elapsed_seconds
-from packit_service.worker.events import (
-    AbstractCoprBuildEvent,
-    CoprBuildEndEvent,
-    CoprBuildStartEvent,
-    TestingFarmResultsEvent,
-    VMImageBuildResultEvent,
-)
-from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -115,7 +113,7 @@ def check_pending_testing_farm_runs() -> None:
         if result in not_completed:
             logger.debug("Skip updating a pipeline which is not yet completed.")
             continue
-        event = TestingFarmResultsEvent(
+        event = testing_farm.Result(
             pipeline_id=details["id"],
             result=result,
             compose=compose,
@@ -137,7 +135,7 @@ def check_pending_testing_farm_runs() -> None:
             )
 
 
-def update_testing_farm_run(event: TestingFarmResultsEvent, run: TFTTestRunTargetModel):
+def update_testing_farm_run(event: testing_farm.Result, run: TFTTestRunTargetModel):
     """
     Updates the state of the Testing Farm run.
     """
@@ -317,7 +315,7 @@ def update_srpm_build_state(
         # Nothing to do
         return
 
-    event = CoprBuildEndEvent(
+    event = copr_events.End(
         topic=FedmsgTopic.copr_build_finished.value,
         build_id=int(
             build.copr_build_id,
@@ -379,14 +377,14 @@ def update_copr_build_state(
         chroot_build_copr: Data of the single build chroot from the copr API.
 
     """
-    event_kls: type[AbstractCoprBuildEvent]
+    event_kls: type[copr.CoprBuild]
     handler_kls: type[AbstractCoprBuildReportHandler]
     if chroot_build_copr.ended_on:
-        event_kls = CoprBuildEndEvent
+        event_kls = copr_events.End
         handler_kls = CoprBuildEndHandler
         timestamp = chroot_build_copr.ended_on
     elif build_copr.started_on and build.status == BuildStatus.waiting_for_srpm:
-        event_kls = CoprBuildStartEvent
+        event_kls = copr_events.Start
         handler_kls = CoprBuildStartHandler
         timestamp = chroot_build_copr.started_on
     else:
@@ -530,7 +528,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         message = get_message_for_successful_build(body["image_status"])
         logger.debug(message)
 
-    event = VMImageBuildResultEvent(
+    event = vm_image.Result(
         build.build_id,
         build.target,
         build.get_pr_id(),

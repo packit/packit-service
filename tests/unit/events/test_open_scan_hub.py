@@ -14,11 +14,8 @@ from packit.config import (
     PackageConfig,
 )
 
+from packit_service.events.openscanhub.task import Finished, Started
 from packit_service.models import OSHScanModel
-from packit_service.worker.events import (
-    OpenScanHubTaskFinishedEvent,
-    OpenScanHubTaskStartedEvent,
-)
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
@@ -61,7 +58,7 @@ def scan_config_and_db(add_pull_request_event_with_sha_123456):
         .and_return(db_project_event)
         .mock()
     )
-    flexmock(OpenScanHubTaskFinishedEvent).should_receive(
+    flexmock(Finished).should_receive(
         "get_packages_config",
     ).and_return(
         PackageConfig(
@@ -90,7 +87,7 @@ def test_parse_openscanhub_task_finished(
 ):
     event_object = Parser.parse_event(openscanhub_task_finished_event)
 
-    assert isinstance(event_object, OpenScanHubTaskFinishedEvent)
+    assert isinstance(event_object, Finished)
     assert event_object.task_id == 15649
     assert (
         event_object.issues_added_url
@@ -116,7 +113,7 @@ def test_parse_openscanhub_task_started(
 ):
     event_object = Parser.parse_event(openscanhub_task_started_event)
 
-    assert isinstance(event_object, OpenScanHubTaskStartedEvent)
+    assert isinstance(event_object, Started)
     assert event_object.task_id == 15649
     assert event_object.db_project_event
     assert event_object.db_project_object

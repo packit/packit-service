@@ -5,11 +5,13 @@
 abstract-comment event classes.
 """
 
+import os
 import re
 from logging import getLogger
 from typing import Optional, Union
 
-from ogr.abstract import Comment, Issue
+from ogr.abstract import Comment
+from ogr.abstract import Issue as OgrIssue
 
 from packit_service.models import (
     BuildStatus,
@@ -22,12 +24,13 @@ from packit_service.service.db_project_events import (
     AddIssueEventToDb,
     AddPullRequestEventToDb,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+
+from .base import ForgeIndependent
 
 logger = getLogger(__name__)
 
 
-class AbstractCommentEvent(AbstractForgeIndependentEvent):
+class CommentEvent(ForgeIndependent):
     def __init__(
         self,
         project_url: str,
@@ -53,7 +56,7 @@ class AbstractCommentEvent(AbstractForgeIndependentEvent):
         return result
 
 
-class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
+class PullRequest(AddPullRequestEventToDb, CommentEvent):
     def __init__(
         self,
         pr_id: int,
@@ -78,6 +81,11 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         self._comment_object = comment_object
         self._build_targets_override = build_targets_override
         self._tests_targets_override = tests_targets_override
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.abstract.comment.PullRequest"
 
     @property
     def commit_sha(self) -> str:  # type:ignore
@@ -132,7 +140,7 @@ class AbstractPRCommentEvent(AddPullRequestEventToDb, AbstractCommentEvent):
         return result
 
 
-class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
+class Issue(AddIssueEventToDb, CommentEvent):
     def __init__(
         self,
         issue_id: int,
@@ -162,7 +170,12 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         self._tag_name = tag_name
         self._commit_sha: Optional[str] = None
         self._comment_object = comment_object
-        self._issue_object: Optional[Issue] = None
+        self._issue_object: Optional[OgrIssue] = None
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.abstract.comment.Issue"
 
     @property
     def tag_name(self):
@@ -180,7 +193,7 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         return self._commit_sha
 
     @property
-    def issue_object(self) -> Optional[Issue]:
+    def issue_object(self) -> Optional[OgrIssue]:
         if not self._issue_object:
             self._issue_object = self.project.get_issue(self.issue_id)
         return self._issue_object
@@ -200,7 +213,7 @@ class AbstractIssueCommentEvent(AddIssueEventToDb, AbstractCommentEvent):
         return result
 
 
-class CommitCommentEvent(AbstractCommentEvent):
+class Commit(CommentEvent):
     _trigger: Union[GitBranchModel, ProjectReleaseModel] = None
     _event: ProjectEventModel = None
 
@@ -225,6 +238,11 @@ class CommitCommentEvent(AbstractCommentEvent):
         self.commit_sha = commit_sha
         self._tag_name: Optional[str] = None
         self._branch: Optional[str] = None
+
+    @classmethod
+    def event_type(cls) -> str:
+        assert os.environ.get("PYTEST_VERSION"), "Should be initialized only during tests"
+        return "test.abstract.comment.Commit"
 
     @property
     def identifier(self) -> Optional[str]:
