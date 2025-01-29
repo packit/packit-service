@@ -23,6 +23,12 @@ from packit_service.constants import (
     MSG_GET_IN_TOUCH,
     MSG_RETRIGGER,
 )
+from packit_service.events import (
+    github,
+    gitlab,
+    koji,
+    pagure,
+)
 from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
@@ -38,12 +44,6 @@ from packit_service.worker.checker.bodhi import (
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
     IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildOwnerMatchingConfiguration,
-)
-from packit_service.worker.events import (
-    github,
-    gitlab,
-    koji,
-    pagure,
 )
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,

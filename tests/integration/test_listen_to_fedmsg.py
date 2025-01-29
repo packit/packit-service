@@ -28,6 +28,7 @@ from packit.utils.koji_helper import KojiHelper
 import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
+from packit_service.events import copr, koji
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -46,7 +47,6 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.events import copr, koji
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler

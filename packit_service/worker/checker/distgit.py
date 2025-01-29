@@ -7,19 +7,19 @@ import re
 from packit.config.aliases import get_branches
 
 from packit_service.constants import MSG_GET_IN_TOUCH
-from packit_service.utils import (
-    get_packit_commands_from_comment,
-    pr_labels_match_configuration,
-)
-from packit_service.worker.checker.abstract import ActorChecker, Checker
-from packit_service.worker.checker.helper import DistgitAccountsChecker
-from packit_service.worker.events import (
+from packit_service.events import (
     anitya,
     github,
     gitlab,
     koji,
     pagure,
 )
+from packit_service.utils import (
+    get_packit_commands_from_comment,
+    pr_labels_match_configuration,
+)
+from packit_service.worker.checker.abstract import ActorChecker, Checker
+from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,

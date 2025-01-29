@@ -21,15 +21,7 @@ from packit_service.constants import (
     KojiBuildState,
     KojiTaskState,
 )
-from packit_service.models import (
-    GitBranchModel,
-    ProjectEventModel,
-    ProjectReleaseModel,
-    PullRequestModel,
-    TestingFarmResult,
-    TFTTestRunTargetModel,
-)
-from packit_service.worker.events import (
+from packit_service.events import (
     abstract,
     anitya,
     copr,
@@ -41,10 +33,18 @@ from packit_service.worker.events import (
     testing_farm,
     vm_image,
 )
-from packit_service.worker.events.enums import (
+from packit_service.events.enums import (
     IssueCommentAction,
     PullRequestAction,
     PullRequestCommentAction,
+)
+from packit_service.models import (
+    GitBranchModel,
+    ProjectEventModel,
+    ProjectReleaseModel,
+    PullRequestModel,
+    TestingFarmResult,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper

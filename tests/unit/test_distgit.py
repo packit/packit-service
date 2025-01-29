@@ -10,7 +10,7 @@ from packit.api import PackitAPI
 from packit.config.notifications import NotificationsConfig
 
 from packit_service.config import PackageConfigGetter
-from packit_service.worker.events.event_data import EventData
+from packit_service.events.event_data import EventData
 from packit_service.worker.handlers.distgit import (
     AbstractSyncReleaseHandler,
     DownstreamKojiBuildHandler,

@@ -22,20 +22,20 @@ from packit_service.constants import (
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
+from packit_service.events import (
+    abstract,
+    github,
+    koji,
+    pagure,
+)
+from packit_service.events.event import Event
+from packit_service.events.event_data import EventData
 from packit_service.utils import (
     elapsed_seconds,
     get_packit_commands_from_comment,
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.events import (
-    abstract,
-    github,
-    koji,
-    pagure,
-)
-from packit_service.worker.events.event import Event
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,

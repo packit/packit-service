@@ -9,12 +9,12 @@ from requests import HTTPError
 
 import packit_service
 from packit_service.config import ServiceConfig
+from packit_service.events.vm_image import Result
 from packit_service.models import (
     ProjectEventModelType,
     VMImageBuildStatus,
     VMImageBuildTargetModel,
 )
-from packit_service.worker.events.vm_image import Result
 from packit_service.worker.handlers import VMImageBuildResultHandler
 from packit_service.worker.helpers.build.babysit import (
     UpdateImageBuildHelper,

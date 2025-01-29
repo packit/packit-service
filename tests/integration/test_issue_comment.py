@@ -22,6 +22,7 @@ from packit.utils.koji_helper import KojiHelper
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
+from packit_service.events import github, gitlab
 from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
@@ -41,7 +42,6 @@ from packit_service.models import (
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import github, gitlab
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.distgit import (
     RetriggerDownstreamKojiBuildHandler,

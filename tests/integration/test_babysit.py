@@ -17,6 +17,7 @@ from packit.config import (
 from packit.copr_helper import CoprHelper
 
 import packit_service.worker.helpers.build.babysit
+from packit_service import events
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -25,7 +26,6 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
 )
-from packit_service.worker import events
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,

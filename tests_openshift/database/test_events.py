@@ -6,6 +6,12 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject
 
 from packit_service.constants import KojiTaskState
+from packit_service.events import (
+    github,
+    gitlab,
+    koji,
+    testing_farm,
+)
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -16,12 +22,6 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
-)
-from packit_service.worker.events import (
-    github,
-    gitlab,
-    koji,
-    testing_farm,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser

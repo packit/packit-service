@@ -14,6 +14,14 @@ from packit.vm_image_build import ImageBuilder
 
 from packit_service.config import ProjectToSync
 from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
+from packit_service.events import (
+    copr,
+    github,
+    gitlab,
+    koji,
+    pagure,
+)
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -21,14 +29,6 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.utils import get_packit_commands_from_comment
-from packit_service.worker.events import (
-    copr,
-    github,
-    gitlab,
-    koji,
-    pagure,
-)
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper

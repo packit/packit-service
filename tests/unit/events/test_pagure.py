@@ -8,8 +8,8 @@ from flexmock import flexmock
 from ogr.services.pagure import PagureProject
 
 from packit_service.config import PackageConfigGetter
-from packit_service.worker.events.enums import PullRequestAction
-from packit_service.worker.events.pagure import (
+from packit_service.events.enums import PullRequestAction
+from packit_service.events.pagure import (
     pr,
     push,
 )

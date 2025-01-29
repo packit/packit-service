@@ -4,15 +4,15 @@
 from celery import Celery
 from flexmock import Mock, flexmock
 
+from packit_service.events import (
+    github,
+    vm_image,
+)
 from packit_service.models import (
     PipelineModel,
     ProjectEventModel,
     VMImageBuildStatus,
     VMImageBuildTargetModel,
-)
-from packit_service.worker.events import (
-    github,
-    vm_image,
 )
 from packit_service.worker.handlers import (
     VMImageBuildHandler,

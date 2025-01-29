@@ -37,6 +37,11 @@ from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_LIMIT_OUTAGE,
 )
+from packit_service.events import (
+    github,
+    gitlab,
+)
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildGroupModel,
@@ -50,11 +55,6 @@ from packit_service.models import (
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
-from packit_service.worker.events import (
-    github,
-    gitlab,
-)
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.handlers import CoprBuildHandler
 from packit_service.worker.helpers.build.copr_build import (
     BaseBuildJobHelper,

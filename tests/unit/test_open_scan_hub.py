@@ -16,15 +16,15 @@ from packit.config import (
     PackageConfig,
 )
 
+from packit_service.events import (
+    copr,
+    openscanhub,
+)
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
     OSHScanModel,
     ProjectEventModelType,
-)
-from packit_service.worker.events import (
-    copr,
-    openscanhub,
 )
 from packit_service.worker.handlers import OpenScanHubTaskFinishedHandler
 from packit_service.worker.handlers.copr import OpenScanHubHelper

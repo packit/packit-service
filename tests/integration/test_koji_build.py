@@ -13,6 +13,7 @@ from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
 
 from packit_service.config import PackageConfigGetter
+from packit_service.events import pagure
 from packit_service.models import (
     GitBranchModel,
     KojiBuildGroupModel,
@@ -22,7 +23,6 @@ from packit_service.models import (
     ProjectEventModelType,
 )
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import pagure
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
 )

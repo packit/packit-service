@@ -9,11 +9,11 @@ from packit.config import (
     JobType,
 )
 
+from packit_service.events import openscanhub
 from packit_service.models import OSHScanStatus
 from packit_service.service.urls import get_openscanhub_info_url
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.open_scan_hub import IsEventForJob, RawhideX86Target
-from packit_service.worker.events import openscanhub
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
     TaskName,

@@ -13,6 +13,12 @@ from celery import Task
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 
+from packit_service.events import (
+    abstract,
+    github,
+    gitlab,
+    testing_farm,
+)
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -36,12 +42,6 @@ from packit_service.worker.checker.testing_farm import (
     IsIdentifierFromCommentMatching,
     IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
-)
-from packit_service.worker.events import (
-    abstract,
-    github,
-    gitlab,
-    testing_farm,
 )
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (

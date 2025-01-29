@@ -6,11 +6,11 @@ import logging
 from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
 )
+from packit_service.events import gitlab
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
 )
-from packit_service.worker.events import gitlab
 from packit_service.worker.handlers.mixin import (
     ConfigFromEventMixin,
     GetCoprBuildJobHelperForIdMixin,

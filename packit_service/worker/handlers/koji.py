@@ -26,6 +26,12 @@ from packit_service.constants import (
     KojiBuildState,
     KojiTaskState,
 )
+from packit_service.events import (
+    abstract,
+    github,
+    gitlab,
+    koji,
+)
 from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
@@ -44,12 +50,6 @@ from packit_service.worker.checker.koji import (
     IsUpstreamKojiScratchBuild,
     PermissionOnKoji,
     SidetagExists,
-)
-from packit_service.worker.events import (
-    abstract,
-    github,
-    gitlab,
-    koji,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,

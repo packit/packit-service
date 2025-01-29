@@ -15,6 +15,7 @@ from packit.config import (
 )
 from packit.copr_helper import CoprHelper
 
+from packit_service.events.copr import CoprBuild
 from packit_service.models import (
     BuildStatus,
     CoprBuildGroupModel,
@@ -22,7 +23,6 @@ from packit_service.models import (
     ProjectEventModel,
     SRPMBuildModel,
 )
-from packit_service.worker.events.copr import CoprBuild
 from packit_service.worker.helpers.build.babysit import check_copr_build
 from packit_service.worker.monitoring import Pushgateway
 

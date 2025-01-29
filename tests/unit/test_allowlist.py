@@ -21,6 +21,16 @@ from packit_service.constants import (
     DOCS_APPROVAL_URL,
     NOTIFICATION_REPO,
 )
+from packit_service.events import (
+    abstract,
+    github,
+)
+from packit_service.events.enums import (
+    IssueCommentAction,
+    PullRequestAction,
+    PullRequestCommentAction,
+)
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
 )
@@ -28,16 +38,6 @@ from packit_service.models import (
     AllowlistStatus,
 )
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.events import (
-    abstract,
-    github,
-)
-from packit_service.worker.events.enums import (
-    IssueCommentAction,
-    PullRequestAction,
-    PullRequestCommentAction,
-)
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"

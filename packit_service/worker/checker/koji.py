@@ -9,9 +9,9 @@ from packit_service.constants import (
     KOJI_PRODUCTION_BUILDS_ISSUE,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
+from packit_service.events import github, gitlab
 from packit_service.models import SidetagModel
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.events import github, gitlab
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 from packit_service.worker.reporting import BaseCommitStatus
 

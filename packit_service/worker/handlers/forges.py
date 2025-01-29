@@ -16,6 +16,9 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
+from packit_service.events import (
+    github,
+)
 from packit_service.models import (
     AllowlistModel,
     AllowlistStatus,
@@ -25,9 +28,6 @@ from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import IsIssueInNotificationRepoChecker
-from packit_service.worker.events import (
-    github,
-)
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,

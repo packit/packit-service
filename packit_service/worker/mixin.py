@@ -20,7 +20,7 @@ from packit_service.constants import (
     SANDCASTLE_DG_REPO_DIR,
     SANDCASTLE_LOCAL_PROJECT_DIR,
 )
-from packit_service.worker.events.event_data import EventData
+from packit_service.events.event_data import EventData
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 

@@ -14,8 +14,8 @@ from packit.config import (
     PackageConfig,
 )
 
+from packit_service.events.openscanhub.task import Finished, Started
 from packit_service.models import OSHScanModel
-from packit_service.worker.events.openscanhub.task import Finished, Started
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

@@ -19,6 +19,13 @@ from packit.config.requirements import LabelRequirementsConfig, RequirementsConf
 from packit.copr_helper import CoprHelper
 
 from packit_service.config import ServiceConfig
+from packit_service.events import (
+    copr,
+    github,
+    gitlab,
+    pagure,
+)
+from packit_service.events.event_data import EventData
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.bodhi import IsKojiBuildOwnerMatchingConfiguration
 from packit_service.worker.checker.copr import (
@@ -49,13 +56,6 @@ from packit_service.worker.checker.vm_image import (
     HasAuthorWriteAccess,
     IsCoprBuildForChrootOk,
 )
-from packit_service.worker.events import (
-    copr,
-    github,
-    gitlab,
-    pagure,
-)
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
 

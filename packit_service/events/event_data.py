@@ -122,9 +122,7 @@ class EventData:
         """
         # Import the event class
         event_submodule, event_kls_member = self.event_type.rsplit(".", maxsplit=1)
-        mod = __import__(
-            f"packit_service.worker.events.{event_submodule}", fromlist=[event_kls_member]
-        )
+        mod = __import__(f"packit_service.events.{event_submodule}", fromlist=[event_kls_member])
         event_kls = getattr(mod, event_kls_member)
 
         # Process the arguments for the event class' constructor

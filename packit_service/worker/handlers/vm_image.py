@@ -12,6 +12,11 @@ from packit.config import (
 )
 
 from packit_service.celerizer import celery_app
+from packit_service.events import (
+    github,
+    gitlab,
+    vm_image,
+)
 from packit_service.models import (
     PipelineModel,
     VMImageBuildStatus,
@@ -22,11 +27,6 @@ from packit_service.worker.checker.vm_image import (
     GetVMImageBuildReporterFromJobHelperMixin,
     HasAuthorWriteAccess,
     IsCoprBuildForChrootOk,
-)
-from packit_service.worker.events import (
-    github,
-    gitlab,
-    vm_image,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,

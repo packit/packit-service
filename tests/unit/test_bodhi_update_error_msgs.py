@@ -13,12 +13,12 @@ from packit.config import (
 from packit.exceptions import PackitException
 
 from packit_service.config import ServiceConfig
-from packit_service.models import BodhiUpdateTargetModel
-from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import (
+from packit_service.events import (
     pagure,
 )
-from packit_service.worker.events.enums import PullRequestAction
+from packit_service.events.enums import PullRequestAction
+from packit_service.models import BodhiUpdateTargetModel
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers import bodhi
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,

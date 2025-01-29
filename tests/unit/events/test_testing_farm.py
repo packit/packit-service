@@ -8,13 +8,13 @@ import pytest
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 
+from packit_service.events.testing_farm import Result
 from packit_service.models import (
     CoprBuildTargetModel,
     TestingFarmResult,
     TFTTestRunTargetModel,
     get_submitted_time_from_model,
 )
-from packit_service.worker.events.testing_farm import Result
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR

@@ -6,17 +6,17 @@ import logging
 from packit.config.aliases import get_branches
 
 from packit_service.constants import MSG_GET_IN_TOUCH, KojiBuildState
-from packit_service.worker.checker.abstract import (
-    ActorChecker,
-    Checker,
-)
-from packit_service.worker.checker.helper import DistgitAccountsChecker
-from packit_service.worker.events import (
+from packit_service.events import (
     github,
     gitlab,
     koji,
     pagure,
 )
+from packit_service.worker.checker.abstract import (
+    ActorChecker,
+    Checker,
+)
+from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.handlers.mixin import (
     GetKojiBuildData,
     GetKojiBuildDataFromKojiBuildEventMixin,

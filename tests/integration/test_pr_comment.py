@@ -35,6 +35,7 @@ from packit_service.constants import (
     DOCS_VALIDATE_HOOKS,
     TASK_ACCEPTED,
 )
+from packit_service.events import abstract, pagure
 from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
@@ -66,7 +67,6 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.events import abstract, pagure
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )

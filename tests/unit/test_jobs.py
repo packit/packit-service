@@ -17,8 +17,7 @@ from packit.config import (
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import COMMENT_REACTION
-from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.events import (
+from packit_service.events import (
     abstract,
     copr,
     github,
@@ -28,6 +27,7 @@ from packit_service.worker.events import (
     testing_farm,
     vm_image,
 )
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildHandler,

@@ -21,12 +21,12 @@ from packit.local_project import (
 from packit.utils.repo import RepositoryCache
 
 from packit_service.config import Deployment, ServiceConfig
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     AbstractProjectObjectDbType,
     PipelineModel,
     ProjectEventModel,
 )
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 

@@ -7,8 +7,8 @@ from ogr.services.pagure import PagureProject
 from packit.utils.koji_helper import KojiHelper
 
 from packit_service.constants import KojiBuildState, KojiTaskState
+from packit_service.events import koji as events
 from packit_service.models import KojiBuildTargetModel
-from packit_service.worker.events import koji as events
 from packit_service.worker.parser import Parser
 
 

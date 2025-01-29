@@ -20,6 +20,7 @@ import pytest
 from ogr import GithubService, GitlabService, PagureService
 
 from packit_service.config import ServiceConfig
+from packit_service.events import github
 from packit_service.models import (
     AllowlistModel,
     BodhiUpdateGroupModel,
@@ -56,7 +57,6 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     sa_session_transaction,
 )
-from packit_service.worker.events import github
 
 
 class SampleValues:

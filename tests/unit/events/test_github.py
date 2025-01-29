@@ -11,6 +11,15 @@ from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 
 from packit_service.config import PackageConfigGetter
+from packit_service.events import (
+    abstract,
+)
+from packit_service.events.enums import (
+    IssueCommentAction,
+    PullRequestAction,
+    PullRequestCommentAction,
+)
+from packit_service.events.github import check, installation, issue, pr, push, release
 from packit_service.models import (
     AllowlistStatus,
     GitBranchModel,
@@ -19,15 +28,6 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
-from packit_service.worker.events import (
-    abstract,
-)
-from packit_service.worker.events.enums import (
-    IssueCommentAction,
-    PullRequestAction,
-    PullRequestCommentAction,
-)
-from packit_service.worker.events.github import check, installation, issue, pr, push, release
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

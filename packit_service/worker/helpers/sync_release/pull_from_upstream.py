@@ -8,9 +8,9 @@ from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, PackageConfig
 
 from packit_service.config import ServiceConfig
+from packit_service.events import anitya, pagure
+from packit_service.events.event_data import EventData
 from packit_service.models import ProjectEventModel
-from packit_service.worker.events import anitya, pagure
-from packit_service.worker.events.event_data import EventData
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 
 logger = logging.getLogger(__name__)

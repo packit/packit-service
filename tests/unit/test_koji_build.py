@@ -19,6 +19,10 @@ from packit.upstream import GitUpstream
 
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
+from packit_service.events import (
+    github,
+    koji,
+)
 from packit_service.models import (
     BuildStatus,
     KojiBuildGroupModel,
@@ -28,10 +32,6 @@ from packit_service.models import (
 from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
-)
-from packit_service.worker.events import (
-    github,
-    koji,
 )
 from packit_service.worker.helpers.build import koji_build
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper

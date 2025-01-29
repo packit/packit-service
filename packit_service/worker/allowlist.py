@@ -22,8 +22,7 @@ from packit_service.constants import (
     NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS,
     NOTIFICATION_REPO,
 )
-from packit_service.models import AllowlistModel, AllowlistStatus
-from packit_service.worker.events import (
+from packit_service.events import (
     abstract,
     anitya,
     copr,
@@ -34,7 +33,8 @@ from packit_service.worker.events import (
     pagure,
     testing_farm,
 )
-from packit_service.worker.events.event_data import EventData
+from packit_service.events.event_data import EventData
+from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus

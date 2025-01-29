@@ -41,6 +41,14 @@ from packit_service.constants import (
     RETRY_LIMIT_RELEASE_ARCHIVE_DOWNLOAD_ERROR,
     KojiBuildState,
 )
+from packit_service.events import (
+    abstract,
+    anitya,
+    github,
+    gitlab,
+    koji,
+    pagure,
+)
 from packit_service.models import (
     KojiBuildGroupModel,
     KojiBuildTargetModel,
@@ -74,14 +82,6 @@ from packit_service.worker.checker.distgit import (
     PermissionOnDistgit,
     TaggedBuildIsNotABuildOfSelf,
     ValidInformationForPullFromUpstream,
-)
-from packit_service.worker.events import (
-    abstract,
-    anitya,
-    github,
-    gitlab,
-    koji,
-    pagure,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,

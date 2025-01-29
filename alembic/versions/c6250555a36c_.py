@@ -30,7 +30,7 @@ from sqlalchemy.types import PickleType
 
 from alembic import op
 from packit_service.constants import ALLOWLIST_CONSTANTS
-from packit_service.worker.events import github
+from packit_service.events import github
 
 # revision identifiers, used by Alembic.
 revision = "c6250555a36c"

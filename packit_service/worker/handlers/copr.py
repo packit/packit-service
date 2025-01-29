@@ -20,6 +20,12 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
 )
+from packit_service.events import (
+    abstract,
+    copr,
+    github,
+    gitlab,
+)
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -40,12 +46,6 @@ from packit_service.worker.checker.copr import (
     IsGitForgeProjectAndEventOk,
     IsJobConfigTriggerMatching,
     IsPackageMatchingJobView,
-)
-from packit_service.worker.events import (
-    abstract,
-    copr,
-    github,
-    gitlab,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,

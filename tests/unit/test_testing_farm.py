@@ -18,6 +18,16 @@ from packit.local_project import LocalProject
 import packit_service.models
 import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.events.event_data import (
+    EventData,
+)
+
+# These names are definitely not nice, still they help with making classes
+# whose names start with Testing* or Test* to become invisible for pytest,
+# and so stop the test discovery warnings.
+from packit_service.events.testing_farm import (
+    Result as TFResultsEvent,
+)
 from packit_service.models import (
     BuildStatus,
     PipelineModel,
@@ -29,16 +39,6 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
-from packit_service.worker.events.event_data import (
-    EventData,
-)
-
-# These names are definitely not nice, still they help with making classes
-# whose names start with Testing* or Test* to become invisible for pytest,
-# and so stop the test discovery warnings.
-from packit_service.worker.events.testing_farm import (
-    Result as TFResultsEvent,
-)
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.helpers.testing_farm import (

@@ -8,9 +8,8 @@ from flexmock import flexmock
 from ogr.services.gitlab import GitlabProject
 
 from packit_service.config import PackageConfigGetter
-from packit_service.models import PullRequestModel
-from packit_service.worker.events import abstract
-from packit_service.worker.events.gitlab import (
+from packit_service.events import abstract
+from packit_service.events.gitlab import (
     enums,
     issue,
     mr,
@@ -18,6 +17,7 @@ from packit_service.worker.events.gitlab import (
     push,
     release,
 )
+from packit_service.models import PullRequestModel
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

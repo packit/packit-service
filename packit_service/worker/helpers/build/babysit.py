@@ -24,6 +24,12 @@ from packit_service.constants import (
     DEFAULT_JOB_TIMEOUT,
     TESTING_FARM_API_URL,
 )
+from packit_service.events import copr as copr_events
+from packit_service.events import (
+    testing_farm,
+    vm_image,
+)
+from packit_service.events.enums import FedmsgTopic
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -34,12 +40,6 @@ from packit_service.models import (
     VMImageBuildTargetModel,
 )
 from packit_service.utils import elapsed_seconds
-from packit_service.worker.events import copr as copr_events
-from packit_service.worker.events import (
-    testing_farm,
-    vm_image,
-)
-from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
