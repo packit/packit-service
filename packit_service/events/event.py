@@ -242,6 +242,9 @@ class Event(ABC):
         Returns:
             `False` when we can ignore the event, `True` otherwise (for handling).
         """
+        # [SAFETY] Since majority of processed events do not require any
+        # validation, e.g., results from Copr/Koji, we default to the `True`
+        # here.
         return True
 
     @abstractmethod
