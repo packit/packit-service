@@ -15,6 +15,7 @@ from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
 from packit.config import (
     CommonPackageConfig,
+    Deployment,
     JobConfig,
     JobConfigTriggerType,
     JobType,
@@ -2575,6 +2576,7 @@ def test_koji_build_end_downstream(
             enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/packit",
             koji_logs_url="",
             koji_web_url="",
+            deployment=Deployment.stg,
         )
         .should_receive("get_project")
         .and_return(flexmock(namespace="rpms", repo="packit"))
