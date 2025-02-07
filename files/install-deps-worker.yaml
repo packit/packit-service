@@ -6,6 +6,7 @@
   hosts: all
   vars:
     source_branch: "{{ lookup('env', 'SOURCE_BRANCH') }}"
+    deployment: "{{ lookup('env', 'DEPLOYMENT', default='stg') }}"
   tasks:
     - import_tasks: tasks/process-source-branch.yaml
     - name: Install all RPM/python packages needed to run packit-service worker
@@ -48,6 +49,11 @@
         name:
           - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
           - eventlet
+    - name: Install guppy3 for memory profiling in non production environments
+      ansible.builtin.pip:
+        name:
+          - guppy3
+      when: deployment != 'prod'
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
