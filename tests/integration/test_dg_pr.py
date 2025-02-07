@@ -8,9 +8,7 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from packit.api import PackitAPI
-from packit.config import (
-    JobConfigTriggerType,
-)
+from packit.config import Deployment, JobConfigTriggerType
 from packit.local_project import LocalProjectBuilder
 from packit.utils import commands
 
@@ -53,6 +51,7 @@ def test_downstream_koji_scratch_build(distgit_pr_event):
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
         )
         .should_receive("get_project")
         .and_return(dg_project)
