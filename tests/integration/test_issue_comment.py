@@ -260,7 +260,7 @@ def test_issue_comment_propose_downstream_handler(
     ).once()
 
     flexmock(group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(ProposeDownstreamJobHelper).should_receive(
         "report_status_to_all",
     ).with_args(

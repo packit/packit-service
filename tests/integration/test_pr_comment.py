@@ -292,7 +292,7 @@ def test_pr_comment_build_build_and_test_handler(
         "is_custom_copr_project_defined",
     ).and_return(False).once()
     flexmock(celery_group).should_receive("apply_async").twice()
-    flexmock(Pushgateway).should_receive("push").times(4).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -367,7 +367,7 @@ def test_pr_comment_build_build_and_test_handler_manual_test_reporting(
         "is_custom_copr_project_defined",
     ).and_return(False).once()
     flexmock(celery_group).should_receive("apply_async").twice()
-    flexmock(Pushgateway).should_receive("push").times(4).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -467,7 +467,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         update_feedback_time=object,
     ).once()
     flexmock(celery_group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -693,7 +693,7 @@ def test_pr_test_command_handler(
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={}),
     )
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -783,7 +783,7 @@ def test_pr_test_command_handler_identifiers(
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={}),
     )
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -941,7 +941,7 @@ def test_pr_test_command_handler_retries(
         {"fedora-rawhide-x86_64"},
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").times(4).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     payload = {
         "api_key": "secret-token",
@@ -1140,7 +1140,7 @@ def test_pr_test_command_handler_skip_build_option(
         {"fedora-rawhide-x86_64"},
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1345,7 +1345,7 @@ def test_pr_test_command_handler_compose_not_present(
         {"fedora-rawhide-x86_64"},
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1472,7 +1472,7 @@ def test_pr_test_command_handler_composes_not_available(
         {"fedora-rawhide-x86_64"},
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1680,7 +1680,6 @@ def test_trigger_packit_command_without_config(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     err_msg = (
         "No config file for packit (e.g. `.packit.yaml`) found in namespace/repo on commit 12345"
         "\n\n"
@@ -1812,7 +1811,7 @@ def test_retest_failed(
         {("some_target", None)},
     )
 
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -1904,7 +1903,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     ).and_return(group_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -2105,7 +2104,7 @@ def test_pr_test_command_handler_multiple_builds(
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         build,
     )
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,

@@ -246,7 +246,7 @@ def test_dist_git_push_release_handle(
     ).once()
 
     flexmock(group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     url = get_propose_downstream_info_url(model.id)
@@ -398,7 +398,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         ),
     )
     flexmock(group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     from packit_service.worker.handlers.distgit import shutil
 
@@ -563,7 +563,7 @@ def test_dist_git_push_release_handle_one_failed(
     )
 
     flexmock(group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     from packit_service.worker.handlers.distgit import shutil
 
@@ -703,7 +703,7 @@ def test_dist_git_push_release_handle_all_failed(
     )
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -806,7 +806,7 @@ def test_retry_propose_downstream_task(
 
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").once().and_return()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -929,7 +929,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Context, retries=6)
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").never()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -1034,7 +1034,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
 
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(group).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(

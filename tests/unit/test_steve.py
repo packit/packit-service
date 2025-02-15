@@ -211,7 +211,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     ).times(
         1 if success else 0,
     )
-    flexmock(Pushgateway).should_receive("push").times(3 if success else 1)
+    flexmock(Pushgateway).should_receive("push").times(2 if success else 1)
 
     url = get_propose_downstream_info_url(model.id)
 
