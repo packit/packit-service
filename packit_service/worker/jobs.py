@@ -172,12 +172,11 @@ class SteveJobs:
             cls.pushgateway.events_not_handled.inc()
         elif pre_check_failed := not event_object.pre_check():
             cls.pushgateway.events_pre_check_failed.inc()
+
+        result = [] if (event_not_handled or pre_check_failed) else cls(event_object).process()
+
         cls.pushgateway.push()
-
-        if event_not_handled or pre_check_failed:
-            return []
-
-        return cls(event_object).process()
+        return result
 
     def process(self) -> list[TaskResults]:
         """
@@ -989,8 +988,6 @@ class SteveJobs:
         )
         self.pushgateway.last_initial_status_time.observe(response_time)
 
-        self.pushgateway.push()
-
     def push_copr_metrics(
         self,
         handler_kls: type[JobHandler],
@@ -1007,8 +1004,6 @@ class SteveJobs:
         if handler_kls == CoprBuildHandler and built_targets:
             # handler wasn't matched or 0 targets were built
             self.pushgateway.copr_builds_queued.inc(built_targets)
-
-        self.pushgateway.push()
 
     def is_fas_verification_comment(self, comment: str) -> bool:
         """

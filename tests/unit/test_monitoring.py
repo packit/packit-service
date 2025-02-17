@@ -27,7 +27,6 @@ def test_copr_metrics_ignored(handler, targets):
     counter.should_receive("inc").never()
 
     pushgateway = flexmock(copr_builds_queued=counter)
-    pushgateway.should_receive("push").once()
 
     jobs = SteveJobs(event)
     jobs.pushgateway = pushgateway
@@ -42,7 +41,6 @@ def test_copr_metrics_pushed():
     counter.should_receive("inc").with_args(7).once()
 
     pushgateway = flexmock(copr_builds_queued=counter)
-    pushgateway.should_receive("push").once()
 
     jobs = SteveJobs(event)
     jobs.pushgateway = pushgateway
@@ -68,7 +66,6 @@ def test_delayed():
         last_initial_status_time=last,
         no_status_after_25_s=counter,
     )
-    pushgateway.should_receive("push").once()
 
     jobs = SteveJobs(event)
     jobs.pushgateway = pushgateway

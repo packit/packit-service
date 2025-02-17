@@ -131,7 +131,7 @@ def test_commit_comment_build_and_test_handler(
         "is_custom_copr_project_defined",
     ).and_return(False).once()
     flexmock(celery_group).should_receive("apply_async").twice()
-    flexmock(Pushgateway).should_receive("push").times(4).and_return()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(commit_build_comment_event)
     assert len(processing_results) == 2
