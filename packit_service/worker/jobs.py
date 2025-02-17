@@ -130,10 +130,9 @@ class SteveJobs:
     Steve makes sure all the jobs are done with precision.
     """
 
-    pushgateway = Pushgateway()
-
     def __init__(self, event: Optional[Event] = None) -> None:
         self.event = event
+        self.pushgateway = Pushgateway()
 
     @cached_property
     def service_config(self) -> ServiceConfig:
@@ -166,16 +165,16 @@ class SteveJobs:
             default=Parser.parse_event,
         )
         event_object: Optional[Event] = parser(event)
-
-        cls.pushgateway.events_processed.inc()
+        steve = cls(event_object)
+        steve.pushgateway.events_processed.inc()
         if event_not_handled := not event_object:
-            cls.pushgateway.events_not_handled.inc()
+            steve.pushgateway.events_not_handled.inc()
         elif pre_check_failed := not event_object.pre_check():
-            cls.pushgateway.events_pre_check_failed.inc()
+            steve.pushgateway.events_pre_check_failed.inc()
 
-        result = [] if (event_not_handled or pre_check_failed) else cls(event_object).process()
+        result = [] if (event_not_handled or pre_check_failed) else steve.process()
 
-        cls.pushgateway.push()
+        steve.pushgateway.push()
         return result
 
     def process(self) -> list[TaskResults]:
