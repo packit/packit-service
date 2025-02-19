@@ -939,7 +939,11 @@ class SteveJobs:
                 f"{self.event.event_type()}",
             )
 
-        logger.debug(f"Jobs matching {handler_kls}: {matching_jobs}")
+        logger.debug(
+            "Jobs matching %s: %s",
+            handler_kls.__qualname__,
+            [str(j) for j in matching_jobs],
+        )
 
         return matching_jobs
 
