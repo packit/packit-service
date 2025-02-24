@@ -36,6 +36,7 @@ class Comment(AbstractPRCommentEvent, PagureEvent):
         base_ref: Optional[str],
         target_repo: str,
         project_url: str,
+        source_project_url: str,
         user_login: str,
         comment: str,
         comment_id: int,
@@ -56,6 +57,7 @@ class Comment(AbstractPRCommentEvent, PagureEvent):
         self.base_repo_owner = base_repo_owner
         self.base_ref = base_ref
         self.target_repo = target_repo
+        self.source_project_url = source_project_url
         self.user_login = user_login
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
@@ -157,6 +159,7 @@ class Action(AddPullRequestEventToDb, PagureEvent):
         base_ref: Optional[str],
         target_repo: str,
         project_url: str,
+        source_project_url: str,
         commit_sha: str,
         user_login: str,
         target_branch: str,
@@ -173,6 +176,7 @@ class Action(AddPullRequestEventToDb, PagureEvent):
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
         self.project_url = project_url
+        self.source_project_url = source_project_url
         self.target_branch = target_branch
 
     @classmethod

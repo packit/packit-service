@@ -1,0 +1,105 @@
+{
+  "agent": "ngompa",
+  "pullrequest": {
+    "assignee": null,
+    "branch": "rawhide",
+    "branch_from": "update-variants-list-20250222",
+    "cached_merge_status": "unknown",
+    "closed_at": null,
+    "closed_by": null,
+    "comments": [],
+    "commit_start": "1cc05ef282f08e199b69d4411b70544ab11d21c0",
+    "commit_stop": "914e61919e3a3a82c0ef7b6bd3a73f74e2de36e7",
+    "date_created": "1740205464",
+    "full_url": "https://pagure.io/fedora-kiwi-descriptions/pull-request/150",
+    "id": 150,
+    "initial_comment": "This pull request updates `VARIANTS.md` with all the images being built in Fedora. There's still more supported in the descriptions to document.",
+    "last_updated": "1740205464",
+    "project": {
+      "access_groups": {
+        "admin": ["releng"],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": ["adamwill", "davdunc"],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["ngompa"],
+        "ticket": ["zuul"]
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1631117496",
+      "date_modified": "1732738404",
+      "description": "Fedora image build descriptions for the KIWI image build tool",
+      "full_url": "https://pagure.io/fedora-kiwi-descriptions",
+      "fullname": "fedora-kiwi-descriptions",
+      "id": 10614,
+      "milestones": {},
+      "name": "fedora-kiwi-descriptions",
+      "namespace": null,
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "fedora-kiwi-descriptions",
+      "user": {
+        "full_url": "https://pagure.io/user/ngompa",
+        "fullname": "Neal Gompa",
+        "name": "ngompa",
+        "url_path": "user/ngompa"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": ["releng"],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": ["adamwill", "davdunc"],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["ngompa"],
+        "ticket": ["zuul"]
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1631117496",
+      "date_modified": "1732738404",
+      "description": "Fedora image build descriptions for the KIWI image build tool",
+      "full_url": "https://pagure.io/fedora-kiwi-descriptions",
+      "fullname": "fedora-kiwi-descriptions",
+      "id": 10614,
+      "milestones": {},
+      "name": "fedora-kiwi-descriptions",
+      "namespace": null,
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "fedora-kiwi-descriptions",
+      "user": {
+        "full_url": "https://pagure.io/user/ngompa",
+        "fullname": "Neal Gompa",
+        "name": "ngompa",
+        "url_path": "user/ngompa"
+      }
+    },
+    "status": "Open",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "Update VARIANTS in use",
+    "uid": "5b607fba790e4531add705eb21a59647",
+    "updated_on": "1740205464",
+    "user": {
+      "full_url": "https://pagure.io/user/ngompa",
+      "fullname": "Neal Gompa",
+      "name": "ngompa",
+      "url_path": "user/ngompa"
+    }
+  },
+  "topic": "org.fedoraproject.prod.pagure.pull-request.new"
+}
