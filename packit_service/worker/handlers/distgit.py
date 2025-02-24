@@ -16,6 +16,7 @@ from typing import ClassVar, Optional
 
 from celery import Task
 from ogr.abstract import AuthMethod, PullRequest
+from ogr.parsing import RepoUrl, parse_git_repo
 from ogr.services.github import GithubService
 from packit.config import Deployment, JobConfig, JobConfigTriggerType, JobType, aliases
 from packit.config.package_config import PackageConfig
@@ -776,14 +777,47 @@ class DownstreamKojiScratchBuildHandler(
     def dist_git_branch(self) -> str:
         return self.data.event_dict.get("target_branch")
 
+    @staticmethod
+    def _repo_url_with_git_ref(
+        source_repo: RepoUrl,
+        git_ref: str,
+    ) -> str:
+        """Produces a git URL that can be used for Koji to clone repo for build.
+
+        Resulting URL is in the following form:
+
+            git+{scheme}://{hostname}/{full_repo_path}.git#{git_ref}
+
+        Args:
+            source_repo: Parsed URL of the git repo.
+            git_ref: Git reference to be included in the resulting URL.
+
+        Returns:
+            Git URL for Koji that can be used to clone the source to build
+            a scratch build from.
+        """
+        return "git+{instance_url}/{full_repo_path}.git#{git_ref}".format(
+            instance_url=source_repo.get_instance_url(),
+            full_repo_path="/".join(
+                [
+                    part
+                    for part in (
+                        f"forks/{source_repo.username}" if source_repo.is_fork else None,
+                        source_repo.namespace,
+                        source_repo.repo,
+                    )
+                    if part
+                ]
+            ),
+            git_ref=git_ref,
+        )
+
     @property
     def repo_url(self) -> str:
-        event_dict = self.data.event_dict
-        full_repo_name = (
-            f"forks/{event_dict.get('base_repo_owner')}/"
-            f"{event_dict.get('base_repo_namespace')}/{event_dict.get('base_repo_name')}"
+        return self._repo_url_with_git_ref(
+            source_repo=parse_git_repo(self.data.event_dict["source_project_url"]),
+            git_ref=self.data.commit_sha,
         )
-        return f"git+https://src.fedoraproject.org/{full_repo_name}.git#{self.data.commit_sha}"
 
     def run(self) -> TaskResults:
         try:
