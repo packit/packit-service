@@ -1645,6 +1645,7 @@ class Parser:
         base_repo_owner = repo_from["user"]["name"] if repo_from else pagure_login
         target_repo = repo_from["name"] if repo_from else base_repo_name
         https_url = event["pullrequest"]["project"]["full_url"]
+        source_project_url = repo_from["full_url"] if repo_from else https_url
         commit_sha = event["pullrequest"]["commit_stop"]
 
         if "added" in event["topic"]:
@@ -1664,6 +1665,7 @@ class Parser:
             base_ref=None,
             target_repo=target_repo,
             project_url=https_url,
+            source_project_url=source_project_url,
             commit_sha=commit_sha,
             user_login=pagure_login,
             comment=comment,
@@ -1697,6 +1699,7 @@ class Parser:
         base_repo_owner = repo_from["user"]["name"] if repo_from else pagure_login
         target_repo = repo_from["name"] if repo_from else base_repo_name
         https_url = event["pullrequest"]["project"]["full_url"]
+        source_project_url = repo_from["full_url"] if repo_from else https_url
         commit_sha = event["pullrequest"]["commit_stop"]
         target_branch = event["pullrequest"]["branch"]
 
@@ -1709,6 +1712,7 @@ class Parser:
             base_ref=None,
             target_repo=target_repo,
             project_url=https_url,
+            source_project_url=source_project_url,
             commit_sha=commit_sha,
             user_login=pagure_login,
             target_branch=target_branch,

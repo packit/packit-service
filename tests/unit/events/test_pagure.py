@@ -8,7 +8,7 @@ from flexmock import flexmock
 from ogr.services.pagure import PagureProject
 
 from packit_service.config import PackageConfigGetter
-from packit_service.events.enums import PullRequestAction
+from packit_service.events.enums import PullRequestAction, PullRequestCommentAction
 from packit_service.events.pagure import (
     pr,
     push,
@@ -47,6 +47,12 @@ def distgit_commit():
         return json.load(outfile)
 
 
+@pytest.fixture()
+def pagure_pr_new_no_fork():
+    with open(DATA_DIR / "fedmsg" / "pagure_pr_new_no_fork.json") as outfile:
+        return json.load(outfile)
+
+
 def test_parse_pagure_flag(pagure_pr_flag_updated):
     event_object = Parser.parse_event(pagure_pr_flag_updated)
 
@@ -73,16 +79,22 @@ def test_parse_pagure_pull_request_comment(pagure_pr_comment_added):
     event_object = Parser.parse_event(pagure_pr_comment_added)
 
     assert isinstance(event_object, pr.Comment)
+    assert event_object.action == PullRequestCommentAction.created
     assert event_object.pr_id == 36
     assert event_object.base_repo_namespace == "rpms"
     assert event_object.base_repo_name == "python-teamcity-messages"
     assert event_object.base_repo_owner == "mmassari"
     assert event_object.base_ref is None
     assert event_object.target_repo == "python-teamcity-messages"
-    assert event_object.commit_sha == "beaf90bcecc51968a46663f8d6f092bfdc92e682"
+    assert event_object.project_url == "https://src.fedoraproject.org/rpms/python-teamcity-messages"
+    assert (
+        event_object.source_project_url
+        == "https://src.fedoraproject.org/rpms/python-teamcity-messages"
+    )
     assert event_object.user_login == "mmassari"
     assert event_object.comment == "/packit koji-build"
-    assert event_object.project_url == "https://src.fedoraproject.org/rpms/python-teamcity-messages"
+    assert event_object.comment_id == 110401
+    assert event_object.commit_sha == "beaf90bcecc51968a46663f8d6f092bfdc92e682"
 
     assert isinstance(event_object.project, PagureProject)
     assert event_object.project.full_repo_name == "rpms/python-teamcity-messages"
@@ -128,9 +140,14 @@ def test_parse_pagure_pull_request_new(pagure_pr_new):
     assert event_object.base_repo_owner == "zbyszek"
     assert event_object.base_ref is None
     assert event_object.target_repo == "optee_os"
+    assert event_object.project_url == "https://src.fedoraproject.org/rpms/optee_os"
+    assert (
+        event_object.source_project_url
+        == "https://src.fedoraproject.org/fork/zbyszek/rpms/optee_os"
+    )
     assert event_object.commit_sha == "889f07af35d27bbcaf9c535c17a63b974aa42ee3"
     assert event_object.user_login == "zbyszek"
-    assert event_object.project_url == "https://src.fedoraproject.org/rpms/optee_os"
+    assert event_object.target_branch == "rawhide"
 
     assert isinstance(event_object.project, PagureProject)
     assert event_object.project.full_repo_name == "rpms/optee_os"
@@ -152,6 +169,24 @@ def test_parse_pagure_pull_request_new(pagure_pr_new):
         "https://src.fedoraproject.org/rpms/optee_os",
     )
     assert event_object.packages_config
+
+
+def test_parse_pagure_pull_request_new_no_fork(pagure_pr_new_no_fork):
+    event_object = Parser.parse_event(pagure_pr_new_no_fork)
+
+    assert isinstance(event_object, pr.Action)
+    assert event_object.action == PullRequestAction.opened
+    assert event_object.pr_id == 150
+    assert event_object.base_repo_namespace is None
+    assert event_object.base_repo_name == "fedora-kiwi-descriptions"
+    assert event_object.base_repo_owner == "ngompa"
+    assert event_object.base_ref is None
+    assert event_object.target_repo == "fedora-kiwi-descriptions"
+    assert event_object.project_url == "https://pagure.io/fedora-kiwi-descriptions"
+    assert event_object.source_project_url == "https://pagure.io/fedora-kiwi-descriptions"
+    assert event_object.commit_sha == "914e61919e3a3a82c0ef7b6bd3a73f74e2de36e7"
+    assert event_object.user_login == "ngompa"
+    assert event_object.target_branch == "rawhide"
 
 
 def test_parse_pagure_pull_request_updated(pagure_pr_updated):

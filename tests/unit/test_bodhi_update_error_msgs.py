@@ -75,6 +75,7 @@ def package_config__job_config__pull_request_event(package_config__job_config):
         base_repo_owner="a_owner",
         target_repo="a_target",
         project_url="projec_url",
+        source_project_url="source_project_url",
         user_login="usr_login",
         comment="/packit creat-update",
         comment_id=321,

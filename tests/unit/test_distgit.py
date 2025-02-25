@@ -5,6 +5,7 @@ import json
 import pytest
 from fasjson_client import Client
 from flexmock import flexmock
+from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubService
 from packit.api import PackitAPI
 from packit.config.notifications import NotificationsConfig
@@ -14,6 +15,7 @@ from packit_service.events.event_data import EventData
 from packit_service.worker.handlers.distgit import (
     AbstractSyncReleaseHandler,
     DownstreamKojiBuildHandler,
+    DownstreamKojiScratchBuildHandler,
     ProposeDownstreamHandler,
     PullFromUpstreamHandler,
 )
@@ -140,3 +142,39 @@ def test_pull_from_upstream_auth_method():
     flexmock(AbstractSyncReleaseHandler).should_receive("run").once()
     flexmock(GithubService).should_receive("reset_auth_method").once()
     handler.run()
+
+
+@pytest.mark.parametrize(
+    "src, git_ref, expected",
+    (
+        pytest.param(
+            "https://src.fedoraproject.org/fork/packit/rpms/packit",
+            "deadbeef",
+            "git+https://src.fedoraproject.org/forks/packit/rpms/packit.git#deadbeef",
+            id="source repo with namespace, forked; owner == repo name",
+        ),
+        pytest.param(
+            "https://src.fedoraproject.org/fork/lbalhar/rpms/marshalparser",
+            "f2f041328d629719c5ff31a08e800638d5df497f",
+            "git+https://src.fedoraproject.org/forks/lbalhar/rpms/marshalparser.git#f2f041328d629719c5ff31a08e800638d5df497f",
+            id="source repo with namespace, forked",
+        ),
+        pytest.param(
+            "https://pagure.io/fedora-kiwi-descriptions",
+            "914e61919e3a3a82c0ef7b6bd3a73f74e2de36e7",
+            "git+https://pagure.io/fedora-kiwi-descriptions.git#914e61919e3a3a82c0ef7b6bd3a73f74e2de36e7",
+            id="source repo without namespace, not forked",
+        ),
+        pytest.param(
+            "https://src.fedoraproject.org/fork/lbalhar/marshalparser",
+            "f2f041328d629719c5ff31a08e800638d5df497f",
+            "git+https://src.fedoraproject.org/forks/lbalhar/marshalparser.git#f2f041328d629719c5ff31a08e800638d5df497f",
+            id="source repo without namespace, forked",
+        ),
+    ),
+)
+def test__repo_url_with_git_ref(src, git_ref, expected):
+    assert (
+        DownstreamKojiScratchBuildHandler._repo_url_with_git_ref(parse_git_repo(src), git_ref)
+        == expected
+    )
