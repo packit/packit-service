@@ -1022,6 +1022,28 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             additional_build=additional_build,
         )
 
+    def cancel_testing_farm_request(self, request_id: int):
+        """
+        Cancel a TF request with given ID.
+
+        Args:
+            request_id: ID of the TF request
+
+        Returns:
+            Whether the cancelling was successful.
+        """
+        logger.info(f"Cancelling TF request with ID {request_id} ")
+        response = self.send_testing_farm_request(
+            endpoint=f"requests/{request_id}",
+            method="DELETE",
+        )
+        if response.status_code != 200:
+            msg = f"Failed to cancel TF request {request_id}: {response.json()}"
+            logger.error(msg)
+            return False
+
+        return True
+
     def send_testing_farm_request(
         self,
         endpoint: str,
