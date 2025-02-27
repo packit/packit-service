@@ -1,0 +1,32 @@
+name: Packit as a Fedora dist-git CI issue
+description: Report a bug or request a feature for Packit as a Fedora dist-git CI
+labels: area/fedora-ci
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues to avoid creating duplicates.
+        If this is more of a discussion topic, you might rather want to create a new thread [here](https://github.com/packit/packit/discussions/2520).
+        You can also see our current priorities on our board: https://github.com/orgs/packit/projects/7/views/29
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: importance
+    attributes:
+      label: Importance
+      description: How important is this issue for you? Is this something that is blocking you from using Packit as a Fedora dist-git CI?
+    validations:
+      required: false
+
+  - type: checkboxes
+    attributes:
+      label: Workaround
+      options:
+        - label: There is an existing workaround that can be used until this is implemented.
+          required: false
