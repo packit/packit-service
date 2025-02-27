@@ -1002,13 +1002,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             data=payload,
         )
 
-        if not response:
-            return self._handle_tf_submit_no_response(
-                test_run=test_run,
-                target=test_run.target,
-                payload=payload,
-            )
-
         if response.status_code != 200:
             return self._handle_tf_submit_failure(
                 test_run=test_run,
@@ -1021,6 +1014,28 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             response=response,
             additional_build=additional_build,
         )
+
+    def cancel_testing_farm_request(self, request_id: int):
+        """
+        Cancel a TF request with given ID.
+
+        Args:
+            request_id: ID of the TF request
+
+        Returns:
+            Whether the cancelling was successful.
+        """
+        logger.info(f"Cancelling TF request with ID {request_id} ")
+        response = self.send_testing_farm_request(
+            endpoint=f"requests/{request_id}",
+            method="DELETE",
+        )
+        if response.status_code != 200:
+            msg = f"Failed to cancel TF request {request_id}: {response.json()}"
+            logger.error(msg)
+            return False
+
+        return True
 
     def send_testing_farm_request(
         self,
@@ -1090,7 +1105,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             endpoint=f"requests/{request_id}",
             method="GET",
         )
-        if not response or response.status_code != 200:
+        if response.status_code != 200:
             msg = f"Failed to get request/pipeline {request_id} details from TF. {response.reason}"
             logger.error(msg)
             return {}
@@ -1123,27 +1138,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         return TaskResults(success=True, details={})
-
-    def _handle_tf_submit_no_response(
-        self,
-        test_run: TFTTestRunTargetModel,
-        target: str,
-        payload: dict,
-    ):
-        """
-        Retry the task and report it to user or report the error state to user.
-        """
-        msg = "Failed to post request to testing farm API."
-        if not self.celery_task.is_last_try():
-            return self._retry_on_submit_failure(test_run, msg)
-
-        logger.error(f"{msg} {self._payload_without_token(payload)}")
-        self.report_status_to_tests_for_test_target(
-            state=BaseCommitStatus.error,
-            description=msg,
-            target=target,
-        )
-        return TaskResults(success=False, details={"msg": msg})
 
     def _handle_tf_submit_failure(
         self,

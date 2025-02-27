@@ -825,14 +825,6 @@ def test_pr_test_command_handler_identifiers(
                 60,
             ),
             (
-                0,
-                "Failed to submit tests. The task will be retried in 1 minute.",
-                "Failed to post request to testing farm API.",
-                BaseCommitStatus.pending,
-                None,
-                60,
-            ),
-            (
                 1,
                 "Failed to submit tests. The task will be retried in 2 minutes.",
                 "Reason",
@@ -845,22 +837,6 @@ def test_pr_test_command_handler_identifiers(
                     reason="Reason",
                 ),
                 120,
-            ),
-            (
-                1,
-                "Failed to submit tests. The task will be retried in 2 minutes.",
-                "Failed to post request to testing farm API.",
-                BaseCommitStatus.pending,
-                None,
-                120,
-            ),
-            (
-                2,
-                "Failed to post request to testing farm API.",
-                None,
-                BaseCommitStatus.error,
-                None,
-                None,
             ),
             (
                 2,
