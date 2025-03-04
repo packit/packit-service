@@ -4,6 +4,7 @@
 import packit
 import pytest
 from flexmock import flexmock
+from packit.config.aliases import Distro
 from packit.config.job_config import JobConfigTriggerType, JobType
 
 from packit_service.models import (
@@ -18,10 +19,39 @@ def mock_get_aliases():
     mock_aliases_module = flexmock(packit.config.aliases)
     mock_aliases_module.should_receive("get_aliases").and_return(
         {
-            "fedora-all": ["fedora-31", "fedora-32", "fedora-33", "fedora-rawhide"],
-            "fedora-stable": ["fedora-31", "fedora-32"],
-            "fedora-development": ["fedora-33", "fedora-rawhide"],
-            "epel-all": ["epel-6", "epel-7", "epel-8"],
+            "fedora-all": [
+                Distro("fedora-31", "f31"),
+                Distro("fedora-32", "f32"),
+                Distro("fedora-33", "f33"),
+                Distro("fedora-rawhide", "rawhide"),
+            ],
+            "fedora-stable": [Distro("fedora-31", "f31"), Distro("fedora-32", "f32")],
+            "fedora-development": [Distro("fedora-33", "f33"), Distro("fedora-rawhide", "rawhide")],
+            "epel-all": [
+                Distro("epel-6", "el6"),
+                Distro("epel-7", "epel7"),
+                Distro("epel-8", "epel8"),
+            ],
+        },
+    )
+
+
+@pytest.fixture()
+def mock_get_fast_forward_aliases():
+    mock_aliases_module = flexmock(packit.config.aliases)
+    mock_aliases_module.should_receive("get_aliases").and_return(
+        {
+            "fedora-all": [
+                Distro("fedora-39", "f39"),
+                Distro("fedora-40", "f40"),
+                Distro("fedora-rawhide", "rawhide"),
+            ],
+            "fedora-stable": [Distro("fedora-39", "f39"), Distro("fedora-40", "f40")],
+            "fedora-development": [Distro("fedora-rawhide", "rawhide")],
+            "fedora-latest": [Distro("fedora-40", "f40")],
+            "fedora-latest-stable": [Distro("fedora-40", "f40")],
+            "fedora-branched": [Distro("fedora-39", "f39"), Distro("fedora-40", "f40")],
+            "epel-all": [Distro("epel-8", "epel8"), Distro("epel-9", "epel9")],
         },
     )
 
