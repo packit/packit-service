@@ -661,7 +661,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     script=script,
                     # use the latest stable chroot
                     script_repos=self.get_packit_copr(),
-                    script_chroot="fedora-42-x86_64",
+                    script_chroot=self.get_latest_fedora_stable_chroot(),
                     script_builddeps=["packit"] + (self.job_config.srpm_build_deps or []),
                     buildopts=buildopts,
                 )
