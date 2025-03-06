@@ -643,21 +643,3 @@ def pagure_pr_comment_added():
 def new_hotness_update():
     with open(DATA_DIR / "fedmsg" / "new_hotness_update.json") as outfile:
         return json.load(outfile)
-
-
-@pytest.fixture()
-def mock_get_fast_forward_aliases():
-    import packit
-
-    mock_aliases_module = flexmock(packit.config.aliases)
-    mock_aliases_module.should_receive("get_aliases").and_return(
-        {
-            "fedora-all": ["fedora-39", "fedora-40", "fedora-rawhide"],
-            "fedora-stable": ["fedora-39", "fedora-40"],
-            "fedora-development": ["fedora-rawhide"],
-            "fedora-latest": ["fedora-40"],
-            "fedora-latest-stable": ["fedora-40"],
-            "fedora-branched": ["fedora-39", "fedora-40"],
-            "epel-all": ["epel-8", "epel-9"],
-        },
-    )

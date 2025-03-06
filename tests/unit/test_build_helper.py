@@ -10,7 +10,7 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
-from packit.config.aliases import get_build_targets
+from packit.config.aliases import Distro, get_build_targets
 from packit.config.notifications import (
     FailureCommentNotificationsConfig,
     NotificationsConfig,
@@ -29,17 +29,24 @@ from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import DuplicateCheckMode, StatusReporter
 
 ALIASES = {
-    "fedora-development": ["fedora-33", "fedora-rawhide"],
-    "fedora-stable": ["fedora-31", "fedora-32"],
-    "fedora-all": ["fedora-31", "fedora-32", "fedora-33", "fedora-rawhide"],
-    "epel-all": ["epel-6", "epel-7", "epel-8"],
+    "fedora-development": [Distro("fedora-33", "f33"), Distro("fedora-rawhide", "rawhide")],
+    "fedora-stable": [Distro("fedora-31", "f31"), Distro("fedora-32", "f32")],
+    "fedora-all": [
+        Distro("fedora-31", "f31"),
+        Distro("fedora-32", "f32"),
+        Distro("fedora-33", "f33"),
+        Distro("fedora-rawhide", "rawhide"),
+    ],
+    "epel-all": [Distro("epel-6", "el6"), Distro("epel-7", "epel7"), Distro("epel-8", "epel8")],
 }
 
-STABLE_VERSIONS = ALIASES["fedora-stable"]
+STABLE_VERSIONS = [d.namever for d in ALIASES["fedora-stable"]]
 STABLE_CHROOTS = {f"{version}-x86_64" for version in STABLE_VERSIONS}
 ONE_CHROOT_SET = {next(iter(STABLE_CHROOTS))}
-STABLE_KOJI_TARGETS = {f"f{version[-2:]}" for version in STABLE_VERSIONS}
+STABLE_KOJI_TARGETS = {d.branch for d in ALIASES["fedora-stable"]}
 ONE_KOJI_TARGET_SET = {next(iter(STABLE_KOJI_TARGETS))}
+
+pytestmark = pytest.mark.usefixtures("mock_get_aliases")
 
 
 def _mock_targets(jobs, job, job_type):
