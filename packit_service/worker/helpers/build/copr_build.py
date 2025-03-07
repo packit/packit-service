@@ -628,7 +628,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         This is used as a chroot where the Copr source script will be run.
         """
         latest_fedora_stable_chroot = get_aliases().get("fedora-stable")[-1]
-        [build_target] = self.api.copr_helper.get_valid_build_targets(latest_fedora_stable_chroot)
+        [build_target] = self.api.copr_helper.get_valid_build_targets(
+            latest_fedora_stable_chroot.namever
+        )
         return build_target
 
     def submit_copr_build(self, script: Optional[str] = None) -> tuple[int, str]:

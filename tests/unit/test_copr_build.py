@@ -24,6 +24,7 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+from packit.config.aliases import Distro
 from packit.copr_helper import CoprHelper
 from packit.exceptions import (
     PackitCoprProjectException,
@@ -608,7 +609,7 @@ def test_handle_rpm_build_start(github_pr_event, sync_test_job_statuses_with_bui
 def test_get_latest_fedora_stable_chroot(github_pr_event):
     flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_aliases",
-    ).and_return({"fedora-stable": ["fedora-34", "fedora-35"]})
+    ).and_return({"fedora-stable": [Distro("fedora-34", "f34"), Distro("fedora-35", "f35")]})
     flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-35",
     ).and_return({"fedora-35-x86_64"})
