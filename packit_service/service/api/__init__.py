@@ -23,7 +23,7 @@ from packit_service.service.api.usage import usage_ns
 from packit_service.service.api.webhooks import ns as webhooks_ns
 
 # https://flask-restplus.readthedocs.io/en/stable/scaling.html
-blueprint = Blueprint("api", __name__, url_prefix="/api")
+blueprint = Blueprint("api", __name__)
 api = Api(
     app=blueprint,
     version="1.0",

@@ -20,22 +20,13 @@ if [[ $n -eq $ATTEMPTS ]]; then
 fi
 
 export PACKIT_SERVICE_CONFIG="${HOME}/.config/packit-service.yaml"
-SERVER_NAME=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\1/p' "$PACKIT_SERVICE_CONFIG")
 HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVICE_CONFIG")
 
-# See "mod_wsgi-express-3 start-server --help" for details on
-# these options, and the configuration documentation of mod_wsgi:
-# https://modwsgi.readthedocs.io/en/master/configuration.html
-exec mod_wsgi-express-3 start-server \
+exec uvicorn packit_service.service.app:app \
+    --host 0.0.0.0 \
+    --port "${HTTPS_PORT:-8443}" \
     --access-log \
-    --log-to-terminal \
-    --http2 \
-    --https-port "${HTTPS_PORT:-8443}" \
-    --ssl-certificate-file /secrets/fullchain.pem \
-    --ssl-certificate-key-file /secrets/privkey.pem \
-    --server-name "${SERVER_NAME}" \
-    --processes 2 \
-    --restart-interval 28800 \
-    --graceful-timeout 15 \
-    --locale "C.UTF-8" \
-    /usr/share/packit/packit.wsgi
+    --log-level debug \
+    --ssl-certfile /secrets/fullchain.pem \
+    --ssl-keyfile /secrets/privkey.pem \
+    --timeout-graceful-shutdown 15 \
