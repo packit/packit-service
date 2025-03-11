@@ -102,6 +102,7 @@ class StatusReporter:
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: Optional[str] = None,
+        target_branch: Optional[str] = None,
     ):
         raise NotImplementedError()
 

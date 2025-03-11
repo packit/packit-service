@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
+from ogr.abstract import CommitStatus
+from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import Deployment, JobConfigTriggerType
 from packit.local_project import LocalProjectBuilder
@@ -25,8 +27,6 @@ from packit_service.models import (
 from packit_service.worker.handlers import distgit
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus
-from packit_service.worker.reporting.reporters.base import StatusReporter
 from packit_service.worker.tasks import (
     run_downstream_koji_scratch_build_handler,
 )
@@ -38,11 +38,40 @@ def distgit_pr_event():
     return json.loads((DATA_DIR / "fedmsg" / "pagure_pr_new.json").read_text())
 
 
-def test_downstream_koji_scratch_build(distgit_pr_event):
+@pytest.mark.parametrize(
+    "target_branch, uid, check_name",
+    [
+        pytest.param(
+            "rawhide",
+            "e0091d5fbcb20572cbf2e6442af9bed5",
+            "Packit - scratch build - rawhide",
+            id="rawhide target branch",
+        ),
+        pytest.param(
+            "f42",
+            "6f08c3bbb20660dc8c597bc7dbe4f056",
+            "Packit - scratch build - f42",
+            id="f42 target branch",
+        ),
+    ],
+)
+def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, check_name):
+    distgit_pr_event["pullrequest"]["branch"] = target_branch
+    pr_object = (
+        flexmock()
+        .should_receive("set_flag")
+        .with_args(username=check_name, comment=str, url=str, status=CommitStatus, uid=uid)
+        .mock()
+    )
     dg_project = (
-        flexmock(namespace="rpms", repo="optee_os")
+        flexmock(
+            PagureProject(namespace="rpms", repo="optee_os", service=flexmock(read_only=False))
+        )
         .should_receive("is_private")
         .and_return(False)
+        .mock()
+        .should_receive("get_pr")
+        .and_return(pr_object)
         .mock()
     )
     service_config = (
@@ -109,7 +138,7 @@ def test_downstream_koji_scratch_build(distgit_pr_event):
             "build",
             "--scratch",
             "--nowait",
-            "rawhide",
+            target_branch,
             "git+https://src.fedoraproject.org/forks/zbyszek/rpms/optee_os.git#889f07af35d27bbcaf9c535c17a63b974aa42ee3",
         ],
         cwd=Path,
@@ -120,13 +149,6 @@ def test_downstream_koji_scratch_build(distgit_pr_event):
 
     flexmock(distgit).should_receive("get_koji_task_id_and_url_from_stdout").and_return(
         (123, "koji-web-url")
-    ).once()
-
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=BaseCommitStatus.running,
-        description="RPM build was submitted ...",
-        url="https://localhost/jobs/koji/123",
-        check_name="Packit - scratch build",
     ).once()
 
     processing_results = SteveJobs().process_message(distgit_pr_event)

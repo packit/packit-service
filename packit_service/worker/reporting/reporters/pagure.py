@@ -32,10 +32,12 @@ class StatusReporterPagure(StatusReporter):
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: Optional[str] = None,
+        target_branch: Optional[str] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
-            f"Setting Pagure status '{state_to_set.name}' for check '{check_name}': {description}",
+            f"Setting Pagure status '{state_to_set.name}' for check '{check_name}' and "
+            f"target '{target_branch}': {description}"
         )
         if markdown_content:
             logger.debug(
@@ -47,13 +49,16 @@ class StatusReporterPagure(StatusReporter):
             url = CONTACTS_URL
 
         if self.pull_request_object:
-            # generate a custom uid from the check_name,
+            # generate a custom uid from the check_name and target_branch,
             # so that we can update flags we set previously,
             # instead of creating new ones (Pagure specific behaviour)
             # the max length of uid is 32 chars
-            uid = hashlib.sha256(check_name.encode()).hexdigest()[:32]
+            composed_check_name = (
+                check_name if not target_branch else f"{check_name} - {target_branch}"
+            )
+            uid = hashlib.sha256(composed_check_name.encode()).hexdigest()[:32]
             self.pull_request_object.set_flag(
-                username=check_name,
+                username=composed_check_name,
                 comment=description,
                 url=url,
                 status=state_to_set,
