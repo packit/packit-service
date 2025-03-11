@@ -130,7 +130,7 @@ services:
       args:
         SOURCE_BRANCH: main
     image: quay.io/packit/packit-service:dev
-    command: /usr/bin/run_httpd.sh
+    command: /usr/bin/run_server.sh
     depends_on:
       - redis
       - postgres
@@ -157,7 +157,7 @@ services:
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z
-      - ./files/run_httpd.sh:/usr/bin/run_httpd.sh:ro,z
+      - ./files/run_server.sh:/usr/bin/run_server.sh:ro,z
     user: "1024"
 
   dashboard:
@@ -172,7 +172,7 @@ services:
     #        server_name: service.localhost
     #        dashboard_url: https://dashboard.localhost:8443
     image: quay.io/packit/dashboard:stg
-    command: /usr/bin/run_httpd.sh
+    command: /usr/bin/run_server.sh
     depends_on:
       - service
     ports:

@@ -1,8 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-- name: Copy run_httpd.sh
+- name: Copy run_server.sh
   ansible.builtin.copy:
-    src: run_httpd.sh
-    dest: /usr/bin/run_httpd.sh
+    src: run_server.sh
+    dest: /usr/bin/run_server.sh
     mode: 0775
