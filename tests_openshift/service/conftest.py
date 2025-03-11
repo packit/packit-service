@@ -3,7 +3,7 @@
 
 import pytest
 
-from packit_service.service.app import packit_as_a_service as application
+from packit_service.service.app import flask_app as application
 
 
 @pytest.fixture
