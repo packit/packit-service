@@ -26,6 +26,10 @@ class FedoraCIHelper:
         self._status_reporter = None
 
     @property
+    def target_branch(self) -> str:
+        return self.metadata.event_dict.get("target_branch")
+
+    @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter.get_instance(
@@ -42,4 +46,5 @@ class FedoraCIHelper:
             description=description,
             url=url,
             check_name=self.status_name,
+            target_branch=self.target_branch,
         )

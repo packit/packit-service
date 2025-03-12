@@ -98,6 +98,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         url: str = "",
         links_to_external_services: Optional[dict[str, str]] = None,
         markdown_content: Optional[str] = None,
+        target_branch: Optional[str] = None,
     ):
         markdown_content = markdown_content or ""
         state_to_set = self.get_check_run(state)
