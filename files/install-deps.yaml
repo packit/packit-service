@@ -14,6 +14,10 @@
           - python3-click
           - git # setuptools-scm
           - dnf-utils
+          # httpd & deps
+          - python3-mod_wsgi
+          - mod_http2
+          - mod_ssl
           - python3-fastapi
           - python3-gunicorn
           - python3-uvicorn
