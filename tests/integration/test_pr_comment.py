@@ -2585,6 +2585,8 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(sync_release_pr_model)
 
     packit_yaml = (
@@ -2673,7 +2675,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         .mock()
     )
     pr = (
-        flexmock(id=21, url="some_url", target_project=target_project)
+        flexmock(id=21, url="some_url", target_project=target_project, description="")
         .should_receive("comment")
         .mock()
     )
@@ -2691,7 +2693,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         add_new_sources=True,
         fast_forward_merge_branches=set(),
         warn_about_koji_build_triggering_bug=False,
-    ).and_return(pr).once()
+    ).and_return((pr, {})).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
@@ -2700,8 +2702,8 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url",
     ).once()
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=sync_release_pr_model,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted,
@@ -2786,6 +2788,8 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(sync_release_pr_model)
 
     packit_yaml = (
@@ -2840,7 +2844,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         .mock()
     )
     pr = (
-        flexmock(id=21, url="some_url", target_project=target_project)
+        flexmock(id=21, url="some_url", target_project=target_project, description="")
         .should_receive("comment")
         .mock()
     )
@@ -2857,7 +2861,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         add_new_sources=True,
         fast_forward_merge_branches=set(),
         warn_about_koji_build_triggering_bug=False,
-    ).and_return(pr).once()
+    ).and_return((pr, {})).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
@@ -2866,8 +2870,8 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url",
     ).once()
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=sync_release_pr_model,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted,

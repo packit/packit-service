@@ -156,12 +156,14 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(sync_release_pr_model).times(1 if success else 0)
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url",
     ).times(1 if success else 0)
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=sync_release_pr_model,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
     ).times(1 if success else 0)
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.running,
@@ -182,7 +184,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         .mock()
     )
     pr = (
-        flexmock(id=21, url="some_url", target_project=target_project)
+        flexmock(id=21, url="some_url", target_project=target_project, description="")
         .should_receive("comment")
         .mock()
     )
@@ -200,7 +202,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         add_new_sources=True,
         fast_forward_merge_branches=set(),
         warn_about_koji_build_triggering_bug=False,
-    ).and_return(pr).times(1 if success else 0)
+    ).and_return((pr, {})).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     flexmock(Allowlist, check_and_report=True)

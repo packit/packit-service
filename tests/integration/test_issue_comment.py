@@ -178,7 +178,7 @@ def test_issue_comment_propose_downstream_handler(
     )
     pr._target_project = target_project
     flexmock(pr).should_receive("comment")
-    flexmock(PackitAPI).should_receive("sync_release").and_return(pr)
+    flexmock(PackitAPI).should_receive("sync_release").and_return((pr, {}))
     flexmock(
         project_class,
         get_files=lambda ref, recursive: [".packit.yaml", "tox.ini"],
@@ -241,6 +241,8 @@ def test_issue_comment_propose_downstream_handler(
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(sync_release_pr_model)
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
@@ -253,8 +255,8 @@ def test_issue_comment_propose_downstream_handler(
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="https://xyz",
     )
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=sync_release_pr_model,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted,

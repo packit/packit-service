@@ -60,13 +60,20 @@ def get_project_info_from_build(
 
 
 def get_sync_release_target_info(sync_release_model: SyncReleaseTargetModel):
-    pr_model = sync_release_model.pull_request
+    pr_models = sync_release_model.pull_requests
     job_result_dict = {
         "status": sync_release_model.status,
         "branch": sync_release_model.branch,
-        "downstream_pr_url": sync_release_model.downstream_pr_url,
-        "downstream_pr_id": pr_model.pr_id if pr_model else None,
-        "downstream_pr_project": pr_model.project.project_url if pr_model else None,
+        "downstream_prs": [
+            {
+                "pr_id": pr.pr_id,
+                "branch": pr.target_branch,
+                "is_fast_forward": pr.is_fast_forward,
+                "url": pr.url,
+            }
+            for pr in pr_models
+        ],
+        "downstream_pr_project": pr_models[0].project.project_url if pr_models else None,
         "submitted_time": optional_timestamp(sync_release_model.submitted_time),
         "start_time": optional_timestamp(sync_release_model.start_time),
         "finished_time": optional_timestamp(sync_release_model.finished_time),

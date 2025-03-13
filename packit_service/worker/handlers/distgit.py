@@ -250,7 +250,7 @@ class AbstractSyncReleaseHandler(
         self,
         branch: str,
         model: SyncReleaseModel,
-    ) -> Optional[PullRequest]:
+    ) -> Optional[tuple[PullRequest, dict[str, PullRequest]]]:
         try:
             branch_suffix = f"update-{self.sync_release_job_type.value}"
             is_pull_from_upstream_job = (
@@ -292,7 +292,7 @@ class AbstractSyncReleaseHandler(
                     continue
                 kwargs["warn_about_koji_build_triggering_bug"] = True
                 break
-            downstream_pr = self.packit_api.sync_release(**kwargs)
+            downstream_pr, additional_prs = self.packit_api.sync_release(**kwargs)
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
             # retry for the archive to become available
@@ -334,7 +334,7 @@ class AbstractSyncReleaseHandler(
                 for submodule in self.packit_api.up.local_project.git_repo.submodules:
                     submodule.update(init=True, recursive=True, force=True)
 
-        return downstream_pr
+        return downstream_pr, additional_prs
 
     def _get_or_create_sync_release_run(self) -> SyncReleaseModel:
         if self._sync_release_run_id is not None:
@@ -408,20 +408,40 @@ class AbstractSyncReleaseHandler(
         )
 
         try:
-            downstream_pr = self.sync_branch(
+            downstream_pr, additional_prs = self.sync_branch(
                 branch=branch,
                 model=sync_release_run_model,
             )
-            logger.debug("Downstream PR created successfully.")
+            logger.debug("Downstream PR(s) created successfully.")
             model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
             downstream_pr_project = downstream_pr.target_project
-            sync_release_pull_request = SyncReleasePullRequestModel.get_or_create(
-                pr_id=downstream_pr.id,
-                namespace=downstream_pr_project.namespace,
-                repo_name=downstream_pr_project.repo,
-                project_url=downstream_pr_project.get_web_url(),
+
+            pr_models = [
+                SyncReleasePullRequestModel.get_or_create(
+                    pr_id=downstream_pr.id,
+                    namespace=downstream_pr_project.namespace,
+                    repo_name=downstream_pr_project.repo,
+                    project_url=downstream_pr_project.get_web_url(),
+                    target_branch=branch,
+                    url=downstream_pr.url,
+                )
+            ]
+
+            pr_models.extend(
+                SyncReleasePullRequestModel.get_or_create(
+                    pr_id=pr.id,
+                    namespace=downstream_pr_project.namespace,
+                    repo_name=downstream_pr_project.repo,
+                    project_url=downstream_pr_project.get_web_url(),
+                    target_branch=branch,
+                    is_fast_forward=True,
+                    url=pr.url,
+                )
+                for branch, pr in additional_prs.items()
             )
-            model.set_downstream_pr(downstream_pr=sync_release_pull_request)
+
+            model.set_downstream_prs(downstream_prs=pr_models)
+
         except AbortSyncRelease:
             raise
         except Exception as ex:
@@ -450,7 +470,6 @@ class AbstractSyncReleaseHandler(
 
         dashboard_url = self.get_dashboard_url(model.id)
         self.report_dashboard_url(
-            sync_release_pull_request,
             downstream_pr,
             dashboard_url,
         )
@@ -555,16 +574,16 @@ class AbstractSyncReleaseHandler(
 
     @staticmethod
     def report_dashboard_url(
-        pr_model: SyncReleasePullRequestModel,
         pr_object: PullRequest,
         dashboard_url: str,
     ):
-        msg = f"Logs and details of the syncing: [Packit dashboard]({dashboard_url})"
+        msg_base = "Logs and details of the syncing: [Packit dashboard]"
+        msg = f"{msg_base}({dashboard_url})"
+        original_description = pr_object.description
         # this is a retrigger
-        if len(pr_model.sync_release_targets) > 1:
+        if msg_base in original_description:
             pr_object.comment(msg)
         else:
-            original_description = pr_object.description
             pr_object.description = original_description + "\n---\n" + msg
 
 
