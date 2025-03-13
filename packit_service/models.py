@@ -3471,6 +3471,7 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"), index=True)
     downstream_pr_url = Column(String)  # @TODO drop when the code uses downstream_pr
     downstream_pr_id = Column(Integer, ForeignKey("sync_release_pull_request.id"))
+    fast_forward_prs = Column(JSON)
 
     sync_release = relationship(
         "SyncReleaseModel",
@@ -3505,6 +3506,11 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     def set_downstream_pr_url(self, downstream_pr_url: str) -> None:
         with sa_session_transaction(commit=True) as session:
             self.downstream_pr_url = downstream_pr_url
+            session.add(self)
+
+    def set_fast_forward_prs(self, fast_forward_prs: dict[str, str]) -> None:
+        with sa_session_transaction(commit=True) as session:
+            self.fast_forward_prs = fast_forward_prs
             session.add(self)
 
     def set_downstream_pr(self, downstream_pr: SyncReleasePullRequestModel) -> None:
