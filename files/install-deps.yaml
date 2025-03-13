@@ -14,10 +14,9 @@
           - python3-click
           - git # setuptools-scm
           - dnf-utils
-          # httpd & deps
-          - python3-mod_wsgi
-          - mod_http2
-          - mod_ssl
+          - python3-fastapi
+          - python3-gunicorn
+          - python3-uvicorn
           - python3-alembic
           - python3-sqlalchemy
           - python3-psycopg2
@@ -30,6 +29,7 @@
           - python3-flask-talisman
           - python3-flexmock # alembic (d90948124e46_..._.py )
           - python3-sentry-sdk+flask
+          - python3-sentry-sdk+fastapi
           - python3-syslog-rfc5424-formatter # logging to Splunk
           - python-jwt
           - bodhi-client
