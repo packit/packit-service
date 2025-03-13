@@ -250,7 +250,7 @@ class AbstractSyncReleaseHandler(
         self,
         branch: str,
         model: SyncReleaseModel,
-    ) -> Optional[PullRequest]:
+    ) -> Optional[tuple[PullRequest, dict[str, PullRequest]]]:
         try:
             branch_suffix = f"update-{self.sync_release_job_type.value}"
             is_pull_from_upstream_job = (
@@ -292,7 +292,7 @@ class AbstractSyncReleaseHandler(
                     continue
                 kwargs["warn_about_koji_build_triggering_bug"] = True
                 break
-            downstream_pr = self.packit_api.sync_release(**kwargs)
+            downstream_pr, additional_prs = self.packit_api.sync_release(**kwargs)
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
             # retry for the archive to become available
@@ -331,7 +331,7 @@ class AbstractSyncReleaseHandler(
                     working_tree=True,
                 )
 
-        return downstream_pr
+        return downstream_pr, additional_prs
 
     def _get_or_create_sync_release_run(self) -> SyncReleaseModel:
         if self._sync_release_run_id is not None:
@@ -405,12 +405,13 @@ class AbstractSyncReleaseHandler(
         )
 
         try:
-            downstream_pr = self.sync_branch(
+            downstream_pr, additional_prs = self.sync_branch(
                 branch=branch,
                 model=sync_release_run_model,
             )
             logger.debug("Downstream PR created successfully.")
             model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
+            model.set_fast_forward_prs({branch: pr.url for (branch, pr) in additional_prs.items()})
             downstream_pr_project = downstream_pr.target_project
             sync_release_pull_request = SyncReleasePullRequestModel.get_or_create(
                 pr_id=downstream_pr.id,
