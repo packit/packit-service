@@ -215,7 +215,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def fmf_url(self) -> str:
         return (
             self.job_config.fmf_url
-            or (self.pull_request_object and self.pull_request_object.source_project.get_web_url())
+            or (
+                self.pull_request_object
+                and not self.job_config.use_target_repo_for_fmf_url
+                and self.pull_request_object.source_project.get_web_url()
+            )
             or self.project.get_web_url()
         )
 
