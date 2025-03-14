@@ -118,3 +118,7 @@ repos:
           - LICENSE_HEADER.txt
           - --comment-style
           - "#"
+  - repo: https://github.com/teemtee/tmt.git
+    rev: 1.29.0
+    hooks:
+      - id: tmt-lint
