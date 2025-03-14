@@ -71,6 +71,7 @@ def get_sync_release_target_info(sync_release_model: SyncReleaseTargetModel):
         "start_time": optional_timestamp(sync_release_model.start_time),
         "finished_time": optional_timestamp(sync_release_model.finished_time),
         "logs": sync_release_model.logs,
+        "fast_forward_prs": sync_release_model.fast_forward_prs,
     }
 
     job_result_dict.update(get_project_info_from_build(sync_release_model.sync_release))
