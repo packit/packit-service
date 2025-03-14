@@ -1490,23 +1490,24 @@ def test_trigger_build_manual_tests_dont_report():
 
 
 @pytest.mark.parametrize(
-    ("job_fmf_url", "pr_id", "fmf_url"),
+    ("job_fmf_url", "job_use_target_repo_for_fmf_url", "pr_id", "fmf_url"),
     [
         # custom set URL
-        ("https://custom.xyz/mf/fmf/", None, "https://custom.xyz/mf/fmf/"),
+        ("https://custom.xyz/mf/fmf/", False, None, "https://custom.xyz/mf/fmf/"),
         # PR, from fork
-        (None, 42, "https://github.com/mf/packit"),
+        (None, False, 42, "https://github.com/mf/packit"),
         # if from branch
-        (None, None, "https://github.com/packit/packit"),
+        (None, False, None, "https://github.com/packit/packit"),
+        (None, True, 42, "https://github.com/packit/packit"),
     ],
 )
-def test_fmf_url(job_fmf_url, pr_id, fmf_url):
+def test_fmf_url(job_fmf_url, job_use_target_repo_for_fmf_url, pr_id, fmf_url):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
         packages={
             "package": CommonPackageConfig(
-                fmf_url=job_fmf_url,
+                fmf_url=job_fmf_url, use_target_repo_for_fmf_url=job_use_target_repo_for_fmf_url
             ),
         },
     )
@@ -1518,9 +1519,16 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
     elif pr_id is not None:
         git_project.should_receive("get_pr").with_args(pr_id).and_return(
             flexmock(
-                source_project=flexmock().should_receive("get_web_url").and_return(fmf_url).mock(),
+                source_project=flexmock()
+                .should_receive("get_web_url")
+                .and_return("https://github.com/mf/packit")
+                .mock(),
             ),
         )
+        if job_use_target_repo_for_fmf_url:
+            git_project.should_receive("get_web_url").and_return(
+                "https://github.com/packit/packit",
+            ).once()
     else:
         git_project.should_receive("get_web_url").and_return(
             "https://github.com/packit/packit",
