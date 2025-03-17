@@ -4,6 +4,7 @@
 import logging
 from typing import Any, Optional
 
+from packit.config.aliases import get_branches
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
 from specfile.utils import NEVR
@@ -109,6 +110,8 @@ class SidetagHelper(metaclass=SidetagHelperMeta):
             PackitException if the sidetag doesn't exist either in the database or in Koji.
         """
         group = SidetagGroupModel.get_or_create(sidetag_group)
+        # resolve branch aliases, e.g. rawhide -> main
+        [dist_git_branch] = get_branches(dist_git_branch)
         if not (sidetag := group.get_sidetag_by_target(dist_git_branch)):
             raise PackitException(
                 f"Sidetag for {sidetag_group} and {dist_git_branch} was not found in the database",
@@ -159,6 +162,8 @@ class SidetagHelper(metaclass=SidetagHelperMeta):
             PackitException if the sidetag failed to be created in Koji.
         """
         group = SidetagGroupModel.get_or_create(sidetag_group)
+        # resolve branch aliases, e.g. rawhide -> main
+        [dist_git_branch] = get_branches(dist_git_branch)
         with SidetagModel.get_or_create_for_updating(group.name, dist_git_branch) as sidetag:
             if not sidetag.koji_name or not cls.koji_helper.get_tag_info(
                 sidetag.koji_name,
