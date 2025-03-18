@@ -313,7 +313,6 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
             url=url,
         )
 
-
     def notify_about_failure_if_configured(
         self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str
     ):

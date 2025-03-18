@@ -26,7 +26,7 @@ from packit_service.models import (
     OSHScanModel,
     ProjectEventModelType,
 )
-from packit_service.worker.handlers import OpenScanHubTaskFinishedHandler
+from packit_service.worker.handlers import CoprOpenScanHubTaskFinishedHandler
 from packit_service.worker.handlers.copr import CoprOpenScanHubHelper
 from packit_service.worker.helpers import open_scan_hub
 from packit_service.worker.helpers.build import CoprBuildJobHelper
@@ -273,7 +273,7 @@ def test_handle_scan_task_finished(
                 "succeeded",
             ).once()
             flexmock(scan_mock).should_receive("set_issues_added_count").with_args(2).once()
-            flexmock(OpenScanHubTaskFinishedHandler).should_receive(
+            flexmock(CoprOpenScanHubTaskFinishedHandler).should_receive(
                 "get_number_of_new_findings_identified"
             ).and_return(2)
             links_to_external_services.update(

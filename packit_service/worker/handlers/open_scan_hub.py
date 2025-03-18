@@ -92,7 +92,7 @@ class OpenScanHubAbstractHandler(
 
 @configured_as(job_type=JobType.copr_build)
 @reacts_to(openscanhub.task.Finished)
-class OpenScanHubTaskFinishedHandler(
+class CoprOpenScanHubTaskFinishedHandler(
     OpenScanHubAbstractHandler,
 ):
     event: openscanhub.task.Finished
@@ -198,7 +198,7 @@ class OpenScanHubTaskFinishedHandler(
 
 @configured_as(job_type=JobType.copr_build)
 @reacts_to(openscanhub.task.Started)
-class OpenScanHubTaskStartedHandler(
+class CoprOpenScanHubTaskStartedHandler(
     OpenScanHubAbstractHandler,
 ):
     task_name = TaskName.openscanhub_task_started

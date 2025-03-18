@@ -50,11 +50,11 @@ from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildHandler,
     CoprBuildStartHandler,
+    CoprOpenScanHubTaskFinishedHandler,
+    CoprOpenScanHubTaskStartedHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
     KojiTaskReportHandler,
-    OpenScanHubTaskFinishedHandler,
-    OpenScanHubTaskStartedHandler,
     ProposeDownstreamHandler,
     SyncFromDownstream,
     TestingFarmHandler,
@@ -676,7 +676,7 @@ def run_openscanhub_task_finished_handler(
     package_config: dict,
     job_config: dict,
 ):
-    handler = OpenScanHubTaskFinishedHandler(
+    handler = CoprOpenScanHubTaskFinishedHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
@@ -692,7 +692,7 @@ def run_openscanhub_task_started_handler(
     package_config: dict,
     job_config: dict,
 ):
-    handler = OpenScanHubTaskStartedHandler(
+    handler = CoprOpenScanHubTaskStartedHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
