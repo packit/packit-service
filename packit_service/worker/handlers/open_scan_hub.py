@@ -24,7 +24,7 @@ from packit_service.worker.handlers.mixin import (
     ConfigFromEventMixin,
 )
 from packit_service.worker.helpers.build import CoprBuildJobHelper
-from packit_service.worker.helpers.open_scan_hub import OpenScanHubHelper
+from packit_service.worker.helpers.open_scan_hub import CoprOpenScanHubHelper
 from packit_service.worker.mixin import (
     LocalProjectMixin,
     PackitAPIWithUpstreamMixin,
@@ -51,7 +51,7 @@ class OpenScanHubAbstractHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return (RawhideX86Target, IsEventForJob)
 
-    def get_helper(self) -> OpenScanHubHelper:
+    def get_helper(self) -> CoprOpenScanHubHelper:
         build_helper = CoprBuildJobHelper(
             service_config=self.service_config,
             package_config=self.package_config,
@@ -62,7 +62,7 @@ class OpenScanHubAbstractHandler(
             celery_task=self.celery_task,
         )
 
-        return OpenScanHubHelper(
+        return CoprOpenScanHubHelper(
             copr_build_helper=build_helper,
             build=self.event.build,
         )

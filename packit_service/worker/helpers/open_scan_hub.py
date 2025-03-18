@@ -42,14 +42,6 @@ class OSHNoFeedback(PackitException):
 
 
 class OpenScanHubHelper:
-    def __init__(
-        self,
-        copr_build_helper: CoprBuildJobHelper,
-        build: CoprBuildTargetModel,
-    ):
-        self.build = build
-        self.copr_build_helper = copr_build_helper
-
     @staticmethod
     def osh_disabled() -> bool:
         disabled = getenv("DISABLE_OPENSCANHUB", "False").lower() in (
@@ -62,6 +54,55 @@ class OpenScanHubHelper:
         if disabled:
             logger.info("OpenScanHub disabled via env var.")
         return disabled
+
+    @staticmethod
+    def parse_dict_from_output(output: str) -> dict:
+        json_pattern = r"\{.*?\}"
+        matches = re.findall(json_pattern, output, re.DOTALL)
+
+        if not matches:
+            return {}
+
+        json_str = matches[-1]
+        return json.loads(json_str)
+
+    @staticmethod
+    def download_srpms(
+        directory: str,
+        base_srpm_model: SRPMBuildModel,
+        srpm_model: SRPMBuildModel,
+    ) -> Optional[tuple[Path, Path]]:
+        def download_srpm(srpm_model: SRPMBuildModel) -> Optional[Path]:
+            if not srpm_model.url:
+                logger.info(
+                    f"SRPMBuildModel with copr_build_id={srpm_model.copr_build_id} "
+                    "has status={srpm_model.status} "
+                    "and empty url. Skipping download."
+                )
+                return None
+            srpm_path = Path(directory).joinpath(basename(srpm_model.url))
+            if not download_file(srpm_model.url, srpm_path):
+                logger.info(f"Downloading of SRPM {srpm_model.url} was not successful.")
+                return None
+            return srpm_path
+
+        if (base_srpm_path := download_srpm(base_srpm_model)) is None:
+            return None
+
+        if (srpm_path := download_srpm(srpm_model)) is None:
+            return None
+
+        return base_srpm_path, srpm_path
+
+
+class CoprOpenScanHubHelper(OpenScanHubHelper):
+    def __init__(
+        self,
+        copr_build_helper: CoprBuildJobHelper,
+        build: CoprBuildTargetModel,
+    ):
+        self.build = build
+        self.copr_build_helper = copr_build_helper
 
     def handle_scan(self):
         """
@@ -163,17 +204,6 @@ class OpenScanHubHelper:
             links_to_external_services=links_to_external_services,
         )
 
-    @staticmethod
-    def parse_dict_from_output(output: str) -> dict:
-        json_pattern = r"\{.*?\}"
-        matches = re.findall(json_pattern, output, re.DOTALL)
-
-        if not matches:
-            return {}
-
-        json_str = matches[-1]
-        return json.loads(json_str)
-
     def find_base_build_job(self) -> Optional[JobConfig]:
         """
         Find the job in the config that can provide the base build for the scan
@@ -248,31 +278,3 @@ class OpenScanHubHelper:
         else:
             logger.debug("No matching base build found in our DB.")
             return None
-
-    @staticmethod
-    def download_srpms(
-        directory: str,
-        base_srpm_model: SRPMBuildModel,
-        srpm_model: SRPMBuildModel,
-    ) -> Optional[tuple[Path, Path]]:
-        def download_srpm(srpm_model: SRPMBuildModel) -> Optional[Path]:
-            if not srpm_model.url:
-                logger.info(
-                    f"SRPMBuildModel with copr_build_id={srpm_model.copr_build_id} "
-                    "has status={srpm_model.status} "
-                    "and empty url. Skipping download."
-                )
-                return None
-            srpm_path = Path(directory).joinpath(basename(srpm_model.url))
-            if not download_file(srpm_model.url, srpm_path):
-                logger.info(f"Downloading of SRPM {srpm_model.url} was not successful.")
-                return None
-            return srpm_path
-
-        if (base_srpm_path := download_srpm(base_srpm_model)) is None:
-            return None
-
-        if (srpm_path := download_srpm(srpm_model)) is None:
-            return None
-
-        return base_srpm_path, srpm_path

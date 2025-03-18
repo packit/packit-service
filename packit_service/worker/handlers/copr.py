@@ -62,7 +62,7 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
 )
-from packit_service.worker.helpers.open_scan_hub import OpenScanHubHelper
+from packit_service.worker.helpers.open_scan_hub import CoprOpenScanHubHelper
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
@@ -340,13 +340,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         self.handle_testing_farm()
 
         if (
-            not OpenScanHubHelper.osh_disabled()
+            not CoprOpenScanHubHelper.osh_disabled()
             and self.db_project_event.type == ProjectEventModelType.pull_request
             and self.build.target == "fedora-rawhide-x86_64"
             and self.job_config.osh_diff_scan_after_copr_build
         ):
             try:
-                OpenScanHubHelper(
+                CoprOpenScanHubHelper(
                     copr_build_helper=self.copr_build_helper,
                     build=self.build,
                 ).handle_scan()
