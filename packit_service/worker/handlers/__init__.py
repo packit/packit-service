@@ -31,8 +31,8 @@ from packit_service.worker.handlers.koji import (
     KojiTaskReportHandler,
 )
 from packit_service.worker.handlers.open_scan_hub import (
-    OpenScanHubTaskFinishedHandler,
-    OpenScanHubTaskStartedHandler,
+    CoprOpenScanHubTaskFinishedHandler,
+    CoprOpenScanHubTaskStartedHandler,
 )
 from packit_service.worker.handlers.testing_farm import (
     TestingFarmHandler,
@@ -59,6 +59,6 @@ __all__ = [
     GithubFasVerificationHandler.__name__,
     VMImageBuildHandler.__name__,
     VMImageBuildResultHandler.__name__,
-    OpenScanHubTaskFinishedHandler.__name__,
-    OpenScanHubTaskStartedHandler.__name__,
+    CoprOpenScanHubTaskFinishedHandler.__name__,
+    CoprOpenScanHubTaskStartedHandler.__name__,
 ]

@@ -26,8 +26,8 @@ from packit_service.models import (
     OSHScanModel,
     ProjectEventModelType,
 )
-from packit_service.worker.handlers import OpenScanHubTaskFinishedHandler
-from packit_service.worker.handlers.copr import OpenScanHubHelper
+from packit_service.worker.handlers import CoprOpenScanHubTaskFinishedHandler
+from packit_service.worker.handlers.copr import CoprOpenScanHubHelper
 from packit_service.worker.helpers import open_scan_hub
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.jobs import SteveJobs
@@ -155,7 +155,7 @@ def test_handle_scan(build_models):
         get_commits=lambda ref: ["abcdef", "fedcba"],
     )
 
-    OpenScanHubHelper(
+    CoprOpenScanHubHelper(
         build=flexmock(
             id=1,
             get_srpm_build=lambda: srpm_mock,
@@ -273,7 +273,7 @@ def test_handle_scan_task_finished(
                 "succeeded",
             ).once()
             flexmock(scan_mock).should_receive("set_issues_added_count").with_args(2).once()
-            flexmock(OpenScanHubTaskFinishedHandler).should_receive(
+            flexmock(CoprOpenScanHubTaskFinishedHandler).should_receive(
                 "get_number_of_new_findings_identified"
             ).and_return(2)
             links_to_external_services.update(
@@ -296,7 +296,7 @@ def test_handle_scan_task_finished(
         if num_of_handlers == 1:
             # one handler is always skipped because it is for fedora-stable ->
             # no rawhide build
-            flexmock(OpenScanHubHelper).should_receive("report").with_args(
+            flexmock(CoprOpenScanHubHelper).should_receive("report").with_args(
                 state=state,
                 description=description,
                 url="/jobs/openscanhub/123",
@@ -374,7 +374,7 @@ def test_handle_scan_task_started(
     if processing_results:
         if num_of_handlers == 1:
             flexmock(scan_mock).should_receive("set_status").with_args("running").once()
-            flexmock(OpenScanHubHelper).should_receive("report").with_args(
+            flexmock(CoprOpenScanHubHelper).should_receive("report").with_args(
                 state=BaseCommitStatus.running,
                 description="Scan in OpenScanHub has started.",
                 url="https://openscanhub.fedoraproject.org/task/17514/",
