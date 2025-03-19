@@ -1322,12 +1322,14 @@ class TagIntoSidetagHandler(
         )
         for job in self.package_config.get_job_views():
             if job.type == JobType.koji_build and job.sidetag_group and job.dist_git_branches:
+                # get all configured branches including branch aliases
+                # so it doesn't matter whether the PR is opened against rawhide or main,
+                # if the job is configured for either it will match
                 configured_branches = aliases.get_branches(
-                    *job.dist_git_branches,
-                    default_dg_branch="rawhide",
+                    *job.dist_git_branches, with_aliases=True
                 )
                 if "--all-branches" in args:
-                    branches = configured_branches
+                    branches = aliases.get_branches(*job.dist_git_branches)
                 elif self.pull_request.target_branch not in configured_branches:
                     continue
                 else:

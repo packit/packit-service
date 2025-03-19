@@ -3020,8 +3020,11 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return()
     flexmock(aliases).should_receive("get_branches").with_args(
         "fedora-stable",
-        default_dg_branch="rawhide",
-    ).and_return({"f39", "f40"})
+        with_aliases=True,
+    ).and_return({"f39", "f40"}).once()
+    flexmock(aliases).should_receive("get_branches").with_args(
+        "fedora-stable",
+    ).and_return({"f39", "f40"}).times(1 if all_branches else 0)
 
     sidetag_group = flexmock(name="test")
     flexmock(SidetagGroupModel).should_receive("get_or_create").with_args(

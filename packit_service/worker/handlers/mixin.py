@@ -215,6 +215,9 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
 
     @property
     def _dist_git_branch(self) -> str:
+        if self.sidetag.dist_git_branch == "main":
+            # Koji doesn't recognize main, only rawhide
+            return "rawhide"
         return self.sidetag.dist_git_branch
 
     @property
