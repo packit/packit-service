@@ -151,6 +151,7 @@ class Task(KojiEvent):
         self,
         task_id: int,
         state: KojiTaskState,
+        target: Optional[str] = None,
         old_state: Optional[KojiTaskState] = None,
         rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
@@ -164,6 +165,7 @@ class Task(KojiEvent):
         )
         self.state = state
         self.old_state = old_state
+        self.target = target
 
         # Lazy properties
         self._pr_id: Optional[int] = None
@@ -190,6 +192,10 @@ class Task(KojiEvent):
         if not self._commit_sha:
             self._commit_sha = self.build_model.commit_sha
         return self._commit_sha
+
+    @property
+    def target(self) -> str:
+        return self.target
 
     @property
     def git_ref(self) -> str:

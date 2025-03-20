@@ -38,6 +38,9 @@ from packit_service.worker.handlers.testing_farm import (
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.testing_farm_ci import (
+    DownstreamTestingFarmHandler,
+)
 from packit_service.worker.handlers.vm_image import (
     VMImageBuildHandler,
     VMImageBuildResultHandler,
@@ -61,4 +64,5 @@ __all__ = [
     VMImageBuildResultHandler.__name__,
     CoprOpenScanHubTaskFinishedHandler.__name__,
     CoprOpenScanHubTaskStartedHandler.__name__,
+    DownstreamTestingFarmHandler.__name__,
 ]

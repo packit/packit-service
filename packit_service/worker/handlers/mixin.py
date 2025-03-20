@@ -60,6 +60,18 @@ class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
         return self._koji_build_event
 
 
+class GetKojiScratchBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
+    _koji_build_event: Optional[koji.result.Task] = None
+
+    @property
+    def koji_build_event(self):
+        if not self._koji_build_event:
+            self._koji_build_event = koji.result.Task.from_event_dict(
+                self.data.event_dict,
+            )
+        return self._koji_build_event
+
+
 class GetKojiBuildJobHelper(Protocol):
     @property
     @abstractmethod
