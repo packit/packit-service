@@ -1190,7 +1190,6 @@ class DownstreamKojiBuildHandler(
                 f"Fedora Koji build was triggered by push with sha {self.data.commit_sha}."
             )
         elif self.data.event_type == koji.tag.Build.event_type():
-            trigger_type_description += (
                 f"Fedora Koji build was triggered "
                 f"by tagging of build {self.data.event_dict['build_id']} "
                 f"into {self.data.event_dict['tag_name']}."
