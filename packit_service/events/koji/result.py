@@ -151,6 +151,7 @@ class Task(KojiEvent):
         self,
         task_id: int,
         state: KojiTaskState,
+        target_branch: Optional[str] = None,
         old_state: Optional[KojiTaskState] = None,
         rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
@@ -164,6 +165,7 @@ class Task(KojiEvent):
         )
         self.state = state
         self.old_state = old_state
+        self.target_branch = target_branch
 
         # Lazy properties
         self._pr_id: Optional[int] = None
@@ -219,6 +221,9 @@ class Task(KojiEvent):
 
     @classmethod
     def from_event_dict(cls, event: dict) -> "Task":
+        request = event.get("request", [])
+        target_branch = request[2] if len(request) >= 2 else None
+
         return Task(
             task_id=event.get("task_id"),
             state=KojiTaskState(event.get("state")) if event.get("state") else None,
@@ -226,6 +231,7 @@ class Task(KojiEvent):
             rpm_build_task_ids=event.get("rpm_build_task_ids"),
             start_time=event.get("start_time"),
             completion_time=event.get("completion_time"),
+            target_branch=target_branch,
         )
 
     def get_base_project(self) -> Optional[GitProject]:
@@ -248,4 +254,5 @@ class Task(KojiEvent):
         result["pr_id"] = self.pr_id
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
+        result["target_branch"] = self.target
         return result
