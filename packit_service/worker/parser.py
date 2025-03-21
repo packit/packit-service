@@ -1425,7 +1425,7 @@ class Parser:
                 rpm_build_task_ids[children.get("arch")] = children.get("id")
 
         request = event.get("request", default=[])
-        target = request[2] if len(request) >= 2 else None
+        target_branch = request[2] if len(request) >= 2 else None
 
         return koji.result.Task(
             task_id=task_id,
@@ -1434,7 +1434,7 @@ class Parser:
             start_time=start_time,
             completion_time=completion_time,
             rpm_build_task_ids=rpm_build_task_ids,
-            target=target,
+            target_branch=target_branch,
         )
 
     @staticmethod
