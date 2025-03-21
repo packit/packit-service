@@ -56,6 +56,7 @@ from packit_service.models import (
     TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     sa_session_transaction,
+    sync_release_pr_association_table,
 )
 
 
@@ -214,6 +215,7 @@ def clean_db():
         session.query(KojiBuildTargetModel).delete()
         session.query(KojiTagRequestTargetModel).delete()
         session.query(BodhiUpdateTargetModel).delete()
+        session.query(sync_release_pr_association_table).delete()
         session.query(SRPMBuildModel).delete()
         session.query(SyncReleaseTargetModel).delete()
         session.query(SyncReleaseModel).delete()
@@ -388,9 +390,11 @@ def pull_from_upstream_target_model(release_project_event_model):
         SampleValues.downstream_namespace,
         SampleValues.downstream_repo,
         SampleValues.downstream_project_url,
+        SampleValues.branch,
+        SampleValues.downstream_pr_url,
     )
     target_model.set_downstream_pr_url(downstream_pr_url=SampleValues.downstream_pr_url)
-    target_model.set_downstream_pr(sync_release_pull_request_model)
+    target_model.set_downstream_prs([sync_release_pull_request_model])
     target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
     target_model.set_logs(logs="random logs")
 
@@ -415,9 +419,11 @@ def pull_from_upstream_target_model_non_git(anitya_version_project_event_model):
         SampleValues.downstream_namespace,
         SampleValues.downstream_repo,
         SampleValues.downstream_project_url,
+        SampleValues.branch,
+        SampleValues.downstream_pr_url,
     )
     target_model.set_downstream_pr_url(downstream_pr_url=SampleValues.downstream_pr_url)
-    target_model.set_downstream_pr(sync_release_pull_request_model)
+    target_model.set_downstream_prs([sync_release_pull_request_model])
     target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
     target_model.set_logs(logs="random logs")
 
@@ -465,11 +471,13 @@ def propose_model_submitted():
         SampleValues.downstream_namespace,
         SampleValues.downstream_repo,
         SampleValues.downstream_project_url,
+        SampleValues.branch,
+        SampleValues.downstream_pr_url,
     )
     propose_downstream_target.set_downstream_pr_url(
         downstream_pr_url=SampleValues.downstream_pr_url,
     )
-    propose_downstream_target.set_downstream_pr(sync_release_pull_request_model)
+    propose_downstream_target.set_downstream_prs([sync_release_pull_request_model])
     propose_downstream_target.set_finished_time(
         finished_time=datetime.datetime.utcnow(),
     )

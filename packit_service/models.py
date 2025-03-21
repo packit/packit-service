@@ -1196,6 +1196,21 @@ class GitProjectModel(Base):
         )
 
 
+sync_release_pr_association_table = Table(
+    "sync_release_pr_association",
+    Base.metadata,  # type: ignore
+    Column(
+        "sync_release_target_id",
+        Integer,
+        ForeignKey("sync_release_run_targets.id"),
+        primary_key=True,
+    ),
+    Column(
+        "sync_release_pr_id", Integer, ForeignKey("sync_release_pull_request.id"), primary_key=True
+    ),
+)
+
+
 class SyncReleasePullRequestModel(Base):
     __tablename__ = "sync_release_pull_request"
 
@@ -1220,10 +1235,9 @@ class SyncReleasePullRequestModel(Base):
         "GitProjectModel",
         back_populates="sync_release_pull_requests",
     )
-    sync_release_targets = relationship(
-        "SyncReleaseTargetModel",
-        back_populates="pull_request",
-    )
+    is_fast_forward = Column(Boolean, default=False)
+    target_branch = Column(String)
+    url = Column(String)
 
     @classmethod
     def get_or_create(
@@ -1232,6 +1246,9 @@ class SyncReleasePullRequestModel(Base):
         namespace: str,
         repo_name: str,
         project_url: str,
+        target_branch: str,
+        url: str,
+        is_fast_forward: bool = False,
     ) -> "SyncReleasePullRequestModel":
         with sa_session_transaction(commit=True) as session:
             project = GitProjectModel.get_or_create(
@@ -1248,6 +1265,9 @@ class SyncReleasePullRequestModel(Base):
                 pr = SyncReleasePullRequestModel()
                 pr.pr_id = pr_id
                 pr.project_id = project.id
+                pr.target_branch = target_branch
+                pr.url = url
+                pr.is_fast_forward = is_fast_forward
                 session.add(pr)
             return pr
 
@@ -3470,15 +3490,14 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
     logs = Column(Text)
     sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"), index=True)
     downstream_pr_url = Column(String)  # @TODO drop when the code uses downstream_pr
-    downstream_pr_id = Column(Integer, ForeignKey("sync_release_pull_request.id"))
 
     sync_release = relationship(
         "SyncReleaseModel",
         back_populates="sync_release_targets",
     )
-    pull_request = relationship(
+    pull_requests = relationship(
         "SyncReleasePullRequestModel",
-        back_populates="sync_release_targets",
+        secondary=sync_release_pr_association_table,
     )
 
     def __repr__(self) -> str:
@@ -3507,10 +3526,10 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
             self.downstream_pr_url = downstream_pr_url
             session.add(self)
 
-    def set_downstream_pr(self, downstream_pr: SyncReleasePullRequestModel) -> None:
+    def set_downstream_prs(self, downstream_prs: list["SyncReleasePullRequestModel"]) -> None:
         with sa_session_transaction(commit=True) as session:
-            downstream_pr.sync_release_targets.append(self)
-            session.add(downstream_pr)
+            self.pull_requests = downstream_prs
+            session.add(self)
 
     def set_start_time(self, start_time: DateTime) -> None:
         with sa_session_transaction(commit=True) as session:
@@ -3543,8 +3562,14 @@ class SyncReleaseTargetModel(ProjectAndEventsConnector, Base):
                     SyncReleasePullRequestModel.project_id == GitProjectModel.id,
                 )
                 .join(
+                    sync_release_pr_association_table,
+                    SyncReleasePullRequestModel.id
+                    == sync_release_pr_association_table.c.sync_release_pr_id,
+                )
+                .join(
                     SyncReleaseTargetModel,
-                    SyncReleaseTargetModel.downstream_pr_id == SyncReleasePullRequestModel.id,
+                    SyncReleaseTargetModel.id
+                    == sync_release_pr_association_table.c.sync_release_target_id,
                 )
                 .filter(
                     SyncReleaseTargetModel.status == SyncReleaseTargetStatus.submitted,
