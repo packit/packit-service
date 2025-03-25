@@ -51,6 +51,60 @@ class OpenScanHubAbstractHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return (RawhideX86Target, IsEventForJob)
 
+    def get_issues_added_url(
+        self,
+        openscanhub_url: str = "https://openscanhub.fedoraproject.org",
+        file_format: str = "html",
+    ) -> str:
+        """
+        Constructs the URL for the added issues in the specified
+        format for the given OpenScanHub task.
+
+        Parameters:
+            openscanhub_url (str)
+            file_format (str): The format of the added issues file ('html' or 'json').
+
+        Returns:
+            str: The full URL to access the added issues in the specified format.
+        """
+        return f"{openscanhub_url}/task/{self.event.task_id}/log/added.{file_format}"
+
+    def get_number_of_new_findings_identified(self) -> Optional[int]:
+        """
+        Downloads a JSON file from the task issues added URL and
+        returns the number of items in the 'defects' array.
+
+        Returns:
+            Optional[int]: Number of items in the 'defects' array,
+             or None if not found or on error.
+        """
+        url = self.event.issues_added_url
+        logger.info(f"About to get the number of new findings identified by the scan from {url}.")
+
+        try:
+            with requests.get(url, timeout=10) as response:
+                response.raise_for_status()
+                data = response.json()
+
+                defects = data.get("defects")
+                if defects is None:
+                    logger.debug("No 'defects' array found in the JSON data.")
+                    return None
+
+                return len(defects)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error while downloading the JSON file: {e}")
+            return None
+        except json.JSONDecodeError:
+            logger.error("The response is not a valid JSON format.")
+            return None
+
+
+class CoprOpenScanHubAbstractHandler(OpenScanHubAbstractHandler):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def get_helper(self) -> CoprOpenScanHubHelper:
         build_helper = CoprBuildJobHelper(
             service_config=self.service_config,
@@ -93,59 +147,10 @@ class OpenScanHubAbstractHandler(
 @configured_as(job_type=JobType.copr_build)
 @reacts_to(openscanhub.task.Finished)
 class CoprOpenScanHubTaskFinishedHandler(
-    OpenScanHubAbstractHandler,
+    CoprOpenScanHubAbstractHandler,
 ):
     event: openscanhub.task.Finished
     task_name = TaskName.openscanhub_task_finished
-
-    def get_number_of_new_findings_identified(self) -> Optional[int]:
-        """
-        Downloads a JSON file from the task issues added URL and
-        returns the number of items in the 'defects' array.
-
-        Returns:
-            Optional[int]: Number of items in the 'defects' array,
-             or None if not found or on error.
-        """
-        url = self.event.issues_added_url
-        logger.info(f"About to get the number of new findings identified by the scan from {url}.")
-
-        try:
-            with requests.get(url, timeout=10) as response:
-                response.raise_for_status()
-                data = response.json()
-
-                defects = data.get("defects")
-                if defects is None:
-                    logger.debug("No 'defects' array found in the JSON data.")
-                    return None
-
-                return len(defects)
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error while downloading the JSON file: {e}")
-            return None
-        except json.JSONDecodeError:
-            logger.error("The response is not a valid JSON format.")
-            return None
-
-    def get_issues_added_url(
-        self,
-        openscanhub_url: str = "https://openscanhub.fedoraproject.org",
-        file_format: str = "html",
-    ) -> str:
-        """
-        Constructs the URL for the added issues in the specified
-        format for the given OpenScanHub task.
-
-        Parameters:
-            openscanhub_url (str)
-            file_format (str): The format of the added issues file ('html' or 'json').
-
-        Returns:
-            str: The full URL to access the added issues in the specified format.
-        """
-        return f"{openscanhub_url}/task/{self.event.task_id}/log/added.{file_format}"
 
     def run(self) -> TaskResults:
         self.check_scan_and_build()
@@ -199,7 +204,7 @@ class CoprOpenScanHubTaskFinishedHandler(
 @configured_as(job_type=JobType.copr_build)
 @reacts_to(openscanhub.task.Started)
 class CoprOpenScanHubTaskStartedHandler(
-    OpenScanHubAbstractHandler,
+    CoprOpenScanHubAbstractHandler,
 ):
     task_name = TaskName.openscanhub_task_started
 
