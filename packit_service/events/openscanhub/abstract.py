@@ -41,7 +41,13 @@ class OpenScanHubEvent(Result):
                 " and should have been associated with the copr build.",
             )
             return
-        self.build = self.scan.copr_build_target
+        
+        # TODO: How to handle koji builds here?
+        if hasattr(self.scan, "copr_build_target"):
+            self.build = self.scan.copr_build_target
+        else:
+            self.build = self.scan.koji_build_target
+        
         if not self.build:
             logger.warning(
                 f"Scan with id {task_id} not associated with a build."
