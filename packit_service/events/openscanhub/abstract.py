@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from logging import getLogger
-from typing import Optional
+from typing import Optional, Union
 
 from ogr.abstract import GitProject
 
@@ -10,6 +10,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
     CoprBuildTargetModel,
+    KojiBuildTargetModel,
     OSHScanModel,
     ProjectEventModel,
 )
@@ -33,7 +34,7 @@ class OpenScanHubEvent(Result):
         self.commit_sha = commit_sha
 
         self.scan = OSHScanModel.get_by_task_id(task_id)
-        self.build: Optional[CoprBuildTargetModel] = None
+        self.build: Optional[Union[CoprBuildTargetModel, KojiBuildTargetModel]] = None
         if not self.scan:
             logger.warning(
                 f"Scan with id {task_id} not found in the database."
@@ -60,7 +61,9 @@ class OpenScanHubEvent(Result):
         # and have to be serialized to be later found in the
         # event metadata
         self.commit_sha = project_event.commit_sha if not self.commit_sha else self.commit_sha
-        self.identifier = identifier or self.build.identifier
+        self.identifier = identifier
+        if not self.identifier and isinstance(self.build, CoprBuildTargetModel):
+            self.identifier = self.build.identifier
 
     def get_db_project_object(self) -> Optional[AbstractProjectObjectDbType]:
         return self.build.get_project_event_object()

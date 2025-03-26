@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 import json
 import logging
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
 import requests
 from packit.config import (
@@ -10,7 +10,7 @@ from packit.config import (
 )
 
 from packit_service.events import openscanhub
-from packit_service.models import OSHScanStatus
+from packit_service.models import CoprBuildTargetModel, KojiBuildTargetModel, OSHScanStatus
 from packit_service.service.urls import get_openscanhub_info_url
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.open_scan_hub import IsEventForJob, RawhideX86Target
@@ -87,7 +87,7 @@ class CoprOpenScanHubAbstractHandler(OpenScanHubAbstractHandler):
 
         return CoprOpenScanHubHelper(
             copr_build_helper=build_helper,
-            build=self.event.build,
+            build=cast(CoprBuildTargetModel, self.event.build),
         )
 
     def check_scan_and_build(self):
@@ -247,7 +247,7 @@ class KojiOpenScanHubAbstractHandler(OpenScanHubAbstractHandler):
 
         return KojiOpenScanHubHelper(
             koji_build_helper=build_helper,
-            build=self.event.build,
+            build=cast(KojiBuildTargetModel, self.event.build),
         )
 
     def check_scan_and_build(self):
