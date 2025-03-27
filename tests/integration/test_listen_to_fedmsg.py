@@ -2608,7 +2608,7 @@ def test_koji_build_end_downstream(
         description="RPM build succeeded.",
         url=url,
         check_name="Packit - scratch build",
-        target_branch=None,
+        target_branch="rawhide",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
