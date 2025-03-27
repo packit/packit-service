@@ -27,7 +27,10 @@ class FedoraCIHelper:
 
     @property
     def target_branch(self) -> str:
-        return self.metadata.event_dict.get("target_branch")
+        return (
+            self.metadata.event_dict.get("target_branch")  # for pagure.pr.Action
+            or self.metadata.event_dict.get("target")  # for koji.result.Task
+        )
 
     @property
     def status_reporter(self) -> StatusReporter:
