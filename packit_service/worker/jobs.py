@@ -68,6 +68,7 @@ from packit_service.worker.helpers.build import (
     CoprBuildJobHelper,
     KojiBuildJobHelper,
 )
+from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
@@ -229,7 +230,7 @@ class SteveJobs:
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
         elif (
-            isinstance(self.event, (pagure.pr.Action, koji.result.Task))
+            isinstance(self.event, (pagure.pr.Action, pagure.pr.Comment, koji.result.Task))
             and self.event.db_project_object
             and (url := self.event.db_project_object.project.project_url)
             and url in self.service_config.enabled_projects_for_fedora_ci
@@ -352,6 +353,33 @@ class SteveJobs:
 
         self.push_copr_metrics(handler_kls, number_of_build_targets)
 
+    def report_task_accepted_for_fedora_ci(self):
+        """
+        For CI-related dist-git PR comment events report the initial status
+        "Task was accepted" to inform user we are working on the request.
+        """
+
+        if not isinstance(
+            self.event,
+            abstract.comment.PullRequest,
+        ):
+            logger.debug(
+                "Not a comment event, not reporting task was accepted via commit status.",
+            )
+            return
+
+        helper = FedoraCIHelper(
+            project=self.event.project,
+            metadata=self.event,
+            target_branch=self.event.pull_request_object.target_branch,
+        )
+
+        helper.report(
+            description=TASK_ACCEPTED,
+            state=BaseCommitStatus.pending,
+            url="",
+        )
+
     def search_distgit_config_in_issue(self) -> Optional[tuple[str, PackageConfig]]:
         """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
         Look up for a dist-git repo url inside
@@ -446,8 +474,14 @@ class SteveJobs:
         processing_results: list[TaskResults] = []
 
         for handler_kls in matching_handlers:
-            # TODO: pre-checks
-            # TODO: report task accepted
+            if not handler_kls.pre_check(
+                package_config=None,
+                job_config=None,
+                event=self.event.get_dict(),
+            ):
+                continue
+
+            self.report_task_accepted_for_fedora_ci()
 
             celery_signature = celery.signature(
                 handler_kls.task_name.value,

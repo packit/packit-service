@@ -3,17 +3,20 @@
 
 import json
 import shutil
+from pathlib import Path
 
 import pytest
+from celery.canvas import Signature
 from celery.canvas import group as celery_group
 from flexmock import flexmock
 from github.MainClass import Github
-from ogr.abstract import AuthMethod
+from ogr.abstract import AuthMethod, CommitStatus
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
 from packit.api import PackitAPI
 from packit.config import (
+    Deployment,
     JobConfigTriggerType,
 )
 from packit.copr_helper import CoprHelper
@@ -21,6 +24,7 @@ from packit.distgit import DistGit
 from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.upstream import GitUpstream
+from packit.utils import commands
 from packit.utils.koji_helper import KojiHelper
 
 import packit_service.models
@@ -33,6 +37,7 @@ from packit_service.constants import (
     DOCS_HOW_TO_CONFIGURE_URL,
     DOCS_VALIDATE_CONFIG,
     DOCS_VALIDATE_HOOKS,
+    SANDCASTLE_WORK_DIR,
     TASK_ACCEPTED,
 )
 from packit_service.events import abstract, pagure
@@ -67,6 +72,7 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
+from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
@@ -90,6 +96,7 @@ from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_downstream_koji_build,
+    run_downstream_koji_scratch_build_handler,
     run_koji_build_handler,
     run_pull_from_upstream_handler,
     run_retrigger_bodhi_update,
@@ -2329,6 +2336,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
 
     project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project=flexmock(project_url=None),
         id=123,
     )
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
@@ -2432,6 +2440,167 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     assert first_dict_value(results["job"])["success"]
 
 
+@pytest.mark.parametrize(
+    "target_branch, uid, check_name",
+    [
+        pytest.param(
+            "rawhide",
+            "e0091d5fbcb20572cbf2e6442af9bed5",
+            "Packit - scratch build - rawhide",
+            id="rawhide target branch",
+        ),
+        pytest.param(
+            "f42",
+            "6f08c3bbb20660dc8c597bc7dbe4f056",
+            "Packit - scratch build - f42",
+            id="f42 target branch",
+        ),
+    ],
+)
+def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
+    pagure_pr_comment_added, target_branch, uid, check_name
+):
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit scratch-build"
+    pagure_pr_comment_added["pullrequest"]["branch"] = target_branch
+    pr_object = (
+        flexmock(target_branch=target_branch)
+        .should_receive("set_flag")
+        .with_args(
+            username=check_name,
+            comment="The task was accepted.",
+            url=str,
+            status=CommitStatus,
+            uid=uid,
+        )
+        .once()
+        .mock()
+        .should_receive("set_flag")
+        .with_args(
+            username=check_name,
+            comment="RPM build was submitted ...",
+            url=str,
+            status=CommitStatus,
+            uid=uid,
+        )
+        .once()
+        .mock()
+    )
+    dg_project = (
+        flexmock(
+            PagureProject(
+                namespace="rpms", repo="python-teamcity-messages", service=flexmock(read_only=False)
+            ),
+            default_branch="main",
+        )
+        .should_receive("is_private")
+        .and_return(False)
+        .mock()
+        .should_receive("get_pr")
+        .and_return(pr_object)
+        .mock()
+        .should_receive("get_files")
+        .and_return([])
+        .mock()
+    )
+    service_config = (
+        flexmock(
+            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
+            comment_command_prefix="/packit",
+            package_config_path_override=None,
+        )
+        .should_receive("get_project")
+        .and_return(dg_project)
+        .mock()
+    )
+    flexmock(pagure.pr.Comment).should_receive(
+        "get_base_project",
+    ).once().and_return(dg_project)
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True,
+    )
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
+    )
+    db_project_event = (
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="abcd",
+    ).and_return(flexmock())
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=36,
+        namespace="rpms",
+        repo_name="python-teamcity-messages",
+        project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event,
+    )
+    flexmock(PipelineModel).should_receive("create")
+
+    koji_build = flexmock(
+        id=123,
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
+        set_data=lambda x: None,
+        set_build_submission_stdout=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build]),
+    )
+
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(commands).should_receive("run_command_remote").with_args(
+        cmd=[
+            "koji",
+            "build",
+            "--scratch",
+            "--nowait",
+            target_branch,
+            "git+https://src.fedoraproject.org/rpms/python-teamcity-messages.git#beaf90bcecc51968a46663f8d6f092bfdc92e682",
+        ],
+        cwd=Path,
+        output=True,
+        print_live=True,
+    ).and_return(flexmock(stdout="some output"))
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket")
+
+    flexmock(distgit).should_receive("get_koji_task_id_and_url_from_stdout").and_return(
+        (123, "koji-web-url")
+    ).once()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert json.dumps(event_dict)
+    results = run_downstream_koji_scratch_build_handler(
+        event=event_dict,
+        package_config=package_config,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
 def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit create-update"
     project = pagure_pr_comment_added["pullrequest"]["project"]
@@ -2448,6 +2617,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
 
     project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project=flexmock(project_url=None),
         id=123,
     )
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
@@ -2747,6 +2917,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
+            project=flexmock(project_url=None),
             project_event_model_type=ProjectEventModelType.pull_request,
         ),
     )
@@ -2916,6 +3087,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             project_event_model_type=ProjectEventModelType.pull_request,
+            project=flexmock(project_url=None),
         ),
     )
     flexmock(celery_group).should_receive("apply_async").once()
@@ -2976,6 +3148,7 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
 
     project_event = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project=flexmock(project_url=None),
         id=123,
     )
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(

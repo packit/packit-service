@@ -128,6 +128,33 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
         return True
 
 
+class PermissionOnDistgitForFedoraCI(Checker, GetPagurePullRequestMixin):
+    def pre_check(self) -> bool:
+        if self.data.event_type in (pagure.pr.Comment.event_type(),):
+            comment = self.data.event_dict.get("comment", "")
+            commands = get_packit_commands_from_comment(
+                comment,
+                self.service_config.comment_command_prefix,
+            )
+            command = commands[0] if commands else ""
+            commenter = self.data.actor
+            logger.debug(f'Triggering CI through "{command}" comment by: {commenter}')
+            if not self.is_packager(commenter):
+                msg = (
+                    "CI retriggering "
+                    f"through comment on PR identifier {self.data.pr_id} "
+                    f"and project {self.data.project_url} "
+                    f"done by {commenter} who is not a packager."
+                )
+                logger.info(msg)
+                self.pull_request.comment(
+                    f"{commenter} is not a packager, retriggering is not allowed."
+                )
+                return False
+
+        return True
+
+
 class HasIssueCommenterRetriggeringPermissions(ActorChecker):
     """To be able to retrigger a koji-build the issue commenter should
     have write permission on the project.
