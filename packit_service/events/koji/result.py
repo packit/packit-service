@@ -248,4 +248,5 @@ class Task(KojiEvent):
         result["pr_id"] = self.pr_id
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
+        result["target"] = self.target
         return result
