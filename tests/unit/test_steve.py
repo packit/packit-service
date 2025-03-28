@@ -98,6 +98,13 @@ def test_process_message(event, private, enabled_private_namespaces, success):
             .times(1 if success else 0)
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .times(1 if success else 0)
+                .mock()
+            ],
         ),
     )
 

@@ -330,6 +330,9 @@ class AbstractSyncReleaseHandler(
                     index=True,
                     working_tree=True,
                 )
+                # reset also submodules
+                for submodule in self.packit_api.up.local_project.git_repo.submodules:
+                    submodule.update(init=True, recursive=True, force=True)
 
         return downstream_pr
 
