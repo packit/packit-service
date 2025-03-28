@@ -2638,6 +2638,13 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
         ),
     )
 

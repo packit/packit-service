@@ -193,6 +193,13 @@ def test_issue_comment_propose_downstream_handler(
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
         ),
     )
 

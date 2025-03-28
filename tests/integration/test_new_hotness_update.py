@@ -179,6 +179,13 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
         ),
     )
 

@@ -193,6 +193,13 @@ def test_dist_git_push_release_handle(
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
         ),
     )
 
@@ -316,6 +323,13 @@ def test_dist_git_push_release_handle_multiple_branches(
             .times(len(fedora_branches))
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .times(len(fedora_branches))
+                .mock()
+            ],
         ),
     )
 
@@ -460,6 +474,13 @@ def test_dist_git_push_release_handle_one_failed(
             .times(len(fedora_branches))
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .times(len(fedora_branches))
+                .mock()
+            ],
         ),
     )
     flexmock(Allowlist, check_and_report=True)
@@ -653,6 +674,13 @@ def test_dist_git_push_release_handle_all_failed(
             .times(len(fedora_branches))
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .times(len(fedora_branches))
+                .mock()
+            ],
         ),
     )
 
@@ -760,6 +788,13 @@ def test_retry_propose_downstream_task(
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
         ),
     )
 
@@ -924,6 +959,13 @@ def test_dont_retry_propose_downstream_task(
             .once()
             .mock(),
             git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
         ),
     )
     flexmock(Context, retries=6)
