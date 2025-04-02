@@ -332,7 +332,10 @@ class AbstractSyncReleaseHandler(
                 )
                 # reset also submodules
                 for submodule in self.packit_api.up.local_project.git_repo.submodules:
-                    submodule.update(init=True, recursive=True, force=True)
+                    try:
+                        submodule.update(init=True, recursive=True, force=True)
+                    except Exception as ex:  # noqa: PERF203
+                        logger.error(f"Failed to reset submodule {submodule.name}: {ex}")
 
         return downstream_pr, additional_prs
 
