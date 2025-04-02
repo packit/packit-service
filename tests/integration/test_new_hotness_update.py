@@ -139,6 +139,8 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(flexmock(sync_release_targets=[flexmock()]))
 
     packit_yaml = (
@@ -230,7 +232,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         add_new_sources=True,
         fast_forward_merge_branches=set(),
         warn_about_koji_build_triggering_bug=False,
-    ).and_return(pr).once()
+    ).and_return((pr, {})).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
@@ -239,8 +241,8 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url",
     )
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=list,
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted,
@@ -332,6 +334,8 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(flexmock(sync_release_targets=[flexmock()]))
 
     packit_yaml = (
@@ -405,7 +409,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
         add_new_sources=True,
         fast_forward_merge_branches=set(),
         warn_about_koji_build_triggering_bug=False,
-    ).and_return(pr).once()
+    ).and_return((pr, {})).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
@@ -414,8 +418,8 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url",
     )
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=object,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=list,
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted,

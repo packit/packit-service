@@ -93,6 +93,8 @@ def propose_downstream_model(sync_release_pr_model):
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(sync_release_pr_model)
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -129,7 +131,7 @@ class ProposeDownstreamTargetModel:
     def set_downstream_pr_url(self, downstream_pr_url):
         pass
 
-    def set_downstream_pr(self, downstream_pr):
+    def set_downstream_prs(self, downstream_prs):
         pass
 
 
@@ -161,6 +163,8 @@ def test_dist_git_push_release_handle(
         namespace="downstream-namespace",
         repo_name="downstream-repo",
         project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
     ).and_return(sync_release_pr_model)
 
     packit_yaml = (
@@ -212,7 +216,7 @@ def test_dist_git_push_release_handle(
         .mock()
     )
     pr = (
-        flexmock(id=21, url="some_url", target_project=target_project)
+        flexmock(id=21, url="some_url", target_project=target_project, description="")
         .should_receive("comment")
         .mock()
     )
@@ -230,7 +234,7 @@ def test_dist_git_push_release_handle(
         add_new_sources=True,
         fast_forward_merge_branches=set(),
         warn_about_koji_build_triggering_bug=False,
-    ).and_return(pr).once()
+    ).and_return((pr, {})).once()
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
@@ -239,8 +243,165 @@ def test_dist_git_push_release_handle(
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url",
     )
-    flexmock(model).should_receive("set_downstream_pr").with_args(
-        downstream_pr=sync_release_pr_model,
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
+    ).once()
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.submitted,
+    ).once()
+    flexmock(model).should_receive("set_start_time").once()
+    flexmock(model).should_receive("set_finished_time").once()
+    flexmock(model).should_receive("set_logs").once()
+    flexmock(propose_downstream_model).should_receive("set_status").with_args(
+        status=SyncReleaseStatus.finished,
+    ).once()
+
+    flexmock(group).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(shutil).should_receive("rmtree").with_args("")
+
+    url = get_propose_downstream_info_url(model.id)
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_for_branch",
+    ).with_args(
+        branch="main",
+        description="Starting propose downstream...",
+        state=BaseCommitStatus.running,
+        url=url,
+    ).once()
+
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_for_branch",
+    ).with_args(
+        branch="main",
+        description="Propose downstream finished successfully.",
+        state=BaseCommitStatus.success,
+        url=url,
+    ).once()
+
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert json.dumps(event_dict)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_dist_git_push_release_handle_fast_forward_branches(
+    github_release_webhook,
+    propose_downstream_model,
+    sync_release_pr_model,
+):
+    model = flexmock(status="queued", id=1234, branch="main")
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued,
+        branch="main",
+    ).and_return(model)
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
+    ).and_return(sync_release_pr_model)
+
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec'"
+        ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    project = flexmock(
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name="packit-service/hello-world",
+        repo="hello-world",
+        namespace="packit-service",
+        get_files=lambda ref, recursive: ["packit.yaml"],
+        get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: "https://github.com/packit/hello-world",
+        is_private=lambda: False,
+        default_branch="main",
+    )
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
+    lp.working_dir = ""
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
+        ),
+    )
+
+    flexmock(Allowlist, check_and_report=True)
+    ServiceConfig().get_service_config().get_project = lambda url, required=True: project
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr = (
+        flexmock(id=21, url="some_url", target_project=target_project, description="")
+        .should_receive("comment")
+        .mock()
+    )
+    second_pr = flexmock(id=22, url="some_url_2", target_project=target_project, description="")
+    second_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=22,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch="rawhide",
+        is_fast_forward=True,
+        url="some_url_2",
+    ).and_return(second_pr_model)
+
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="main",
+        tag="0.3.0",
+        create_pr=True,
+        local_pr_branch_suffix="update-propose_downstream",
+        use_downstream_specfile=False,
+        add_pr_instructions=True,
+        resolved_bugs=[],
+        release_monitoring_project_id=None,
+        sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
+        fast_forward_merge_branches=set(),
+        warn_about_koji_build_triggering_bug=False,
+    ).and_return((pr, {"rawhide": second_pr})).once()
+    flexmock(PackitAPI).should_receive("clean")
+
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.running,
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr_url").with_args(
+        downstream_pr_url="some_url",
+    )
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model, second_pr_model],
     ).once()
     flexmock(model).should_receive("set_status").with_args(
         status=SyncReleaseTargetStatus.submitted,
@@ -344,8 +505,8 @@ def test_dist_git_push_release_handle_multiple_branches(
         flexmock(model).should_receive("set_downstream_pr_url").with_args(
             downstream_pr_url="some_url",
         )
-        flexmock(model).should_receive("set_downstream_pr").with_args(
-            downstream_pr=sync_release_pr_model,
+        flexmock(model).should_receive("set_downstream_prs").with_args(
+            downstream_prs=[sync_release_pr_model],
         ).once()
         flexmock(model).should_receive("set_status").with_args(
             status=SyncReleaseTargetStatus.submitted,
@@ -360,7 +521,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             .mock()
         )
         pr = (
-            flexmock(id=21, url="some_url", target_project=target_project)
+            flexmock(id=21, url="some_url", target_project=target_project, description="")
             .should_receive("comment")
             .mock()
         )
@@ -378,7 +539,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             add_new_sources=True,
             fast_forward_merge_branches=set(),
             warn_about_koji_build_triggering_bug=False,
-        ).and_return(pr).once()
+        ).and_return((pr, {})).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
             "report_status_for_branch",
@@ -506,8 +667,8 @@ def test_dist_git_push_release_handle_one_failed(
             flexmock(model).should_receive("set_downstream_pr_url").with_args(
                 downstream_pr_url="some_url",
             )
-            flexmock(model).should_receive("set_downstream_pr").with_args(
-                downstream_pr=sync_release_pr_model,
+            flexmock(model).should_receive("set_downstream_prs").with_args(
+                downstream_prs=[sync_release_pr_model],
             )
             target_project = (
                 flexmock(namespace="downstream-namespace", repo="downstream-repo")
@@ -516,7 +677,7 @@ def test_dist_git_push_release_handle_one_failed(
                 .mock()
             )
             pr = (
-                flexmock(id=21, url="some_url", target_project=target_project)
+                flexmock(id=21, url="some_url", target_project=target_project, description="")
                 .should_receive("comment")
                 .mock()
             )
@@ -534,7 +695,7 @@ def test_dist_git_push_release_handle_one_failed(
                 add_new_sources=True,
                 fast_forward_merge_branches=set(),
                 warn_about_koji_build_triggering_bug=False,
-            ).and_return(pr).once()
+            ).and_return((pr, {})).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch",
             ).with_args(
