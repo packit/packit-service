@@ -303,6 +303,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
             self._helper = FedoraCIHelper(
                 project=self.project,
                 metadata=self.data,
+                target_branch=self.data.event_dict.get("target"),
             )
         return self._helper
 

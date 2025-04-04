@@ -19,18 +19,13 @@ class FedoraCIHelper:
         self,
         project: GitProject,
         metadata: EventData,
+        target_branch: str,
     ):
         self.project = project
         self.metadata = metadata
+        self.target_branch = target_branch
 
         self._status_reporter = None
-
-    @property
-    def target_branch(self) -> str:
-        return (
-            self.metadata.event_dict.get("target_branch")  # for pagure.pr.Action
-            or self.metadata.event_dict.get("target")  # for koji.result.Task
-        )
 
     @property
     def status_reporter(self) -> StatusReporter:
