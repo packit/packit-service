@@ -162,7 +162,7 @@ def test_parse_mr_action(merge_request_update):
     assert isinstance(event_object, mr.Action)
     assert event_object.action == enums.Action.update
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
-    assert event_object.oldrev == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
+    assert event_object.commit_sha_before == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
     assert event_object.identifier == "2"
 
     assert isinstance(event_object.project, GitlabProject)
@@ -293,6 +293,7 @@ def test_parse_gitlab_push(gitlab_push):
     assert event_object.repo_namespace == "testing/packit"
     assert event_object.repo_name == "hello-there"
     assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
+    assert event_object.commit_sha_before == "0e27f070efa4bef2a7c0168f07a0ac36ef90d8cb"
     assert event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
     assert event_object.git_ref == "test2"
 

@@ -16,12 +16,14 @@ class Commit(AddBranchPushEventToDb, GitlabEvent):
         git_ref: str,
         project_url: str,
         commit_sha: str,
+        commit_sha_before: str,
     ):
         super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
         self.commit_sha = commit_sha
+        self.commit_sha_before = commit_sha_before
         self.identifier = git_ref
 
     @classmethod

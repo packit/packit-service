@@ -65,6 +65,7 @@ class _GitlabCommonData:
     parsed_url: Optional[RepoUrl]
     ref: str
     head_commit: dict
+    commit_sha_before: str
 
     @property
     def commit_sha(self) -> str:
@@ -270,7 +271,7 @@ class Parser:
             target_repo_branch=target_repo_branch,
             project_url=target_project_url,
             commit_sha=commit_sha,
-            oldrev=oldrev,
+            commit_sha_before=oldrev,
             title=title,
             description=description,
             url=url,
@@ -453,6 +454,7 @@ class Parser:
             parsed_url=parsed_url,
             ref=ref,
             head_commit=head_commit,
+            commit_sha_before=before,
         )
 
     @staticmethod
@@ -512,6 +514,7 @@ class Parser:
             git_ref=data.ref,
             project_url=data.project_url,
             commit_sha=data.commit_sha,
+            commit_sha_before=data.commit_sha_before,
         )
 
     @staticmethod

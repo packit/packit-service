@@ -33,7 +33,7 @@ class Action(AddPullRequestEventToDb, GitlabEvent):
         target_repo_branch: str,
         project_url: str,
         commit_sha: str,
-        oldrev: Optional[str],
+        commit_sha_before: Optional[str],
         title: str,
         description: str,
         url: str,
@@ -55,7 +55,7 @@ class Action(AddPullRequestEventToDb, GitlabEvent):
         self.target_repo_branch = target_repo_branch
         self.project_url = project_url
         self.commit_sha = commit_sha
-        self.oldrev = oldrev
+        self.commit_sha_before = commit_sha_before
         self.title = title
         self.description = description
         self.url = url
