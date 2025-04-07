@@ -31,18 +31,19 @@ from packit_service.models import (
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
+PATH_TO_GITHUB_WEBHOOKS = DATA_DIR / "webhooks" / "github"
+
 
 @pytest.fixture()
 def github_installation():
-    file = "installation_created.json"
-    with open(DATA_DIR / "webhooks" / "github" / file) as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "installation_created.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def github_issue_comment_propose_downstream():
     with open(
-        DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json",
+        PATH_TO_GITHUB_WEBHOOKS / "issue_propose_downstream.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -50,32 +51,32 @@ def github_issue_comment_propose_downstream():
 @pytest.fixture()
 def github_issue_comment_no_handler():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json").read_text(),
+        (PATH_TO_GITHUB_WEBHOOKS / "issue_comment_no_handler.json").read_text(),
     )
 
 
 @pytest.fixture()
 def github_pr_comment_empty():
-    with open(DATA_DIR / "webhooks" / "github" / "pr_comment_empty.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "pr_comment_empty.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def github_push():
-    with open(DATA_DIR / "webhooks" / "github" / "push.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def github_push_branch():
-    with open(DATA_DIR / "webhooks" / "github" / "push_branch.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push_branch.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def check_rerun():
     with open(
-        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json",
+        PATH_TO_GITHUB_WEBHOOKS / "checkrun_rerequested.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -83,7 +84,7 @@ def check_rerun():
 @pytest.fixture()
 def check_rerun_with_identifier():
     with open(
-        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested_with_identifier.json",
+        PATH_TO_GITHUB_WEBHOOKS / "checkrun_rerequested_with_identifier.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -91,14 +92,14 @@ def check_rerun_with_identifier():
 @pytest.fixture()
 def github_pr_comment_created():
     with open(
-        DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json",
+        PATH_TO_GITHUB_WEBHOOKS / "pr_comment_copr_build.json",
     ) as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def commit_comment():
-    with open(DATA_DIR / "webhooks" / "github" / "commit_comment.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "commit_comment.json") as outfile:
         return json.load(outfile)
 
 
