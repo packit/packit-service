@@ -96,35 +96,24 @@ def check_pending_testing_farm_runs() -> None:
             continue
 
         details = response.json()
-        (
-            project_url,
-            ref,
-            result,
-            summary,
-            copr_build_id,
-            copr_chroot,
-            compose,
-            log_url,
-            created,
-            identifier,
-        ) = Parser.parse_data_from_testing_farm(run, details)
+        data = Parser.parse_data_from_testing_farm(run, details)
 
-        logger.debug(f"Result for the TF pipeline {run.pipeline_id} is {result}.")
-        if result in not_completed:
+        logger.debug(f"Result for the TF pipeline {run.pipeline_id} is {data.result}.")
+        if data.result in not_completed:
             logger.debug("Skip updating a pipeline which is not yet completed.")
             continue
         event = testing_farm.Result(
             pipeline_id=details["id"],
-            result=result,
-            compose=compose,
-            summary=summary,
-            log_url=log_url,
-            copr_build_id=copr_build_id,
-            copr_chroot=copr_chroot,
-            commit_sha=ref,
-            project_url=project_url,
-            created=created,
-            identifier=identifier,
+            result=data.result,
+            compose=data.compose,
+            summary=data.summary,
+            log_url=data.log_url,
+            copr_build_id=data.copr_build_id,
+            copr_chroot=data.copr_chroot,
+            commit_sha=data.ref,
+            project_url=data.project_url,
+            created=data.created,
+            identifier=data.identifier,
         )
         try:
             update_testing_farm_run(event, run)

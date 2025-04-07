@@ -6,11 +6,12 @@ Parser is transforming github JSONs into `events` objects
 """
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from os import getenv
 from typing import Any, Callable, ClassVar, Optional, Union
 
-from ogr.parsing import parse_git_repo
+from ogr.parsing import RepoUrl, parse_git_repo
 from packit.config import JobConfigTriggerType
 from packit.constants import DISTGIT_INSTANCES
 from packit.utils import nested_get
@@ -55,6 +56,41 @@ logger = logging.getLogger(__name__)
 
 class PackitParserException(Exception):
     pass
+
+
+@dataclass
+class _GitlabCommonData:
+    actor: str
+    project_url: str
+    parsed_url: Optional[RepoUrl]
+    ref: str
+    head_commit: dict
+
+    @property
+    def commit_sha(self) -> str:
+        return self.head_commit.get("id")
+
+    @property
+    def commit_title(self) -> str:
+        return self.head_commit.get("title")
+
+    @property
+    def commit_message(self) -> str:
+        return self.head_commit.get("message")
+
+
+@dataclass
+class _TestingFarmCommonData:
+    project_url: str
+    ref: str
+    result: TestingFarmResult
+    summary: str
+    copr_build_id: str
+    copr_chroot: str
+    compose: str
+    log_url: str
+    created: datetime
+    identifier: Optional[str]
 
 
 class Parser:
@@ -368,12 +404,13 @@ class Parser:
         return True
 
     @staticmethod
-    def get_gitlab_push_common_data(event) -> tuple:
+    def get_gitlab_push_common_data(event) -> _GitlabCommonData:
         """A gitlab push and a gitlab tag push have many common data
         parsable in the same way.
 
         Returns:
-            a tuple like (actor, project_url, parsed_url, ref, head_commit)
+            An instance of `_GitlabCommonData` data class.
+
         Raises:
             PackitParserException
         """
@@ -410,7 +447,13 @@ class Parser:
         )
         ref = raw_ref.split("/", maxsplit=2)[-1]
 
-        return actor, project_url, parsed_url, ref, head_commit
+        return _GitlabCommonData(
+            actor=actor,
+            project_url=project_url,
+            parsed_url=parsed_url,
+            ref=ref,
+            head_commit=head_commit,
+        )
 
     @staticmethod
     def parse_gitlab_tag_push_event(event) -> Optional[gitlab.push.Tag]:
@@ -423,34 +466,28 @@ class Parser:
             return None
 
         try:
-            (
-                actor,
-                project_url,
-                parsed_url,
-                ref,
-                head_commit,
-            ) = Parser.get_gitlab_push_common_data(event)
+            data = Parser.get_gitlab_push_common_data(event)
         except PackitParserException as e:
             logger.info(e)
             return None
 
         logger.info(
-            f"Gitlab tag push {ref} event with commit_sha {head_commit.get('id')} "
-            f"by actor {actor} on Project: "
-            f"repo={parsed_url.repo} "
-            f"namespace={parsed_url.namespace} "
-            f"url={project_url}.",
+            f"Gitlab tag push {data.ref} event with commit_sha {data.head_commit.get('id')} "
+            f"by actor {data.actor} on Project: "
+            f"repo={data.parsed_url.repo} "
+            f"namespace={data.parsed_url.namespace} "
+            f"url={data.project_url}.",
         )
 
         return gitlab.push.Tag(
-            repo_namespace=parsed_url.namespace,
-            repo_name=parsed_url.repo,
-            actor=actor,
-            git_ref=ref,
-            project_url=project_url,
-            commit_sha=head_commit.get("id"),
-            title=head_commit.get("title"),
-            message=head_commit.get("message"),
+            repo_namespace=data.parsed_url.namespace,
+            repo_name=data.parsed_url.repo,
+            actor=data.actor,
+            git_ref=data.ref,
+            project_url=data.project_url,
+            commit_sha=data.commit_sha,
+            title=data.commit_title,
+            message=data.commit_message,
         )
 
     @staticmethod
@@ -464,23 +501,17 @@ class Parser:
             return None
 
         try:
-            (
-                _,
-                project_url,
-                parsed_url,
-                ref,
-                head_commit,
-            ) = Parser.get_gitlab_push_common_data(event)
+            data = Parser.get_gitlab_push_common_data(event)
         except PackitParserException as e:
             logger.info(e)
             return None
 
         return gitlab.push.Commit(
-            repo_namespace=parsed_url.namespace,
-            repo_name=parsed_url.repo,
-            git_ref=ref,
-            project_url=project_url,
-            commit_sha=head_commit.get("id"),
+            repo_namespace=data.parsed_url.namespace,
+            repo_name=data.parsed_url.repo,
+            git_ref=data.ref,
+            project_url=data.project_url,
+            commit_sha=data.commit_sha,
         )
 
     @staticmethod
@@ -1215,18 +1246,7 @@ class Parser:
     def parse_data_from_testing_farm(
         tft_test_run: TFTTestRunTargetModel,
         event: dict[Any, Any],
-    ) -> tuple[
-        str,
-        str,
-        TestingFarmResult,
-        str,
-        str,
-        str,
-        str,
-        str,
-        datetime,
-        Optional[str],
-    ]:
+    ) -> _TestingFarmCommonData:
         """Parses common data from testing farm response.
 
         Such common data is environment, os, summary and others.
@@ -1236,8 +1256,7 @@ class Parser:
             event (dict): Response from testing farm converted to a dict.
 
         Returns:
-            tuple: project_url, ref, result, summary, copr_build_id,
-                copr_chroot, compose, log_url, identifier
+            An instance of `_TestingFarmCommonData` data class.
         """
         tf_state = event.get("state")
         tf_result = nested_get(event, "result", "overall")
@@ -1298,17 +1317,17 @@ class Parser:
 
         log_url: str = nested_get(event, "run", "artifacts")
 
-        return (
-            project_url,
-            ref,
-            result,
-            summary,
-            copr_build_id,
-            copr_chroot,
-            compose,
-            log_url,
-            created_dt,
-            identifier,
+        return _TestingFarmCommonData(
+            project_url=project_url,
+            ref=ref,
+            result=result,
+            summary=summary,
+            copr_build_id=copr_build_id,
+            copr_chroot=copr_chroot,
+            compose=compose,
+            log_url=log_url,
+            created=created_dt,
+            identifier=identifier,
         )
 
     @staticmethod
@@ -1334,37 +1353,26 @@ class Parser:
             # Something's wrong with TF, raise exception so that we can re-try later.
             raise Exception(f"Failed to get {request_id} details from TF.")
 
-        (
-            project_url,
-            ref,
-            result,
-            summary,
-            copr_build_id,
-            copr_chroot,
-            compose,
-            log_url,
-            created,
-            identifier,
-        ) = Parser.parse_data_from_testing_farm(tft_test_run, event)
+        data = Parser.parse_data_from_testing_farm(tft_test_run, event)
 
         logger.debug(
-            f"project_url: {project_url}, ref: {ref}, result: {result}, "
-            f"summary: {summary!r}, copr-build: {copr_build_id}:{copr_chroot},\n"
-            f"log_url: {log_url}",
+            f"project_url: {data.project_url}, ref: {data.ref}, result: {data.result}, "
+            f"summary: {data.summary!r}, copr-build: {data.copr_build_id}:{data.copr_chroot},\n"
+            f"log_url: {data.log_url}",
         )
 
         return testing_farm.Result(
             pipeline_id=request_id,
-            result=result,
-            compose=compose,
-            summary=summary,
-            log_url=log_url,
-            copr_build_id=copr_build_id,
-            copr_chroot=copr_chroot,
-            commit_sha=ref,
-            project_url=project_url,
-            created=created,
-            identifier=identifier,
+            result=data.result,
+            compose=data.compose,
+            summary=data.summary,
+            log_url=data.log_url,
+            copr_build_id=data.copr_build_id,
+            copr_chroot=data.copr_chroot,
+            commit_sha=data.ref,
+            project_url=data.project_url,
+            created=data.created,
+            identifier=data.identifier,
         )
 
     @staticmethod
