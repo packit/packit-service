@@ -103,6 +103,18 @@ def commit_comment():
         return json.load(outfile)
 
 
+@pytest.fixture()
+def github_push_to_pr():
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push_to_pr.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def github_push_to_existing_branch():
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push_to_existing_branch.json") as outfile:
+        return json.load(outfile)
+
+
 def test_parse_installation(github_installation):
     event_object = Parser.parse_event(github_installation)
 
@@ -847,3 +859,44 @@ def test_parse_commit_comment_release(commit_comment):
 
     assert event_object.packages_config
     assert event_object.db_project_event
+
+
+def test_parse_push_to_pr(github_push_to_pr):
+    event_object = Parser.parse_event(github_push_to_pr)
+
+    assert isinstance(event_object, pr.Action)
+    assert event_object.action == PullRequestAction.synchronize
+    assert event_object.pr_id == 4418
+    assert event_object.base_repo_namespace == "xiangce"
+    assert event_object.base_repo_name == "insights-core"
+    assert event_object.base_ref == "98c722169d72dfeacc7aee065cf807cad6b60352"
+    assert event_object.target_repo_namespace == "RedHatInsights"
+    assert event_object.target_repo_name == "insights-core"
+    assert event_object.project_url == "https://github.com/RedHatInsights/insights-core"
+
+    assert event_object.commit_sha_before == "9d6a16e4c196e25d869c5c6b5c5f7e8d2598c0db"
+    assert event_object.commit_sha == "98c722169d72dfeacc7aee065cf807cad6b60352"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "RedHatInsights/insights-core"
+    assert (
+        not event_object.base_project  # With Github app, we cannot work with fork repo
+    )
+
+
+def test_parse_push_to_existing_branch(github_push_to_existing_branch):
+    event_object = Parser.parse_event(github_push_to_existing_branch)
+
+    assert isinstance(event_object, push.Commit)
+    assert event_object.repo_namespace == "flightctl"
+    assert event_object.repo_name == "flightctl"
+
+    assert event_object.commit_sha == "1f65bfd479dddb9453466feeaf4ac9249a2ac9df"
+    assert event_object.commit_sha_before == "d89fce43657c5fc2de8f677a052c9dcca941872a"
+
+    assert event_object.project_url == "https://github.com/flightctl/flightctl"
+    assert event_object.git_ref == "EDM-1179"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "flightctl/flightctl"
+    assert not event_object.base_project

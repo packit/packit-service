@@ -292,6 +292,7 @@ class Parser:
         logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
 
         commit_sha = nested_get(event, "pull_request", "head", "sha")
+        commit_sha_before = event.get("before")
         https_url = event["repository"]["html_url"]
         return github.pr.Action(
             action=PullRequestAction[action],
@@ -303,6 +304,7 @@ class Parser:
             target_repo_name=target_repo_name,
             project_url=https_url,
             commit_sha=commit_sha,
+            commit_sha_before=commit_sha_before,
             actor=user_login,
         )
 
@@ -531,6 +533,7 @@ class Parser:
             git_ref=ref,
             project_url=repo_url,
             commit_sha=head_commit,
+            commit_sha_before=before,
         )
 
     @staticmethod
