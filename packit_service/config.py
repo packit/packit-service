@@ -366,7 +366,7 @@ class PackageConfigGetter:
                 f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
                 "or [contact the Packit team]"
                 f"({CONTACTS_URL}). You can also use "
-                f"our CLI command [`validate-config`]({DOCS_VALIDATE_CONFIG}) or our "
+                f"our CLI command [`config validate`]({DOCS_VALIDATE_CONFIG}) or our "
                 f"[pre-commit hooks]({DOCS_VALIDATE_HOOKS}) for validation of the configuration."
             )
 

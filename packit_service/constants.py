@@ -14,7 +14,7 @@ DOCS_HOW_TO_CONFIGURE_URL = f"{DOCS_URL}/guide/#3-configuration"
 DOCS_APPROVAL_URL = f"{DOCS_URL}/guide/#2-approval"
 DOCS_VM_IMAGE_BUILD = f"{DOCS_URL}/cli/build/in-image-builder/"
 DOCS_TESTING_FARM = f"{DOCS_URL}/configuration/upstream/tests"
-DOCS_VALIDATE_CONFIG = f"{DOCS_URL}/cli/validate-config"
+DOCS_VALIDATE_CONFIG = f"{DOCS_URL}/cli/config/validate"
 DOCS_VALIDATE_HOOKS = "https://packit.dev/posts/pre-commit-hooks#validate-config"
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
