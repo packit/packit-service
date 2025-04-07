@@ -81,6 +81,7 @@ from packit_service.worker.checker.distgit import (
     IsUpstreamTagMatchingConfig,
     LabelsOnDistgitPR,
     PermissionOnDistgit,
+    PermissionOnDistgitForFedoraCI,
     TaggedBuildIsNotABuildOfSelf,
     ValidInformationForPullFromUpstream,
 )
@@ -760,7 +761,9 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             return super().run()
 
 
+@run_for_comment(command="scratch-build")
 @reacts_to_as_fedora_ci(event=pagure.pr.Action)
+@reacts_to_as_fedora_ci(event=pagure.pr.Comment)
 class DownstreamKojiScratchBuildHandler(
     RetriableJobHandler, ConfigFromUrlMixin, LocalProjectMixin, PackitAPIWithDownstreamMixin
 ):
@@ -795,12 +798,21 @@ class DownstreamKojiScratchBuildHandler(
             self._ci_helper = FedoraCIHelper(
                 project=self.project,
                 metadata=self.data,
+                target_branch=self.dist_git_branch,
             )
         return self._ci_helper
 
     @property
     def dist_git_branch(self) -> str:
-        return self.data.event_dict.get("target_branch")
+        return (
+            self.project.get_pr(self.data.pr_id).target_branch
+            if self.data.event_type in (pagure.pr.Comment.event_type(),)
+            else self.data.event_dict.get("target_branch")
+        )
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (PermissionOnDistgitForFedoraCI,)
 
     @staticmethod
     def _repo_url_with_git_ref(
