@@ -21,29 +21,31 @@ from packit_service.models import PullRequestModel
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
+PATH_TO_GITLAB_WEBHOOKS = DATA_DIR / "webhooks" / "gitlab"
+
 
 @pytest.fixture()
 def merge_request():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "mr_event.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "mr_event.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def merge_request_update():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "mr_update_event.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "mr_update_event.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def merge_request_closed():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "mr_closed.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "mr_closed.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_push():
     with open(
-        DATA_DIR / "webhooks" / "gitlab" / "push_with_one_commit.json",
+        PATH_TO_GITLAB_WEBHOOKS / "push_with_one_commit.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -51,44 +53,44 @@ def gitlab_push():
 @pytest.fixture()
 def gitlab_push_many_commits():
     with open(
-        DATA_DIR / "webhooks" / "gitlab" / "push_with_many_commits.json",
+        PATH_TO_GITLAB_WEBHOOKS / "push_with_many_commits.json",
     ) as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_issue_comment():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "issue_comment.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "issue_comment.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_mr_comment():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "mr_comment.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "mr_comment.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_mr_pipeline():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "mr_pipeline.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "mr_pipeline.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_tag_push():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "tag_push.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "tag_push.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_release():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "release.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "release.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def gitlab_commit_comment():
-    with open(DATA_DIR / "webhooks" / "gitlab" / "commit_comment.json") as outfile:
+    with open(PATH_TO_GITLAB_WEBHOOKS / "commit_comment.json") as outfile:
         return json.load(outfile)
 
 
@@ -160,7 +162,7 @@ def test_parse_mr_action(merge_request_update):
     assert isinstance(event_object, mr.Action)
     assert event_object.action == enums.Action.update
     assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
-    assert event_object.oldrev == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
+    assert event_object.commit_sha_before == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
     assert event_object.identifier == "2"
 
     assert isinstance(event_object.project, GitlabProject)
@@ -291,6 +293,7 @@ def test_parse_gitlab_push(gitlab_push):
     assert event_object.repo_namespace == "testing/packit"
     assert event_object.repo_name == "hello-there"
     assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
+    assert event_object.commit_sha_before == "0e27f070efa4bef2a7c0168f07a0ac36ef90d8cb"
     assert event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
     assert event_object.git_ref == "test2"
 

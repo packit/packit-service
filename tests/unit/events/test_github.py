@@ -31,18 +31,19 @@ from packit_service.models import (
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
+PATH_TO_GITHUB_WEBHOOKS = DATA_DIR / "webhooks" / "github"
+
 
 @pytest.fixture()
 def github_installation():
-    file = "installation_created.json"
-    with open(DATA_DIR / "webhooks" / "github" / file) as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "installation_created.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def github_issue_comment_propose_downstream():
     with open(
-        DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json",
+        PATH_TO_GITHUB_WEBHOOKS / "issue_propose_downstream.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -50,32 +51,32 @@ def github_issue_comment_propose_downstream():
 @pytest.fixture()
 def github_issue_comment_no_handler():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json").read_text(),
+        (PATH_TO_GITHUB_WEBHOOKS / "issue_comment_no_handler.json").read_text(),
     )
 
 
 @pytest.fixture()
 def github_pr_comment_empty():
-    with open(DATA_DIR / "webhooks" / "github" / "pr_comment_empty.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "pr_comment_empty.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def github_push():
-    with open(DATA_DIR / "webhooks" / "github" / "push.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def github_push_branch():
-    with open(DATA_DIR / "webhooks" / "github" / "push_branch.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push_branch.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def check_rerun():
     with open(
-        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json",
+        PATH_TO_GITHUB_WEBHOOKS / "checkrun_rerequested.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -83,7 +84,7 @@ def check_rerun():
 @pytest.fixture()
 def check_rerun_with_identifier():
     with open(
-        DATA_DIR / "webhooks" / "github" / "checkrun_rerequested_with_identifier.json",
+        PATH_TO_GITHUB_WEBHOOKS / "checkrun_rerequested_with_identifier.json",
     ) as outfile:
         return json.load(outfile)
 
@@ -91,14 +92,26 @@ def check_rerun_with_identifier():
 @pytest.fixture()
 def github_pr_comment_created():
     with open(
-        DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json",
+        PATH_TO_GITHUB_WEBHOOKS / "pr_comment_copr_build.json",
     ) as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def commit_comment():
-    with open(DATA_DIR / "webhooks" / "github" / "commit_comment.json") as outfile:
+    with open(PATH_TO_GITHUB_WEBHOOKS / "commit_comment.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def github_push_to_pr():
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push_to_pr.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def github_push_to_existing_branch():
+    with open(PATH_TO_GITHUB_WEBHOOKS / "push_to_existing_branch.json") as outfile:
         return json.load(outfile)
 
 
@@ -846,3 +859,44 @@ def test_parse_commit_comment_release(commit_comment):
 
     assert event_object.packages_config
     assert event_object.db_project_event
+
+
+def test_parse_push_to_pr(github_push_to_pr):
+    event_object = Parser.parse_event(github_push_to_pr)
+
+    assert isinstance(event_object, pr.Action)
+    assert event_object.action == PullRequestAction.synchronize
+    assert event_object.pr_id == 4418
+    assert event_object.base_repo_namespace == "xiangce"
+    assert event_object.base_repo_name == "insights-core"
+    assert event_object.base_ref == "98c722169d72dfeacc7aee065cf807cad6b60352"
+    assert event_object.target_repo_namespace == "RedHatInsights"
+    assert event_object.target_repo_name == "insights-core"
+    assert event_object.project_url == "https://github.com/RedHatInsights/insights-core"
+
+    assert event_object.commit_sha_before == "9d6a16e4c196e25d869c5c6b5c5f7e8d2598c0db"
+    assert event_object.commit_sha == "98c722169d72dfeacc7aee065cf807cad6b60352"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "RedHatInsights/insights-core"
+    assert (
+        not event_object.base_project  # With Github app, we cannot work with fork repo
+    )
+
+
+def test_parse_push_to_existing_branch(github_push_to_existing_branch):
+    event_object = Parser.parse_event(github_push_to_existing_branch)
+
+    assert isinstance(event_object, push.Commit)
+    assert event_object.repo_namespace == "flightctl"
+    assert event_object.repo_name == "flightctl"
+
+    assert event_object.commit_sha == "1f65bfd479dddb9453466feeaf4ac9249a2ac9df"
+    assert event_object.commit_sha_before == "d89fce43657c5fc2de8f677a052c9dcca941872a"
+
+    assert event_object.project_url == "https://github.com/flightctl/flightctl"
+    assert event_object.git_ref == "EDM-1179"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "flightctl/flightctl"
+    assert not event_object.base_project

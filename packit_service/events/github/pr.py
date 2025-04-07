@@ -28,6 +28,7 @@ class Action(AddPullRequestEventToDb, GithubEvent):
         target_repo_name: str,
         project_url: str,
         commit_sha: str,
+        commit_sha_before: str,
         actor: str,
     ) -> None:
         super().__init__(project_url=project_url, pr_id=pr_id)
@@ -38,6 +39,7 @@ class Action(AddPullRequestEventToDb, GithubEvent):
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
         self.commit_sha = commit_sha
+        self.commit_sha_before = commit_sha_before
         self.actor = actor
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout

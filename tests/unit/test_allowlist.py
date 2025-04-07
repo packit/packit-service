@@ -495,6 +495,7 @@ def events(request) -> Iterable[tuple[github.abstract.GithubEvent, bool, Iterabl
                 "target_repo_name": repository,
                 "project_url": f"https://{forge}/{namespace}/{repository}",
                 "commit_sha": "",
+                "commit_sha_before": "",
                 "actor": "login",
                 "base_ref": "",
             },
@@ -820,6 +821,7 @@ def test_check_and_report_actor_pull_request(
         project_url="https://github.com/foo/bar",
         actor="bar",
         commit_sha="",
+        commit_sha_before="",
     )
     flexmock(
         GithubProject,
