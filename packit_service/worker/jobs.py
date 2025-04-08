@@ -229,16 +229,19 @@ class SteveJobs:
                 ).apply_async()
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
-        elif (
-            isinstance(self.event, (pagure.pr.Action, pagure.pr.Comment, koji.result.Task))
-            and self.event.db_project_object
-            and (url := self.event.db_project_object.project.project_url)
-            and url in self.service_config.enabled_projects_for_fedora_ci
-        ):
-            processing_results = self.process_fedora_ci_jobs()
         else:
-            # Processing the jobs from the config.
-            processing_results = self.process_jobs()
+            if (
+                isinstance(self.event, (pagure.pr.Action, pagure.pr.Comment, koji.result.Task))
+                and self.event.db_project_object
+                and (url := self.event.db_project_object.project.project_url)
+                and url in self.service_config.enabled_projects_for_fedora_ci
+            ):
+                # try to process Fedora CI jobs first
+                processing_results = self.process_fedora_ci_jobs()
+
+            if not processing_results:
+                # processing the jobs from the config
+                processing_results = self.process_jobs()
 
         if processing_results is None:
             processing_results = [
