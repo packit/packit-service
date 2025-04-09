@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType
@@ -225,3 +226,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             return None, None
 
         return get_koji_task_id_and_url_from_stdout(out)
+
+    # [TODO] Switch from ‹Any› to the correct type when implementing
+    def get_running_jobs(self) -> Iterable[Any]:
+        raise NotImplementedError("See https://github.com/packit/packit/issues/2535")

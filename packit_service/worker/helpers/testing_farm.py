@@ -4,6 +4,7 @@ import argparse
 import logging
 import re
 import shlex
+from collections.abc import Iterable
 from typing import Any, Callable, Optional, Union
 
 from ogr.abstract import GitProject
@@ -1218,6 +1219,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             update_feedback_time=update_feedback_time,
         )
 
+    def get_running_jobs(self) -> Iterable[str]:
+        raise NotImplementedError("TODO")
+
 
 FEDORA_CI_TESTS = {}
 
@@ -1512,3 +1516,6 @@ class DownstreamTestingFarmJobHelper:
                 "msg": f"Task will be retried because of failure when submitting tests: {message}",
             },
         )
+
+    def get_running_jobs(self) -> Iterable[str]:
+        raise NotImplementedError("TODO")
