@@ -4,6 +4,7 @@ import argparse
 import logging
 import re
 import shlex
+from collections.abc import Iterable
 from re import Pattern
 from typing import Any, Callable, Optional, Union
 
@@ -1019,7 +1020,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             additional_build=additional_build,
         )
 
-    def cancel_testing_farm_request(self, request_id: int):
+    def cancel_testing_farm_request(self, request_id: str):
         """
         Cancel a TF request with given ID.
 
@@ -1462,3 +1463,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             links_to_external_services=links_to_external_services,
             update_feedback_time=update_feedback_time,
         )
+
+    def get_running_jobs(self) -> Iterable[str]:
+        raise NotImplementedError("TODO")
