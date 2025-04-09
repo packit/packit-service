@@ -1,12 +1,15 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+
 import copy
 import datetime
 import logging
 import re
+from abc import abstractmethod
+from collections.abc import Iterable
 from io import StringIO
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
@@ -832,3 +835,17 @@ class BaseBuildJobHelper(BaseJobHelper):
             formatted_message,
             duplicate_check=DuplicateCheckMode.check_last_comment,
         )
+
+    @abstractmethod
+    def get_running_jobs(self) -> Iterable[Any]:
+        """Yields the jobs that are already running for the same event and would
+        have been triggered by this helper.
+
+        Type of the items of the iterable depends on the representation of the
+        external service:
+        - Copr - build ID as `int`
+        - Testing Farm - request ID as `string` (UUID)
+
+        Returns:
+            Iterable over the type that can be used to cancel the jobs.
+        """
