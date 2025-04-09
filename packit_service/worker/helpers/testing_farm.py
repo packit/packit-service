@@ -1019,7 +1019,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             additional_build=additional_build,
         )
 
-    def cancel_testing_farm_request(self, request_id: int):
+    def cancel_testing_farm_request(self, request_id: str):
         """
         Cancel a TF request with given ID.
 
