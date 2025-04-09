@@ -35,6 +35,7 @@ class EventData:
         git_ref: Optional[str],
         pr_id: Optional[int],
         commit_sha: Optional[str],
+        commit_sha_before: Optional[str],
         identifier: Optional[str],
         event_dict: Optional[dict],
         issue_id: Optional[int],
@@ -51,6 +52,7 @@ class EventData:
         self.git_ref = git_ref
         self.pr_id = pr_id
         self.commit_sha = commit_sha
+        self.commit_sha_before = commit_sha_before
         self.identifier = identifier
         self.event_dict = event_dict
         self.issue_id = issue_id
@@ -80,6 +82,7 @@ class EventData:
         # event has _pr_id as the attribute while pr_id is a getter property
         pr_id = event.get("_pr_id") or event.get("pr_id")
         commit_sha = event.get("commit_sha")
+        commit_sha_before = event.get("commit_sha_before")
         identifier = event.get("identifier")
         issue_id = event.get("issue_id")
 
@@ -107,6 +110,7 @@ class EventData:
             git_ref=git_ref,
             pr_id=pr_id,
             commit_sha=commit_sha,
+            commit_sha_before=commit_sha_before,
             identifier=identifier,
             event_dict=event,
             issue_id=issue_id,
