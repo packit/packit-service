@@ -30,6 +30,7 @@ from packit_service.events.testing_farm import (
 )
 from packit_service.models import (
     BuildStatus,
+    CoprBuildTargetModel,
     PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
@@ -1002,7 +1003,7 @@ def test_merge_payload_with_extra_params(payload, params, result):
     assert payload == result
 
 
-def test_merge_extra_params_with_install():
+def test_merge_extra_params():
     tf_settings = {"provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}}
 
     service_config = flexmock(
@@ -1055,6 +1056,63 @@ def test_merge_extra_params_with_install():
         == "sst_upgrades"
         and payload["environments"][0]["settings"]["provisioning"]["post_install_script"]
         == "#!/bin/sh\nsudo sed -i s/.*ssh-rsa/ssh-rsa/ /root/.ssh/authorized_keys"
+    )
+
+
+def test_merge_extra_params_with_install():
+    tf_settings = {"provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}}
+
+    service_config = flexmock(
+        testing_farm_secret="secret token",
+        deployment="prod",
+        comment_command_prefix="/packit-dev",
+    )
+    package_config = flexmock()
+    project = flexmock(full_repo_name="test/merge")
+    metadata = flexmock(
+        commit_sha="0000000",
+        pr_id=None,
+        tag_name=None,
+        event_dict={"comment": ""},
+    )
+    db_project_event = (
+        flexmock().should_receive("get_project_event_object").and_return(flexmock()).mock()
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").with_args(1234).and_return(
+        flexmock(
+            owner="packit",
+            project_name="packit",
+        )
+    )
+    job_config = flexmock(
+        fmf_url="https://github.com/fmf/",
+        fmf_ref="main",
+        fmf_path="/",
+        tmt_plan=None,
+        upstream_package_name="test",
+        upstream_project_url="https://github.com/test",
+        downstream_package_name="test",
+        downstream_project_url="https://src.fedoraproject.org/test",
+        use_internal_tf=False,
+        tf_extra_params={
+            "environments": [
+                {"tmt": {"context": {"distro": "rhel-7.9"}}, "settings": tf_settings},
+            ],
+        },
+    )
+    helper = TFJobHelper(
+        service_config,
+        package_config,
+        project,
+        metadata,
+        db_project_event,
+        job_config,
+    )
+
+    payload = helper._payload_install_test(1234, "rhel-7.9", "rhel-7.9")
+    assert (
+        payload["environments"][0]["settings"]["provisioning"]["tags"]["BusinessUnit"]
+        == "sst_upgrades"
     )
 
 

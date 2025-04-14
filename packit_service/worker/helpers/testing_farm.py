@@ -446,6 +446,26 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             for payload_el, params_el in zip(payload, params):
                 cls._merge_payload_with_extra_params(payload_el, params_el)
 
+    def _inject_extra_params(self, payload: dict) -> dict:
+        if not hasattr(self.job_config, "tf_extra_params"):
+            return payload
+
+        extra_params = self.job_config.tf_extra_params
+        # Merge only some subtrees, we do not want the user to override notification or api_key!
+        for subtree in TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES:
+            if subtree not in extra_params:
+                continue
+
+            if subtree not in payload:
+                payload[subtree] = extra_params[subtree]
+            else:
+                self._merge_payload_with_extra_params(
+                    payload[subtree],
+                    extra_params[subtree],
+                )
+
+        return payload
+
     @classmethod
     def _handle_extra_artifacts(cls, payload: Any, extra_params_artifacts: Any):
         """
@@ -599,23 +619,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
         }
 
-        if hasattr(self.job_config, "tf_extra_params"):
-            extra_params = self.job_config.tf_extra_params
-        else:
-            extra_params = {}
-        # Merge only some subtrees, we do not want the user to override notification or api_key!
-        for subtree in TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES:
-            if subtree not in extra_params:
-                continue
-            if subtree not in payload:
-                payload[subtree] = extra_params[subtree]
-            else:
-                self._merge_payload_with_extra_params(
-                    payload[subtree],
-                    extra_params[subtree],
-                )
-
-        return payload
+        return self._inject_extra_params(payload)
 
     def _payload_install_test(self, build_id: int, target: str, compose: str) -> dict:
         """
@@ -625,31 +629,33 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         copr_build = CoprBuildTargetModel.get_by_build_id(build_id)
         distro, arch = target.rsplit("-", 1)
-        return {
-            "api_key": self.service_config.testing_farm_secret,
-            "test": {
-                "tmt": {
-                    "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
-                    "ref": TESTING_FARM_INSTALLABILITY_TEST_REF,
-                    "name": "/packit/installation",
-                },
-            },
-            "environments": [
-                {
-                    "arch": arch,
-                    "os": {"compose": compose},
-                    "variables": {
-                        "REPOSITORY": f"{copr_build.owner}/{copr_build.project_name}",
+        return self._inject_extra_params(
+            {
+                "api_key": self.service_config.testing_farm_secret,
+                "test": {
+                    "tmt": {
+                        "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
+                        "ref": TESTING_FARM_INSTALLABILITY_TEST_REF,
+                        "name": "/packit/installation",
                     },
                 },
-            ],
-            "notification": {
-                "webhook": {
-                    "url": f"{self.api_url}/testing-farm/results",
-                    "token": self.service_config.testing_farm_secret,
+                "environments": [
+                    {
+                        "arch": arch,
+                        "os": {"compose": compose},
+                        "variables": {
+                            "REPOSITORY": f"{copr_build.owner}/{copr_build.project_name}",
+                        },
+                    },
+                ],
+                "notification": {
+                    "webhook": {
+                        "url": f"{self.api_url}/testing-farm/results",
+                        "token": self.service_config.testing_farm_secret,
+                    },
                 },
-            },
-        }
+            }
+        )
 
     def check_comment_pr_argument_and_report(self) -> bool:
         """
