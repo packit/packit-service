@@ -101,7 +101,12 @@ def test_testing_farm_response(
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                packages={"package": CommonPackageConfig()},
+                packages={
+                    "package": CommonPackageConfig(
+                        identifier=None,
+                        _targets=["fedora-rawhide"],
+                    ),
+                },
             ),
             JobConfig(
                 type=JobType.tests,
