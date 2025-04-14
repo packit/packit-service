@@ -47,6 +47,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import (
     MAP_CHECK_PREFIX_TO_HANDLER,
     MAP_COMMENT_TO_HANDLER,
+    MAP_COMMENT_TO_HANDLER_FEDORA_CI,
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
@@ -103,6 +104,37 @@ def get_handlers_for_comment(
         return set()
 
     handlers = MAP_COMMENT_TO_HANDLER[commands[0]]
+    if not handlers:
+        logger.debug(f"Command {commands[0]} not supported by packit.")
+    return handlers
+
+
+def get_handlers_for_comment_fedora_ci(
+    comment: str,
+    packit_comment_command_prefix: str,
+) -> set[type[JobHandler]]:
+    """
+    Get handlers for the given Fedora CI command respecting packit_comment_command_prefix.
+
+    Args:
+        comment: comment we are reacting to
+        packit_comment_command_prefix: `/packit-ci` for prod or `/packit-ci-stg` for stg
+
+    Returns:
+        Set of handlers that are triggered by a comment.
+    """
+    # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
+    # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
+    if packit_comment_command_prefix.endswith("-stg"):
+        packit_comment_command_prefix = "/packit-ci-stg"
+    else:
+        packit_comment_command_prefix = "/packit-ci"
+
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
+    if not commands:
+        return set()
+
+    handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[commands[0]]
     if not handlers:
         logger.debug(f"Command {commands[0]} not supported by packit.")
     return handlers
@@ -462,10 +494,19 @@ class SteveJobs:
         Returns:
             A list of task results for each task created.
         """
+        handlers_triggered_by_job = None
+
+        if isinstance(self.event, abstract.comment.CommentEvent):
+            handlers_triggered_by_job = get_handlers_for_comment_fedora_ci(
+                self.event.comment,
+                self.service_config.comment_command_prefix,
+            )
+
         matching_handlers = {
             handler
             for handler, supported_events in SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI.items()
             if isinstance(self.event, tuple(supported_events))
+            and (handlers_triggered_by_job is None or handler in handlers_triggered_by_job)
         }
 
         if not matching_handlers:

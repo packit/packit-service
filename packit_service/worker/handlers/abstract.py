@@ -51,6 +51,7 @@ SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI: dict[type["JobHandler"], set[type["Event
     set
 )
 MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
+MAP_COMMENT_TO_HANDLER_FEDORA_CI: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
 
@@ -157,6 +158,33 @@ def run_for_comment(command: str):
 
     def _add_to_mapping(kls: type["JobHandler"]):
         MAP_COMMENT_TO_HANDLER[command].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def run_for_comment_as_fedora_ci(command: str):
+    """
+    [class decorator]
+    Specify a command for which we want to run a handler as a Fedora CI.
+    e.g. for `/packit-ci command` we need to add `command`
+
+    Multiple decorators are allowed.
+
+    Don't forget to specify valid comment events
+    using @reacts_to_as_fedora_ci decorator.
+
+    Example:
+    ```
+    @run_for_comment(command="scratch-build")
+    @reacts_to_as_fedora_ci(event=pagure.pr.Action)
+    @reacts_to_as_fedora_ci(event=pagure.pr.Comment)
+    class DownstreamKojiScratchBuildHandler(
+    ```
+    """
+
+    def _add_to_mapping(kls: type["JobHandler"]):
+        MAP_COMMENT_TO_HANDLER_FEDORA_CI[command].add(kls)
         return kls
 
     return _add_to_mapping

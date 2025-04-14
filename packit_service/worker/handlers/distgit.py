@@ -94,6 +94,7 @@ from packit_service.worker.handlers.abstract import (
     reacts_to_as_fedora_ci,
     run_for_check_rerun,
     run_for_comment,
+    run_for_comment_as_fedora_ci,
 )
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
@@ -761,7 +762,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             return super().run()
 
 
-@run_for_comment(command="scratch-build")
+@run_for_comment_as_fedora_ci(command="scratch-build")
 @reacts_to_as_fedora_ci(event=pagure.pr.Action)
 @reacts_to_as_fedora_ci(event=pagure.pr.Comment)
 class DownstreamKojiScratchBuildHandler(

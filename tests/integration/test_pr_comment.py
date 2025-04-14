@@ -2460,7 +2460,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
 def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
     pagure_pr_comment_added, target_branch, uid, check_name
 ):
-    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit scratch-build"
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit-ci scratch-build"
     pagure_pr_comment_added["pullrequest"]["branch"] = target_branch
     pr_object = (
         flexmock(target_branch=target_branch)
@@ -2516,9 +2516,6 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         .and_return(dg_project)
         .mock()
     )
-    flexmock(pagure.pr.Comment).should_receive(
-        "get_base_project",
-    ).once().and_return(dg_project)
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
         True,
