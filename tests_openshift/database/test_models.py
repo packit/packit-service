@@ -1173,3 +1173,53 @@ def test_create_koji_tag_request(clean_before_and_after, a_koji_tag_request):
     assert a_koji_tag_request.sidetag == SampleValues.sidetag
     assert a_koji_tag_request.nvr == SampleValues.nvr
     assert a_koji_tag_request.get_project().project_url == SampleValues.project_url
+
+
+def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = CoprBuildGroupModel.create(run_model=run_model)
+
+    for build_id, target, status in (
+        ("1", "fedora-rawhide-x86_64", BuildStatus.pending),
+        ("2", "fedora-42-aarch64", BuildStatus.waiting_for_srpm),
+        ("3", "opensuse-tumbleweed-x86_64", BuildStatus.success),
+    ):
+        CoprBuildTargetModel.create(
+            build_id=build_id,
+            project_name="something",
+            owner="hello",
+            web_url=None,
+            target=target,
+            status=status,
+            copr_build_group=group,
+        )
+
+    running = list(CoprBuildGroupModel.get_running(commit_sha=SampleValues.commit_sha))
+    assert running, "There are some running builds present"
+    assert len(running) == 2, "There are exactly 2 builds running"
+    assert set(running) == {1, 2}, "Exactly ‹1› and ‹2› are in the running state"
+
+
+def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = TFTTestRunGroupModel.create(run_models=[run_model])
+
+    for pipeline_id, target, status in (
+        ("deadbeef", "fedora-rawhide-x86_64", TestingFarmResult.new),
+        ("cafe", "fedora-42-aarch64", TestingFarmResult.queued),
+        ("42", "opensuse-tumbleweed-x86_64", TestingFarmResult.running),
+        ("4269", "opensuse-leap-42.2-x86_64", TestingFarmResult.complete),
+    ):
+        TFTTestRunTargetModel.create(
+            pipeline_id=pipeline_id,
+            status=status,
+            target=target,
+            test_run_group=group,
+        )
+
+    running = list(TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha))
+    assert running, "There are some runningtests present"
+    assert len(running) == 3, "There are exactly 3 tests running"
+    assert set(running) == {"deadbeef", "cafe", "42"}, (
+        "Test runs created by the test are in the running state"
+    )
