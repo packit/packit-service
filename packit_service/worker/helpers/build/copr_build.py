@@ -1019,4 +1019,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     # [NOTE] Needs to return a union, because TF helper inherits from this and
     # it clashes the type checking…
     def get_running_jobs(self) -> Union[Iterable[int], Iterable[str]]:
-        raise NotImplementedError("TODO")
+        if sha := self.metadata.commit_sha_before:
+            yield from CoprBuildGroupModel.get_running(commit_sha=sha)
+
+        # [SAFETY] When there's no previous commit hash, yields nothing

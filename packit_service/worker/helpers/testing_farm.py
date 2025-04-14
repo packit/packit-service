@@ -32,6 +32,7 @@ from packit_service.models import (
     ProjectEventModel,
     PullRequestModel,
     TestingFarmResult,
+    TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     filter_most_recent_target_models_by_status,
 )
@@ -1220,7 +1221,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def get_running_jobs(self) -> Iterable[str]:
-        raise NotImplementedError("TODO")
+        if sha := self.metadata.commit_sha_before:
+            yield from TFTTestRunGroupModel.get_running(commit_sha=sha)
+
+        # [SAFETY] When there's no previous commit hash, yields nothing
 
 
 FEDORA_CI_TESTS = {}
@@ -1518,4 +1522,5 @@ class DownstreamTestingFarmJobHelper:
         )
 
     def get_running_jobs(self) -> Iterable[str]:
-        raise NotImplementedError("TODO")
+        # [TODO] Do not cancel TF runs on the downstream yet, to be decided later on
+        pass
