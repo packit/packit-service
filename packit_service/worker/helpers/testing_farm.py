@@ -646,6 +646,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                         "variables": {
                             "REPOSITORY": f"{copr_build.owner}/{copr_build.project_name}",
                         },
+                        "tmt": {
+                            "context": {
+                                "distro": distro,
+                                "arch": arch,
+                                "trigger": "commit",
+                                "initiator": "packit",
+                            },
+                        },
                     },
                 ],
                 "notification": {
