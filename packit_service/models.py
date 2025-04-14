@@ -95,7 +95,7 @@ if is_multi_threaded():
     # fails to rollback you have to restart the workers so that they pick another session.
     singleton_session = Session()
     logger.debug("Going to use a single SQLAlchemy session.")
-else:  # service/httpd
+else:  # http service
     Session = scoped_session(Session)
     singleton_session = None
 
