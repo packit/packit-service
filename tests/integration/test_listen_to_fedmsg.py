@@ -52,7 +52,7 @@ from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmClient, TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -718,12 +718,13 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide-x86_64",
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+        object,
     ).and_return("Fedora-Rawhide")
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
@@ -2013,10 +2014,11 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         [copr_build_pr.group_of_targets.runs[-1]],
     ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide-x86_64",
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+        object,
     ).and_return("Fedora-Rawhide")
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).and_return(
         RequestResponse(
@@ -2203,10 +2205,11 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide-x86_64",
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+        object,
     ).and_return("Fedora-Rawhide")
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).and_return(
         RequestResponse(
@@ -2573,6 +2576,7 @@ def test_koji_build_end_downstream(
 ):
     service_config = (
         flexmock(
+            testing_farm_api_url="API URL",
             enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/packit",
             koji_logs_url="",
             koji_web_url="",

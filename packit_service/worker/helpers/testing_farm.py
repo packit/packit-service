@@ -4,23 +4,18 @@ import argparse
 import logging
 import re
 import shlex
-from re import Pattern
 from typing import Any, Callable, Optional, Union
 
-import requests
 from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
-from packit.constants import HTTP_REQUEST_TIMEOUT
-from packit.exceptions import PackitConfigException, PackitException
+from packit.exceptions import PackitConfigException
 from packit.utils import nested_get
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     CONTACTS_URL,
-    INTERNAL_TF_ARCHITECTURE_LIST,
-    PUBLIC_TF_ARCHITECTURE_LIST,
     TESTING_FARM_ARTIFACTS_KEY,
     TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES,
     TESTING_FARM_INSTALLABILITY_TEST_REF,
@@ -42,6 +37,7 @@ from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build import CoprBuildJobHelper
+from packit_service.worker.helpers.testing_farm_client import TestingFarmClient
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
@@ -167,41 +163,31 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             tests_targets_override=tests_targets_override,
         )
         self.celery_task = celery_task
-        self.session = requests.session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=5)
-        self.insecure = False
-        self.session.mount("https://", adapter)
-        self._tft_api_url: str = ""
-        self._tft_token: str = ""
-        self.__pr = None
+        self._tft_client: Optional[TestingFarmClient] = None
         self._copr_builds_from_other_pr: Optional[dict[str, CoprBuildTargetModel]] = None
         self._test_check_names: Optional[list[str]] = None
         self._comment_arguments: Optional[CommentArguments] = None
 
     @property
-    def tft_api_url(self) -> str:
-        if not self._tft_api_url:
-            self._tft_api_url = self.service_config.testing_farm_api_url
-            if not self._tft_api_url.endswith("/"):
-                self._tft_api_url += "/"
-        return self._tft_api_url
-
-    @property
-    def tft_token(self) -> str:
-        if not self._tft_token:
-            # We have two tokens (=TF users), one for upstream and one for internal instance.
-            # The URL is same and the instance choice is based on the TF user (=token)
-            # we use in the payload.
-            # To use internal instance,
-            # project needs to be added to the `enabled_projects_for_internal_tf` list
-            # in the service config.
-            # This is checked in the run_testing_farm method.
-            self._tft_token = (
-                self.service_config.internal_testing_farm_secret
-                if self.job_config.use_internal_tf
-                else self.service_config.testing_farm_secret
+    def tft_client(self) -> TestingFarmClient:
+        if not self._tft_client:
+            self._tft_client = TestingFarmClient(
+                api_url=self.service_config.testing_farm_api_url,
+                # We have two tokens (=TF users), one for upstream and one for internal instance.
+                # The URL is same and the instance choice is based on the TF user (=token)
+                # we use in the payload.
+                # To use internal instance,
+                # project needs to be added to the `enabled_projects_for_internal_tf` list
+                # in the service config.
+                # This is checked in the run_testing_farm method.
+                token=(
+                    self.service_config.internal_testing_farm_secret
+                    if self.job_config.use_internal_tf
+                    else self.service_config.testing_farm_secret
+                ),
+                use_internal_tf=self.job_config.use_internal_tf,
             )
-        return self._tft_token
+        return self._tft_client
 
     @property
     def skip_build(self) -> bool:
@@ -360,23 +346,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self._copr_builds_from_other_pr = self.get_copr_builds_from_other_pr()
         return self._copr_builds_from_other_pr
 
-    @property
-    def available_composes(self) -> Optional[set[str]]:
-        """
-        Fetches available composes from the Testing Farm endpoint.
-
-        Returns:
-            Set of all available composes or `None` if error occurs.
-        """
-        endpoint = f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
-
-        response = self.send_testing_farm_request(endpoint=endpoint)
-        if response.status_code != 200:
-            return None
-
-        # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
-        return {c["name"] for c in response.json()["composes"]}
-
     @staticmethod
     def _artifact(
         chroot: str,
@@ -392,14 +361,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             artifact["packages"] = get_package_nvrs(built_packages)
 
         return artifact
-
-    @staticmethod
-    def _payload_without_token(payload: dict) -> dict:
-        """Return a copy of the payload with token/api_key removed."""
-        payload_ = payload.copy()
-        payload_.pop("api_key")
-        payload_["notification"]["webhook"].pop("token")
-        return payload_
 
     def _construct_test_payload(self) -> dict:
         tmt = {
@@ -602,7 +563,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             }
 
         payload = {
-            "api_key": self.tft_token,
+            "api_key": self.tft_client.tft_token,
             "test": {
                 "tmt": tmt,
             },
@@ -614,7 +575,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     # See TestingFarmResults.validate_testing_farm_request
                     # in packit_service/service/api/testing_farm.py
                     # for more details.
-                    "token": self.tft_token,
+                    "token": self.tft_client.tft_token,
                 },
             },
         }
@@ -697,143 +658,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return True
         except FileNotFoundError:
             return False
-
-    @staticmethod
-    def is_compose_matching(compose_to_check: str, composes: set[Pattern]) -> bool:
-        """
-        Check whether the compose matches any compose in the list of re-compiled
-        composes.
-        """
-        return any(compose.fullmatch(compose_to_check) for compose in composes)
-
-    def distro2compose(self, target: str) -> Optional[str]:
-        """
-        Create a compose string from distro, e.g. fedora-33 -> Fedora-33
-        https://api.dev.testing-farm.io/v0.1/composes
-
-        The internal TF has a different set and behaves differently:
-        * Fedora-3x -> Fedora-3x-Updated
-        * CentOS-x ->  CentOS-x-latest
-
-        Returns:
-            compose if we were able to map the distro to compose present
-            in the list of available composes, otherwise None
-        """
-        composes = self.available_composes
-        if composes is None:
-            msg = "We were not able to get the available TF composes."
-            logger.error(msg)
-            self.report_status_to_tests_for_test_target(
-                state=BaseCommitStatus.error,
-                description=msg,
-                target=target,
-            )
-            return None
-
-        compiled_composes = {re.compile(compose) for compose in composes}
-        distro, arch = target.rsplit("-", 1)
-
-        # if the user precisely specified the compose via target
-        # we should just use it instead of continuing below with our logic
-        # some of those changes can change the target and result in a failure
-        if self.is_compose_matching(distro, compiled_composes):
-            logger.debug(
-                f"Distro {distro} directly matches a compose in the compose list.",
-            )
-            return distro
-
-        compose = (
-            distro.title()
-            .replace("Centos", "CentOS")
-            .replace("Rhel", "RHEL")
-            .replace("Oraclelinux", "Oracle-Linux")
-            .replace("Latest", "latest")
-        )
-        if compose == "CentOS-Stream":
-            compose = "CentOS-Stream-8"
-
-        if self.job_config.use_internal_tf:
-            if self.is_compose_matching(compose, compiled_composes):
-                return compose
-
-            if compose == "Fedora-Rawhide":
-                compose = "Fedora-Rawhide-Nightly"
-            elif compose.startswith("Fedora-"):
-                compose = f"{compose}-Updated"
-            elif compose.startswith("CentOS") and len(compose) == len("CentOS-7"):
-                # Attach latest suffix only to major versions:
-                # CentOS-7 -> CentOS-7-latest
-                # CentOS-8 -> CentOS-8-latest
-                # CentOS-8.4 -> CentOS-8.4
-                # CentOS-8-latest -> CentOS-8-latest
-                # CentOS-Stream-8 -> CentOS-Stream-8
-                compose = f"{compose}-latest"
-            elif compose == "RHEL-6":
-                compose = "RHEL-6-LatestReleased"
-            elif compose == "RHEL-7":
-                compose = "RHEL-7-LatestReleased"
-            elif compose == "RHEL-8":
-                compose = "RHEL-8.5.0-Nightly"
-            elif compose == "Oracle-Linux-7":
-                compose = "Oracle-Linux-7.9"
-            elif compose == "Oracle-Linux-8":
-                compose = "Oracle-Linux-8.6"
-
-        if not self.is_compose_matching(compose, compiled_composes):
-            msg = (
-                f"The compose {compose} (from target {distro}) does not match any compose"
-                f" in the list of available composes:\n{composes}. "
-            )
-            logger.debug(msg)
-            msg += (
-                "Please, check the targets defined in your test job configuration. If you think"
-                f" your configuration is correct, get in touch with [us]({CONTACTS_URL})."
-            )
-            description = (
-                f"The compose {compose} is not available in the "
-                f"{'internal' if self.job_config.use_internal_tf else 'public'} "
-                f"Testing Farm infrastructure."
-            )
-            self.report_status_to_tests_for_test_target(
-                state=BaseCommitStatus.error,
-                description=description,
-                target=target,
-                markdown_content=msg,
-            )
-            return None
-
-        return compose
-
-    def _is_supported_architecture(self, target: str):
-        distro, arch = target.rsplit("-", 1)
-        supported_architectures = (
-            INTERNAL_TF_ARCHITECTURE_LIST
-            if self.job_config.use_internal_tf
-            else PUBLIC_TF_ARCHITECTURE_LIST
-        )
-        if arch not in supported_architectures:
-            msg = (
-                f"The architecture {arch} is not in the list of "
-                f"available architectures:\n{supported_architectures}. "
-            )
-            logger.debug(msg)
-            msg += (
-                "Please, check the targets defined in your test job configuration. If you think"
-                f" your configuration is correct, get in touch with [us]({CONTACTS_URL})."
-            )
-            description = (
-                f"The architecture {arch} is not available in the "
-                f"{'internal' if self.job_config.use_internal_tf else 'public'} "
-                f"Testing Farm infrastructure."
-            )
-            self.report_status_to_tests_for_test_target(
-                state=BaseCommitStatus.error,
-                description=description,
-                target=target,
-                markdown_content=msg,
-            )
-            return False
-        return True
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_tests_for_chroot(
@@ -979,11 +803,23 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         logger.info("Preparing testing farm request...")
 
-        if not self._is_supported_architecture(test_run.target):
+        distro, arch = test_run.target.rsplit("-", 1)
+
+        def report_error(description, markdown_content):
+            kwargs = {
+                "state": BaseCommitStatus.error,
+                "target": test_run.target,
+                "description": description,
+            }
+            if markdown_content:
+                kwargs["markdown_content"] = markdown_content
+            self.report_status_to_tests_for_test_target(**kwargs)
+
+        if not self.tft_client.is_supported_architecture(arch, report_error):
             msg = "Not supported architecture."
             return TaskResults(success=True, details={"msg": msg})
 
-        compose = self.distro2compose(test_run.target)
+        compose = self.tft_client.distro2compose(distro, report_error)
 
         if not compose:
             msg = "We were not able to map distro to TF compose."
@@ -1014,7 +850,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         endpoint = "requests"
 
-        response = self.send_testing_farm_request(
+        response = self.tft_client.send_testing_farm_request(
             endpoint=endpoint,
             method="POST",
             data=payload,
@@ -1032,104 +868,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             response=response,
             additional_build=additional_build,
         )
-
-    def cancel_testing_farm_request(self, request_id: int):
-        """
-        Cancel a TF request with given ID.
-
-        Args:
-            request_id: ID of the TF request
-
-        Returns:
-            Whether the cancelling was successful.
-        """
-        logger.info(f"Cancelling TF request with ID {request_id} ")
-        response = self.send_testing_farm_request(
-            endpoint=f"requests/{request_id}",
-            method="DELETE",
-        )
-        if response.status_code != 200:
-            msg = f"Failed to cancel TF request {request_id}: {response.json()}"
-            logger.error(msg)
-            return False
-
-        return True
-
-    def send_testing_farm_request(
-        self,
-        endpoint: str,
-        method: Optional[str] = None,
-        params: Optional[dict] = None,
-        data=None,
-    ) -> RequestResponse:
-        method = method or "GET"
-        url = f"{self.tft_api_url}{endpoint}"
-        try:
-            response = self.get_raw_request(
-                method=method,
-                url=url,
-                params=params,
-                data=data,
-            )
-        except requests.exceptions.ConnectionError as er:
-            logger.error(er)
-            raise PackitException(f"Cannot connect to url: `{url}`") from er
-        return response
-
-    def get_raw_request(
-        self,
-        url,
-        method="GET",
-        params=None,
-        data=None,
-    ) -> RequestResponse:
-        response = self.session.request(
-            method=method,
-            url=url,
-            params=params,
-            json=data,
-            verify=not self.insecure,
-            timeout=HTTP_REQUEST_TIMEOUT,
-        )
-
-        try:
-            json_output = response.json()
-        except ValueError:
-            logger.debug(response.text)
-            json_output = None
-
-        return RequestResponse(
-            status_code=response.status_code,
-            ok=response.ok,
-            content=response.content,
-            json=json_output,
-            reason=response.reason,
-        )
-
-    @classmethod
-    def get_request_details(cls, request_id: str) -> dict[str, Any]:
-        """Testing Farm sends only request/pipeline id in a notification.
-        We need to get more details ourselves."""
-        self = cls(
-            service_config=ServiceConfig.get_service_config(),
-            package_config=None,
-            project=None,
-            metadata=None,
-            db_project_event=None,
-            job_config=None,
-        )
-
-        response = self.send_testing_farm_request(
-            endpoint=f"requests/{request_id}",
-            method="GET",
-        )
-        if response.status_code != 200:
-            msg = f"Failed to get request/pipeline {request_id} details from TF. {response.reason}"
-            logger.error(msg)
-            return {}
-
-        return response.json()
-        # logger.debug(f"Request/pipeline {request_id} details: {details}")
 
     def _handle_tf_submit_successful(
         self,
@@ -1185,7 +923,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 return self._retry_on_submit_failure(test_run, response.reason)
 
         test_run.set_status(TestingFarmResult.error)
-        logger.error(f"{msg}, {self._payload_without_token(payload)}")
+        logger.error(f"{msg}, {self.tft_client.payload_without_token(payload)}")
         self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.failure,
             description=f"Failed to submit tests: {msg}.",

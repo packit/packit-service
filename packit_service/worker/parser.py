@@ -49,7 +49,7 @@ from packit_service.models import (
 )
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmClient
 
 logger = logging.getLogger(__name__)
 
@@ -1351,7 +1351,7 @@ class Parser:
         # It'd be much better to do this in TestingFarmResultsHandler.run(),
         # but all the code along the way to get there expects we already know the details.
         # TODO: Get missing info from db instead of querying TF
-        event = TestingFarmJobHelper.get_request_details(request_id)
+        event = TestingFarmClient.get_request_details(request_id)
         if not event:
             # Something's wrong with TF, raise exception so that we can re-try later.
             raise Exception(f"Failed to get {request_id} details from TF.")

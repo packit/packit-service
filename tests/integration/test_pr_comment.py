@@ -83,7 +83,7 @@ from packit_service.worker.handlers.distgit import (
 )
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmClient, TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.monitoring import Pushgateway
@@ -974,11 +974,11 @@ def test_pr_test_command_handler_retries(
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+    flexmock(TestingFarmClient).should_receive("distro2compose").and_return(
         "Fedora-Rawhide",
     )
 
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(response)
 
@@ -1181,12 +1181,12 @@ def test_pr_test_command_handler_skip_build_option(
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+    flexmock(TestingFarmClient).should_receive("distro2compose").and_return(
         "Fedora-Rawhide",
     )
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
@@ -1354,7 +1354,7 @@ def test_pr_test_command_handler_compose_not_present(
         status_code=200,
         json=lambda: {"composes": [{"name": "some-other-compose"}]},
     )
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="composes/public").and_return(response).once()
 
@@ -1477,7 +1477,7 @@ def test_pr_test_command_handler_composes_not_available(
         update_feedback_time=object,
     ).once()
 
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="composes/public").and_return(flexmock(status_code=500)).once()
 
@@ -2160,12 +2160,12 @@ def test_pr_test_command_handler_multiple_builds(
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+    flexmock(TestingFarmClient).should_receive("distro2compose").and_return(
         "Fedora-Rawhide",
     )
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
