@@ -138,3 +138,14 @@ class CanActorRunTestsJob(
                 )
                 return False
         return True
+
+
+class AreFilesChanged(Checker):
+    """
+    Check if any files under the current package's `paths` field is changed.
+    If not, then just skip the current copr build job.
+    """
+
+    def pre_check(self) -> bool:
+        # TODO: Implement the logic to check if relevant files are changed
+        return True
