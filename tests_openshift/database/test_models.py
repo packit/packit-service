@@ -1219,7 +1219,5 @@ def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with
 
     running = list(TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha))
     assert running, "There are some runningtests present"
-    assert len(running) == 3, "There are exactly 3 tests running"
-    assert set(running) == {"deadbeef", "cafe", "42"}, (
-        "Test runs created by the test are in the running state"
-    )
+    assert len(running) == 2, "There are exactly 2 tests running"
+    assert set(running) == {"cafe", "42"}, "Test runs created by the test are in the running state"

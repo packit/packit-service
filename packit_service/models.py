@@ -3419,7 +3419,6 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 ProjectEventModel.commit_sha == commit_sha,
                 TFTTestRunTargetModel.status.in_(
                     (
-                        TestingFarmResult.new,
                         TestingFarmResult.queued,
                         TestingFarmResult.running,
                     )
