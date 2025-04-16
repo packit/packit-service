@@ -3287,6 +3287,16 @@ tf_copr_association_table = Table(
 )
 
 
+tf_koji_association_table = Table(
+    "tf_koji_build_association_table",
+    # TODO: sqlalchemy-stubs should now support declarative_base but there are too many
+    #       typing fixes necessary to do it now
+    Base.metadata,  # type: ignore
+    Column("koji_id", ForeignKey("koji_build_targets.id"), primary_key=True),
+    Column("tft_id", ForeignKey("tft_test_run_targets.id"), primary_key=True),
+)
+
+
 class TestingFarmResult(str, enum.Enum):
     __test__ = False
 
@@ -3378,6 +3388,11 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         secondary=tf_copr_association_table,
         backref="tft_test_run_targets",
     )
+    koji_builds = relationship(
+        "KojiBuildTargetModel",
+        secondary=tf_koji_association_table,
+        backref="tft_test_run_targets",
+    )
     group_of_targets = relationship(
         "TFTTestRunGroupModel",
         back_populates="tft_test_run_targets",
@@ -3408,6 +3423,11 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
             self.copr_builds.append(build)
             session.add(self)
 
+    def add_koji_build(self, build: "KojiBuildTargetModel"):
+        with sa_session_transaction(commit=True) as session:
+            self.koji_builds.append(build)
+            session.add(self)
+
     @classmethod
     def create(
         cls,
@@ -3419,6 +3439,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         data: Optional[dict] = None,
         identifier: Optional[str] = None,
         copr_build_targets: Optional[list[CoprBuildTargetModel]] = None,
+        koji_build_targets: Optional[list[KojiBuildTargetModel]] = None,
     ) -> "TFTTestRunTargetModel":
         with sa_session_transaction(commit=True) as session:
             test_run = cls()
@@ -3430,6 +3451,8 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
             test_run.data = data
             if copr_build_targets:
                 test_run.copr_builds.extend(copr_build_targets)
+            if koji_build_targets:
+                test_run.koji_builds.extend(koji_build_targets)
             session.add(test_run)
             test_run_group.tft_test_run_targets.append(test_run)
             session.add(test_run_group)
