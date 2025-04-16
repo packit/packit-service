@@ -4,6 +4,7 @@ import argparse
 import logging
 import re
 import shlex
+from collections.abc import Iterable
 from re import Pattern
 from typing import Any, Callable, Optional, Union
 
@@ -34,6 +35,7 @@ from packit_service.models import (
     ProjectEventModel,
     PullRequestModel,
     TestingFarmResult,
+    TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     filter_most_recent_target_models_by_status,
 )
@@ -1033,7 +1035,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             additional_build=additional_build,
         )
 
-    def cancel_testing_farm_request(self, request_id: int):
+    def cancel_testing_farm_request(self, request_id: str):
         """
         Cancel a TF request with given ID.
 
@@ -1476,3 +1478,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             links_to_external_services=links_to_external_services,
             update_feedback_time=update_feedback_time,
         )
+
+    def get_running_jobs(self) -> Iterable[str]:
+        if sha := self.metadata.commit_sha_before:
+            yield from TFTTestRunGroupModel.get_running(commit_sha=sha)
+
+        # [SAFETY] When there's no previous commit hash, yields nothing

@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Union
 
 from copr.v3 import CoprAuthException, CoprRequestException
 from copr.v3.exceptions import CoprTimeoutException
@@ -1015,3 +1015,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         owner, project = self.job_owner, self.job_project
         return self.api.copr_helper.get_chroots(owner=owner, project=project)
+
+    # [NOTE] Needs to return a union, because TF helper inherits from this and
+    # it clashes the type checking…
+    def get_running_jobs(self) -> Union[Iterable[int], Iterable[str]]:
+        if sha := self.metadata.commit_sha_before:
+            yield from CoprBuildGroupModel.get_running(commit_sha=sha)
+
+        # [SAFETY] When there's no previous commit hash, yields nothing
