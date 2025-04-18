@@ -36,6 +36,7 @@ from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
     ProjectEventModel,
+    ProjectEventModelType,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -65,6 +66,7 @@ from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
+from packit_service.worker.helpers.open_scan_hub import KojiOpenScanHubHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
@@ -293,7 +295,7 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
 
 
 @reacts_to_as_fedora_ci(event=koji.result.Task)
-class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
+class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, GetKojiBuildJobHelperMixin):
     task_name = TaskName.downstream_koji_scratch_build_report
     _helper: Optional[FedoraCIHelper] = None
 
@@ -313,6 +315,23 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
             description=description,
             url=url,
         )
+
+        if (
+            not KojiOpenScanHubHelper.osh_disabled()
+            and self.db_project_event.type == ProjectEventModelType.pull_request
+            and self.build.target == "fedora-rawhide-x86_64"
+        ):
+            try:
+                KojiOpenScanHubHelper(
+                    koji_build_helper=self.koji_build_helper,
+                    build=self.build,
+                ).handle_scan()
+            except Exception as ex:
+                # sentry_integration.send_to_sentry(ex)
+                logger.debug(
+                    f"Handling the scan raised an exception: {ex}. Skipping "
+                    f"as this is only experimental functionality for now.",
+                )
 
     def notify_about_failure_if_configured(
         self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str

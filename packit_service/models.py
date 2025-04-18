@@ -2666,6 +2666,8 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         back_populates="koji_build_targets",
     )
 
+    scan = relationship("OSHScanModel", back_populates="koji_build_target")
+
     def set_status(self, status: str):
         with sa_session_transaction(commit=True) as session:
             self.status = status
@@ -4253,6 +4255,17 @@ class OSHScanModel(Base):
     )
     copr_build_target = relationship(
         "CoprBuildTargetModel",
+        back_populates="scan",
+        uselist=False,
+    )
+
+    koji_build_target_id = Column(
+        Integer,
+        ForeignKey("koji_build_targets.id"),
+        unique=True,
+    )
+    koji_build_target = relationship(
+        "KojiBuildTargetModel",
         back_populates="scan",
         uselist=False,
     )
