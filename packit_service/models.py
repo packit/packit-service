@@ -54,6 +54,8 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
+from pydantic import BaseModel
+from http import HTTPStatus
 
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
@@ -4648,3 +4650,7 @@ def get_onboarded_projects() -> tuple[dict[int, str], dict[int, str]]:
         for project in recheck_if_onboarded.difference(onboarded_projects)
     }
     return (onboarded, almost_onboarded)
+
+class BodhiUpdatesListResponse(BaseModel):
+    result: List
+    status: HTTPStatus
