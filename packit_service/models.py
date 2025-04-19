@@ -12,6 +12,7 @@ from collections import Counter
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from http import HTTPStatus
 from os import getenv
 from typing import (
     TYPE_CHECKING,
@@ -24,6 +25,7 @@ from urllib.parse import urlparse
 from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
 from packit.config import JobConfigTriggerType
+from pydantic import BaseModel
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -54,8 +56,6 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
-from pydantic import BaseModel
-from http import HTTPStatus
 
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
@@ -4650,6 +4650,7 @@ def get_onboarded_projects() -> tuple[dict[int, str], dict[int, str]]:
         for project in recheck_if_onboarded.difference(onboarded_projects)
     }
     return (onboarded, almost_onboarded)
+
 
 class BodhiUpdatesListResponse(BaseModel):
     result: List

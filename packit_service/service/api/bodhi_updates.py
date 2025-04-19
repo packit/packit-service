@@ -4,29 +4,35 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from flask_restx import Namespace, Resource
-from parsers import Pagination_Arguments
-from response_models import BodhiUpdatesListResponse, BodhiUpdateItemResponse, BodhiUpdateGroupResponse
-from fastapi import APIRouter, Response, Depends, Path
+from fastapi import APIRouter, Depends, Path, Response
 from fastapi.exceptions import HTTPException
+from parsers import Pagination_Arguments
+from response_models import (
+    BodhiUpdateGroupResponse,
+    BodhiUpdateItemResponse,
+    BodhiUpdatesListResponse,
+)
 
 from packit_service.models import (
     BodhiUpdateGroupModel,
     BodhiUpdateTargetModel,
     optional_timestamp,
 )
-from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import get_project_info_from_build, response_maker
+from packit_service.service.api.parsers import indices
+from packit_service.service.api.utils import get_project_info_from_build
 
 logger = getLogger("packit_service")
 
 # ns = Namespace("bodhi-updates", description="Bodhi updates")
 router: APIRouter = APIRouter(prefix="/api/bodhi-updates", tags=["bodhi-updates"])
 
+
 # @ns.expect(pagination_arguments)
 # @ns.response(HTTPStatus.PARTIAL_CONTENT, "Bodhi updates list follows")
-@router.get("/", response_model = BodhiUpdatesListResponse)
-def BodhiUpdatesList(response: Response, params: Pagination_Arguments = Depends()) -> BodhiUpdatesListResponse:
+@router.get("/", response_model=BodhiUpdatesListResponse)
+def BodhiUpdatesList(
+    response: Response, params: Pagination_Arguments = Depends()
+) -> BodhiUpdatesListResponse:
     """List all Bodhi updates."""
     first, last = indices(params)
     result = []
@@ -60,19 +66,20 @@ def BodhiUpdatesList(response: Response, params: Pagination_Arguments = Depends(
 # @ns.route("/<int:id>")
 # @ns.param("id", "Packit id of the update")
 # class BodhiUpdateItem(Resource):
-    # @ns.response(HTTPStatus.OK, "OK, Bodhi update details follow")
-    # @ns.response(HTTPStatus.NOT_FOUND.value, "No info about Bodhi update stored in DB")
-@router.get("/{id}", response_model=BodhiUpdateItemResponse , responses = {
-    HTTPStatus.NOT_FOUND: {"description": "No info about update stored in DB"}
-})
+# @ns.response(HTTPStatus.OK, "OK, Bodhi update details follow")
+# @ns.response(HTTPStatus.NOT_FOUND.value, "No info about Bodhi update stored in DB")
+@router.get(
+    "/{id}",
+    response_model=BodhiUpdateItemResponse,
+    responses={HTTPStatus.NOT_FOUND: {"description": "No info about update stored in DB"}},
+)
 def BodhiUpdateItem(id: int = Path(..., description="Packit id of the update")):
     """A specific Bodhi updates details."""
     update = BodhiUpdateTargetModel.get_by_id(int(id))
 
     if not update:
         raise HTTPException(
-            detail="No info about update stored in DB",
-            status_code=HTTPStatus.NOT_FOUND
+            detail="No info about update stored in DB", status_code=HTTPStatus.NOT_FOUND
         )
 
     update_dict = {
@@ -94,14 +101,16 @@ def BodhiUpdateItem(id: int = Path(..., description="Packit id of the update")):
 # @ns.route("/groups/<int:id>")
 # @ns.param("id", "Packit id of the Bodhi update group")
 # class BodhiUpdateGroup(Resource):
-    # @ns.response(HTTPStatus.OK, "OK, Bodhi update group details follow")
-    # @ns.response(
-    #     HTTPStatus.NOT_FOUND.value,
-    #     "No info about Bodhi update group stored in DB",
-    # )
-@router.get("/groups/{id}", response_model=BodhiUpdateGroupResponse, responses={
-    HTTPStatus.NOT_FOUND:  {"description": "No info about group stored in DB"}
-})
+# @ns.response(HTTPStatus.OK, "OK, Bodhi update group details follow")
+# @ns.response(
+#     HTTPStatus.NOT_FOUND.value,
+#     "No info about Bodhi update group stored in DB",
+# )
+@router.get(
+    "/groups/{id}",
+    response_model=BodhiUpdateGroupResponse,
+    responses={HTTPStatus.NOT_FOUND: {"description": "No info about group stored in DB"}},
+)
 def BodhiUpdateGroup(id: int = Path(..., description="Packit id of the Bodhi update group")):
     """A specific Bodhi update group details."""
     group_model = BodhiUpdateGroupModel.get_by_id(int(id))

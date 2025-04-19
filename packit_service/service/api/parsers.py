@@ -1,15 +1,14 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from flask import request
-from fastapi import Request
-from flask_restx import reqparse
-from pydantic import BaseModel, Field
+from enum import Enum
 from typing import Optional
-from enum import Enum, IntEnum
+
+from pydantic import BaseModel, Field
 
 DEFAULT_PAGE = 1
 DEFAULT_PER_PAGE = 10
+
 
 class PerPageChoices(int, Enum):
     TWO = 2
@@ -18,6 +17,7 @@ class PerPageChoices(int, Enum):
     THIRTY = 30
     FORTY = 40
     FIFTY = 50
+
 
 # pagination_arguments = reqparse.RequestParser()
 # pagination_arguments.add_argument(
@@ -36,9 +36,12 @@ class PerPageChoices(int, Enum):
 #     help="Results per page",
 # )
 
+
 class Pagination_Arguments(BaseModel):
     page: Optional[int] = Field(default=1, description="Page number")
-    per_page: Optional[PerPageChoices] = Field(default=DEFAULT_PER_PAGE, description="Results per page")
+    per_page: Optional[PerPageChoices] = Field(
+        default=DEFAULT_PER_PAGE, description="Results per page"
+    )
 
 
 def indices(pagination_arguments: Pagination_Arguments):
