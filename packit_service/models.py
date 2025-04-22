@@ -2810,6 +2810,36 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         )
 
     @classmethod
+    def get_last_successful_scratch_by_commit_target(
+        cls,
+        commit_sha: str,
+        target: str,
+    ) -> Optional["KojiBuildTargetModel"]:
+        with sa_session_transaction() as session:
+            return (
+                session.query(KojiBuildTargetModel)
+                .join(
+                    KojiBuildTargetModel.group_of_targets,
+                )
+                .join(
+                    PipelineModel,
+                    PipelineModel.koji_build_group_id == KojiBuildGroupModel.id,
+                )
+                .join(
+                    ProjectEventModel,
+                    PipelineModel.project_event_id == ProjectEventModel.id,
+                )
+                .filter(
+                    ProjectEventModel.commit_sha == commit_sha,
+                    KojiBuildTargetModel.target == target,
+                    KojiBuildTargetModel.scratch == True,  # noqa
+                    KojiBuildTargetModel.status == "success",
+                )
+                .order_by(KojiBuildTargetModel.build_submitted_time.desc())
+                .first()
+            )
+
+    @classmethod
     def get_all_successful_or_in_progress_by_nvr(
         cls,
         nvr: str,
