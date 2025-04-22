@@ -27,6 +27,7 @@ from packit_service.events import (
     github,
     koji,
     pagure,
+    testing_farm,
 )
 from packit_service.events.event import Event
 from packit_service.events.event_data import EventData
@@ -264,7 +265,10 @@ class SteveJobs:
             # on the issue created by us or not in packit/notifications?
         else:
             if (
-                isinstance(self.event, (pagure.pr.Action, pagure.pr.Comment, koji.result.Task))
+                isinstance(
+                    self.event,
+                    (pagure.pr.Action, pagure.pr.Comment, koji.result.Task, testing_farm.Result),
+                )
                 and self.event.db_project_object
                 and (url := self.event.db_project_object.project.project_url)
                 and url in self.service_config.enabled_projects_for_fedora_ci

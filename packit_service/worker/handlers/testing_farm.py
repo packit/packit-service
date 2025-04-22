@@ -10,15 +10,20 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from celery import Task
-from packit.config import JobConfig, JobType
+from packit.config import JobConfig, JobType, aliases
 from packit.config.package_config import PackageConfig
 
+from packit_service.config import ServiceConfig
+from packit_service.constants import DEFAULT_MAPPING_TF
 from packit_service.events import (
     abstract,
     github,
     gitlab,
+    koji,
+    pagure,
     testing_farm,
 )
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -34,30 +39,39 @@ from packit_service.service.urls import (
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.distgit import PermissionOnDistgitForFedoraCI
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
     IsCoprBuildDefined,
     IsEventForJob,
     IsEventOk,
+    IsEventOkForFedoraCI,
     IsIdentifierFromCommentMatching,
     IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
 )
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
+    FedoraCIJobHandler,
     RetriableJobHandler,
     TaskName,
     configured_as,
     reacts_to,
+    reacts_to_as_fedora_ci,
     run_for_check_rerun,
     run_for_comment,
+    run_for_comment_as_fedora_ci,
 )
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
+    GetDownstreamTestingFarmJobHelperMixin,
     GetGithubCommentEventMixin,
     GetTestingFarmJobHelperMixin,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import (
+    DownstreamTestingFarmJobHelper,
+    TestingFarmJobHelper,
+)
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -326,6 +340,136 @@ class TestingFarmHandler(
         return TaskResults(success=False, details=result_details)
 
 
+@run_for_comment_as_fedora_ci(command="test")
+@reacts_to_as_fedora_ci(event=koji.result.Task)
+@reacts_to_as_fedora_ci(event=pagure.pr.Comment)
+class DownstreamTestingFarmHandler(
+    RetriableJobHandler,
+    FedoraCIJobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetDownstreamTestingFarmJobHelperMixin,
+):
+    __test__ = False
+    task_name = TaskName.downstream_testing_farm
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Task,
+        testing_farm_target_id: Optional[int] = None,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+            celery_task=celery_task,
+        )
+        self._testing_farm_target_id = testing_farm_target_id
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (
+            IsEventOkForFedoraCI,
+            PermissionOnDistgitForFedoraCI,
+        )
+
+    @classmethod
+    def get_check_names(cls, service_config: ServiceConfig, metadata: EventData) -> list[str]:
+        return [
+            DownstreamTestingFarmJobHelper.get_check_name(t)
+            for t in DownstreamTestingFarmJobHelper.get_fedora_ci_tests(service_config, metadata)
+        ]
+
+    def _get_or_create_group(
+        self,
+        fedora_ci_tests: list[str],
+    ) -> tuple[TFTTestRunGroupModel, list[TFTTestRunTargetModel]]:
+        """Creates a TFTTestRunGroup.
+
+        If a group is already attached to this handler, it returns the
+        existing group instead.
+
+        Args:
+            fedora_ci_tests: List of Fedora CI tests to run.
+
+        Returns:
+            The existing or created test run group and the test targets
+            to run the tests for.
+
+        """
+        if self._testing_farm_target_id is not None:
+            target_model = TFTTestRunTargetModel.get_by_id(self._testing_farm_target_id)
+            return target_model.group_of_targets, [target_model]
+
+        run_model = self.koji_build.group_of_targets.runs[-1]
+        group = (
+            TFTTestRunGroupModel.create([run_model])
+            if not run_model.test_run_group
+            else run_model.test_run_group
+        )
+
+        # convert dist-git branch to distro
+        [target] = aliases.get_build_targets(self.koji_build.target)
+        distro = target.rsplit("-", 1)[0]
+        distro = DEFAULT_MAPPING_TF.get(distro, distro)
+
+        runs = []
+        for test in fedora_ci_tests:
+            runs.append(  # noqa: PERF401
+                TFTTestRunTargetModel.create(
+                    pipeline_id=None,
+                    identifier=None,
+                    status=TestingFarmResult.new,
+                    target=distro,
+                    web_url=None,
+                    test_run_group=group,
+                    koji_build_targets=[self.koji_build],
+                    # In _payload() we ask TF to test commit_sha of fork (PR's source).
+                    # Store original url. If this proves to work, make it a separate column.
+                    data={"base_project_url": self.project.get_web_url(), "fedora_ci_test": test},
+                ),
+            )
+        return group, runs
+
+    def run_for_fedora_ci_test(
+        self,
+        test_run: "TFTTestRunTargetModel",
+        failed: dict,
+    ):
+        if self.celery_task.retries == 0:
+            self.pushgateway.test_runs_queued.inc()
+        result = self.downstream_testing_farm_job_helper.run_testing_farm(test_run)
+        if not result["success"]:
+            failed[test_run.data["fedora_ci_test"]] = result.get("details")
+
+    def run(self) -> TaskResults:
+        failed: dict[str, str] = {}
+
+        fedora_ci_tests = self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
+            self.service_config, self.data
+        )
+
+        group, test_runs = self._get_or_create_group(fedora_ci_tests)
+        for test_run in test_runs:
+            # Only retry what's needed
+            if test_run.status not in [
+                TestingFarmResult.new,
+                TestingFarmResult.retry,
+            ]:
+                continue
+            self.run_for_fedora_ci_test(test_run=test_run, failed=failed)
+
+        if not failed:
+            return TaskResults(success=True, details={})
+
+        result_details = {"msg": f"Failed Fedora CI tests: '{failed.keys()}'."}
+        result_details.update(failed)
+
+        return TaskResults(success=False, details=result_details)
+
+
 @configured_as(job_type=JobType.tests)
 @reacts_to(event=testing_farm.Result)
 class TestingFarmResultsHandler(
@@ -432,6 +576,105 @@ class TestingFarmResultsHandler(
                 packit_dashboard_url=url,
                 logs_url=self.log_url,
             )
+
+        test_run_model.set_status(self.result, created=self.created)
+
+        return TaskResults(success=True, details={})
+
+
+@reacts_to_as_fedora_ci(event=testing_farm.Result)
+class DownstreamTestingFarmResultsHandler(
+    FedoraCIJobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetDownstreamTestingFarmJobHelperMixin,
+):
+    __test__ = False
+    task_name = TaskName.downstream_testing_farm_results
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self.result = (
+            TestingFarmResult.from_string(event.get("result")) if event.get("result") else None
+        )
+        self.pipeline_id = event.get("pipeline_id")
+        self.log_url = event.get("log_url")
+        self.summary = event.get("summary")
+        self.created = event.get("created")
+
+    @property
+    def db_project_event(self) -> Optional[ProjectEventModel]:
+        if not self._db_project_event:
+            run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+                pipeline_id=self.pipeline_id,
+            )
+            if run_model:
+                self._db_project_event = run_model.get_project_event_model()
+        return self._db_project_event
+
+    def run(self) -> TaskResults:
+        logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
+
+        test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+            pipeline_id=self.pipeline_id,
+        )
+        if not test_run_model:
+            msg = f"Unknown pipeline_id received from the testing-farm: {self.pipeline_id}"
+            logger.warning(msg)
+            return TaskResults(success=False, details={"msg": msg})
+
+        if test_run_model.status == self.result:
+            logger.debug(
+                "Testing farm results already processed "
+                "(state in the DB is the same as the one about to report).",
+            )
+            return TaskResults(
+                success=True,
+                details={"msg": "Testing farm results already processed"},
+            )
+
+        if self.result == TestingFarmResult.running:
+            status = BaseCommitStatus.running
+            summary = self.summary or "Tests are running ..."
+        elif self.result == TestingFarmResult.passed:
+            status = BaseCommitStatus.success
+            summary = self.summary or "Tests passed ..."
+        elif self.result == TestingFarmResult.failed:
+            status = BaseCommitStatus.failure
+            summary = self.summary or "Tests failed ..."
+        elif self.result == TestingFarmResult.canceled:
+            status = BaseCommitStatus.neutral
+            summary = self.summary or "Tests canceled ..."
+        else:
+            status = BaseCommitStatus.error
+            summary = self.summary or "Error ..."
+
+        if self.result == TestingFarmResult.running:
+            self.pushgateway.test_runs_started.inc()
+        else:
+            self.pushgateway.test_runs_finished.inc()
+            test_run_time = elapsed_seconds(
+                begin=test_run_model.submitted_time,
+                end=datetime.now(timezone.utc),
+            )
+            self.pushgateway.test_run_finished_time.observe(test_run_time)
+
+        test_run_model.set_web_url(self.log_url)
+        url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None
+        self.downstream_testing_farm_job_helper.report(
+            test_run=test_run_model,
+            state=status,
+            description=summary,
+            url=url if url else self.log_url,
+        )
 
         test_run_model.set_status(self.result, created=self.created)
 
