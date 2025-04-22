@@ -51,6 +51,7 @@ from packit_service.worker.checker.koji import (
     SidetagExists,
 )
 from packit_service.worker.handlers.abstract import (
+    FedoraCIJobHandler,
     JobHandler,
     TaskName,
     configured_as,
@@ -61,7 +62,9 @@ from packit_service.worker.handlers.abstract import (
 )
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
-from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
+from packit_service.worker.handlers.mixin import (
+    GetKojiBuildJobHelperMixin,
+)
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
@@ -293,8 +296,9 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
 
 
 @reacts_to_as_fedora_ci(event=koji.result.Task)
-class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
+class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJobHandler):
     task_name = TaskName.downstream_koji_scratch_build_report
+    check_name = "Packit - scratch build"
     _helper: Optional[FedoraCIHelper] = None
 
     @property
@@ -312,6 +316,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler):
             state=commit_status,
             description=description,
             url=url,
+            check_name=self.check_name,
         )
 
     def notify_about_failure_if_configured(

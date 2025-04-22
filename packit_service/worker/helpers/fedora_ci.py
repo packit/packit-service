@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class FedoraCIHelper:
-    status_name: str = "Packit - scratch build"
-
     def __init__(
         self,
         project: GitProject,
@@ -38,11 +36,11 @@ class FedoraCIHelper:
             )
         return self._status_reporter
 
-    def report(self, state: BaseCommitStatus, description: str, url: str):
+    def report(self, state: BaseCommitStatus, description: str, url: str, check_name: str):
         self.status_reporter.set_status(
             state=state,
             description=description,
             url=url,
-            check_name=self.status_name,
+            check_name=check_name,
             target_branch=self.target_branch,
         )

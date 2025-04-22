@@ -47,11 +47,11 @@ MAP_REQUIRED_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defau
     set,
 )
 SUPPORTED_EVENTS_FOR_HANDLER: dict[type["JobHandler"], set[type["Event"]]] = defaultdict(set)
-SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI: dict[type["JobHandler"], set[type["Event"]]] = defaultdict(
-    set
+SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI: dict[type["FedoraCIJobHandler"], set[type["Event"]]] = (
+    defaultdict(set)
 )
 MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
-MAP_COMMENT_TO_HANDLER_FEDORA_CI: dict[str, set[type["JobHandler"]]] = defaultdict(set)
+MAP_COMMENT_TO_HANDLER_FEDORA_CI: dict[str, set[type["FedoraCIJobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
 
@@ -128,7 +128,7 @@ def reacts_to_as_fedora_ci(event: type["Event"]):
     ```
     """
 
-    def _add_to_mapping(kls: type["JobHandler"]):
+    def _add_to_mapping(kls: type["FedoraCIJobHandler"]):
         SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI[kls].add(event)
         return kls
 
@@ -183,7 +183,7 @@ def run_for_comment_as_fedora_ci(command: str):
     ```
     """
 
-    def _add_to_mapping(kls: type["JobHandler"]):
+    def _add_to_mapping(kls: type["FedoraCIJobHandler"]):
         MAP_COMMENT_TO_HANDLER_FEDORA_CI[command].add(kls)
         return kls
 
@@ -463,3 +463,11 @@ class RetriableJobHandler(JobHandler):
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
+
+
+class FedoraCIJobHandler(JobHandler):
+    check_name: str = ""
+
+    @classmethod
+    def get_check_names(cls, service_config: ServiceConfig, metadata: EventData) -> list[str]:
+        return [cls.check_name] if cls.check_name else []
