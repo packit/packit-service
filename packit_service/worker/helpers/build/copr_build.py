@@ -51,6 +51,7 @@ from packit_service.models import (
     ProjectEventModel,
     ProjectEventModelType,
     SRPMBuildModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -1018,7 +1019,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
     # [NOTE] Needs to return a union, because TF helper inherits from this and
     # it clashes the type checking…
-    def get_running_jobs(self) -> Union[Iterable[int], Iterable[str]]:
+    def get_running_jobs(
+        self,
+    ) -> Union[Iterable["CoprBuildTargetModel"], Iterable["TFTTestRunTargetModel"]]:
         if sha := self.metadata.commit_sha_before:
             yield from CoprBuildGroupModel.get_running(commit_sha=sha)
 

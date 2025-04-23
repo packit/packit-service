@@ -1182,6 +1182,7 @@ def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_wit
     for build_id, target, status in (
         ("1", "fedora-rawhide-x86_64", BuildStatus.pending),
         ("2", "fedora-42-aarch64", BuildStatus.waiting_for_srpm),
+        ("2", "fedora-42-x86_64", BuildStatus.waiting_for_srpm),
         ("3", "opensuse-tumbleweed-x86_64", BuildStatus.success),
     ):
         CoprBuildTargetModel.create(
@@ -1196,8 +1197,10 @@ def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_wit
 
     running = list(CoprBuildGroupModel.get_running(commit_sha=SampleValues.commit_sha))
     assert running, "There are some running builds present"
-    assert len(running) == 2, "There are exactly 2 builds running"
-    assert set(running) == {1, 2}, "Exactly ‹1› and ‹2› are in the running state"
+    assert len(running) == 3, "There are exactly 3 builds running"
+    assert {build.build_id for (build,) in running} == {"1", "2"}, (
+        "Exactly ‹1› and ‹2› are in the running state"
+    )
 
 
 def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
@@ -1220,4 +1223,6 @@ def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with
     running = list(TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha))
     assert running, "There are some runningtests present"
     assert len(running) == 2, "There are exactly 2 tests running"
-    assert set(running) == {"cafe", "42"}, "Test runs created by the test are in the running state"
+    assert {test_run.pipeline_id for (test_run,) in running} == {"cafe", "42"}, (
+        "Test runs created by the test are in the running state"
+    )

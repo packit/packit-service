@@ -2051,7 +2051,7 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(CoprBuildGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[int]:
+    def get_running(cls, commit_sha: str) -> Iterable["CoprBuildTargetModel"]:
         """Get list of currently running Copr builds matching the passed
         arguments.
 
@@ -2059,11 +2059,11 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             commit_sha: Commit hash that is used for filtering the running jobs.
 
         Returns:
-            An iterator over (integer) IDs that represent matching Copr build
-            that are currently in queue (running) or waiting for an SRPM.
+            An iterable over Copr target models that are curently in queue
+            (running) or waiting for an SRPM.
         """
         q = (
-            select(CoprBuildTargetModel.build_id)
+            select(CoprBuildTargetModel)
             .join(CoprBuildGroupModel)
             .join(PipelineModel)
             .join(ProjectEventModel)
@@ -2073,10 +2073,9 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                     (BuildStatus.pending, BuildStatus.waiting_for_srpm)
                 ),
             )
-            .distinct()
         )
         with sa_session_transaction() as session:
-            return (int(build_id) for (build_id,) in session.execute(q))
+            return session.execute(q)
 
 
 class BuildStatus(str, enum.Enum):
@@ -3398,7 +3397,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(TFTTestRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[str]:
+    def get_running(cls, commit_sha: str) -> Iterable["TFTTestRunTargetModel"]:
         """Get list of currently running Testing Farm runs matching the passed
         arguments.
 
@@ -3406,12 +3405,12 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             commit_sha: Commit hash that is used for filtering the running jobs.
 
         Returns:
-            An iterator over (string) request IDs that represent matching TF
+            An iterable over TFT target models that reprepresent matching TF
             runs that are _new_ (to be triggered), _queued_ (already submitted
             to the TF), or _running_.
         """
         q = (
-            select(TFTTestRunTargetModel.pipeline_id)
+            select(TFTTestRunTargetModel)
             .join(TFTTestRunGroupModel)
             .join(PipelineModel)
             .join(ProjectEventModel)
@@ -3424,10 +3423,9 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                     )
                 ),
             )
-            .distinct()
         )
         with sa_session_transaction() as session:
-            return (pipeline_id for (pipeline_id,) in session.execute(q))
+            return session.execute(q)
 
 
 class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
