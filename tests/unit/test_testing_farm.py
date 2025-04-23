@@ -31,6 +31,7 @@ from packit_service.events.testing_farm import (
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
+    KojiBuildTargetModel,
     PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
@@ -40,6 +41,9 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
+from packit_service.worker.handlers import (
+    DownstreamTestingFarmResultsHandler as DownstreamTFResultsHandler,
+)
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.helpers.testing_farm import (
@@ -210,6 +214,137 @@ def test_testing_farm_response(
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+
+    test_farm_handler.run()
+
+
+@pytest.mark.parametrize(
+    "tests_result,tests_summary,status_status,status_message",
+    [
+        pytest.param(
+            TFResult.passed,
+            "some summary",
+            BaseCommitStatus.success,
+            "some summary",
+            id="passed_and_summary_provided",
+        ),
+        pytest.param(
+            TFResult.passed,
+            None,
+            BaseCommitStatus.success,
+            "Tests passed ...",
+            id="passed_and_summary_not_provided",
+        ),
+        pytest.param(
+            TFResult.failed,
+            "some summary",
+            BaseCommitStatus.failure,
+            "some summary",
+            id="failed_and_summary_provided",
+        ),
+        pytest.param(
+            TFResult.failed,
+            None,
+            BaseCommitStatus.failure,
+            "Tests failed ...",
+            id="failed_and_summary_not_provided",
+        ),
+    ],
+)
+def test_downstream_testing_farm_response(
+    tests_result,
+    tests_summary,
+    status_status,
+    status_message,
+):
+    config = flexmock(
+        command_handler_work_dir=flexmock(),
+        comment_command_prefix="/packit",
+    )
+    flexmock(DownstreamTFResultsHandler).should_receive("service_config").and_return(config)
+    flexmock(TFResultsEvent).should_receive("db_project_object").and_return(None)
+    config.should_receive("get_project").with_args(
+        url="https://src.fedoraproject.org/rpms/python-ogr",
+    ).and_return(
+        flexmock(
+            service=flexmock(instance_url="https://src.fedoraproject.org"),
+            namespace="rpms",
+            repo="python-ogr",
+            get_pr=lambda id: flexmock(head_commit="0000000000", target_branch="rawhide"),
+        ),
+    )
+    # config.should_receive("get_github_account_name").and_return("packit-as-a-service")
+    created_dt = datetime.now(timezone.utc)
+    event_dict = TFResultsEvent(
+        pipeline_id="id",
+        result=tests_result,
+        compose=flexmock(),
+        summary=tests_summary,
+        log_url="some url",
+        copr_build_id=None,
+        copr_chroot="fedora-rawhide",
+        commit_sha=flexmock(),
+        project_url="https://src.fedoraproject.org/rpms/python-ogr",
+        created=created_dt,
+    ).get_dict()
+    test_farm_handler = DownstreamTFResultsHandler(
+        package_config=None,
+        job_config=None,
+        event=event_dict,
+    )
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=status_status,
+        description=status_message,
+        url="https://dashboard.localhost/jobs/testing-farm/123",
+        check_name="Packit - installability test",
+        target_branch="rawhide",
+    ).once()
+
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    tft_test_run_model = (
+        flexmock(
+            id=123,
+            submitted_time=datetime.now(),
+            target="fedora-rawhide",
+            status=None,
+            data={"fedora_ci_test": "installability"},
+        )
+        .should_receive("get_project_event_model")
+        .and_return(
+            flexmock(id=123)
+            .should_receive("get_project_event_object")
+            .and_return(
+                flexmock(
+                    id=12,
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                    project_event_model_type=ProjectEventModelType.pull_request,
+                    commit_sha="0000000000",
+                ),
+            )
+            .mock(),
+        )
+        .mock()
+    )
+    tft_test_run_model.should_receive("set_status").with_args(
+        tests_result,
+        created=created_dt,
+    ).and_return().once()
+    tft_test_run_model.should_receive("set_web_url").with_args(
+        "some url",
+    ).and_return().once()
+
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
+        tft_test_run_model,
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, type=ProjectEventModelType.pull_request),
+    )
+
+    flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_last_successful_scratch_by_commit_target"
+    ).with_args("0000000000", "rawhide").and_return(flexmock(target="rawhide"))
 
     test_farm_handler.run()
 
