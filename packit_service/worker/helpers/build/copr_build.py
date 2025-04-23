@@ -528,6 +528,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Run copr build using custom source method.
         """
+        self.cancel_running_builds()
+
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             project_event_model=self.db_project_event,
             package_name=self.get_package_name(),
@@ -1026,3 +1028,19 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             yield from CoprBuildGroupModel.get_running(commit_sha=sha)
 
         # [SAFETY] When there's no previous commit hash, yields nothing
+
+    def cancel_running_builds(self):
+        running_builds = list(self.get_running_jobs())
+        if not running_builds:
+            logger.info("No running Copr builds to cancel.")
+            return
+
+        # Cancel unique builds
+        unique_builds = {int(build.build_id) for (build,) in running_builds}
+        for build_id in unique_builds:
+            logger.debug("Cancelling Copr build #%s", build_id)
+            self.api.copr_helper.cancel_build(build_id)
+
+        # Mark them as canceled
+        for (target,) in running_builds:
+            target.set_status(BuildStatus.canceled)

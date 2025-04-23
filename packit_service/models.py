@@ -2087,10 +2087,16 @@ class BuildStatus(str, enum.Enum):
     error = "error"
     waiting_for_srpm = "waiting_for_srpm"
     retry = "retry"
+    canceled = "canceled"
 
     @staticmethod
     def is_final_state(status: "BuildStatus"):
-        return status in {BuildStatus.success, BuildStatus.failure, BuildStatus.error}
+        return status in {
+            BuildStatus.success,
+            BuildStatus.failure,
+            BuildStatus.error,
+            BuildStatus.canceled,
+        }
 
 
 class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):

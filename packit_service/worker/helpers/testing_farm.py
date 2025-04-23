@@ -1226,6 +1226,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         # [SAFETY] When there's no previous commit hash, yields nothing
 
+    def cancel_running_tests(self):
+        running_tests = list(self.get_running_jobs())
+        if not running_tests:
+            logger.info("No running TF tests to cancel.")
+            return
+
+        for (test_run,) in running_tests:
+            self.cancel_testing_farm_request(test_run.pipeline_id)
+            test_run.set_status(TestingFarmResult.cancel_requested)
+
 
 FEDORA_CI_TESTS = {}
 

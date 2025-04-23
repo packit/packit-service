@@ -301,6 +301,8 @@ class TestingFarmHandler(
         targets = list(self.testing_farm_job_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
 
+        self.testing_farm_job_helper.cancel_running_tests()
+
         if self.testing_farm_job_helper.build_required():
             if self.testing_farm_job_helper.job_build:
                 msg = "Build required, already handled by build job."
