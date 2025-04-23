@@ -1220,7 +1220,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             update_feedback_time=update_feedback_time,
         )
 
-    def get_running_jobs(self) -> Iterable["TFTTestRunTargetModel"]:
+    def get_running_jobs(self) -> Iterable[tuple["TFTTestRunTargetModel"]]:
         if sha := self.metadata.commit_sha_before:
             yield from TFTTestRunGroupModel.get_running(commit_sha=sha)
 

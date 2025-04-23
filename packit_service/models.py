@@ -2051,7 +2051,7 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(CoprBuildGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable["CoprBuildTargetModel"]:
+    def get_running(cls, commit_sha: str) -> Iterable[tuple["CoprBuildTargetModel"]]:
         """Get list of currently running Copr builds matching the passed
         arguments.
 
@@ -3397,7 +3397,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(TFTTestRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable["TFTTestRunTargetModel"]:
+    def get_running(cls, commit_sha: str) -> Iterable[tuple["TFTTestRunTargetModel"]]:
         """Get list of currently running Testing Farm runs matching the passed
         arguments.
 

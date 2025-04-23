@@ -1021,7 +1021,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     # it clashes the type checking…
     def get_running_jobs(
         self,
-    ) -> Union[Iterable["CoprBuildTargetModel"], Iterable["TFTTestRunTargetModel"]]:
+    ) -> Union[Iterable[tuple["CoprBuildTargetModel"]], Iterable[tuple["TFTTestRunTargetModel"]]]:
         if sha := self.metadata.commit_sha_before:
             yield from CoprBuildGroupModel.get_running(commit_sha=sha)
 
