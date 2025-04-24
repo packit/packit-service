@@ -52,6 +52,7 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     CoprOpenScanHubTaskFinishedHandler,
     CoprOpenScanHubTaskStartedHandler,
+    DownstreamTestingFarmHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
     KojiTaskReportHandler,
@@ -416,6 +417,19 @@ def run_downstream_koji_scratch_build_handler(
     self, event: dict, package_config: dict, job_config: dict
 ):
     handler = DownstreamKojiScratchBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    bind=True, name=TaskName.downstream_testing_farm, base=TaskWithRetry, queue="long-running"
+)
+def run_downstream_testing_farm_handler(self, event: dict, package_config: dict, job_config: dict):
+    handler = DownstreamTestingFarmHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

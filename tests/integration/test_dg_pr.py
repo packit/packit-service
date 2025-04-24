@@ -29,6 +29,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     run_downstream_koji_scratch_build_handler,
+    run_downstream_testing_farm_handler,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -162,4 +163,76 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
         job_config=job_config,
     )
 
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.fixture()
+def koji_scratch_build_end_event():
+    return json.loads(
+        (DATA_DIR / "fedmsg" / "koji_build_scratch_end_multiple_arches.json").read_text()
+    )
+
+
+def test_call_fake_installability_test(koji_scratch_build_end_event):
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        project=flexmock(project_url="https://src.fedoraproject.org/rpms/mozilla-https-everywhere"),
+    )
+    build_model = (
+        flexmock(commit_sha="123")
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
+        task_id=130386951
+    ).and_return(build_model)
+    pr_object = (
+        flexmock()
+        .should_receive("set_flag")
+        .with_args(username="rawhide", comment=str, url=str, status=CommitStatus, uid=str)
+        .mock()
+    )
+    dg_project = (
+        flexmock(
+            PagureProject(
+                namespace="rpms", repo="mozilla-https-everywhere", service=flexmock(read_only=False)
+            )
+        )
+        .should_receive("is_private")
+        .and_return(False)
+        .mock()
+        .should_receive("get_pr")
+        .and_return(pr_object)
+        .mock()
+    )
+    service_config = (
+        flexmock(
+            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/mozilla-https-everywhere",
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
+        )
+        .should_receive("get_project")
+        .and_return(dg_project)
+        .mock()
+    )
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    results = SteveJobs().process_message(koji_scratch_build_end_event)
+    assert len(results) == 2  # report koji result and run testing farm
+    event_dict = results[0]["details"]["event"]
+    job_config = results[0]["details"].get("job_config")
+    package_config = results[0]["details"].get("package_config")
+    assert json.dumps(event_dict)
+    results = run_downstream_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
     assert first_dict_value(results["job"])["success"]
