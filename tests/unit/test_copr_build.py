@@ -149,6 +149,7 @@ def build_helper(
             pr_id=event.pr_id,
             git_ref=event.git_ref,
             commit_sha=event.commit_sha,
+            commit_sha_before=None,
             identifier=event.identifier,
             tag_name=None,
             task_accepted_time=datetime.now(timezone.utc),
