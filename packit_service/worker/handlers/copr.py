@@ -82,8 +82,9 @@ logger = logging.getLogger(__name__)
 @reacts_to(gitlab.push.Commit)
 @reacts_to(gitlab.mr.Action)
 @reacts_to(github.check.Rerun)
+@reacts_to(github.pr.Comment)
+@reacts_to(gitlab.mr.Comment)
 @reacts_to(abstract.comment.Commit)
-@reacts_to(abstract.comment.PullRequest)
 class CoprBuildHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,

@@ -27,7 +27,6 @@ from packit_service.constants import (
     KojiTaskState,
 )
 from packit_service.events import (
-    abstract,
     github,
     gitlab,
     koji,
@@ -85,7 +84,8 @@ logger = logging.getLogger(__name__)
 @reacts_to(github.push.Commit)
 @reacts_to(gitlab.push.Commit)
 @reacts_to(gitlab.mr.Action)
-@reacts_to(abstract.comment.PullRequest)
+@reacts_to(github.pr.Comment)
+@reacts_to(gitlab.mr.Comment)
 @reacts_to(github.check.Rerun)
 class KojiBuildHandler(
     JobHandler,
