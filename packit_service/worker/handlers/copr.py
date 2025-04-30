@@ -118,6 +118,7 @@ class CoprBuildHandler(
         )
 
     def run(self) -> TaskResults:
+        self.copr_build_helper.cancel_running_builds()
         return self.copr_build_helper.run_copr_build_from_source_script()
 
 

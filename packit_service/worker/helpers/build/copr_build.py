@@ -528,8 +528,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Run copr build using custom source method.
         """
-        self.cancel_running_builds()
-
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             project_event_model=self.db_project_event,
             package_name=self.get_package_name(),
