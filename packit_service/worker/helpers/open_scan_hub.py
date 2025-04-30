@@ -16,6 +16,7 @@ from packit.config import (
     JobType,
 )
 from packit.exceptions import PackitException
+from packit.utils.koji_helper import KojiHelper
 from sqlalchemy.exc import IntegrityError
 
 from packit_service.constants import (
@@ -24,14 +25,19 @@ from packit_service.constants import (
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
+    KojiBuildTargetModel,
     OSHScanStatus,
     SRPMBuildModel,
 )
-from packit_service.service.urls import get_copr_build_info_url, get_openscanhub_info_url
+from packit_service.service.urls import (
+    get_copr_build_info_url,
+    get_koji_build_info_url,
+    get_openscanhub_info_url,
+)
 from packit_service.utils import (
     download_file,
 )
-from packit_service.worker.helpers.build import CoprBuildJobHelper
+from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
@@ -67,29 +73,30 @@ class OpenScanHubHelper:
         return json.loads(json_str)
 
     @staticmethod
+    def download_srpm(directory: str, srpm_model: SRPMBuildModel) -> Optional[Path]:
+        if not srpm_model.url:
+            logger.info(
+                f"SRPMBuildModel with copr_build_id={srpm_model.copr_build_id} "
+                "has status={srpm_model.status} "
+                "and empty url. Skipping download."
+            )
+            return None
+        srpm_path = Path(directory).joinpath(basename(srpm_model.url))
+        if not download_file(srpm_model.url, srpm_path):
+            logger.info(f"Downloading of SRPM {srpm_model.url} was not successful.")
+            return None
+        return srpm_path
+
+    @staticmethod
     def download_srpms(
         directory: str,
         base_srpm_model: SRPMBuildModel,
         srpm_model: SRPMBuildModel,
     ) -> Optional[tuple[Path, Path]]:
-        def download_srpm(srpm_model: SRPMBuildModel) -> Optional[Path]:
-            if not srpm_model.url:
-                logger.info(
-                    f"SRPMBuildModel with copr_build_id={srpm_model.copr_build_id} "
-                    "has status={srpm_model.status} "
-                    "and empty url. Skipping download."
-                )
-                return None
-            srpm_path = Path(directory).joinpath(basename(srpm_model.url))
-            if not download_file(srpm_model.url, srpm_path):
-                logger.info(f"Downloading of SRPM {srpm_model.url} was not successful.")
-                return None
-            return srpm_path
-
-        if (base_srpm_path := download_srpm(base_srpm_model)) is None:
+        if (base_srpm_path := OpenScanHubHelper.download_srpm(directory, base_srpm_model)) is None:
             return None
 
-        if (srpm_path := download_srpm(srpm_model)) is None:
+        if (srpm_path := OpenScanHubHelper.download_srpm(directory, srpm_model)) is None:
             return None
 
         return base_srpm_path, srpm_path
@@ -278,3 +285,127 @@ class CoprOpenScanHubHelper(OpenScanHubHelper):
         else:
             logger.debug("No matching base build found in our DB.")
             return None
+
+
+class KojiOpenScanHubHelper(OpenScanHubHelper):
+    def __init__(
+        self,
+        koji_build_helper: KojiBuildJobHelper,
+        build: KojiBuildTargetModel,
+    ):
+        self.build = build
+        self.koji_build_helper = koji_build_helper
+
+    def handle_scan(self):
+        """
+        Try to find a job that can provide the base SRPM,get_base_srpm_model
+        download both SRPM and base SRPM and trigger the scan in OpenScanHub.
+        """
+        if not (base_build_job_id := self.find_base_build_job_id()):
+            logger.debug("No base build job needed for diff scan found in the config.")
+            return
+
+        logger.info("Preparing to trigger scan in OpenScanHub...")
+        srpm_model = self.build.get_srpm_build()
+
+        with tempfile.TemporaryDirectory() as directory:
+            if not (path := self.download_srpm(directory, srpm_model)):
+                self.report(
+                    state=BaseCommitStatus.neutral,
+                    description=(
+                        "It was not possible to download the SRPMs needed"
+                        " for the differential scan."
+                    ),
+                    url=None,
+                )
+                return
+
+            build_dashboard_url = get_koji_build_info_url(self.build.id)
+
+            try:
+                err_msg = "Scan in OpenScanHub was not submitted successfully."
+                with self.build.add_scan_transaction() as scan:
+                    output = self.koji_build_helper.api.run_osh_build(
+                        srpm_path=path,
+                        base_nvr=base_build_job_id,
+                        comment=f"Submitted via Packit Service for {build_dashboard_url}",
+                    )
+
+                    if not output:
+                        raise OSHNoFeedback("Something went wrong, skipping the reporting.")
+
+                    logger.info("Scan submitted successfully.")
+
+                    response_dict = self.parse_dict_from_output(output)
+
+                    logger.debug(f"Parsed dict from output: {response_dict} ")
+
+                    if id := response_dict.get("id"):
+                        scan.task_id = id
+                        scan.status = OSHScanStatus.pending
+                    else:
+                        raise OSHNoFeedback(
+                            "It was not possible to get the Open Scan Hub task_id "
+                            "from the response.",
+                        )
+
+                    if not (url := response_dict.get("url")):
+                        err_msg = "It was not possible to get the task URL from the OSH response."
+                        raise OSHNoFeedback(err_msg)
+                    scan.url = url
+
+                    self.report(
+                        state=BaseCommitStatus.running,
+                        description=(
+                            "Scan in OpenScanHub submitted successfully. "
+                            "Check the URL for more details."
+                        ),
+                        url=get_openscanhub_info_url(scan.id),
+                        links_to_external_services={"OpenScanHub task": url},
+                    )
+            except IntegrityError as ex:
+                logger.info(f"OpenScanHub already submitted: {ex}")
+            except OSHNoFeedback as ex:
+                logger.info(f"OpenScanHub feedback missing: {ex}")
+                self.report(
+                    state=BaseCommitStatus.neutral,
+                    description=err_msg,
+                    url=build_dashboard_url,
+                )
+
+    def report(
+        self,
+        state: BaseCommitStatus,
+        description: str,
+        url: str,
+        links_to_external_services: Optional[dict[str, str]] = None,
+    ):
+        check_name = "osh-diff-scan:fedora-rawhide-x86_64"
+        if identifier := self.koji_build_helper.job_config.identifier:
+            check_name += f":{identifier}"
+        self.koji_build_helper._report(
+            state=state,
+            description=description,
+            url=url,
+            check_names=[check_name],
+            markdown_content=OPEN_SCAN_HUB_FEATURE_DESCRIPTION,
+            links_to_external_services=links_to_external_services,
+        )
+
+    def find_base_build_job_id(self) -> Optional[int]:
+        """
+        Find the job in the config that can provide the base build for the scan
+        (with `commit` trigger and same branch configured as the target PR branch).
+        """
+        # We should take this approach as Packit does not have a base build for every package in db.
+        koji_helper = KojiHelper()
+        result = koji_helper.get_latest_build_in_tag(
+            tag="rawhide", package=self.build.get_package_name()
+        )
+
+        if not result:
+            logger.debug("Failed to find build id")
+            return None
+
+        # Pass the build id to `osh-cli`. (result.build_id contains the base build id)
+        return result["build_id"]
