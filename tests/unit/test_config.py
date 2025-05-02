@@ -226,7 +226,7 @@ def test_get_package_config_from_repo_not_found_exception_pr():
         ref=None,
         package_config_path=None,
     ).once().and_return(None)
-    pr = flexmock()
+    pr = flexmock(get_comments=lambda *args, **kwargs: [])
     project.should_receive("get_pr").with_args(2).once().and_return(pr)
     pr.should_receive("comment").once()
     with pytest.raises(PackitConfigException):
@@ -320,6 +320,7 @@ def test_get_package_config_from_repo_not_found_exception_create_issue():
                     id=3,
                     url="https://github.com/namespace/project",
                     comment=lambda body: None,
+                    get_comments=lambda *args, **kwargs: [],
                 ),
                 flexmock(title="Many issues"),
             ],

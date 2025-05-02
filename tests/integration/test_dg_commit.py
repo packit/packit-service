@@ -662,6 +662,7 @@ def test_downstream_koji_build_failure_issue_comment():
                 id=3,
                 title="[packit] Fedora Koji build failed to be triggered",
                 url="https://github.com/namespace/project/issues/3",
+                get_comments=lambda *args, **kwargs: [],
             )
             .should_receive("comment")
             .once()

@@ -44,6 +44,7 @@ def test_create_one_issue_for_pr():
                 title="[packit] Propose downstream failed for release 056",
                 id=1,
                 url="a url",
+                get_comments=lambda *args, **kwargs: [],
             )
             .should_receive("comment")
             .once()

@@ -423,6 +423,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
                 id=3,
                 title="[packit] Fedora Bodhi update failed to be created",
                 url="https://github.com/namespace/project/issues/3",
+                get_comments=lambda *args, **kwargs: [],
             )
             .should_receive("comment")
             .once()
