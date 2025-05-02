@@ -6,27 +6,18 @@ import os
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
 
-from ogr.abstract import GitProject, Issue
 from packit.config import (
     Config,
-    PackageConfig,
     RunCommandType,
-    get_package_config_from_repo,
 )
 from packit.config.common_package_config import Deployment
 from packit.exceptions import (
-    PackitConfigException,
     PackitException,
-    PackitMissingConfigException,
 )
 from yaml import safe_load
 
 from packit_service.constants import (
     CONFIG_FILE_NAME,
-    CONTACTS_URL,
-    DOCS_HOW_TO_CONFIGURE_URL,
-    DOCS_VALIDATE_CONFIG,
-    DOCS_VALIDATE_HOOKS,
     SANDCASTLE_DEFAULT_PROJECT,
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
@@ -296,90 +287,3 @@ class ServiceConfig(Config):
             Deployment.stg: "packit-as-a-service-stg[bot]",
             Deployment.dev: "packit-as-a-service-dev[bot]",
         }.get(self.deployment)
-
-
-class PackageConfigGetter:
-    @staticmethod
-    def create_issue_if_needed(
-        project: GitProject,
-        title: str,
-        message: str,
-        comment_to_existing: Optional[str] = None,
-        add_packit_prefix: Optional[bool] = True,
-    ) -> Optional[Issue]:
-        # TODO: Improve filtering
-        issues = project.get_issue_list()
-        packit_title = f"[packit] {title}"
-
-        for issue in issues:
-            if title in issue.title:
-                logger.debug(f"Title of issue {issue.id} matches.")
-                if comment_to_existing:
-                    issue.comment(body=comment_to_existing)
-                    logger.debug(f"Issue #{issue.id} updated: {issue.url}")
-                return None
-
-        # TODO: store in DB
-        issue = project.create_issue(
-            title=packit_title if add_packit_prefix else title,
-            body=message,
-        )
-        logger.debug(f"Issue #{issue.id} created: {issue.url}")
-        return issue
-
-    @staticmethod
-    def get_package_config_from_repo(
-        project: GitProject,
-        reference: Optional[str] = None,
-        base_project: Optional[GitProject] = None,
-        pr_id: Optional[int] = None,
-        fail_when_missing: bool = True,
-    ) -> Optional[PackageConfig]:
-        """
-        Get the package config and catch the invalid config scenario and possibly no-config scenario
-        """
-
-        if not base_project and not project:
-            return None
-
-        project_to_search_in = base_project or project
-        try:
-            package_config: PackageConfig = get_package_config_from_repo(
-                project=project_to_search_in,
-                ref=reference,
-                package_config_path=ServiceConfig.get_service_config().package_config_path_override,
-            )
-            if not package_config and fail_when_missing:
-                raise PackitMissingConfigException(
-                    f"No config file for packit (e.g. `.packit.yaml`) found in "
-                    f"{project_to_search_in.full_repo_name} on commit {reference}",
-                )
-        except PackitConfigException as ex:
-            message = (
-                f"{ex}\n\n"
-                if isinstance(ex, PackitMissingConfigException)
-                else f"Failed to load packit config file:\n```\n{ex}\n```\n"
-            )
-
-            message += (
-                "For more info, please check out "
-                f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
-                "or [contact the Packit team]"
-                f"({CONTACTS_URL}). You can also use "
-                f"our CLI command [`config validate`]({DOCS_VALIDATE_CONFIG}) or our "
-                f"[pre-commit hooks]({DOCS_VALIDATE_HOOKS}) for validation of the configuration."
-            )
-
-            if pr_id:
-                project.get_pr(pr_id).comment(message)
-            elif created_issue := PackageConfigGetter.create_issue_if_needed(
-                project,
-                title="Invalid config",
-                message=message,
-            ):
-                logger.debug(
-                    f"Created issue for invalid packit config: {created_issue.url}",
-                )
-            raise ex
-
-        return package_config

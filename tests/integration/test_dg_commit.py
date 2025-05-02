@@ -24,7 +24,7 @@ from packit.local_project import LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
 from packit.utils.repo import RepositoryCache
 
-from packit_service.config import PackageConfigGetter, ProjectToSync, ServiceConfig
+from packit_service.config import ProjectToSync, ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
 from packit_service.models import (
     GitBranchModel,
@@ -37,6 +37,7 @@ from packit_service.models import (
     SidetagGroupModel,
     SidetagModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs

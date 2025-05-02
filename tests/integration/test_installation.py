@@ -7,13 +7,14 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
     AllowlistModel,
     GithubInstallationModel,
 )
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.handlers import forges
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_installation_handler
@@ -40,7 +41,7 @@ def test_installation():
     flexmock(Allowlist).should_receive(
         "is_github_username_from_fas_account_matching",
     ).with_args(fas_account="jpopelka", sender_login="jpopelka").and_return(False)
-    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
+    flexmock(forges).should_receive("create_issue_if_needed").once()
     flexmock(AllowlistModel).should_receive("add_namespace")
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -74,7 +75,7 @@ def test_reinstallation_already_approved_namespace():
     flexmock(Allowlist).should_receive("is_namespace_or_parent_approved").with_args(
         "github.com/packit-service",
     ).and_return(True)
-    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
+    flexmock(forges).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -110,7 +111,7 @@ def test_reinstallation_denied_namespace():
     flexmock(Allowlist).should_receive("is_denied").with_args(
         "github.com/packit-service",
     ).and_return(True)
-    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
+    flexmock(forges).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -154,10 +155,10 @@ def test_reinstallation_not_approved_namespace(previous_sender_login, create_iss
         flexmock(Allowlist).should_receive(
             "is_github_username_from_fas_account_matching",
         ).with_args(fas_account="jpopelka", sender_login="jpopelka").and_return(False)
-        flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
+        flexmock(forges).should_receive("create_issue_if_needed").once()
         flexmock(AllowlistModel).should_receive("add_namespace").once()
     else:
-        flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
+        flexmock(forges).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()

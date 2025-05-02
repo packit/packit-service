@@ -9,13 +9,14 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject
 from packit.config import Deployment
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
     AllowlistModel,
     AllowlistStatus,
     GithubInstallationModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway

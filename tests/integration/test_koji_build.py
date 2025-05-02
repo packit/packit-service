@@ -12,7 +12,6 @@ from packit.config import JobConfigTriggerType
 from packit.exceptions import PackitException
 from packit.utils.koji_helper import KojiHelper
 
-from packit_service.config import PackageConfigGetter
 from packit_service.events import pagure
 from packit_service.models import (
     GitBranchModel,
@@ -28,6 +27,7 @@ from packit_service.worker.handlers.distgit import (
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting import utils
 from packit_service.worker.tasks import (
     run_downstream_koji_build,
     run_downstream_koji_build_report,
@@ -221,7 +221,7 @@ def test_koji_build_error_msg(distgit_push_packit):
         "\n\n---\n\n*Get in [touch with us]"
         "(https://packit.dev/#contact) if you need some help.*\n"
     )
-    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").with_args(
+    flexmock(utils).should_receive("create_issue_if_needed").with_args(
         project=GithubProject,
         title=("Fedora Koji build failed to be triggered"),
         message=msg,

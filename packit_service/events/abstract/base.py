@@ -7,7 +7,7 @@ from typing import Optional, Union
 from ogr.abstract import GitProject, PullRequest
 from packit.config import PackageConfig
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
     CoprBuildTargetModel,
@@ -15,6 +15,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 
 from ..event import Event
 

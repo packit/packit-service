@@ -16,7 +16,7 @@ from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.koji_helper import KojiHelper
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import (
     BodhiUpdateGroupModel,
@@ -30,6 +30,7 @@ from packit_service.models import (
     SidetagGroupModel,
     SidetagModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import (
     dump_job_config,
     dump_package_config,

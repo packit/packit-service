@@ -17,7 +17,7 @@ from packit.local_project import LocalProject
 
 import packit_service.models
 import packit_service.service.urls as urls
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.events.event_data import (
     EventData,
 )
@@ -41,6 +41,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.worker.handlers import (
     DownstreamTestingFarmResultsHandler as DownstreamTFResultsHandler,
 )

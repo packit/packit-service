@@ -6,7 +6,7 @@ from typing import Optional
 
 from packit.config import PackageConfig
 
-from packit_service.config import PackageConfigGetter
+from packit_service.package_config_getter import PackageConfigGetter
 
 from ..abstract.base import ForgeIndependent
 

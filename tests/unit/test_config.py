@@ -6,14 +6,15 @@ from flexmock import flexmock
 from marshmallow import ValidationError
 from packit.exceptions import PackitConfigException
 
-from packit_service import config
+from packit_service import package_config_getter
 from packit_service.config import (
     Deployment,
     MRTarget,
-    PackageConfigGetter,
     ServiceConfig,
 )
 from packit_service.constants import TESTING_FARM_API_URL
+from packit_service.package_config_getter import PackageConfigGetter
+from packit_service.worker.reporting import create_issue_if_needed
 
 
 @pytest.fixture(scope="module")
@@ -195,7 +196,7 @@ def test_get_package_config_from_repo(
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(package_config_path_override=package_config_path),
     ).once()
-    flexmock(config).should_receive("get_package_config_from_repo").with_args(
+    flexmock(package_config_getter).should_receive("get_package_config_from_repo").with_args(
         project=(base_project or project),
         ref=reference,
         package_config_path=package_config_path,
@@ -211,7 +212,7 @@ def test_get_package_config_from_repo_no_project():
     """When neither a project nor a base_project is provided,
     None is returned and no exception is raised.
     """
-    flexmock(config).should_receive("get_package_config_from_repo").never()
+    flexmock(package_config_getter).should_receive("get_package_config_from_repo").never()
     PackageConfigGetter.get_package_config_from_repo(project=None, base_project=None)
 
 
@@ -220,7 +221,7 @@ def test_get_package_config_from_repo_not_found_exception_pr():
     exception.
     """
     project = flexmock(full_repo_name="packit/packit")
-    flexmock(config).should_receive("get_package_config_from_repo").with_args(
+    flexmock(package_config_getter).should_receive("get_package_config_from_repo").with_args(
         project=project,
         ref=None,
         package_config_path=None,
@@ -238,7 +239,9 @@ def test_get_package_config_from_repo_not_found_exception_pr():
 
 def test_get_package_config_from_repo_not_found():
     """Don't fail when config is not found."""
-    flexmock(config).should_receive("get_package_config_from_repo").once().and_return(
+    flexmock(package_config_getter).should_receive(
+        "get_package_config_from_repo"
+    ).once().and_return(
         None,
     )
     assert (
@@ -253,12 +256,12 @@ def test_get_package_config_from_repo_not_found():
 
 def test_get_package_config_from_repo_not_found_exception_create_issue():
     project = flexmock(full_repo_name="packit/packit")
-    flexmock(config).should_receive("get_package_config_from_repo").with_args(
+    flexmock(package_config_getter).should_receive("get_package_config_from_repo").with_args(
         project=project,
         ref=None,
         package_config_path=None,
     ).once().and_return(None)
-    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").with_args(
+    flexmock(package_config_getter).should_receive("create_issue_if_needed").with_args(
         project,
         title=str,
         message=str,
@@ -353,7 +356,7 @@ def test_create_issue_if_needed(
 
         check = lambda value: value.title == "new issue"  # noqa
 
-    issue_created = PackageConfigGetter.create_issue_if_needed(
+    issue_created = create_issue_if_needed(
         project,
         title,
         message,

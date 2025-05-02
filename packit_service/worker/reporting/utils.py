@@ -2,12 +2,45 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from typing import Optional, Union
 
+from ogr.abstract import Comment, GitProject, Issue, PullRequest
 from packit.config import JobConfig
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
+from packit_service.worker.reporting.enums import (
+    DuplicateCheckMode,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def create_issue_if_needed(
+    project: GitProject,
+    title: str,
+    message: str,
+    comment_to_existing: Optional[str] = None,
+    add_packit_prefix: Optional[bool] = True,
+) -> Optional[Issue]:
+    # TODO: Improve filtering
+    issues = project.get_issue_list()
+    packit_title = f"[packit] {title}"
+
+    for issue in issues:
+        if title in issue.title:
+            logger.debug(f"Title of issue {issue.id} matches.")
+            if comment_to_existing:
+                comment_without_duplicating(body=comment_to_existing, pr_or_issue=issue)
+                logger.debug(f"Issue #{issue.id} updated: {issue.url}")
+            return None
+
+    # TODO: store in DB
+    issue = project.create_issue(
+        title=packit_title if add_packit_prefix else title,
+        body=message,
+    )
+    logger.debug(f"Issue #{issue.id} created: {issue.url}")
+    return issue
 
 
 def report_in_issue_repository(
@@ -35,7 +68,7 @@ def report_in_issue_repository(
         "or update the existing one.",
     )
     issue_repo = service_config.get_project(url=issue_repository)
-    PackageConfigGetter.create_issue_if_needed(
+    create_issue_if_needed(
         project=issue_repo,
         title=title,
         message=message,
