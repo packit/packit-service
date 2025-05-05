@@ -2639,7 +2639,7 @@ def test_koji_build_end_downstream(
                 "arch": "x86_64",
                 "os": {"compose": "Fedora-Rawhide"},
                 "variables": {
-                    "PROFILE_NAME": "fedora-rawhide",
+                    "PROFILE_NAME": "fedora-43",
                     "TASK_ID": "1",
                 },
             },
@@ -2659,6 +2659,10 @@ def test_koji_build_end_downstream(
     flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
         "fedora-rawhide",
     ).and_return("Fedora-Rawhide")
+
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args("rawhide").and_return(
+        "f43-updates-candidate"
+    )
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
     flexmock(TestingFarmClient).should_receive(
