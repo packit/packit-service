@@ -570,6 +570,7 @@ def test_check_pending_testing_farm_runs_no_runs():
         TestingFarmResult.new,
         TestingFarmResult.queued,
         TestingFarmResult.running,
+        TestingFarmResult.cancel_requested,
     ).and_return([])
     # No request should be performed
     flexmock(requests).should_receive("get").never()
@@ -616,6 +617,7 @@ def test_check_pending_testing_farm_runs(created):
         TestingFarmResult.new,
         TestingFarmResult.queued,
         TestingFarmResult.running,
+        TestingFarmResult.cancel_requested,
     ).and_return([run]).once()
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
         pipeline_id=pipeline_id,
@@ -668,6 +670,7 @@ def test_check_pending_testing_farm_runs_timeout(status):
         TestingFarmResult.new,
         TestingFarmResult.queued,
         TestingFarmResult.running,
+        TestingFarmResult.cancel_requested,
     ).and_return([run]).once()
     check_pending_testing_farm_runs()
 
@@ -708,6 +711,7 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
         TestingFarmResult.new,
         TestingFarmResult.queued,
         TestingFarmResult.running,
+        TestingFarmResult.cancel_requested,
     ).and_return([run]).once()
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
         pipeline_id=pipeline_id,

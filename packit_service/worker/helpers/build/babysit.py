@@ -70,6 +70,7 @@ def check_pending_testing_farm_runs() -> None:
         TestingFarmResult.new,
         TestingFarmResult.queued,
         TestingFarmResult.running,
+        TestingFarmResult.cancel_requested,
     )
     pending_test_runs = TFTTestRunTargetModel.get_all_by_status(*not_completed)
     for run in pending_test_runs:
