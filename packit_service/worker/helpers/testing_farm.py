@@ -11,6 +11,7 @@ from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitConfigException
 from packit.utils import commands, nested_get
+from packit.utils.koji_helper import KojiHelper
 
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
@@ -1230,6 +1231,8 @@ def implements_fedora_ci_test(test_name: str) -> Callable:
 
 
 class DownstreamTestingFarmJobHelper:
+    _koji_helper: Optional[KojiHelper] = None
+
     def __init__(
         self,
         service_config: ServiceConfig,
@@ -1245,6 +1248,12 @@ class DownstreamTestingFarmJobHelper:
         self.celery_task = celery_task
         self._tft_client: Optional[TestingFarmClient] = None
         self._ci_helper: Optional[FedoraCIHelper] = None
+
+    @property
+    def koji_helper(self):
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
 
     @staticmethod
     def get_fedora_ci_tests(service_config: ServiceConfig, metadata: EventData) -> list[str]:
@@ -1389,6 +1398,14 @@ class DownstreamTestingFarmJobHelper:
             .split()[0]
         )
 
+        if self.koji_build.target == "rawhide":
+            # profile names are in "fedora-N" format
+            # extract current rawhide version number from its candidate tag
+            candidate_tag = self.koji_helper.get_candidate_tag("rawhide")
+            profile = re.sub(r"f(\d+)(-.*)?", r"fedora-\1", candidate_tag)
+        else:
+            profile = compose.lower()
+
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
@@ -1402,7 +1419,7 @@ class DownstreamTestingFarmJobHelper:
                     "arch": "x86_64",
                     "os": {"compose": compose},
                     "variables": {
-                        "PROFILE_NAME": compose.lower(),
+                        "PROFILE_NAME": profile,
                         "TASK_ID": self.koji_build.task_id,
                     },
                 },
