@@ -35,6 +35,8 @@ from packit_service.worker.handlers.open_scan_hub import (
     CoprOpenScanHubTaskStartedHandler,
 )
 from packit_service.worker.handlers.testing_farm import (
+    DownstreamTestingFarmHandler,
+    DownstreamTestingFarmResultsHandler,
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
@@ -54,6 +56,8 @@ __all__ = [
     ProposeDownstreamHandler.__name__,
     KojiBuildHandler.__name__,
     KojiTaskReportHandler.__name__,
+    DownstreamTestingFarmHandler.__name__,
+    DownstreamTestingFarmResultsHandler.__name__,
     TestingFarmHandler.__name__,
     TestingFarmResultsHandler.__name__,
     GithubFasVerificationHandler.__name__,

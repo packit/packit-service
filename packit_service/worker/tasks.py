@@ -52,6 +52,8 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     CoprOpenScanHubTaskFinishedHandler,
     CoprOpenScanHubTaskStartedHandler,
+    DownstreamTestingFarmHandler,
+    DownstreamTestingFarmResultsHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
     KojiTaskReportHandler,
@@ -320,6 +322,38 @@ def run_testing_farm_results_handler(
     job_config: dict,
 ):
     handler = TestingFarmResultsHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(bind=True, name=TaskName.downstream_testing_farm, base=TaskWithRetry)
+def run_downstream_testing_farm_handler(
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    testing_farm_target_id: Optional[int] = None,
+):
+    handler = DownstreamTestingFarmHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+        testing_farm_target_id=testing_farm_target_id,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.downstream_testing_farm_results, base=TaskWithRetry)
+def run_downstream_testing_farm_results_handler(
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+):
+    handler = DownstreamTestingFarmResultsHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

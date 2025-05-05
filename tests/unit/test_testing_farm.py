@@ -31,6 +31,7 @@ from packit_service.events.testing_farm import (
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
+    KojiBuildTargetModel,
     PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
@@ -40,8 +41,14 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.models import TestingFarmResult as TFResult
+from packit_service.worker.handlers import (
+    DownstreamTestingFarmResultsHandler as DownstreamTFResultsHandler,
+)
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
+from packit_service.worker.helpers.testing_farm import (
+    TestingFarmClient as TFClient,
+)
 from packit_service.worker.helpers.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
@@ -212,6 +219,137 @@ def test_testing_farm_response(
 
 
 @pytest.mark.parametrize(
+    "tests_result,tests_summary,status_status,status_message",
+    [
+        pytest.param(
+            TFResult.passed,
+            "some summary",
+            BaseCommitStatus.success,
+            "some summary",
+            id="passed_and_summary_provided",
+        ),
+        pytest.param(
+            TFResult.passed,
+            None,
+            BaseCommitStatus.success,
+            "Tests passed ...",
+            id="passed_and_summary_not_provided",
+        ),
+        pytest.param(
+            TFResult.failed,
+            "some summary",
+            BaseCommitStatus.failure,
+            "some summary",
+            id="failed_and_summary_provided",
+        ),
+        pytest.param(
+            TFResult.failed,
+            None,
+            BaseCommitStatus.failure,
+            "Tests failed ...",
+            id="failed_and_summary_not_provided",
+        ),
+    ],
+)
+def test_downstream_testing_farm_response(
+    tests_result,
+    tests_summary,
+    status_status,
+    status_message,
+):
+    config = flexmock(
+        command_handler_work_dir=flexmock(),
+        comment_command_prefix="/packit",
+    )
+    flexmock(DownstreamTFResultsHandler).should_receive("service_config").and_return(config)
+    flexmock(TFResultsEvent).should_receive("db_project_object").and_return(None)
+    config.should_receive("get_project").with_args(
+        url="https://src.fedoraproject.org/rpms/python-ogr",
+    ).and_return(
+        flexmock(
+            service=flexmock(instance_url="https://src.fedoraproject.org"),
+            namespace="rpms",
+            repo="python-ogr",
+            get_pr=lambda id: flexmock(head_commit="0000000000", target_branch="rawhide"),
+        ),
+    )
+    # config.should_receive("get_github_account_name").and_return("packit-as-a-service")
+    created_dt = datetime.now(timezone.utc)
+    event_dict = TFResultsEvent(
+        pipeline_id="id",
+        result=tests_result,
+        compose=flexmock(),
+        summary=tests_summary,
+        log_url="some url",
+        copr_build_id=None,
+        copr_chroot="fedora-rawhide",
+        commit_sha=flexmock(),
+        project_url="https://src.fedoraproject.org/rpms/python-ogr",
+        created=created_dt,
+    ).get_dict()
+    test_farm_handler = DownstreamTFResultsHandler(
+        package_config=None,
+        job_config=None,
+        event=event_dict,
+    )
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=status_status,
+        description=status_message,
+        url="https://dashboard.localhost/jobs/testing-farm/123",
+        check_name="Packit - installability test",
+        target_branch="rawhide",
+    ).once()
+
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    tft_test_run_model = (
+        flexmock(
+            id=123,
+            submitted_time=datetime.now(),
+            target="fedora-rawhide",
+            status=None,
+            data={"fedora_ci_test": "installability"},
+        )
+        .should_receive("get_project_event_model")
+        .and_return(
+            flexmock(id=123)
+            .should_receive("get_project_event_object")
+            .and_return(
+                flexmock(
+                    id=12,
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                    project_event_model_type=ProjectEventModelType.pull_request,
+                    commit_sha="0000000000",
+                ),
+            )
+            .mock(),
+        )
+        .mock()
+    )
+    tft_test_run_model.should_receive("set_status").with_args(
+        tests_result,
+        created=created_dt,
+    ).and_return().once()
+    tft_test_run_model.should_receive("set_web_url").with_args(
+        "some url",
+    ).and_return().once()
+
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
+        tft_test_run_model,
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, type=ProjectEventModelType.pull_request),
+    )
+
+    flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_last_successful_scratch_by_commit_target"
+    ).with_args("0000000000", "rawhide").and_return(flexmock(target="rawhide"))
+
+    test_farm_handler.run()
+
+
+@pytest.mark.parametrize(
     "target,compose,use_internal_tf",
     [
         ("fedora-33-x86_64", "Fedora-33", False),
@@ -242,34 +380,21 @@ def test_testing_farm_response(
     ],
 )
 def test_distro2compose(target, compose, use_internal_tf):
-    job_helper = TFJobHelper(
-        service_config=ServiceConfig.get_service_config(),
-        package_config=flexmock(jobs=[]),
-        project=flexmock(),
-        metadata=flexmock(),
-        db_project_event=flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(flexmock())
-        .mock(),
-        job_config=JobConfig(
-            type=JobType.tests,
-            trigger=JobConfigTriggerType.pull_request,
-            packages={
-                "package": CommonPackageConfig(
-                    use_internal_tf=use_internal_tf,
-                ),
-            },
-        ),
+    service_config = ServiceConfig.get_service_config()
+    client = TFClient(
+        api_url=service_config.testing_farm_api_url,
+        token=service_config.testing_farm_secret,
+        use_internal_tf=use_internal_tf,
     )
-    job_helper = flexmock(job_helper)
+    client = flexmock(client)
 
     response = flexmock(status_code=200, json=lambda: {"composes": [{"name": compose}]})
     endpoint = "composes/redhat" if use_internal_tf else "composes/public"
-    job_helper.should_receive("send_testing_farm_request").with_args(
+    client.should_receive("send_testing_farm_request").with_args(
         endpoint=endpoint,
     ).and_return(response).once()
 
-    assert job_helper.distro2compose(target) == compose
+    assert client.distro2compose(target.rsplit("-", 1)[0]) == compose
 
 
 @pytest.mark.parametrize(
@@ -345,7 +470,7 @@ def test_artifact(
     ],
 )
 def test_is_compose_matching(compose, composes, result):
-    assert TFJobHelper.is_compose_matching(compose, composes) is result
+    assert TFClient.is_compose_matching(compose, composes) is result
 
 
 @pytest.mark.parametrize(
@@ -818,7 +943,7 @@ def test_payload(
     job_helper.job_config.env = {"MY_ENV_VARIABLE": "my-value"}
 
     token_to_use = internal_tf_token if use_internal_tf else tf_token
-    assert job_helper.tft_token == token_to_use
+    assert job_helper.tft_client.tft_token == token_to_use
 
     job_helper = flexmock(job_helper)
 
@@ -1007,6 +1132,7 @@ def test_merge_extra_params():
     tf_settings = {"provisioning": {"tags": {"BusinessUnit": "sst_upgrades"}}}
 
     service_config = flexmock(
+        testing_farm_api_url="API URL",
         testing_farm_secret="secret token",
         deployment="prod",
         comment_command_prefix="/packit-dev",
@@ -1277,7 +1403,8 @@ def test_test_repo(
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
     job_helper.should_receive("job_project").and_return(copr_project)
-    job_helper.should_receive("distro2compose").and_return(compose)
+
+    flexmock(TFClient).should_receive("distro2compose").and_return(compose)
 
     build_id = 1
     # URLs shortened for clarity
@@ -1327,10 +1454,10 @@ def test_get_request_details():
     request_response = flexmock(status_code=200)
     request_response.should_receive("json").and_return(request)
     flexmock(
-        TFJobHelper,
+        TFClient,
         send_testing_farm_request=request_response,
     )
-    details = TFJobHelper.get_request_details(request_id)
+    details = TFClient.get_request_details(request_id)
     assert details == request
 
 
@@ -2079,29 +2206,16 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
     ],
 )
 def test_is_supported_architecture(target, use_internal_tf, supported):
-    job_helper = TFJobHelper(
-        service_config=ServiceConfig.get_service_config(),
-        package_config=flexmock(jobs=[]),
-        project=flexmock(),
-        metadata=flexmock(),
-        db_project_event=flexmock()
-        .should_receive("get_project_event_object")
-        .and_return(flexmock())
-        .mock(),
-        job_config=JobConfig(
-            type=JobType.tests,
-            trigger=JobConfigTriggerType.pull_request,
-            packages={
-                "package": CommonPackageConfig(
-                    use_internal_tf=use_internal_tf,
-                ),
-            },
-        ),
+    service_config = ServiceConfig.get_service_config()
+    client = TFClient(
+        api_url=service_config.testing_farm_api_url,
+        token=service_config.testing_farm_secret,
+        use_internal_tf=use_internal_tf,
     )
     if not supported:
         flexmock(TFJobHelper).should_receive("report_status_to_tests_for_test_target")
 
-    assert job_helper._is_supported_architecture(target) == supported
+    assert client.is_supported_architecture(target.rsplit("-", 1)[1]) == supported
 
 
 @pytest.mark.parametrize(

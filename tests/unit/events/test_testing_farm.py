@@ -15,7 +15,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     get_submitted_time_from_model,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmClient
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
@@ -45,7 +45,7 @@ def test_parse_testing_farm_notification(
     identifier,
 ):
     request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         request_id,
     ).and_return(testing_farm_results)
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
@@ -95,7 +95,7 @@ def test_parse_testing_farm_notification_error(
     testing_farm_results_error,
 ):
     request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         request_id,
     ).and_return(testing_farm_results_error)
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
@@ -133,7 +133,7 @@ def test_get_project_testing_farm_notification(
     mock_config,
 ):
     request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         request_id,
     ).and_return(testing_farm_results)
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
@@ -154,7 +154,7 @@ def test_json_testing_farm_notification(
     testing_farm_notification,
     testing_farm_results,
 ):
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").and_return(
+    flexmock(TestingFarmClient).should_receive("get_request_details").and_return(
         testing_farm_results,
     )
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(

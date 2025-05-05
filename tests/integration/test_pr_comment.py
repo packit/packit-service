@@ -83,7 +83,11 @@ from packit_service.worker.handlers.distgit import (
 )
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import (
+    DownstreamTestingFarmJobHelper,
+    TestingFarmClient,
+    TestingFarmJobHelper,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.monitoring import Pushgateway
@@ -97,6 +101,7 @@ from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_downstream_koji_build,
     run_downstream_koji_scratch_build_handler,
+    run_downstream_testing_farm_handler,
     run_koji_build_handler,
     run_pull_from_upstream_handler,
     run_retrigger_bodhi_update,
@@ -974,11 +979,11 @@ def test_pr_test_command_handler_retries(
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+    flexmock(TestingFarmClient).should_receive("distro2compose").and_return(
         "Fedora-Rawhide",
     )
 
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(response)
 
@@ -1181,12 +1186,12 @@ def test_pr_test_command_handler_skip_build_option(
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+    flexmock(TestingFarmClient).should_receive("distro2compose").and_return(
         "Fedora-Rawhide",
     )
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
@@ -1354,7 +1359,7 @@ def test_pr_test_command_handler_compose_not_present(
         status_code=200,
         json=lambda: {"composes": [{"name": "some-other-compose"}]},
     )
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="composes/public").and_return(response).once()
 
@@ -1477,7 +1482,7 @@ def test_pr_test_command_handler_composes_not_available(
         update_feedback_time=object,
     ).once()
 
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="composes/public").and_return(flexmock(status_code=500)).once()
 
@@ -2160,12 +2165,12 @@ def test_pr_test_command_handler_multiple_builds(
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+    flexmock(TestingFarmClient).should_receive("distro2compose").and_return(
         "Fedora-Rawhide",
     )
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
@@ -3275,6 +3280,154 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     )
     assert json.dumps(event_dict)
     results = run_tag_into_sidetag_handler(
+        event=event_dict,
+        package_config=package_config,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "comment",
+    [
+        pytest.param("/packit-ci test"),
+        pytest.param("/packit-ci test installability"),
+    ],
+)
+@pytest.mark.parametrize(
+    "target_branch, uid, check_name",
+    [
+        pytest.param(
+            "rawhide",
+            "754c2fe7504b1ebb674fb2e8ad25e249",
+            "Packit - installability test - rawhide",
+            id="rawhide target branch",
+        ),
+        pytest.param(
+            "f42",
+            "2b8e260f509e000b733833e465ad13d7",
+            "Packit - installability test - f42",
+            id="f42 target branch",
+        ),
+    ],
+)
+def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
+    pagure_pr_comment_added, comment, target_branch, uid, check_name
+):
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = comment
+    pagure_pr_comment_added["pullrequest"]["branch"] = target_branch
+    pr_object = (
+        flexmock(target_branch=target_branch, head_commit="abcdef")
+        .should_receive("set_flag")
+        .with_args(
+            username=check_name,
+            comment="The task was accepted.",
+            url=str,
+            status=CommitStatus,
+            uid=uid,
+        )
+        .once()
+        .mock()
+    )
+    dg_project = (
+        flexmock(
+            PagureProject(
+                namespace="rpms", repo="python-teamcity-messages", service=flexmock(read_only=False)
+            ),
+            default_branch="main",
+        )
+        .should_receive("is_private")
+        .and_return(False)
+        .mock()
+        .should_receive("get_pr")
+        .and_return(pr_object)
+        .mock()
+        .should_receive("get_files")
+        .and_return([])
+        .mock()
+        .should_receive("get_web_url")
+        .and_return("URL")
+        .mock()
+    )
+    service_config = (
+        flexmock(
+            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
+            comment_command_prefix="/packit",
+            package_config_path_override=None,
+        )
+        .should_receive("get_project")
+        .and_return(dg_project)
+        .mock()
+    )
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True,
+    )
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
+    )
+    db_project_event = (
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="abcd",
+    ).and_return(flexmock())
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=36,
+        namespace="rpms",
+        repo_name="python-teamcity-messages",
+        project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event,
+    )
+
+    run = flexmock(test_run_group=None)
+    koji_build = flexmock(
+        id=123,
+        target="main",
+        status="success",
+        group_of_targets=flexmock(runs=[run]),
+    )
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        koji_builds=[koji_build],
+        target=target_branch,
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+        flexmock(grouped_targets=[test_run]),
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_last_successful_scratch_by_commit_target"
+    ).with_args("abcdef", target_branch).and_return(koji_build)
+
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
+        TaskResults(success=True, details={}),
+    )
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert json.dumps(event_dict)
+    results = run_downstream_testing_farm_handler(
         event=event_dict,
         package_config=package_config,
         job_config=job_config,

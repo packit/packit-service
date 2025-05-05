@@ -25,6 +25,7 @@ from packit_service.events.event_data import EventData
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
+    KojiBuildTargetModel,
     ProjectEventModel,
     SRPMBuildModel,
 )
@@ -33,7 +34,10 @@ from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.sidetag import Sidetag, SidetagHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import (
+    DownstreamTestingFarmJobHelper,
+    TestingFarmJobHelper,
+)
 from packit_service.worker.mixin import Config, ConfigFromEventMixin, GetBranches
 from packit_service.worker.monitoring import Pushgateway
 
@@ -58,6 +62,66 @@ class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
                 self.data.event_dict,
             )
         return self._koji_build_event
+
+
+class GetKojiTaskEvent(Protocol):
+    data: EventData
+
+    @property
+    @abstractmethod
+    def koji_task_event(self) -> Optional[koji.result.Task]: ...
+
+
+class GetKojiTaskEventMixin(ConfigFromEventMixin, GetKojiTaskEvent):
+    _koji_task_event: Optional[koji.result.Task] = None
+
+    @property
+    def koji_task_event(self) -> Optional[koji.result.Task]:
+        if not self._koji_task_event and "task_id" in self.data.event_dict:
+            self._koji_task_event = koji.result.Task.from_event_dict(
+                self.data.event_dict,
+            )
+        return self._koji_task_event
+
+
+class GetKojiBuild(Protocol):
+    @property
+    @abstractmethod
+    def koji_build(self) -> Optional[KojiBuildTargetModel]: ...
+
+    @property
+    @abstractmethod
+    def db_project_event(self) -> Optional[ProjectEventModel]: ...
+
+
+class GetKojiBuildFromTaskOrPullRequestMixin(GetKojiBuild, GetKojiTaskEventMixin):
+    _koji_build: Optional[KojiBuildTargetModel] = None
+    _db_project_event: Optional[ProjectEventModel] = None
+
+    @property
+    def koji_build(self) -> Optional[KojiBuildTargetModel]:
+        if not self._koji_build:
+            if self.koji_task_event:
+                self._koji_build = KojiBuildTargetModel.get_by_task_id(
+                    str(self.koji_task_event.task_id)
+                )
+            else:
+                pull_request = self.project.get_pr(self.data.pr_id)
+                self._koji_build = (
+                    KojiBuildTargetModel.get_last_successful_scratch_by_commit_target(
+                        pull_request.head_commit, pull_request.target_branch
+                    )
+                )
+        return self._koji_build
+
+    @property
+    def db_project_event(self) -> Optional[ProjectEventModel]:
+        if not self._db_project_event:
+            if self.koji_build:
+                self._db_project_event = self.koji_build.get_project_event_model()
+            else:
+                self._db_project_event = self.data.db_project_event
+        return self._db_project_event
 
 
 class GetKojiBuildJobHelper(Protocol):
@@ -491,6 +555,34 @@ class GetTestingFarmJobHelperMixin(
                 celery_task=self.celery_task,
             )
         return self._testing_farm_job_helper
+
+
+class GetDownstreamTestingFarmJobHelper(Protocol):
+    celery_task: Optional[CeleryTask] = None
+
+    @property
+    @abstractmethod
+    def downstream_testing_farm_job_helper(self) -> DownstreamTestingFarmJobHelper: ...
+
+
+class GetDownstreamTestingFarmJobHelperMixin(
+    GetDownstreamTestingFarmJobHelper,
+    GetKojiBuildFromTaskOrPullRequestMixin,
+    ConfigFromEventMixin,
+):
+    _downstream_testing_farm_job_helper: Optional[DownstreamTestingFarmJobHelper] = None
+
+    @property
+    def downstream_testing_farm_job_helper(self) -> DownstreamTestingFarmJobHelper:
+        if not self._downstream_testing_farm_job_helper:
+            self._downstream_testing_farm_job_helper = DownstreamTestingFarmJobHelper(
+                service_config=self.service_config,
+                project=self.project,
+                metadata=self.data,
+                koji_build=self.koji_build,
+                celery_task=self.celery_task,
+            )
+        return self._downstream_testing_farm_job_helper
 
 
 class GetGithubCommentEvent(Protocol):

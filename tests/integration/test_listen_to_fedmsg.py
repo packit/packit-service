@@ -51,8 +51,13 @@ from packit_service.service.urls import (
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
+from packit_service.worker.handlers.testing_farm import aliases
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import (
+    TestingFarmClient,
+    TestingFarmJobHelper,
+    commands,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
@@ -60,6 +65,7 @@ from packit_service.worker.tasks import (
     run_copr_build_end_handler,
     run_copr_build_start_handler,
     run_downstream_koji_scratch_build_report_handler,
+    run_downstream_testing_farm_handler,
     run_koji_build_report_handler,
     run_koji_build_tag_handler,
     run_testing_farm_handler,
@@ -718,12 +724,13 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide-x86_64",
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+        object,
     ).and_return("Fedora-Rawhide")
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
@@ -2013,10 +2020,11 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         [copr_build_pr.group_of_targets.runs[-1]],
     ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide-x86_64",
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+        object,
     ).and_return("Fedora-Rawhide")
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).and_return(
         RequestResponse(
@@ -2203,10 +2211,11 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide-x86_64",
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+        object,
     ).and_return("Fedora-Rawhide")
-    flexmock(TestingFarmJobHelper).should_receive(
+    flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).and_return(
         RequestResponse(
@@ -2573,13 +2582,21 @@ def test_koji_build_end_downstream(
 ):
     service_config = (
         flexmock(
+            testing_farm_api_url="API URL",
             enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/packit",
             koji_logs_url="",
             koji_web_url="",
             deployment=Deployment.stg,
+            testing_farm_secret="secret token",
         )
         .should_receive("get_project")
-        .and_return(flexmock(namespace="rpms", repo="packit"))
+        .and_return(
+            flexmock(
+                namespace="rpms",
+                repo="packit",
+                get_web_url=lambda: "https://src.fedoraproject.org/rpms/packit",
+            )
+        )
         .mock()
     )
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
@@ -2602,7 +2619,91 @@ def test_koji_build_end_downstream(
     koji_build_pr_downstream.should_receive("set_build_logs_urls")
     koji_build_pr_downstream.should_receive("set_web_url")
 
-    # check if packit-service set correct PR status
+    installability_repo = "https://github.com/fedora-ci/installability-pipeline.git"
+    installability_hash = "f6cd4a50476d9c8ffa36472c5ab2d2c8aad6cee1"
+
+    flexmock(commands).should_receive("run_command").with_args(
+        ["git", "ls-remote", installability_repo, "HEAD"], output=True
+    ).and_return(flexmock(stdout=f"{installability_hash}\tHEAD"))
+
+    payload = {
+        "api_key": "secret token",
+        "test": {
+            "tmt": {
+                "url": installability_repo,
+                "ref": installability_hash,
+            },
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "os": {"compose": "Fedora-Rawhide"},
+                "variables": {
+                    "PROFILE_NAME": "fedora-rawhide",
+                    "TASK_ID": "1",
+                },
+            },
+        ],
+        "notification": {
+            "webhook": {
+                "url": "https://stg.packit.dev/api/testing-farm/results",
+                "token": "secret token",
+            },
+        },
+    }
+
+    flexmock(aliases).should_receive("get_build_targets").with_args("rawhide").and_return(
+        ["fedora-rawhide-x86_64"]
+    )
+
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+    ).and_return("Fedora-Rawhide")
+
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+    flexmock(TestingFarmClient).should_receive(
+        "send_testing_farm_request",
+    ).with_args(endpoint="requests", method="POST", data=payload).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        ),
+    )
+
+    tft_test_run_model = (
+        flexmock(
+            id=5,
+            koji_builds=[koji_build_pr_downstream],
+            status=TestingFarmResult.new,
+            target="fedora-rawhide",
+            data={"fedora_ci_test": "installability"},
+        )
+        .should_receive("set_pipeline_id")
+        .with_args(pipeline_id)
+        .once()
+        .mock()
+    )
+    group = flexmock(grouped_targets=[tft_test_run_model])
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [koji_build_pr_downstream.group_of_targets.runs[-1]],
+    ).and_return(group)
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+        pipeline_id=None,
+        identifier=None,
+        status=TestingFarmResult.new,
+        target="fedora-rawhide",
+        web_url=None,
+        test_run_group=group,
+        koji_build_targets=[koji_build_pr_downstream],
+        data={
+            "base_project_url": "https://src.fedoraproject.org/rpms/packit",
+            "fedora_ci_test": "installability",
+        },
+    ).and_return(tft_test_run_model)
+
+    # check if packit-service set correct PR statuses
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.success,
         description="RPM build succeeded.",
@@ -2610,16 +2711,49 @@ def test_koji_build_end_downstream(
         check_name="Packit - scratch build",
         target_branch="rawhide",
     ).once()
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        url="",
+        check_name="Packit - installability test",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Tests have been submitted ...",
+        url="https://dashboard.localhost/jobs/testing-farm/5",
+        check_name="Packit - installability test",
+        target_branch="rawhide",
+    ).once()
+
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+
+    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
+
+    # reporting
     event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results,
+        [processing_results[0]],
     )
     assert json.dumps(event_dict)
 
     results = run_downstream_koji_scratch_build_report_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+    # Testing Farm
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        [processing_results[1]],
+    )
+    assert json.dumps(event_dict)
+
+    results = run_downstream_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,

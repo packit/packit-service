@@ -86,6 +86,7 @@ from packit_service.worker.checker.distgit import (
     ValidInformationForPullFromUpstream,
 )
 from packit_service.worker.handlers.abstract import (
+    FedoraCIJobHandler,
     JobHandler,
     RetriableJobHandler,
     TaskName,
@@ -766,13 +767,18 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 @reacts_to_as_fedora_ci(event=pagure.pr.Action)
 @reacts_to_as_fedora_ci(event=pagure.pr.Comment)
 class DownstreamKojiScratchBuildHandler(
-    RetriableJobHandler, ConfigFromUrlMixin, LocalProjectMixin, PackitAPIWithDownstreamMixin
+    RetriableJobHandler,
+    FedoraCIJobHandler,
+    ConfigFromUrlMixin,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
 ):
     """
     This handler can submit a scratch build in Koji from a dist-git (Fedora CI).
     """
 
     task_name = TaskName.downstream_koji_scratch_build
+    check_name = "Packit - scratch build"
 
     def __init__(
         self,
@@ -857,14 +863,22 @@ class DownstreamKojiScratchBuildHandler(
             git_ref=self.data.commit_sha,
         )
 
+    def report(self, description: str, commit_status: BaseCommitStatus, url: Optional[str]) -> None:
+        self.ci_helper.report(
+            state=commit_status,
+            description=description,
+            url=url,
+            check_name=self.check_name,
+        )
+
     def run(self) -> TaskResults:
         try:
             self.packit_api.init_kerberos_ticket()
         except PackitCommandFailedError as ex:
             msg = f"Kerberos authentication error: {ex.stderr_output}"
             logger.error(msg)
-            self.ci_helper.report(
-                state=BaseCommitStatus.error,
+            self.report(
+                commit_status=BaseCommitStatus.error,
                 description=msg,
                 url=None,
             )
@@ -892,15 +906,15 @@ class DownstreamKojiScratchBuildHandler(
                 koji_build.set_web_url(web_url)
                 koji_build.set_build_submission_stdout(stdout)
             url = get_koji_build_info_url(koji_build.id)
-            self.ci_helper.report(
-                state=BaseCommitStatus.running,
+            self.report(
+                commit_status=BaseCommitStatus.running,
                 description="RPM build was submitted ...",
                 url=url,
             )
         except Exception as ex:
             sentry_integration.send_to_sentry(ex)
-            self.ci_helper.report(
-                state=BaseCommitStatus.error,
+            self.report(
+                commit_status=BaseCommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
                 url=None,
             )

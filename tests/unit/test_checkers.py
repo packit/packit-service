@@ -204,6 +204,7 @@ def test_branch_push_event_checker(success, event, trigger, checker_kls):
         trigger=trigger,
         targets={"fedora-37"},
         branch="release",
+        use_internal_tf=False,
     )
 
     git_project = flexmock(
@@ -272,6 +273,7 @@ def test_pr_event_checker(configured_branch, success, event, trigger, checker_kl
         trigger=trigger,
         targets={"fedora-37"},
         branch=configured_branch,
+        use_internal_tf=False,
     )
 
     git_project = flexmock(
@@ -532,6 +534,7 @@ def test_tf_comment_identifier(comment, result):
         targets={"fedora-37"},
         skip_build=True,
         manual_trigger=True,
+        use_internal_tf=False,
         packages={"package": CommonPackageConfig()},
         identifier="my-id-1",
         test_command=TestCommandConfig(default_labels=None, default_identifier=None),
@@ -621,6 +624,7 @@ def test_tf_comment_default_identifier(
         targets={"fedora-37"},
         skip_build=True,
         manual_trigger=True,
+        use_internal_tf=False,
         packages={"package": CommonPackageConfig()},
         identifier=job_identifier,
         test_command=TestCommandConfig(
@@ -687,6 +691,7 @@ def test_tf_comment_labels(comment, result):
         targets={"fedora-37"},
         skip_build=True,
         manual_trigger=True,
+        use_internal_tf=False,
         packages={"package": CommonPackageConfig()},
         identifier="my-id-1",
         labels=["label1", "label3"],
@@ -772,6 +777,7 @@ def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
         targets={"fedora-37"},
         skip_build=True,
         manual_trigger=True,
+        use_internal_tf=False,
         packages={"package": CommonPackageConfig()},
         identifier="my-id-1",
         labels=job_labels,
@@ -837,6 +843,7 @@ def test_tf_comment_labels_none_in_config(comment, result):
         targets={"fedora-37"},
         skip_build=True,
         manual_trigger=True,
+        use_internal_tf=False,
         packages={"package": CommonPackageConfig()},
         labels=None,
         identifier="my-id-1",

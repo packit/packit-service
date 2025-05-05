@@ -27,6 +27,7 @@ from packit_service.events import (
     github,
     koji,
     pagure,
+    testing_farm,
 )
 from packit_service.events.event import Event
 from packit_service.events.event_data import EventData
@@ -52,6 +53,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI,
+    FedoraCIJobHandler,
     JobHandler,
 )
 from packit_service.worker.handlers.bodhi import (
@@ -112,7 +114,7 @@ def get_handlers_for_comment(
 def get_handlers_for_comment_fedora_ci(
     comment: str,
     packit_comment_command_prefix: str,
-) -> set[type[JobHandler]]:
+) -> set[type[FedoraCIJobHandler]]:
     """
     Get handlers for the given Fedora CI command respecting packit_comment_command_prefix.
 
@@ -263,7 +265,10 @@ class SteveJobs:
             # on the issue created by us or not in packit/notifications?
         else:
             if (
-                isinstance(self.event, (pagure.pr.Action, pagure.pr.Comment, koji.result.Task))
+                isinstance(
+                    self.event,
+                    (pagure.pr.Action, pagure.pr.Comment, koji.result.Task, testing_farm.Result),
+                )
                 and self.event.db_project_object
                 and (url := self.event.db_project_object.project.project_url)
                 and url in self.service_config.enabled_projects_for_fedora_ci
@@ -388,7 +393,7 @@ class SteveJobs:
 
         self.push_copr_metrics(handler_kls, number_of_build_targets)
 
-    def report_task_accepted_for_fedora_ci(self):
+    def report_task_accepted_for_fedora_ci(self, handler_kls: type[FedoraCIJobHandler]):
         """
         For CI-related dist-git PR comment events report the initial status
         "Task was accepted" to inform user we are working on the request.
@@ -403,17 +408,21 @@ class SteveJobs:
             )
             return
 
+        metadata = EventData.from_event_dict(self.event.get_dict())
+
         helper = FedoraCIHelper(
             project=self.event.project,
-            metadata=self.event,
+            metadata=metadata,
             target_branch=self.event.pull_request_object.target_branch,
         )
 
-        helper.report(
-            description=TASK_ACCEPTED,
-            state=BaseCommitStatus.pending,
-            url="",
-        )
+        for check_name in handler_kls.get_check_names(self.service_config, metadata):
+            helper.report(
+                description=TASK_ACCEPTED,
+                state=BaseCommitStatus.pending,
+                url="",
+                check_name=check_name,
+            )
 
     def search_distgit_config_in_issue(self) -> Optional[tuple[str, PackageConfig]]:
         """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
@@ -525,7 +534,7 @@ class SteveJobs:
             ):
                 continue
 
-            self.report_task_accepted_for_fedora_ci()
+            self.report_task_accepted_for_fedora_ci(handler_kls)
 
             celery_signature = celery.signature(
                 handler_kls.task_name.value,

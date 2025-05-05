@@ -348,6 +348,7 @@ def koji_build_pr_downstream():
     )
     runs = []
     srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
+    koji_group = flexmock(runs=runs)
     koji_build_model = flexmock(
         id=1,
         task_id="1",
@@ -357,6 +358,7 @@ def koji_build_pr_downstream():
         web_url="https://some-url",
         target="some-target",
         status="some-status",
+        group_of_targets=koji_group,
         runs=runs,
     )
     koji_build_model._srpm_build_for_mocking = srpm_build
@@ -376,7 +378,8 @@ def koji_build_pr_downstream():
         id=3,
         job_project_event=project_event_model,
         srpm_build=srpm_build,
-        copr_build=koji_build_model,
+        koji_build=koji_build_model,
+        test_run_group=None,
     )
     runs.append(run_model)
 
