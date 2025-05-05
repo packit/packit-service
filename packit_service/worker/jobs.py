@@ -13,10 +13,10 @@ from typing import Callable, Optional, Union
 
 import celery
 from ogr.exceptions import GithubAppNotInstalledError
-from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType
+from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType, PackageConfig
 from packit.utils import nested_get
 
-from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
     PACKIT_VERIFY_FAS_COMMAND,
@@ -31,6 +31,7 @@ from packit_service.events import (
 )
 from packit_service.events.event import Event
 from packit_service.events.event_data import EventData
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import (
     elapsed_seconds,
     get_packit_commands_from_comment,

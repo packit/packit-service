@@ -10,8 +10,9 @@ from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
 from packit.config import PackageConfig
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.models import ProjectEventModel, ProjectReleaseModel
+from packit_service.package_config_getter import PackageConfigGetter
 
 from ..event import Event
 

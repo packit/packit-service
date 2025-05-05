@@ -8,13 +8,13 @@ from flexmock import flexmock
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
-from packit_service.config import PackageConfigGetter
 from packit_service.events.anitya import NewHotness, VersionUpdate
 from packit_service.models import (
     ProjectEventModel,
     ProjectEventModelType,
     ProjectReleaseModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

@@ -14,7 +14,6 @@ from packit.config import (
 )
 from packit.config.package_config import PackageConfig
 
-from packit_service.config import PackageConfigGetter
 from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
 from packit_service.events import (
     github,
@@ -38,6 +37,7 @@ from packit_service.worker.mixin import (
     GetIssueMixin,
     PackitAPIWithDownstreamMixin,
 )
+from packit_service.worker.reporting import create_issue_if_needed
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ class GithubAppInstallationHandler(
                 return TaskResults(success=True, details={"msg": msg})
 
             # Create an issue in our repository, so we are notified when someone install the app
-            PackageConfigGetter.create_issue_if_needed(
+            create_issue_if_needed(
                 project=self.project,
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
                 message=(

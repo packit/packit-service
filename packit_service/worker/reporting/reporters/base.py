@@ -16,6 +16,7 @@ from packit_service.worker.reporting.enums import (
     BaseCommitStatus,
     DuplicateCheckMode,
 )
+from packit_service.worker.reporting.utils import has_identical_comment_in_comments
 
 logger = logging.getLogger(__name__)
 
@@ -241,14 +242,13 @@ class StatusReporter:
             if check_commit or not self.pr_id
             else self.pull_request_object.get_comments(reverse=True)
         )
-        for comment in comments:
-            if comment.author.startswith(self._packit_user):
-                if mode == DuplicateCheckMode.check_last_comment:
-                    return body == comment.body
 
-                if mode == DuplicateCheckMode.check_all_comments and body == comment.body:
-                    return True
-        return False
+        return has_identical_comment_in_comments(
+            body=body,
+            mode=mode,
+            comments=comments,
+            packit_user=self._packit_user,
+        )
 
     def comment(
         self,

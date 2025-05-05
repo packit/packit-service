@@ -21,7 +21,6 @@ from packit.config import (
 from packit.config.package_config import PackageConfig
 from packit.constants import DISTGIT_INSTANCES
 
-from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     KojiBuildState,
     KojiTaskState,
@@ -36,6 +35,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     ProjectEventModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )

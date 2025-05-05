@@ -27,7 +27,7 @@ from packit.local_project import LocalProject
 from packit.utils.koji_helper import KojiHelper
 
 import packit_service.service.urls as urls
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
 from packit_service.events import copr, koji
 from packit_service.models import (
@@ -43,6 +43,7 @@ from packit_service.models import (
     TFTTestRunGroupModel,
     TFTTestRunTargetModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_koji_build_info_url,

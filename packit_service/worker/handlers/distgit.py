@@ -30,7 +30,7 @@ from packit.utils import commands
 from packit.utils.koji_helper import KojiHelper
 
 from packit_service import sentry_integration
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
     DEFAULT_RETRY_BACKOFF,
@@ -121,6 +121,7 @@ from packit_service.worker.mixin import (
 )
 from packit_service.worker.reporting import (
     BaseCommitStatus,
+    create_issue_if_needed,
     report_in_issue_repository,
     update_message_with_configured_failure_comment_message,
 )
@@ -651,7 +652,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
             self.job_config,
         )
 
-        PackageConfigGetter.create_issue_if_needed(
+        create_issue_if_needed(
             project=self.project,
             title=f"{self.job_name_for_reporting.capitalize()} failed for release {self.tag}",
             message=body_msg,

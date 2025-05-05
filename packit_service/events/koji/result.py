@@ -8,13 +8,13 @@ from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType, PackageConfig
 
-from packit_service.config import PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 
 from ..event import (
     use_for_job_config_trigger,

@@ -10,7 +10,6 @@ from ogr import GithubService
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 
-from packit_service.config import PackageConfigGetter
 from packit_service.events import (
     abstract,
 )
@@ -28,6 +27,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
 )
+from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 

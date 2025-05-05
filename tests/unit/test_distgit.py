@@ -10,7 +10,6 @@ from ogr.services.github import GithubService
 from packit.api import PackitAPI
 from packit.config.notifications import NotificationsConfig
 
-from packit_service.config import PackageConfigGetter
 from packit_service.events.event_data import EventData
 from packit_service.worker.handlers.distgit import (
     AbstractSyncReleaseHandler,
@@ -19,6 +18,7 @@ from packit_service.worker.handlers.distgit import (
     ProposeDownstreamHandler,
     PullFromUpstreamHandler,
 )
+from packit_service.worker.reporting import utils
 
 
 def test_create_one_issue_for_pr():
@@ -44,6 +44,7 @@ def test_create_one_issue_for_pr():
                 title="[packit] Propose downstream failed for release 056",
                 id=1,
                 url="a url",
+                get_comments=lambda *args, **kwargs: [],
             )
             .should_receive("comment")
             .once()
@@ -100,7 +101,7 @@ def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_pass
         flexmock(),
     )
     if not check_passed:
-        flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
+        flexmock(utils).should_receive("create_issue_if_needed").once()
 
     result = DownstreamKojiBuildHandler.pre_check(
         None,

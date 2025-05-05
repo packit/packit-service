@@ -2,12 +2,44 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from collections.abc import Iterable
+from typing import Optional, Union
 
+from ogr.abstract import GitProject, Issue, PullRequest
 from packit.config import JobConfig
 
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import ServiceConfig
+from packit_service.worker.reporting.enums import DuplicateCheckMode
 
 logger = logging.getLogger(__name__)
+
+
+def create_issue_if_needed(
+    project: GitProject,
+    title: str,
+    message: str,
+    comment_to_existing: Optional[str] = None,
+    add_packit_prefix: Optional[bool] = True,
+) -> Optional[Issue]:
+    # TODO: Improve filtering
+    issues = project.get_issue_list()
+    packit_title = f"[packit] {title}"
+
+    for issue in issues:
+        if title in issue.title:
+            logger.debug(f"Title of issue {issue.id} matches.")
+            if comment_to_existing:
+                comment_without_duplicating(body=comment_to_existing, pr_or_issue=issue)
+                logger.debug(f"Issue #{issue.id} updated: {issue.url}")
+            return None
+
+    # TODO: store in DB
+    issue = project.create_issue(
+        title=packit_title if add_packit_prefix else title,
+        body=message,
+    )
+    logger.debug(f"Issue #{issue.id} created: {issue.url}")
+    return issue
 
 
 def report_in_issue_repository(
@@ -35,7 +67,7 @@ def report_in_issue_repository(
         "or update the existing one.",
     )
     issue_repo = service_config.get_project(url=issue_repository)
-    PackageConfigGetter.create_issue_if_needed(
+    create_issue_if_needed(
         project=issue_repo,
         title=title,
         message=message,
@@ -57,3 +89,41 @@ def update_message_with_configured_failure_comment_message(
         else ""
     )
     return f"{comment}{configured_failure_message}"
+
+
+def has_identical_comment_in_comments(
+    body: str,
+    comments: Iterable,
+    packit_user: str,
+    mode: DuplicateCheckMode = DuplicateCheckMode.check_last_comment,
+) -> bool:
+    """Check if the body matches provided comments based on the duplication mode."""
+    if mode == DuplicateCheckMode.do_not_check:
+        return False
+
+    for comment in comments:
+        if comment.author.startswith(packit_user):
+            if mode == DuplicateCheckMode.check_last_comment:
+                return body == comment.body
+            if mode == DuplicateCheckMode.check_all_comments and body == comment.body:
+                return True
+    return False
+
+
+def comment_without_duplicating(
+    body: str,
+    pr_or_issue: Union[PullRequest, Issue],
+    mode: DuplicateCheckMode = DuplicateCheckMode.check_last_comment,
+):
+    """
+    Comment on a given pull request/issue, considering the duplication mode.
+    """
+    packit_user = ServiceConfig.get_service_config().get_github_account_name()
+    comments = pr_or_issue.get_comments(reverse=True)
+    if has_identical_comment_in_comments(
+        body=body, comments=comments, packit_user=packit_user, mode=mode
+    ):
+        logger.debug("Identical comment already exists")
+        return
+
+    pr_or_issue.comment(body=body)

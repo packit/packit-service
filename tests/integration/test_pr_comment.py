@@ -1666,7 +1666,7 @@ def test_trigger_packit_command_without_config(
 
     pr_embedded_command_comment_event["comment"]["body"] = comments
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    pr = flexmock(head_commit="12345")
+    pr = flexmock(head_commit="12345", get_comments=lambda *args, **kwargs: [])
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     err_msg = (
         "No config file for packit (e.g. `.packit.yaml`) found in namespace/repo on commit 12345"
@@ -1678,7 +1678,7 @@ def test_trigger_packit_command_without_config(
         f"our CLI command [`config validate`]({DOCS_VALIDATE_CONFIG}) or our "
         f"[pre-commit hooks]({DOCS_VALIDATE_HOOKS}) for validation of the configuration."
     )
-    flexmock(pr).should_receive("comment").with_args(err_msg)
+    flexmock(pr).should_receive("comment").with_args(body=err_msg)
 
     with pytest.raises(PackitConfigException) as exc:
         SteveJobs().process_message(pr_embedded_command_comment_event)
