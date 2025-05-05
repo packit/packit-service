@@ -408,7 +408,7 @@ def test_parse_check_rerun_commit(
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit/hello-world"
     assert not event_object.base_project
-    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
 
 
 def test_parse_check_rerun_pull_request(
@@ -436,7 +436,7 @@ def test_parse_check_rerun_pull_request(
     )
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
-    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
 
 
 def test_parse_check_rerun_release(
@@ -465,7 +465,7 @@ def test_parse_check_rerun_release(
     )
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
-    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {("fedora-rawhide-x86_64", None)}
 
 
 def test_filter_failed_models_targets_copr(
@@ -495,7 +495,7 @@ def test_filter_failed_models_targets_copr(
     assert len(filtered_models) == 2  # we don't do duplicate models here
 
     most_recent_duplicate = max(builds_list[:2], key=attrgetter("build_submitted_time"))
-    assert most_recent_duplicate.target in filtered_models
+    assert (most_recent_duplicate.target, most_recent_duplicate.identifier) in filtered_models
 
 
 def test_filter_failed_models_targets_tf(
@@ -525,4 +525,4 @@ def test_filter_failed_models_targets_tf(
     assert len(filtered_models) == 2  # we don't do duplicates here
 
     most_recent_duplicate = max(test_list[1:3], key=attrgetter("submitted_time"))
-    assert most_recent_duplicate.target in filtered_models
+    assert (most_recent_duplicate.target, most_recent_duplicate.identifier) in filtered_models

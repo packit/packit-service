@@ -41,6 +41,7 @@ from sqlalchemy import (
     desc,
     func,
     null,
+    select,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.ext.declarative import declarative_base
@@ -2049,6 +2050,33 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         with sa_session_transaction() as session:
             return session.query(CoprBuildGroupModel).filter_by(id=group_id).first()
 
+    @classmethod
+    def get_running(cls, commit_sha: str) -> Iterable[tuple["CoprBuildTargetModel"]]:
+        """Get list of currently running Copr builds matching the passed
+        arguments.
+
+        Args:
+            commit_sha: Commit hash that is used for filtering the running jobs.
+
+        Returns:
+            An iterable over Copr target models that are curently in queue
+            (running) or waiting for an SRPM.
+        """
+        q = (
+            select(CoprBuildTargetModel)
+            .join(CoprBuildGroupModel)
+            .join(PipelineModel)
+            .join(ProjectEventModel)
+            .filter(
+                ProjectEventModel.commit_sha == commit_sha,
+                CoprBuildTargetModel.status.in_(
+                    (BuildStatus.pending, BuildStatus.waiting_for_srpm)
+                ),
+            )
+        )
+        with sa_session_transaction() as session:
+            return session.execute(q)
+
 
 class BuildStatus(str, enum.Enum):
     """An enum of all possible build statuses"""
@@ -2059,10 +2087,16 @@ class BuildStatus(str, enum.Enum):
     error = "error"
     waiting_for_srpm = "waiting_for_srpm"
     retry = "retry"
+    canceled = "canceled"
 
     @staticmethod
     def is_final_state(status: "BuildStatus"):
-        return status in {BuildStatus.success, BuildStatus.failure, BuildStatus.error}
+        return status in {
+            BuildStatus.success,
+            BuildStatus.failure,
+            BuildStatus.error,
+            BuildStatus.canceled,
+        }
 
 
 class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
@@ -3367,6 +3401,37 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     def get_by_id(cls, group_id: int) -> Optional["TFTTestRunGroupModel"]:
         with sa_session_transaction() as session:
             return session.query(TFTTestRunGroupModel).filter_by(id=group_id).first()
+
+    @classmethod
+    def get_running(cls, commit_sha: str) -> Iterable[tuple["TFTTestRunTargetModel"]]:
+        """Get list of currently running Testing Farm runs matching the passed
+        arguments.
+
+        Args:
+            commit_sha: Commit hash that is used for filtering the running jobs.
+
+        Returns:
+            An iterable over TFT target models that reprepresent matching TF
+            runs that are _new_ (to be triggered), _queued_ (already submitted
+            to the TF), or _running_.
+        """
+        q = (
+            select(TFTTestRunTargetModel)
+            .join(TFTTestRunGroupModel)
+            .join(PipelineModel)
+            .join(ProjectEventModel)
+            .filter(
+                ProjectEventModel.commit_sha == commit_sha,
+                TFTTestRunTargetModel.status.in_(
+                    (
+                        TestingFarmResult.queued,
+                        TestingFarmResult.running,
+                    )
+                ),
+            )
+        )
+        with sa_session_transaction() as session:
+            return session.execute(q)
 
 
 class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):

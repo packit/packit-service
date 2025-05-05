@@ -29,6 +29,7 @@ class BaseCommitStatus(Enum):
     pending = "pending"
     running = "running"
     error = "error"
+    canceled = "canceled"
 
 
 MAP_TO_COMMIT_STATUS: dict[BaseCommitStatus, CommitStatus] = {
@@ -38,6 +39,7 @@ MAP_TO_COMMIT_STATUS: dict[BaseCommitStatus, CommitStatus] = {
     BaseCommitStatus.neutral: CommitStatus.error,
     BaseCommitStatus.success: CommitStatus.success,
     BaseCommitStatus.error: CommitStatus.error,
+    BaseCommitStatus.canceled: CommitStatus.canceled,
 }
 
 MAP_TO_CHECK_RUN: dict[
@@ -50,4 +52,5 @@ MAP_TO_CHECK_RUN: dict[
     BaseCommitStatus.neutral: GithubCheckRunResult.neutral,
     BaseCommitStatus.success: GithubCheckRunResult.success,
     BaseCommitStatus.error: GithubCheckRunResult.failure,
+    BaseCommitStatus.canceled: GithubCheckRunResult.cancelled,
 }

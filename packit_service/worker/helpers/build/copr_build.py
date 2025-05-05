@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Union
 
 from copr.v3 import CoprAuthException, CoprRequestException
 from copr.v3.exceptions import CoprTimeoutException
@@ -51,6 +51,7 @@ from packit_service.models import (
     ProjectEventModel,
     ProjectEventModelType,
     SRPMBuildModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -1015,3 +1016,29 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         owner, project = self.job_owner, self.job_project
         return self.api.copr_helper.get_chroots(owner=owner, project=project)
+
+    # [NOTE] Needs to return a union, because TF helper inherits from this and
+    # it clashes the type checking…
+    def get_running_jobs(
+        self,
+    ) -> Union[Iterable[tuple["CoprBuildTargetModel"]], Iterable[tuple["TFTTestRunTargetModel"]]]:
+        if sha := self.metadata.commit_sha_before:
+            yield from CoprBuildGroupModel.get_running(commit_sha=sha)
+
+        # [SAFETY] When there's no previous commit hash, yields nothing
+
+    def cancel_running_builds(self):
+        running_builds = list(self.get_running_jobs())
+        if not running_builds:
+            logger.info("No running Copr builds to cancel.")
+            return
+
+        # Cancel unique builds
+        unique_builds = {int(build.build_id) for (build,) in running_builds}
+        for build_id in unique_builds:
+            logger.debug("Cancelling Copr build #%s", build_id)
+            self.api.copr_helper.cancel_build(build_id)
+
+        # Mark them as canceled
+        for (target,) in running_builds:
+            target.set_status(BuildStatus.canceled)

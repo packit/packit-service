@@ -4,6 +4,7 @@ import argparse
 import logging
 import re
 import shlex
+from collections.abc import Iterable
 from typing import Any, Callable, Optional, Union
 
 from ogr.abstract import GitProject
@@ -31,6 +32,7 @@ from packit_service.models import (
     ProjectEventModel,
     PullRequestModel,
     TestingFarmResult,
+    TFTTestRunGroupModel,
     TFTTestRunTargetModel,
     filter_most_recent_target_models_by_status,
 )
@@ -1218,6 +1220,22 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             update_feedback_time=update_feedback_time,
         )
 
+    def get_running_jobs(self) -> Iterable[tuple["TFTTestRunTargetModel"]]:
+        if sha := self.metadata.commit_sha_before:
+            yield from TFTTestRunGroupModel.get_running(commit_sha=sha)
+
+        # [SAFETY] When there's no previous commit hash, yields nothing
+
+    def cancel_running_tests(self):
+        running_tests = list(self.get_running_jobs())
+        if not running_tests:
+            logger.info("No running TF tests to cancel.")
+            return
+
+        for (test_run,) in running_tests:
+            self.cancel_testing_farm_request(test_run.pipeline_id)
+            test_run.set_status(TestingFarmResult.cancel_requested)
+
 
 FEDORA_CI_TESTS = {}
 
@@ -1512,3 +1530,7 @@ class DownstreamTestingFarmJobHelper:
                 "msg": f"Task will be retried because of failure when submitting tests: {message}",
             },
         )
+
+    def get_running_jobs(self) -> Iterable[str]:
+        # [TODO] Do not cancel TF runs on the downstream yet, to be decided later on
+        pass

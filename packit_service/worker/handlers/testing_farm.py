@@ -6,6 +6,7 @@ This file defines classes for job handlers specific for Testing farm
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -300,6 +301,12 @@ class TestingFarmHandler(
         logger.debug(f"Test job config: {self.job_config}")
         targets = list(self.testing_farm_job_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
+
+        # [XXX] For now cancel only when an environment variable is defined,
+        # should allow for less stressful testing and also optionally turning
+        # the cancelling on-and-off on the prod
+        if os.getenv("CANCEL_RUNNING_JOBS"):
+            self.testing_farm_job_helper.cancel_running_tests()
 
         if self.testing_farm_job_helper.build_required():
             if self.testing_farm_job_helper.job_build:

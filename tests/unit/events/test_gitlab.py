@@ -322,6 +322,7 @@ def test_parse_gitlab_push_many_commits(gitlab_push_many_commits):
     assert event_object.repo_namespace == "packit-service/rpms"
     assert event_object.repo_name == "open-vm-tools"
     assert event_object.commit_sha == "15af92227f9e965b392e85ba2f08a41a5aeb278a"
+    assert event_object.commit_sha_before == "8c349949521e5c3fcd5c1811d1acbc5a752b385e"
     assert event_object.project_url == "https://gitlab.com/packit-service/rpms/open-vm-tools"
     assert event_object.git_ref == "c9s"
 
