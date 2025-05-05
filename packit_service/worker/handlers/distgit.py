@@ -338,7 +338,7 @@ class AbstractSyncReleaseHandler(
                     try:
                         submodule.update(init=True, recursive=True, force=True)
                     except Exception as ex:  # noqa: PERF203
-                        logger.error(f"Failed to reset submodule {submodule.name}: {ex}")
+                        logger.warning(f"Failed to reset submodule {submodule.name}: {ex}")
 
         return downstream_pr, additional_prs
 
