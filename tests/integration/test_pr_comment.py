@@ -3300,14 +3300,14 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     [
         pytest.param(
             "rawhide",
-            "754c2fe7504b1ebb674fb2e8ad25e249",
-            "Packit - installability test - rawhide",
+            "380723461ab74e1cde4eb89b711c8f1d",
+            "Packit - installability test(s) - rawhide",
             id="rawhide target branch",
         ),
         pytest.param(
             "f42",
-            "2b8e260f509e000b733833e465ad13d7",
-            "Packit - installability test - f42",
+            "a478035df5f8599527e3e37bfc2ca25f",
+            "Packit - installability test(s) - f42",
             id="f42 target branch",
         ),
     ],
@@ -3345,6 +3345,9 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
         .mock()
         .should_receive("get_files")
         .and_return([])
+        .mock()
+        .should_receive("get_file_content")
+        .and_raise(FileNotFoundError)
         .mock()
         .should_receive("get_web_url")
         .and_return("URL")
