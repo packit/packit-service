@@ -1240,9 +1240,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 FEDORA_CI_TESTS = {}
 
 
-def implements_fedora_ci_test(test_name: str) -> Callable:
+def implements_fedora_ci_test(test_name: str, skipif: Optional[Callable] = None) -> Callable:
     def _update_mapping(function: Callable) -> Callable:
-        FEDORA_CI_TESTS[test_name] = function
+        FEDORA_CI_TESTS[test_name] = (function, skipif)
         return function
 
     return _update_mapping
@@ -1274,7 +1274,9 @@ class DownstreamTestingFarmJobHelper:
         return self._koji_helper
 
     @staticmethod
-    def get_fedora_ci_tests(service_config: ServiceConfig, metadata: EventData) -> list[str]:
+    def get_fedora_ci_tests(
+        service_config: ServiceConfig, project: GitProject, metadata: EventData
+    ) -> list[str]:
         """
         Gets relevant Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator.
         In case of valid comment command, if a test name is specified as an argument to the command
@@ -1283,12 +1285,17 @@ class DownstreamTestingFarmJobHelper:
 
         Args:
             service_config: Service config.
+            project: Git project.
             metadata: Event metadata.
 
         Returns:
             List of registered Fedora CI test names.
         """
-        all_tests = list(FEDORA_CI_TESTS.keys())
+        all_tests = [
+            name
+            for name, (_, skipif) in FEDORA_CI_TESTS.items()
+            if not skipif or not skipif(service_config, project, metadata)
+        ]
         if metadata.event_type != pagure.pr.Comment.event_type():
             return all_tests
         # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
@@ -1385,7 +1392,7 @@ class DownstreamTestingFarmJobHelper:
             msg = "We were not able to map distro to TF compose."
             return TaskResults(success=False, details={"msg": msg})
 
-        payload = FEDORA_CI_TESTS.get(test_run.data["fedora_ci_test"])(
+        payload = FEDORA_CI_TESTS[test_run.data["fedora_ci_test"]][0](
             self, distro=test_run.target, compose=compose
         )
 

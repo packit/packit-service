@@ -417,7 +417,9 @@ class SteveJobs:
             target_branch=self.event.pull_request_object.target_branch,
         )
 
-        for check_name in handler_kls.get_check_names(self.service_config, metadata):
+        for check_name in handler_kls.get_check_names(
+            self.service_config, self.event.project, metadata
+        ):
             helper.report(
                 description=TASK_ACCEPTED,
                 state=BaseCommitStatus.pending,
