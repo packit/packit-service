@@ -1385,7 +1385,9 @@ class DownstreamTestingFarmJobHelper:
             msg = "We were not able to map distro to TF compose."
             return TaskResults(success=False, details={"msg": msg})
 
-        payload = FEDORA_CI_TESTS.get(test_run.data["fedora_ci_test"])(self, compose)
+        payload = FEDORA_CI_TESTS.get(test_run.data["fedora_ci_test"])(
+            self, distro=test_run.target, compose=compose
+        )
 
         endpoint = "requests"
 
@@ -1408,7 +1410,7 @@ class DownstreamTestingFarmJobHelper:
         )
 
     @implements_fedora_ci_test("installability")
-    def _payload_installability(self, compose: str) -> dict:
+    def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
         git_ref = (
             commands.run_command(["git", "ls-remote", git_repo, "HEAD"], output=True)
@@ -1416,13 +1418,13 @@ class DownstreamTestingFarmJobHelper:
             .split()[0]
         )
 
-        if self.koji_build.target == "rawhide":
+        if distro == "fedora-rawhide":
             # profile names are in "fedora-N" format
             # extract current rawhide version number from its candidate tag
             candidate_tag = self.koji_helper.get_candidate_tag("rawhide")
             profile = re.sub(r"f(\d+)(-.*)?", r"fedora-\1", candidate_tag)
         else:
-            profile = compose.lower()
+            profile = distro
 
         return {
             "api_key": self.service_config.testing_farm_secret,
