@@ -1233,7 +1233,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return
 
         for (test_run,) in running_tests:
-            self.cancel_testing_farm_request(test_run.pipeline_id)
+            self.tft_client.cancel(test_run.pipeline_id)
             test_run.set_status(TestingFarmResult.cancel_requested)
 
 
