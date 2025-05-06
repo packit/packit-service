@@ -1343,7 +1343,7 @@ class DownstreamTestingFarmJobHelper:
 
     @staticmethod
     def get_check_name(test_name: str) -> str:
-        return f"Packit - {test_name} test"
+        return f"Packit - {test_name} test(s)"
 
     def report(
         self,
@@ -1448,6 +1448,60 @@ class DownstreamTestingFarmJobHelper:
                     "variables": {
                         "PROFILE_NAME": profile,
                         "TASK_ID": self.koji_build.task_id,
+                    },
+                },
+            ],
+            "notification": {
+                "webhook": {
+                    "url": f"{self.api_url}/testing-farm/results",
+                    "token": self.service_config.testing_farm_secret,
+                },
+            },
+        }
+
+    @staticmethod
+    def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
+        try:
+            project.get_file_content(
+                path=".fmf/version",
+                ref=metadata.commit_sha,
+            )
+        except FileNotFoundError:
+            return False
+        return True
+
+    @implements_fedora_ci_test(
+        "custom",
+        skipif=lambda _, project, metadata: not DownstreamTestingFarmJobHelper.is_fmf_configured(
+            project, metadata
+        ),
+    )
+    def _payload_custom(self, distro: str, compose: str) -> dict:
+        return {
+            "api_key": self.service_config.testing_farm_secret,
+            "test": {
+                "tmt": {
+                    "url": self.project.get_pr(self.metadata.pr_id).source_project.get_web_url(),
+                    "ref": self.metadata.commit_sha,
+                },
+            },
+            "environments": [
+                {
+                    "arch": "x86_64",
+                    "os": {"compose": compose},
+                    "variables": {
+                        "KOJI_TASK_ID": self.koji_build.task_id,
+                    },
+                    "artifacts": [
+                        {"id": self.koji_build.task_id, "type": "fedora-koji-build"},
+                    ],
+                    "tmt": {
+                        "context": {
+                            "distro": distro,
+                            "arch": "x86_64",
+                            "trigger": "commit",
+                            "initiator": "packit-fedora-ci",
+                        }
                     },
                 },
             ],
