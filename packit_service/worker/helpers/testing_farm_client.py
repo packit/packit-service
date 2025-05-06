@@ -82,7 +82,7 @@ class TestingFarmClient:
             raise PackitException(f"Cannot connect to url: `{url}`") from err
         return response
 
-    def cancel_testing_farm_request(self, request_id: str) -> bool:
+    def cancel(self, request_id: str) -> bool:
         """
         Cancel TF request with the given ID.
 
