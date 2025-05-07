@@ -471,5 +471,7 @@ class FedoraCIJobHandler(JobHandler):
     check_name: str = ""
 
     @classmethod
-    def get_check_names(cls, service_config: ServiceConfig, metadata: EventData) -> list[str]:
+    def get_check_names(
+        cls, service_config: ServiceConfig, project: GitProject, metadata: EventData
+    ) -> list[str]:
         return [cls.check_name] if cls.check_name else []

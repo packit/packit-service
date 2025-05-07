@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from celery import Task
+from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, aliases
 from packit.config.package_config import PackageConfig
 
@@ -383,10 +384,14 @@ class DownstreamTestingFarmHandler(
         )
 
     @classmethod
-    def get_check_names(cls, service_config: ServiceConfig, metadata: EventData) -> list[str]:
+    def get_check_names(
+        cls, service_config: ServiceConfig, project: GitProject, metadata: EventData
+    ) -> list[str]:
         return [
             DownstreamTestingFarmJobHelper.get_check_name(t)
-            for t in DownstreamTestingFarmJobHelper.get_fedora_ci_tests(service_config, metadata)
+            for t in DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
+                service_config, project, metadata
+            )
         ]
 
     def _get_or_create_group(
@@ -455,7 +460,7 @@ class DownstreamTestingFarmHandler(
         failed: dict[str, str] = {}
 
         fedora_ci_tests = self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
-            self.service_config, self.data
+            self.service_config, self.project, self.data
         )
 
         group, test_runs = self._get_or_create_group(fedora_ci_tests)

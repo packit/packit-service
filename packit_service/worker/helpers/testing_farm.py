@@ -1240,9 +1240,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 FEDORA_CI_TESTS = {}
 
 
-def implements_fedora_ci_test(test_name: str) -> Callable:
+def implements_fedora_ci_test(test_name: str, skipif: Optional[Callable] = None) -> Callable:
     def _update_mapping(function: Callable) -> Callable:
-        FEDORA_CI_TESTS[test_name] = function
+        FEDORA_CI_TESTS[test_name] = (function, skipif)
         return function
 
     return _update_mapping
@@ -1274,7 +1274,9 @@ class DownstreamTestingFarmJobHelper:
         return self._koji_helper
 
     @staticmethod
-    def get_fedora_ci_tests(service_config: ServiceConfig, metadata: EventData) -> list[str]:
+    def get_fedora_ci_tests(
+        service_config: ServiceConfig, project: GitProject, metadata: EventData
+    ) -> list[str]:
         """
         Gets relevant Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator.
         In case of valid comment command, if a test name is specified as an argument to the command
@@ -1283,12 +1285,17 @@ class DownstreamTestingFarmJobHelper:
 
         Args:
             service_config: Service config.
+            project: Git project.
             metadata: Event metadata.
 
         Returns:
             List of registered Fedora CI test names.
         """
-        all_tests = list(FEDORA_CI_TESTS.keys())
+        all_tests = [
+            name
+            for name, (_, skipif) in FEDORA_CI_TESTS.items()
+            if not skipif or not skipif(service_config, project, metadata)
+        ]
         if metadata.event_type != pagure.pr.Comment.event_type():
             return all_tests
         # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
@@ -1336,7 +1343,7 @@ class DownstreamTestingFarmJobHelper:
 
     @staticmethod
     def get_check_name(test_name: str) -> str:
-        return f"Packit - {test_name} test"
+        return f"Packit - {test_name} test(s)"
 
     def report(
         self,
@@ -1385,7 +1392,9 @@ class DownstreamTestingFarmJobHelper:
             msg = "We were not able to map distro to TF compose."
             return TaskResults(success=False, details={"msg": msg})
 
-        payload = FEDORA_CI_TESTS.get(test_run.data["fedora_ci_test"])(self, compose)
+        payload = FEDORA_CI_TESTS[test_run.data["fedora_ci_test"]][0](
+            self, distro=test_run.target, compose=compose
+        )
 
         endpoint = "requests"
 
@@ -1408,7 +1417,7 @@ class DownstreamTestingFarmJobHelper:
         )
 
     @implements_fedora_ci_test("installability")
-    def _payload_installability(self, compose: str) -> dict:
+    def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
         git_ref = (
             commands.run_command(["git", "ls-remote", git_repo, "HEAD"], output=True)
@@ -1416,13 +1425,13 @@ class DownstreamTestingFarmJobHelper:
             .split()[0]
         )
 
-        if self.koji_build.target == "rawhide":
+        if distro == "fedora-rawhide":
             # profile names are in "fedora-N" format
             # extract current rawhide version number from its candidate tag
             candidate_tag = self.koji_helper.get_candidate_tag("rawhide")
             profile = re.sub(r"f(\d+)(-.*)?", r"fedora-\1", candidate_tag)
         else:
-            profile = compose.lower()
+            profile = distro
 
         return {
             "api_key": self.service_config.testing_farm_secret,
@@ -1439,6 +1448,60 @@ class DownstreamTestingFarmJobHelper:
                     "variables": {
                         "PROFILE_NAME": profile,
                         "TASK_ID": self.koji_build.task_id,
+                    },
+                },
+            ],
+            "notification": {
+                "webhook": {
+                    "url": f"{self.api_url}/testing-farm/results",
+                    "token": self.service_config.testing_farm_secret,
+                },
+            },
+        }
+
+    @staticmethod
+    def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
+        try:
+            project.get_file_content(
+                path=".fmf/version",
+                ref=metadata.commit_sha,
+            )
+        except FileNotFoundError:
+            return False
+        return True
+
+    @implements_fedora_ci_test(
+        "custom",
+        skipif=lambda _, project, metadata: not DownstreamTestingFarmJobHelper.is_fmf_configured(
+            project, metadata
+        ),
+    )
+    def _payload_custom(self, distro: str, compose: str) -> dict:
+        return {
+            "api_key": self.service_config.testing_farm_secret,
+            "test": {
+                "tmt": {
+                    "url": self.project.get_pr(self.metadata.pr_id).source_project.get_web_url(),
+                    "ref": self.metadata.commit_sha,
+                },
+            },
+            "environments": [
+                {
+                    "arch": "x86_64",
+                    "os": {"compose": compose},
+                    "variables": {
+                        "KOJI_TASK_ID": self.koji_build.task_id,
+                    },
+                    "artifacts": [
+                        {"id": self.koji_build.task_id, "type": "fedora-koji-build"},
+                    ],
+                    "tmt": {
+                        "context": {
+                            "distro": distro,
+                            "arch": "x86_64",
+                            "trigger": "commit",
+                            "initiator": "packit-fedora-ci",
+                        }
                     },
                 },
             ],
