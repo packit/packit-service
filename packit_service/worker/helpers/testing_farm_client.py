@@ -14,8 +14,7 @@ from packit.exceptions import PackitException
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
-    INTERNAL_TF_ARCHITECTURE_LIST,
-    PUBLIC_TF_ARCHITECTURE_LIST,
+    TESTING_FARM_SUPPORTED_ARCHS,
 )
 
 logger = logging.getLogger(__name__)
@@ -254,9 +253,9 @@ class TestingFarmClient:
     def is_supported_architecture(
         self, arch: str, error_callback: Optional[Callable[[str, Optional[str]], None]] = None
     ) -> bool:
-        supported_architectures = (
-            INTERNAL_TF_ARCHITECTURE_LIST if self.use_internal_tf else PUBLIC_TF_ARCHITECTURE_LIST
-        )
+        supported_architectures = TESTING_FARM_SUPPORTED_ARCHS[
+            "redhat" if self.use_internal_tf else "public"
+        ]
         if arch not in supported_architectures:
             msg = (
                 f"The architecture {arch} is not in the list of "

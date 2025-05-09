@@ -256,17 +256,22 @@ GITLAB_ISSUE = (
 DASHBOARD_JOBS_TESTING_FARM_PATH = "/jobs/testing-farm-runs"
 
 # https://docs.testing-farm.io/general/0.1/test-environment.html#_supported_architectures
-PUBLIC_TF_ARCHITECTURE_LIST: list[str] = [
-    "aarch64",
-    "x86_64",
-]
+TESTING_FARM_SUPPORTED_ARCHS: dict[str, list[str]] = {
+    "public": [
+        "aarch64",
+        "x86_64",
+    ],
+    "redhat": [
+        "aarch64",
+        "ppc64le",
+        "s390x",
+        "x86_64",
+    ],
+}
 
-INTERNAL_TF_ARCHITECTURE_LIST: list[str] = [
-    "aarch64",
-    "ppc64le",
-    "s390x",
-    "x86_64",
-]
+# [NOTE] for backwards-compatibility with existing references
+PUBLIC_TF_ARCHITECTURE_LIST = TESTING_FARM_SUPPORTED_ARCHS["public"]
+INTERNAL_TF_ARCHITECTURE_LIST = TESTING_FARM_SUPPORTED_ARCHS["redhat"]
 
 DENIED_MSG = (
     f"You were denied from using Packit Service. If you think this was done by mistake, "
