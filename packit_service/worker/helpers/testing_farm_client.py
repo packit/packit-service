@@ -28,9 +28,13 @@ class TestingFarmClient:
         if not self.tft_api_url.endswith("/"):
             self.tft_api_url += "/"
         self.tft_token = token
-        self.use_internal_tf = use_internal_tf
+        self._use_internal_ranch = use_internal_tf
         self.session = requests.session()
         self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
+
+    @property
+    def default_ranch(self) -> str:
+        return "redhat" if self._use_internal_ranch else "public"
 
     def get_raw_request(
         self,
@@ -134,14 +138,24 @@ class TestingFarmClient:
         return payload_
 
     @property
-    def available_composes(self) -> Optional[set[str]]:
+    def available_composes(self, ranch: Optional[str] = None) -> Optional[set[str]]:
         """
         Fetches available composes from the Testing Farm endpoint.
+
+        Args:
+            ranch: Optional parameter that can specify ranch to fetch composes
+                of. Available options as of now are: `redhat`, or `public`.
+
+                Defaults to `None` which means that the ranch is deduced from
+                the job config.
 
         Returns:
             Set of all available composes or `None` if error occurs.
         """
-        endpoint = f"composes/{'redhat' if self.use_internal_tf else 'public'}"
+        if ranch is None:
+            ranch = self.default_ranch
+
+        endpoint = f"composes/{ranch}"
 
         response = self.send_testing_farm_request(endpoint=endpoint)
         if response.status_code != 200:
@@ -202,7 +216,7 @@ class TestingFarmClient:
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
-        if self.use_internal_tf:
+        if self._use_internal_ranch:
             if self.is_compose_matching(compose, compiled_composes):
                 return compose
 
@@ -241,7 +255,7 @@ class TestingFarmClient:
             )
             description = (
                 f"The compose {compose} is not available in the "
-                f"{'internal' if self.use_internal_tf else 'public'} "
+                f"{self.default_ranch} "
                 f"Testing Farm infrastructure."
             )
             if error_callback:
@@ -253,9 +267,7 @@ class TestingFarmClient:
     def is_supported_architecture(
         self, arch: str, error_callback: Optional[Callable[[str, Optional[str]], None]] = None
     ) -> bool:
-        supported_architectures = TESTING_FARM_SUPPORTED_ARCHS[
-            "redhat" if self.use_internal_tf else "public"
-        ]
+        supported_architectures = TESTING_FARM_SUPPORTED_ARCHS[self.default_ranch]
         if arch not in supported_architectures:
             msg = (
                 f"The architecture {arch} is not in the list of "
@@ -268,7 +280,7 @@ class TestingFarmClient:
             )
             description = (
                 f"The architecture {arch} is not available in the "
-                f"{'internal' if self.use_internal_tf else 'public'} "
+                f"{self.default_ranch} "
                 f"Testing Farm infrastructure."
             )
             if error_callback:
