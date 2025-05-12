@@ -568,7 +568,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             }
 
         payload = {
-            "api_key": self.tft_client.tft_token,
             "test": {
                 "tmt": tmt,
             },
@@ -580,7 +579,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     # See TestingFarmResults.validate_testing_farm_request
                     # in packit_service/service/api/testing_farm.py
                     # for more details.
-                    "token": self.tft_client.tft_token,
+                    "token": self.tft_client._token,
                 },
             },
         }
@@ -597,7 +596,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         distro, arch = target.rsplit("-", 1)
         return self._inject_extra_params(
             {
-                "api_key": self.service_config.testing_farm_secret,
                 "test": {
                     "tmt": {
                         "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
@@ -1434,7 +1432,6 @@ class DownstreamTestingFarmJobHelper:
             profile = distro
 
         return {
-            "api_key": self.service_config.testing_farm_secret,
             "test": {
                 "tmt": {
                     "url": git_repo,
@@ -1478,7 +1475,6 @@ class DownstreamTestingFarmJobHelper:
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
         return {
-            "api_key": self.service_config.testing_farm_secret,
             "test": {
                 "tmt": {
                     "url": self.project.get_pr(self.metadata.pr_id).source_project.get_web_url(),

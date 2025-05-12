@@ -671,7 +671,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     ).once()
 
     payload = {
-        "api_key": "secret token",
         "test": {
             "tmt": {
                 "url": "https://github.com/source/bar",
@@ -2634,7 +2633,6 @@ def test_koji_build_end_downstream(
     ).and_return(flexmock(stdout=f"{installability_hash}\tHEAD"))
 
     payload_installability = {
-        "api_key": "secret token",
         "test": {
             "tmt": {
                 "url": installability_repo,
@@ -2660,7 +2658,6 @@ def test_koji_build_end_downstream(
     }
 
     payload_custom = {
-        "api_key": "secret token",
         "test": {
             "tmt": {
                 "url": "https://src.fedoraproject.org/fork/packit/rpms/packit",

@@ -932,7 +932,6 @@ def test_pr_test_command_handler_retries(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     payload = {
-        "api_key": "secret-token",
         "test": {
             "tmt": {
                 "url": "https://github.com/someone/hello-world",
@@ -1139,7 +1138,6 @@ def test_pr_test_command_handler_skip_build_option(
     ).once()
 
     payload = {
-        "api_key": "secret-token",
         "test": {
             "tmt": {
                 "url": "https://github.com/someone/hello-world",
@@ -2103,7 +2101,6 @@ def test_pr_test_command_handler_multiple_builds(
     ).once()
 
     payload = {
-        "api_key": "secret-token",
         "test": {
             "tmt": {
                 "url": "https://github.com/someone/hello-world",

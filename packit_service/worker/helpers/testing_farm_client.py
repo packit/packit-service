@@ -24,13 +24,16 @@ class TestingFarmClient:
     __test__ = False
 
     def __init__(self, api_url: str, token: str, use_internal_tf: bool = False) -> None:
-        self.tft_api_url = api_url
-        if not self.tft_api_url.endswith("/"):
-            self.tft_api_url += "/"
-        self.tft_token = token
+        if not api_url.endswith("/"):
+            api_url += "/"
+        self.api_url = api_url
+
         self._use_internal_ranch = use_internal_tf
+        self._token = token
+
         self.session = requests.session()
         self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
+        self.session.headers.update({"Authorization": f"Bearer {self._token}"})
 
     @property
     def default_ranch(self) -> str:
@@ -72,7 +75,7 @@ class TestingFarmClient:
         params: Optional[dict] = None,
         data: Optional[dict] = None,
     ) -> RequestResponse:
-        url = f"{self.tft_api_url}{endpoint}"
+        url = f"{self.api_url}{endpoint}"
         try:
             response = self.get_raw_request(
                 method=method,
@@ -132,8 +135,10 @@ class TestingFarmClient:
     @staticmethod
     def payload_without_token(payload: dict) -> dict:
         """Return a copy of the payload with token/api_key removed."""
+        assert "api_key" not in payload, "API key should be passed in header now"
+
         payload_ = payload.copy()
-        payload_.pop("api_key")
+        # But we still have secret passed by webhook callback for verification
         payload_["notification"]["webhook"].pop("token")
         return payload_
 
