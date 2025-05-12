@@ -14,8 +14,7 @@ from packit.exceptions import PackitException
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
-    INTERNAL_TF_ARCHITECTURE_LIST,
-    PUBLIC_TF_ARCHITECTURE_LIST,
+    TESTING_FARM_SUPPORTED_ARCHS,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,13 +24,20 @@ class TestingFarmClient:
     __test__ = False
 
     def __init__(self, api_url: str, token: str, use_internal_tf: bool = False) -> None:
-        self.tft_api_url = api_url
-        if not self.tft_api_url.endswith("/"):
-            self.tft_api_url += "/"
-        self.tft_token = token
-        self.use_internal_tf = use_internal_tf
+        if not api_url.endswith("/"):
+            api_url += "/"
+        self.api_url = api_url
+
+        self._use_internal_ranch = use_internal_tf
+        self._token = token
+
         self.session = requests.session()
         self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
+        self.session.headers.update({"Authorization": f"Bearer {self._token}"})
+
+    @property
+    def default_ranch(self) -> str:
+        return "redhat" if self._use_internal_ranch else "public"
 
     def get_raw_request(
         self,
@@ -69,7 +75,7 @@ class TestingFarmClient:
         params: Optional[dict] = None,
         data: Optional[dict] = None,
     ) -> RequestResponse:
-        url = f"{self.tft_api_url}{endpoint}"
+        url = f"{self.api_url}{endpoint}"
         try:
             response = self.get_raw_request(
                 method=method,
@@ -129,20 +135,32 @@ class TestingFarmClient:
     @staticmethod
     def payload_without_token(payload: dict) -> dict:
         """Return a copy of the payload with token/api_key removed."""
+        assert "api_key" not in payload, "API key should be passed in header now"
+
         payload_ = payload.copy()
-        payload_.pop("api_key")
+        # But we still have secret passed by webhook callback for verification
         payload_["notification"]["webhook"].pop("token")
         return payload_
 
     @property
-    def available_composes(self) -> Optional[set[str]]:
+    def available_composes(self, ranch: Optional[str] = None) -> Optional[set[str]]:
         """
         Fetches available composes from the Testing Farm endpoint.
+
+        Args:
+            ranch: Optional parameter that can specify ranch to fetch composes
+                of. Available options as of now are: `redhat`, or `public`.
+
+                Defaults to `None` which means that the ranch is deduced from
+                the job config.
 
         Returns:
             Set of all available composes or `None` if error occurs.
         """
-        endpoint = f"composes/{'redhat' if self.use_internal_tf else 'public'}"
+        if ranch is None:
+            ranch = self.default_ranch
+
+        endpoint = f"composes/{ranch}"
 
         response = self.send_testing_farm_request(endpoint=endpoint)
         if response.status_code != 200:
@@ -203,7 +221,7 @@ class TestingFarmClient:
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
-        if self.use_internal_tf:
+        if self._use_internal_ranch:
             if self.is_compose_matching(compose, compiled_composes):
                 return compose
 
@@ -242,7 +260,7 @@ class TestingFarmClient:
             )
             description = (
                 f"The compose {compose} is not available in the "
-                f"{'internal' if self.use_internal_tf else 'public'} "
+                f"{self.default_ranch} "
                 f"Testing Farm infrastructure."
             )
             if error_callback:
@@ -254,9 +272,7 @@ class TestingFarmClient:
     def is_supported_architecture(
         self, arch: str, error_callback: Optional[Callable[[str, Optional[str]], None]] = None
     ) -> bool:
-        supported_architectures = (
-            INTERNAL_TF_ARCHITECTURE_LIST if self.use_internal_tf else PUBLIC_TF_ARCHITECTURE_LIST
-        )
+        supported_architectures = TESTING_FARM_SUPPORTED_ARCHS[self.default_ranch]
         if arch not in supported_architectures:
             msg = (
                 f"The architecture {arch} is not in the list of "
@@ -269,7 +285,7 @@ class TestingFarmClient:
             )
             description = (
                 f"The architecture {arch} is not available in the "
-                f"{'internal' if self.use_internal_tf else 'public'} "
+                f"{self.default_ranch} "
                 f"Testing Farm infrastructure."
             )
             if error_callback:

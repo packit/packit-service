@@ -944,7 +944,7 @@ def test_payload(
     job_helper.job_config.env = {"MY_ENV_VARIABLE": "my-value"}
 
     token_to_use = internal_tf_token if use_internal_tf else tf_token
-    assert job_helper.tft_client.tft_token == token_to_use
+    assert job_helper.tft_client._token == token_to_use
 
     job_helper = flexmock(job_helper)
 
@@ -977,8 +977,6 @@ def test_payload(
         artifacts=artifacts,
         build=copr_build,
     )
-
-    assert payload["api_key"] == token_to_use
 
     expected_test = {
         "url": project_url,
@@ -1040,7 +1038,6 @@ def test_payload(
     assert payload["environments"] == expected_environments
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
     if tf_extra_params:
-        assert payload["api_key"] == tf_token
         assert payload["notification"]["webhook"]["url"] != "https://malicious.net"
 
 
