@@ -2598,7 +2598,9 @@ def test_koji_build_end_downstream(
                 get_file_content=lambda path, ref: flexmock(),
                 get_pr=lambda _: flexmock(
                     source_project=flexmock(
-                        get_web_url=lambda: "https://src.fedoraproject.org/fork/packit/rpms/packit"
+                        get_git_urls=lambda: {
+                            "git": "https://src.fedoraproject.org/fork/packit/rpms/packit.git"
+                        }
                     )
                 ),
             )
@@ -2660,7 +2662,7 @@ def test_koji_build_end_downstream(
     payload_custom = {
         "test": {
             "tmt": {
-                "url": "https://src.fedoraproject.org/fork/packit/rpms/packit",
+                "url": "https://src.fedoraproject.org/fork/packit/rpms/packit.git",
                 "ref": "0011223344",
             },
         },

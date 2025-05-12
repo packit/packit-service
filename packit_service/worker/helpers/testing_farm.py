@@ -1477,7 +1477,9 @@ class DownstreamTestingFarmJobHelper:
         return {
             "test": {
                 "tmt": {
-                    "url": self.project.get_pr(self.metadata.pr_id).source_project.get_web_url(),
+                    "url": self.project.get_pr(self.metadata.pr_id)
+                    .source_project.get_git_urls()
+                    .get("git"),
                     "ref": self.metadata.commit_sha,
                 },
             },
