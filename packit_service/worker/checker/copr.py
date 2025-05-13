@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from pathlib import Path
+from typing import Optional
+
+from packit.config import JobConfigTriggerType
 
 from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
@@ -138,3 +142,54 @@ class CanActorRunTestsJob(
                 )
                 return False
         return True
+
+
+class AreFilesChanged(Checker, GetCoprBuildJobHelperForIdMixin):
+    """
+    Check if any files under the current package's `paths` field is changed.
+    If not, then just skip the current copr build job.
+    """
+
+    def get_previous_git_ref(self) -> Optional[str]:
+        """
+        Get the previous git ref if any.
+        """
+        if self.job_config.trigger == JobConfigTriggerType.pull_request:
+            # For PRs return the target branch
+            return self.copr_build_helper.pull_request_object.target_branch
+        if self.job_config.trigger == JobConfigTriggerType.commit:
+            # For branch commits return the effective `HEAD^` commit
+            current_commit = self.copr_build_helper.metadata.commit_sha
+            return f"{current_commit}^"
+        if self.job_config.trigger == JobConfigTriggerType.release:
+            # For releases we don't do any checks
+            return None
+        raise RuntimeError(f"Unexpected trigger type: {self.job_config.trigger}")
+
+    def get_files_changed(self, previous_git_ref: str) -> list[Path]:
+        """
+        Get the list of files changed between the current git ref and the previous one.
+        """
+        # FIXME: Implement the relevant git diff
+        return []
+
+    def pre_check(self) -> bool:
+        # Get the previous git ref
+        if not (previous_git_ref := self.get_previous_git_ref()):
+            # If we don't have a previous git ref (e.g. it's a release trigger)
+            # then we don't check the files and run regardless
+            return True
+        # FIXME: This is probably unnecessary
+        package_config = self.package_config.get_package_config_for(self.job_config)
+        # The paths that we need to check for files changed
+        paths = package_config["paths"]
+        # Early check if the git root was included, in which case we don't need to
+        # check the files changed
+        # TODO: refine this check when gitignore-like patterns are supported
+        if "./" in paths:
+            return True
+        for file in self.get_files_changed(previous_git_ref):
+            # Check if any of the files changed are under the paths that are being tracked
+            if any(file.is_relative_to(p) for p in paths):
+                return True
+        return False
