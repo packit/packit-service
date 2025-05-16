@@ -2684,7 +2684,7 @@ def test_koji_build_end_downstream(
                         "distro": "fedora-rawhide",
                         "arch": "x86_64",
                         "trigger": "commit",
-                        "initiator": "packit-fedora-ci",
+                        "initiator": "fedora-ci",
                     },
                 },
             },

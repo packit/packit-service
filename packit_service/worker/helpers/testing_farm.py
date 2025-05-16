@@ -1498,7 +1498,7 @@ class DownstreamTestingFarmJobHelper:
                             "distro": distro,
                             "arch": "x86_64",
                             "trigger": "commit",
-                            "initiator": "packit-fedora-ci",
+                            "initiator": "fedora-ci",
                         }
                     },
                 },
