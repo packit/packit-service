@@ -36,12 +36,14 @@ def configure_sentry(
     celery_integration: bool = False,
     flask_integration: bool = False,
     sqlalchemy_integration: bool = False,
+    fastapi_integration: bool = False,
 ) -> None:
     logger.debug(
         f"Setup sentry for {runner_type}: "
         f"celery_integration={celery_integration}, "
         f"flask_integration={flask_integration}, "
-        f"sqlalchemy_integration={sqlalchemy_integration}",
+        f"sqlalchemy_integration={sqlalchemy_integration}, "
+        f"fastapi_integration={fastapi_integration}",
     )
 
     secret_key = getenv("SENTRY_SECRET")
@@ -70,6 +72,12 @@ def configure_sentry(
         from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
         integrations.append(SqlalchemyIntegration())
+
+    if fastapi_integration:
+        # https://docs.sentry.io/platforms/python/integrations/fastapi/
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+
+        integrations.append(FastApiIntegration())
 
     # https://docs.sentry.io/platforms/python/guides/logging/
     sentry_logging = LoggingIntegration(
