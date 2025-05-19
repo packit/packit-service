@@ -103,10 +103,13 @@ class TestingFarmClient:
             endpoint=f"requests/{request_id}",
             method="DELETE",
         )
-        if response.status_code != 200:
+        if response.status_code not in (200, 204):
+            # 200: successful test cancellation
+            # 204: cancellation has already been requested, or even completed
             msg = f"Failed to cancel TF request {request_id}: {response.json()}"
             logger.error(msg)
             return False
+
         return True
 
     @classmethod
