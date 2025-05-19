@@ -143,7 +143,10 @@ class AnityaUpdate(Event):
         if not (self.packages_config and self.packages_config.upstream_tag_template):
             return self.version
 
-        return self.packages_config.upstream_tag_template.format(version=self.version)
+        return self.packages_config.upstream_tag_template.format(
+            version=self.version,
+            upstream_package_name=self.packages_config.upstream_package_name,
+        )
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__

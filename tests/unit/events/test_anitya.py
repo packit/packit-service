@@ -99,6 +99,7 @@ def test_parse_new_hotness_update(
     ).and_return(
         flexmock(
             upstream_project_url=upstream_project_url,
+            upstream_package_name="upstream_package",
             upstream_tag_template=upstream_tag_template,
             get_packages_config=lambda: flexmock(),
         ),
