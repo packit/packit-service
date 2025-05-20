@@ -1034,7 +1034,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return
 
         # Cancel unique builds
-        unique_builds = {int(build.build_id) for (build,) in running_builds}
+        unique_builds = {
+            int(build.build_id) for (build,) in running_builds if build.build_id is not None
+        }
         for build_id in unique_builds:
             logger.debug("Cancelling Copr build #%s", build_id)
             self.api.copr_helper.cancel_build(build_id)
