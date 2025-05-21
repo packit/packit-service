@@ -85,6 +85,7 @@ from packit_service.worker.checker.distgit import (
     TaggedBuildIsNotABuildOfSelf,
     ValidInformationForPullFromUpstream,
 )
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers.abstract import (
     FedoraCIJobHandler,
     JobHandler,
@@ -699,7 +700,11 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return (ValidInformationForPullFromUpstream, IsUpstreamTagMatchingConfig)
+        return (
+            ValidInformationForPullFromUpstream,
+            IsUpstreamTagMatchingConfig,
+            IsRunConditionSatisfied,
+        )
 
     @staticmethod
     def get_handler_specific_task_accepted_message(
@@ -1006,6 +1011,7 @@ class AbstractDownstreamKojiBuildHandler(
             PermissionOnDistgit,
             HasIssueCommenterRetriggeringPermissions,
             TaggedBuildIsNotABuildOfSelf,
+            IsRunConditionSatisfied,
         )
 
     def _get_or_create_koji_group_model(self) -> KojiBuildGroupModel:
