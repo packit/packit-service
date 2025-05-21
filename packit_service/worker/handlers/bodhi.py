@@ -45,6 +45,7 @@ from packit_service.worker.checker.bodhi import (
     IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildOwnerMatchingConfiguration,
 )
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
     TaskName,
@@ -338,6 +339,7 @@ class CreateBodhiUpdateHandler(
         return (
             IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
             IsKojiBuildOwnerMatchingConfiguration,
+            IsRunConditionSatisfied,
         )
 
     def get_trigger_type_description(self) -> str:
@@ -393,7 +395,10 @@ class BodhiUpdateFromSidetagHandler(
         and configured branches.
         """
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
-        return (IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,)
+        return (
+            IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
+            IsRunConditionSatisfied,
+        )
 
     def get_trigger_type_description(self) -> str:
         for koji_build_data in self:
@@ -424,6 +429,7 @@ class RetriggerBodhiUpdateHandler(
             IsAuthorAPackager,
             HasIssueCommenterRetriggeringPermissions,
             IsKojiBuildCompleteAndBranchConfiguredCheckService,
+            IsRunConditionSatisfied,
         )
 
     def get_trigger_type_description(self) -> str:
@@ -455,7 +461,10 @@ class IssueCommentRetriggerBodhiUpdateHandler(
         and configured branches.
         """
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
-        return (HasIssueCommenterRetriggeringPermissions,)
+        return (
+            HasIssueCommenterRetriggeringPermissions,
+            IsRunConditionSatisfied,
+        )
 
     def get_trigger_type_description(self) -> str:
         return f"Fedora Bodhi update was re-triggered by comment in issue {self.data.issue_id}."

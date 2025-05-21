@@ -72,6 +72,7 @@ from packit_service.utils import (
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
@@ -2920,6 +2921,8 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         status=SyncReleaseStatus.finished,
     ).once()
 
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -3088,6 +3091,8 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     flexmock(sync_release_model).should_receive("set_status").with_args(
         status=SyncReleaseStatus.finished,
     ).once()
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
         flexmock(

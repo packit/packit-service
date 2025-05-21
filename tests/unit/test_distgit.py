@@ -11,6 +11,7 @@ from packit.api import PackitAPI
 from packit.config.notifications import NotificationsConfig
 
 from packit_service.events.event_data import EventData
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers.distgit import (
     AbstractSyncReleaseHandler,
     DownstreamKojiBuildHandler,
@@ -102,6 +103,8 @@ def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_pass
     )
     if not check_passed:
         flexmock(utils).should_receive("create_issue_if_needed").once()
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     result = DownstreamKojiBuildHandler.pre_check(
         None,

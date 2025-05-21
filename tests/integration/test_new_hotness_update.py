@@ -32,6 +32,7 @@ from packit_service.models import (
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting.news import DistgitAnnouncement
@@ -266,6 +267,8 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(shutil).should_receive("rmtree").with_args("")
 
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
     processing_results = SteveJobs().process_message(new_hotness_update)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results,
@@ -431,6 +434,8 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
         status=SyncReleaseStatus.finished,
     ).once()
     sync_release_model_non_git.should_receive("get_package_name").and_return(None)
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
         flexmock(
