@@ -343,10 +343,12 @@ class Handler(PackitAPIProtocol, Config):
         """
         checks_pass = True
         for checker_cls in cls.get_checkers():
+            task_name = getattr(cls, "task_name", None)
             checker = checker_cls(
                 package_config=package_config,
                 job_config=job_config,
                 event=event,
+                task_name=task_name.value if task_name else None,
             )
             checks_pass = checks_pass and checker.pre_check()
 

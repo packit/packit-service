@@ -23,10 +23,12 @@ class Checker(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        task_name: Optional[str] = None,
     ):
         self.package_config = package_config
         self.job_config = job_config
         self.data = EventData.from_event_dict(event)
+        self.task_name = task_name
 
     @abstractmethod
     def pre_check(self) -> bool: ...

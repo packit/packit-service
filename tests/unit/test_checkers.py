@@ -5,7 +5,9 @@ import pytest
 from flexmock import flexmock
 from ogr import PagureService
 from ogr.abstract import AccessLevel, PRStatus
+from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
+from packit.actions import ActionName
 from packit.config import (
     CommonPackageConfig,
     JobConfig,
@@ -20,6 +22,7 @@ from packit.copr_helper import CoprHelper
 
 from packit_service.config import ServiceConfig
 from packit_service.events import (
+    anitya,
     copr,
     github,
     gitlab,
@@ -45,6 +48,7 @@ from packit_service.worker.checker.koji import (
 from packit_service.worker.checker.koji import (
     PermissionOnKoji,
 )
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.checker.testing_farm import (
     IsIdentifierFromCommentMatching,
     IsLabelFromCommentMatching,
@@ -58,6 +62,7 @@ from packit_service.worker.checker.vm_image import (
 )
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
+from packit_service.worker.parser import Parser
 
 
 def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
@@ -1116,3 +1121,180 @@ def test_allowed_builders_for_bodhi_alias(
         koji_build_completed_event.get_dict(),
     )
     assert checker.pre_check()
+
+
+@pytest.mark.parametrize(
+    "clone_repos",
+    (False, True),
+)
+@pytest.mark.parametrize(
+    "command,should_pass",
+    (
+        (None, True),
+        ("true", True),
+        ("false", False),
+    ),
+)
+@pytest.mark.parametrize(
+    "job_type,job_trigger,event_type",
+    (
+        (
+            JobType.pull_from_upstream,
+            JobConfigTriggerType.release,
+            "pull_from_upstream_trigger_anitya",
+        ),
+        (
+            JobType.pull_from_upstream,
+            JobConfigTriggerType.release,
+            "pull_from_upstream_retrigger_pr_comment",
+        ),
+        (JobType.koji_build, JobConfigTriggerType.commit, "koji_build_trigger_push"),
+        (JobType.koji_build, JobConfigTriggerType.commit, "koji_build_retrigger_pr_comment"),
+        #        (
+        #            JobType.koji_build,
+        #            JobConfigTriggerType.commit,
+        #            "koji_build_retrigger_issue_comment",
+        #        ),
+        (
+            JobType.koji_build,
+            JobConfigTriggerType.koji_build,
+            "koji_build_trigger_koji_build_tagging",
+        ),
+        (
+            JobType.bodhi_update,
+            JobConfigTriggerType.commit,
+            "bodhi_update_trigger_koji_build_success",
+        ),
+        (JobType.bodhi_update, JobConfigTriggerType.commit, "bodhi_update_retrigger_pr_comment"),
+        #        (
+        #            JobType.bodhi_update,
+        #            JobConfigTriggerType.commit,
+        #            "bodhi_update_retrigger_issue_comment",
+        #        ),
+        (
+            JobType.bodhi_update,
+            JobConfigTriggerType.koji_build,
+            "bodhi_update_trigger_koji_build_tagging",
+        ),
+        (JobType.copr_build, JobConfigTriggerType.pull_request, "copr_build_trigger_pr_creation"),
+        (JobType.copr_build, JobConfigTriggerType.pull_request, "copr_build_trigger_pr_push"),
+    ),
+)
+def test_run_condition(
+    job_type,
+    job_trigger,
+    event_type,
+    clone_repos,
+    command,
+    should_pass,
+    new_hotness_update,
+    distgit_push_event,
+    pagure_pr_comment_added,
+    koji_build_tagged,
+    koji_build_completed_event,
+    github_pr_event,
+    github_push_event,
+):
+    jobs = [
+        JobConfig(
+            type=job_type,
+            trigger=job_trigger,
+            packages={
+                "package": CommonPackageConfig(
+                    downstream_package_name="package",
+                    specfile_path="package.spec",
+                    clone_repos_before_run_condition=clone_repos,
+                ),
+            },
+        ),
+    ]
+
+    package_config = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig()},
+    )
+    job_config = jobs[0]
+
+    if command is not None:
+        job_config.actions = {
+            ActionName.run_condition: [command],
+        }
+
+    if event_type == "pull_from_upstream_trigger_anitya":
+        flexmock(anitya.update.NewHotness).should_receive("_add_release_and_event").and_return()
+        event = Parser.parse_new_hotness_update_event(new_hotness_update)
+        git_ref = "7.0.3"
+    elif event_type == "koji_build_trigger_push":
+        event = distgit_push_event
+        git_ref = "ad0c308af91da45cf40b253cd82f07f63ea9cbbf"
+    elif event_type in (
+        "pull_from_upstream_retrigger_pr_comment",
+        "koji_build_retrigger_pr_comment",
+        "bodhi_update_retrigger_pr_comment",
+    ):
+        event = Parser.parse_pagure_pull_request_comment_event(pagure_pr_comment_added)
+        git_ref = "beaf90bcecc51968a46663f8d6f092bfdc92e682"
+    #    elif event_type in (
+    #        "koji_build_retrigger_issue_comment",
+    #        "bodhi_update_retrigger_issue_comment",
+    #    ):
+    elif event_type in (
+        "koji_build_trigger_koji_build_tagging",
+        "bodhi_update_trigger_koji_build_tagging",
+    ):
+        event = Parser.parse_koji_build_tag_event(koji_build_tagged)
+        git_ref = "HEAD"
+    elif event_type == "bodhi_update_trigger_koji_build_success":
+        event = koji_build_completed_event
+        git_ref = "e029dd5250dde9a37a2cdddb6d822d973b09e5da"
+    elif event_type == "copr_build_trigger_pr_creation":
+        event = github_pr_event
+        git_ref = "528b803be6f93e19ca4130bf4976f2800a3004c4"
+    elif event_type == "copr_build_trigger_pr_push":
+        event = github_push_event
+        git_ref = "04885ff850b0fa0e206cd09db73565703d48f99b"
+
+    checker = IsRunConditionSatisfied(
+        package_config,
+        job_config,
+        event.get_dict(),
+    )
+
+    flexmock(PagureProject).should_receive("get_pr").with_args(36).and_return(
+        flexmock(source_project=checker.project)
+    )
+    flexmock(GithubProject).should_receive("get_pr").with_args(342).and_return(
+        flexmock(source_project=checker.project)
+    )
+
+    if clone_repos:
+        checker.packit_api._up = flexmock(
+            local_project=flexmock(working_dir="cloned-distgit-repo")
+            .should_receive("checkout_release")
+            .with_args(git_ref)
+            .mock(),
+            actions_handler=checker.actions_handler,
+            get_current_version=lambda: "1.2.3",
+            clean_working_dir=lambda: None,
+        )
+        checker.packit_api._dg = flexmock(
+            local_project=flexmock(working_dir="cloned-distgit-repo")
+            .should_receive("checkout_release")
+            .with_args(git_ref)
+            .mock(),
+            specfile=flexmock(expanded_version="1.2.3"),
+        )
+    else:
+        spec_file_content = (
+            "Name: package\nVersion: 1.2.3\n"
+            "Release: 1\nSummary: package\n"
+            "License: MIT\n%description\npackage\n"
+        )
+        flexmock(PagureProject).should_receive("get_file_content").with_args(
+            path="package.spec", ref=git_ref
+        ).and_return(spec_file_content)
+        flexmock(GithubProject).should_receive("get_file_content").with_args(
+            path="package.spec", ref=git_ref
+        ).and_return(spec_file_content)
+
+    assert checker.pre_check() == should_pass
