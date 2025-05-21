@@ -262,7 +262,7 @@ class EventData:
                 project_url=self.project_url,
             )
         elif self.event_type in {
-            "koji.Tag",
+            "koji.tag.Build",
         }:
             (
                 self._db_project_object,
