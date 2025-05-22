@@ -39,6 +39,7 @@ from packit_service.models import (
 )
 from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import load_job_config, load_package_config
+from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -331,6 +332,8 @@ def test_downstream_koji_build(sidetag_group):
         flexmock(grouped_targets=[koji_build]),
     )
 
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -430,6 +433,8 @@ def test_downstream_koji_build_failure_no_issue():
         flexmock(id=1, grouped_targets=[koji_build]),
     )
 
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
@@ -525,6 +530,8 @@ def test_downstream_koji_build_failure_issue_created():
     )
 
     flexmock(DistGit).should_receive("get_nvr").and_return(nvr)
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
     flexmock(KojiBuildTargetModel).should_receive(
@@ -643,6 +650,8 @@ def test_downstream_koji_build_failure_issue_comment():
     flexmock(KojiBuildGroupModel).should_receive("create").and_return(
         flexmock(grouped_targets=[koji_build]),
     )
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
@@ -826,6 +835,8 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
     )
 
     flexmock(DistGit).should_receive("get_nvr").and_return(nvr)
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
     flexmock(KojiBuildTargetModel).should_receive(
