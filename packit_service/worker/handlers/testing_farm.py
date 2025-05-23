@@ -325,7 +325,7 @@ class TestingFarmHandler(
 
         if self.testing_farm_job_helper.skip_build:
             group, test_runs = self._get_or_create_group(
-                {target: None for target in targets},
+                dict.fromkeys(targets),
             )
             for test_run in test_runs:
                 # Only retry what's needed
