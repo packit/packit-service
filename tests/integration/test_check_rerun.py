@@ -256,7 +256,9 @@ def test_check_rerun_pr_testing_farm_handler(
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
     )
-    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run], ranch="public"
+    ).and_return(
         flexmock(grouped_targets=[test]),
     )
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
@@ -457,7 +459,9 @@ def test_check_rerun_push_testing_farm_handler(
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
     )
-    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run], ranch="public"
+    ).and_return(
         flexmock(grouped_targets=[test]),
     )
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)

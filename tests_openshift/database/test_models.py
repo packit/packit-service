@@ -553,7 +553,7 @@ def test_tmt_test_run_set_web_url(
     srpm_build_model_with_new_run_for_pr,
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create(run_models=[run_model])
+    group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         target=SampleValues.target,
@@ -581,7 +581,7 @@ def test_tmt_test_get_by_pipeline_id_pr(
     srpm_build_model_with_new_run_for_pr,
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create(run_models=[run_model])
+    group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         target=SampleValues.target,
@@ -1205,7 +1205,7 @@ def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_wit
 
 def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create(run_models=[run_model])
+    group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
 
     for pipeline_id, target, status in (
         ("deadbeef", "fedora-rawhide-x86_64", TestingFarmResult.new),
@@ -1220,9 +1220,59 @@ def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with
             test_run_group=group,
         )
 
-    running = list(TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha))
-    assert running, "There are some runningtests present"
+    running = list(
+        TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha, ranch="public")
+    )
+    assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running"
     assert {test_run.pipeline_id for (test_run,) in running} == {"cafe", "42"}, (
+        "Test runs created by the test are in the running state"
+    )
+
+
+def test_tmt_get_running_different_ranches(
+    clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr
+):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+
+    public_group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
+    redhat_group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="redhat")
+
+    # run tests in the public and internal ranch
+    for pipeline_id, target, status in (
+        ("deadbeef", "fedora-rawhide-x86_64", TestingFarmResult.new),
+        ("cafe", "fedora-42-aarch64", TestingFarmResult.queued),
+        ("42", "opensuse-tumbleweed-x86_64", TestingFarmResult.running),
+        ("4269", "opensuse-leap-42.2-x86_64", TestingFarmResult.complete),
+    ):
+        TFTTestRunTargetModel.create(
+            pipeline_id=pipeline_id,
+            status=status,
+            target=target,
+            test_run_group=public_group,
+        )
+
+        TFTTestRunTargetModel.create(
+            pipeline_id=f"{pipeline_id}-internal",
+            status=status,
+            target=target,
+            test_run_group=redhat_group,
+        )
+
+    running = list(
+        TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha, ranch="public")
+    )
+    assert running, "There are some running tests present"
+    assert len(running) == 2, "There are exactly 2 tests running in the public ranch"
+    assert {test_run.pipeline_id for (test_run,) in running} == {"cafe", "42"}, (
+        "Test runs created by the test are in the running state"
+    )
+
+    running = list(
+        TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha, ranch="redhat")
+    )
+    assert running, "There are some running tests present"
+    assert len(running) == 2, "There are exactly 2 tests running in the redhat ranch"
+    assert {test_run.pipeline_id for (test_run,) in running} == {"cafe-internal", "42-internal"}, (
         "Test runs created by the test are in the running state"
     )

@@ -1220,7 +1220,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def get_running_jobs(self) -> Iterable[tuple["TFTTestRunTargetModel"]]:
         if sha := self.metadata.commit_sha_before:
-            yield from TFTTestRunGroupModel.get_running(commit_sha=sha)
+            yield from TFTTestRunGroupModel.get_running(
+                commit_sha=sha, ranch=self.tft_client.default_ranch
+            )
 
         # [SAFETY] When there's no previous commit hash, yields nothing
 
