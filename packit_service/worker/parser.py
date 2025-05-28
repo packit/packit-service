@@ -66,6 +66,7 @@ class _GitlabCommonData:
     ref: str
     head_commit: dict
     commit_sha_before: str
+    commits: list[str]
 
     @property
     def commit_sha(self) -> str:
@@ -455,6 +456,7 @@ class Parser:
             ref=ref,
             head_commit=head_commit,
             commit_sha_before=before,
+            commits=[commit["id"] for commit in commits],
         )
 
     @staticmethod
@@ -515,6 +517,7 @@ class Parser:
             project_url=data.project_url,
             commit_sha=data.commit_sha,
             commit_sha_before=data.commit_sha_before,
+            commits=data.commits,
         )
 
     @staticmethod
@@ -568,6 +571,7 @@ class Parser:
             project_url=repo_url,
             commit_sha=head_commit,
             commit_sha_before=before,
+            commits=[commit["id"] for commit in event.get("commits")],
         )
 
     @staticmethod
