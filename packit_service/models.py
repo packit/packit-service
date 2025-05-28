@@ -3360,6 +3360,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "tft_test_run_groups"
     id = Column(Integer, primary_key=True)
     submitted_time = Column(DateTime, default=datetime.utcnow)
+    ranch = Column(String)
 
     runs = relationship("PipelineModel", back_populates="test_run_group")
     tft_test_run_targets = relationship(
@@ -3371,9 +3372,10 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return f"TFTTestRunGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @classmethod
-    def create(cls, run_models: list["PipelineModel"]) -> "TFTTestRunGroupModel":
+    def create(cls, run_models: list["PipelineModel"], ranch: str) -> "TFTTestRunGroupModel":
         with sa_session_transaction(commit=True) as session:
             test_run_group = cls()
+            test_run_group.ranch = ranch
             session.add(test_run_group)
 
             for run_model in run_models:
@@ -3403,12 +3405,13 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(TFTTestRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[tuple["TFTTestRunTargetModel"]]:
+    def get_running(cls, commit_sha: str, ranch: str) -> Iterable[tuple["TFTTestRunTargetModel"]]:
         """Get list of currently running Testing Farm runs matching the passed
         arguments.
 
         Args:
             commit_sha: Commit hash that is used for filtering the running jobs.
+            ranch: Testing Farm ranch where the tests are supposed to be run.
 
         Returns:
             An iterable over TFT target models that reprepresent matching TF
@@ -3422,6 +3425,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             .join(ProjectEventModel)
             .filter(
                 ProjectEventModel.commit_sha == commit_sha,
+                TFTTestRunGroupModel.ranch == ranch,
                 TFTTestRunTargetModel.status.in_(
                     (
                         TestingFarmResult.queued,

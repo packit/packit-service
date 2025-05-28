@@ -696,7 +696,9 @@ def test_pr_test_command_handler(
     )
     flexmock(PipelineModel).should_receive("create").and_return(run)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
-    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run], ranch="public"
+    ).and_return(
         flexmock(grouped_targets=[test_run]),
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -781,7 +783,9 @@ def test_pr_test_command_handler_identifiers(
     )
     flexmock(PipelineModel).should_receive("create").and_return(run)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
-    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run], ranch="public"
+    ).and_return(
         flexmock(grouped_targets=[test_run]),
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
@@ -1224,6 +1228,7 @@ def test_pr_test_command_handler_skip_build_option(
     group = flexmock(grouped_targets=[tft_test_run_model])
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [run_model],
+        ranch="public",
     ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=None,
@@ -1318,6 +1323,7 @@ def test_pr_test_command_handler_compose_not_present(
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [run_model],
+        ranch="public",
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -1445,6 +1451,7 @@ def test_pr_test_command_handler_composes_not_available(
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [run_model],
+        ranch="public",
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -1886,6 +1893,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     group_model = flexmock(grouped_targets=[test_run])
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [run_model],
+        ranch="public",
     ).and_return(group_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
@@ -3359,6 +3367,8 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
             deployment=Deployment.stg,
             comment_command_prefix="/packit",
             package_config_path_override=None,
+            testing_farm_api_url="https://api.dev.testing-farm.io/api",
+            testing_farm_secret="secret",
         )
         .should_receive("get_project")
         .and_return(dg_project)
@@ -3407,7 +3417,9 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
     )
     flexmock(PipelineModel).should_receive("create").and_return(run)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
-    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run], ranch="public"
+    ).and_return(
         flexmock(grouped_targets=[test_run]),
     )
 
