@@ -5,7 +5,7 @@
 This file contains helper classes for events.
 """
 
-from typing import Optional
+from typing import Optional, TypedDict
 
 from ogr.abstract import GitProject
 
@@ -61,12 +61,22 @@ class AddReleaseEventToDb:
         return result
 
 
+class CommitInfo(TypedDict, total=False):
+    id: str
+    title: str
+    message: str
+    added: list[str]
+    modified: list[str]
+    removed: list[str]
+
+
 class AddBranchPushEventToDb:
     git_ref: str
     repo_namespace: str
     repo_name: str
     project_url: str
     commit_sha: str
+    commits: list[CommitInfo]
     _branch: GitBranchModel = None
     _event: ProjectEventModel = None
 
