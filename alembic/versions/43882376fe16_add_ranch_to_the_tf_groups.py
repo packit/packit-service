@@ -128,12 +128,22 @@ def upgrade():
     for (target,) in session.execute(targets):
         if target.web_url is None:
             logging.warning("Empty URL found. Skipping.")
-        elif "testing-farm.io" in target.web_url:
-            target.group_of_targets.ranch = "public"
+            continue
+
+        ranch = None
+        if "testing-farm.io" in target.web_url:
+            ranch = "public"
         elif "redhat.com" in target.web_url:
-            target.group_of_targets.ranch = "redhat"
-        else:
+            ranch = "redhat"
+
+        if ranch is None:
             logging.warning("Unknown URL %s found. Skipping.", target.web_url)
+        elif target.group_of_targets.ranch and ranch != target.group_of_targets.ranch:
+            logging.warning(
+                "Found testing group with multiple ranches: %s", target.group_of_targets.id
+            )
+        elif not target.group_of_targets.ranch:
+            target.group_of_targets.ranch = ranch
 
     session.commit()
 
