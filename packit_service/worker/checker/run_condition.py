@@ -120,11 +120,10 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
         ):
             project = self.project.get_pr(int(self.data.pr_id)).source_project
         elif self.data.event_type in (anitya.NewHotness.event_type(),):
-            project = self.service_config.get_project(
-                url=self.data.event_dict.get("distgit_project_url")
-            )
-            git_ref = self.data.tag_name
-            version = self.data.event_dict.get("version")
+            event = anitya.NewHotness.from_event_dict(self.data.event_dict)
+            project = event.project
+            git_ref = event.tag_name
+            version = event.version
         elif self.data.event_type in (
             github.issue.Comment.event_type(),
             gitlab.issue.Comment.event_type(),
