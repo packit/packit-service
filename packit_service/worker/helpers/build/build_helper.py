@@ -86,16 +86,12 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         Return the configured targets for build job.
 
-        1. Use targets defined for build job and targets defined for test job.
+        1. Use targets defined for build job.
         2. Use "fedora-stable" alias if neither defined.
         """
         targets = set()
         if self.job_build:
             targets.update(self.job_build.targets)
-
-        for test_job in self.job_tests_all:
-            if not test_job.skip_build:
-                targets.update(test_job.targets)
 
         if (
             self.job_type_build == JobType.copr_build
