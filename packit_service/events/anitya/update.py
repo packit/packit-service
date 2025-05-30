@@ -44,6 +44,17 @@ class NewHotness(AnityaUpdate):
     def version(self) -> str:
         return self._version
 
+    @classmethod
+    def from_event_dict(cls, event: dict) -> "NewHotness":
+        return cls(
+            package_name=event.get("package_name"),
+            version=event.get("version"),
+            distgit_project_url=event.get("distgit_project_url"),
+            bug_id=event.get("bug_id"),
+            anitya_project_id=event.get("anitya_project_id"),
+            anitya_project_name=event.get("anitya_project_name"),
+        )
+
 
 # TODO: Uncomment once it is possible to deduce the version for the sync-release
 # action.
