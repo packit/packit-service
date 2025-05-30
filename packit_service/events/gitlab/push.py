@@ -17,6 +17,7 @@ class Commit(AddBranchPushEventToDb, GitlabEvent):
         project_url: str,
         commit_sha: str,
         commit_sha_before: str,
+        commits: list[str],
     ):
         super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
@@ -25,6 +26,7 @@ class Commit(AddBranchPushEventToDb, GitlabEvent):
         self.commit_sha = commit_sha
         self.commit_sha_before = commit_sha_before
         self.identifier = git_ref
+        self.commits = commits
 
     @classmethod
     def event_type(cls) -> str:
