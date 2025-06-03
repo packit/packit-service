@@ -96,7 +96,7 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
     def common_env(
         self, version: Optional[str] = None, extra_env: Optional[dict[str, str]] = None
     ) -> dict[str, str]:
-        env = self.job_config.get_package_names_as_env()
+        env = self.job_config.get_base_env()
         if version:
             env["PACKIT_PROJECT_VERSION"] = version
         if extra_env:
