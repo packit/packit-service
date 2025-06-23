@@ -325,7 +325,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({target: "" for target in DEFAULT_TARGETS})
+            .and_return(dict.fromkeys(DEFAULT_TARGETS, ""))
             .mock(),
         ),
     )
