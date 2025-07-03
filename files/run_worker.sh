@@ -17,8 +17,8 @@ chmod 0700 "${PACKIT_HOME}/.ssh"
 pushd "${PACKIT_HOME}/.ssh"
 install -m 0400 /packit-ssh/id_ed25519* .
 if [[ -f /packit-ssh/config ]]; then install -m 0400 /packit-ssh/config .; fi
-grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
-grep -q gitlab.com known_hosts || ssh-keyscan gitlab.com >>known_hosts
+grep -q pkgs.fedoraproject.org known_hosts 2>/dev/null || curl -fsSL https://admin.fedoraproject.org/ssh_known_hosts >> known_hosts
+grep -q gitlab.com known_hosts || ssh-keyscan gitlab.com >> known_hosts
 popd
 
 # Whether to run Celery worker or beat (task scheduler)
