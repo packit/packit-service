@@ -118,3 +118,6 @@ repos:
           - LICENSE_HEADER.txt
           - --comment-style
           - "#"
+
+ci:
+  autofix_prs: false

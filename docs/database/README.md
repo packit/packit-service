@@ -135,7 +135,6 @@ Here is a list of commands to run if you need a local database with real data fr
   `arr-packit-[prod|stg]` S3 bucket
 
 2. Load it into your local postgres instance:
-
    1. Create a database named packit and owned by the packit user: `postgres=# create database packit owner=packit;`
    2. Copy the dump file into the database container: `podman cp ./dump-$ENV-$DATE.sql postgres:/tmp`
       This is a more reliable option than a direct load from your local filesystem.
