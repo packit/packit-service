@@ -252,7 +252,6 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
     bind=True,
     name=TaskName.copr_build,
     base=TaskWithRetry,
-    queue="long-running",
 )
 def run_copr_build_handler(
     self,
