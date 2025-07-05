@@ -33,4 +33,7 @@ RUN git rev-parse HEAD >/.packit-service.git.commit.hash \
     && rm -rf /src/*
 # /src content is no longer needed, clean it for 'hardly'
 
+# prepopulate fedora-distro-aliases cache
+RUN python3 -c 'from fedora_distro_aliases import get_distro_aliases; get_distro_aliases(cache=True)'
+
 CMD ["/usr/bin/run_worker.sh"]
