@@ -260,7 +260,7 @@ def _mock_targets(jobs, job, job_type):
                 ),
             ],
             (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
-            set(STABLE_VERSIONS),
+            {"fedora-stable"},
             id="test_with_targets",
         ),
         pytest.param(
@@ -300,48 +300,6 @@ def _mock_targets(jobs, job, job_type):
             (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
             set(STABLE_VERSIONS),
             id="build_with_target&test_without_targets",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"packages": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            _targets=STABLE_VERSIONS,
-                        ),
-                    },
-                ),
-            ],
-            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
-            set(STABLE_VERSIONS),
-            id="build_without_target&test_with_targets",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"packages": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            _targets=list(ONE_CHROOT_SET),
-                        ),
-                    },
-                ),
-            ],
-            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
-            ONE_CHROOT_SET,
-            id="build_without_target&test_with_one_str_target",
         ),
         pytest.param(
             [
@@ -457,52 +415,6 @@ def _mock_targets(jobs, job, job_type):
             (JobConfigTriggerType.commit, ProjectEventModelType.branch_push),
             {"fedora-stable"},
             id="build[pr+commit+release]&test[pr]&commit",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"packages": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            _targets=list(ONE_CHROOT_SET),
-                        ),
-                    },
-                ),
-            ],
-            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
-            ONE_CHROOT_SET,
-            id="build_with_mixed_build_alias",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            _targets=STABLE_VERSIONS,
-                        ),
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            _targets=["fedora-rawhide"],
-                        ),
-                    },
-                ),
-            ],
-            (JobConfigTriggerType.pull_request, ProjectEventModelType.pull_request),
-            {*STABLE_VERSIONS, "fedora-rawhide"},
-            id="build_with_mixed_build_tests",
         ),
     ],
 )
@@ -977,7 +889,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             None,
             {("centos-7-x86_64", None)},
-            {"epel-7-x86_64"},
+            STABLE_CHROOTS,
             None,
             [{"centos-7-x86_64"}],
             id="build_test_mapping_test_overrides",
@@ -999,7 +911,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {("epel-7-x86_64", None)},
             None,
-            {"epel-7-x86_64"},
+            set(),
             None,
             [{"centos-7-x86_64", "rhel-7-x86_64"}],
             id="build_test_mapping_build_overrides",
@@ -1019,7 +931,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             None,
             {("centos-stream-8-x86_64", None)},
-            {"centos-stream-8-x86_64"},
+            STABLE_CHROOTS,
             None,
             [{"centos-stream-8-x86_64"}],
             id="targets_in_tests_no_mapping",
@@ -1064,7 +976,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {("epel-7-x86_64", None)},
             None,
-            {"epel-7-x86_64"},
+            set(),
             None,
             [{"centos-7-x86_64"}],
             id="default_mapping_build_override",
@@ -1084,7 +996,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             None,
             {("centos-7-x86_64", None)},
-            {"epel-7-x86_64"},
+            STABLE_CHROOTS,
             None,
             [{"centos-7-x86_64"}],
             id="default_mapping_test_override",
@@ -1104,7 +1016,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {("epel-7-ppc64le", None)},
             None,
-            {"epel-7-ppc64le"},
+            set(),
             None,
             [{"centos-7-ppc64le"}],
             id="default_mapping_build_override_different_arch",
@@ -1124,7 +1036,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             None,
             {("centos-7-ppc64le", None)},
-            {"epel-7-ppc64le"},
+            STABLE_CHROOTS,
             None,
             [{"centos-7-ppc64le"}],
             id="default_mapping_test_override_different_arch",
@@ -1153,7 +1065,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {("fedora-rawhide-x86_64", None)},
             None,
-            {"fedora-rawhide-x86_64"},
+            set(),
             None,
             [{"fedora-rawhide-x86_64"}, set()],
             id="rebuild_default_job_targets",
@@ -1182,7 +1094,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {("fedora-41-x86_64", "latest")},
             None,
-            {"fedora-41-x86_64"},
+            set(),
             None,
             [set(), {"fedora-41-x86_64"}],
             id="rebuild_latest_job_targets",
@@ -1212,7 +1124,7 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {("fedora-41-x86_64", "latest")},
             None,
-            {"fedora-41-x86_64"},
+            set(),
             None,
             [set(), {"fedora-41-x86_64"}],
             id="rebuild_latest_job_targets_for_job_with_identifier",
@@ -1287,6 +1199,10 @@ def test_build_targets_overrides(
         "fedora-rawhide-x86_64",
         default=None,
     ).and_return({"fedora-rawhide-x86_64", "fedora-41-x86_64"})
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
+        "fedora-stable",
+        default=None,
+    ).and_return(STABLE_CHROOTS)
 
     assert copr_build_helper.build_targets == build_targets
     for job in [job for job in jobs if job.type == JobType.copr_build]:
