@@ -550,6 +550,9 @@ def test_check_pending_copr_builds_no_builds():
 
 
 def test_check_pending_copr_builds():
+    client = flexmock()
+    flexmock(Client).should_receive("create_from_config_file").and_return(client)
+
     build1 = flexmock(status=BuildStatus.pending, build_id="1")
     build2 = flexmock(status=BuildStatus.pending, build_id="2")
     build3 = flexmock(status=BuildStatus.pending, build_id="1")
@@ -558,10 +561,10 @@ def test_check_pending_copr_builds():
     ).and_return([build1, build2, build3])
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds",
-    ).with_args(1, [build1, build3]).once()
+    ).with_args(1, [build1, build3], copr_client=client).once()
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds",
-    ).with_args(2, [build2]).once()
+    ).with_args(2, [build2], copr_client=client).once()
     check_pending_copr_builds()
 
 

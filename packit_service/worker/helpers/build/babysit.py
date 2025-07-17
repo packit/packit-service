@@ -6,7 +6,7 @@ import logging
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 import celery
 import copr.v3
@@ -166,8 +166,9 @@ def check_pending_copr_builds() -> None:
         # our DB uses str(build_id) but our code expects int(build_id)
         builds_grouped_by_id[int(build.build_id)].append(build)
 
+    copr_client = CoprClient.create_from_config_file()
     for build_id, builds in builds_grouped_by_id.items():
-        update_copr_builds(build_id, builds)
+        update_copr_builds(build_id, builds, copr_client=copr_client)
 
 
 def check_copr_build(build_id: int) -> bool:
@@ -190,7 +191,11 @@ def check_copr_build(build_id: int) -> bool:
     return update_copr_builds(build_id, builds)
 
 
-def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) -> bool:
+def update_copr_builds(
+    build_id: int,
+    builds: Iterable["CoprBuildTargetModel"],
+    copr_client: Optional[CoprClient] = None,
+) -> bool:
     """
     Updates the state of copr builds.
 
@@ -203,12 +208,16 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
     Args:
         build_id: ID of the copr build to update.
         builds: List of builds corresponding to the given ``build_id``.
+        copr_client: Optional CoprClient instance to use for API calls to Copr
+            (if not provided, a new one will be created).
 
     Returns:
         Whether the run was successful and the build has ended,
         False signals the need to retry again.
     """
-    copr_client = CoprClient.create_from_config_file()
+    if copr_client is None:
+        copr_client = CoprClient.create_from_config_file()
+
     try:
         build_copr = copr_client.build_proxy.get(build_id)
     except copr.v3.CoprNoResultException:
