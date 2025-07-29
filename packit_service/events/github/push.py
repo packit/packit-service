@@ -1,19 +1,13 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from typing import TypedDict
 
-from packit_service.service.db_project_events import AddBranchPushEventToDb
+from packit_service.service.db_project_events import AddBranchPushEventToDb, CommitInfo
 
 from .abstract import GithubEvent
 
 
-class CommitInfo(TypedDict, total=False):
-    id: str
-    title: str
-    message: str
-    added: list[str]
-    modified: list[str]
-    removed: list[str]
+class GithubCommitInfo(CommitInfo):
+    pass
 
 
 class Commit(AddBranchPushEventToDb, GithubEvent):
@@ -25,7 +19,7 @@ class Commit(AddBranchPushEventToDb, GithubEvent):
         project_url: str,
         commit_sha: str,
         commit_sha_before: str,
-        commits: list[CommitInfo],
+        commits: list[GithubCommitInfo],
     ):
         super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace

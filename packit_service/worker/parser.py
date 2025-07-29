@@ -64,9 +64,9 @@ class _GitlabCommonData:
     project_url: str
     parsed_url: Optional[RepoUrl]
     ref: str
-    head_commit: gitlab.push.CommitInfo
+    head_commit: gitlab.push.GitlabCommitInfo
     commit_sha_before: str
-    commits: list[gitlab.push.CommitInfo]
+    commits: list[gitlab.push.GitlabCommitInfo]
 
     @property
     def commit_sha(self) -> str:
@@ -421,7 +421,9 @@ class Parser:
         before = event.get("before")
         checkout_sha = event.get("checkout_sha")
         actor = event.get("user_username")
-        commits = [cast(gitlab.push.CommitInfo, commit) for commit in event.get("commits", [])]
+        commits = [
+            cast(gitlab.push.GitlabCommitInfo, commit) for commit in event.get("commits", [])
+        ]
         number_of_commits = event.get("total_commits_count")
 
         if not Parser.is_gitlab_push_a_create_event(event):
@@ -564,7 +566,7 @@ class Parser:
 
         repo_url = nested_get(event, "repository", "html_url")
 
-        commits = [cast(github.push.CommitInfo, commit) for commit in event.get("commits")]
+        commits = [cast(github.push.GithubCommitInfo, commit) for commit in event.get("commits")]
 
         return github.push.Commit(
             repo_namespace=repo_namespace,
