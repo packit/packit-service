@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional, Union
 
 from ogr.abstract import GitProject, PullRequest
+from ogr.services.forgejo import ForgejoProject
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
@@ -56,6 +57,7 @@ class StatusReporter:
         The `project` determines type of the reporter returned. All other
         parameters are passed to the initializer of the chosen reporter.
         """
+        from .forgejo import StatusReporterForgejo
         from .github import StatusReporterGithubChecks
         from .gitlab import StatusReporterGitlab
         from .pagure import StatusReporterPagure
@@ -67,6 +69,8 @@ class StatusReporter:
             reporter = StatusReporterGitlab
         elif isinstance(project, PagureProject):
             reporter = StatusReporterPagure
+        elif isinstance(project, ForgejoProject):
+            reporter = StatusReporterForgejo
         return reporter(project, commit_sha, packit_user, project_event_id, pr_id)
 
     @property
