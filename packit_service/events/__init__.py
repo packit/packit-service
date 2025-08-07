@@ -7,6 +7,7 @@ from . import (
     copr,
     enums,
     event,
+    forgejo,
     github,
     gitlab,
     koji,
@@ -20,6 +21,7 @@ from . import (
 __all__ = [
     abstract.__name__,
     anitya.__name__,
+    forgejo.__name__,
     github.__name__,
     gitlab.__name__,
     koji.__name__,
