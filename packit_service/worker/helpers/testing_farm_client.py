@@ -231,6 +231,7 @@ class TestingFarmClient:
             .replace("Rhel", "RHEL")
             .replace("Oraclelinux", "Oracle-Linux")
             .replace("Latest", "latest")
+            .replace("Eln", "eln")
         )
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
