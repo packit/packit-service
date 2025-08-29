@@ -103,13 +103,21 @@ class TestingFarmClient:
             endpoint=f"requests/{request_id}",
             method="DELETE",
         )
-        if response.status_code not in (200, 204):
+        if response.status_code not in (200, 204, 409):
             # 200: successful test cancellation
             # 204: cancellation has already been requested, or even completed
+            # 409: “conflict”, i.e., the request has already errored out or has
+            #      finished
             msg = f"Failed to cancel TF request {request_id}: {response.json()}"
             logger.error(msg)
             return False
 
+        # [TODO] Reconsider implicit ‹True› instead of checking for status codes
+        # Currently we set ‹cancel_requested› in the DB when returning ‹True›,
+        # but it does not conform very well with suppressed 409 (which is
+        # returned when the test run has already errored out or has finished),
+        # but it should be overriden by the webhook with test results from the
+        # Testing Farm.
         return True
 
     @classmethod
