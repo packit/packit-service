@@ -1476,15 +1476,24 @@ class DownstreamTestingFarmJobHelper:
         ),
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
-        return {
-            "test": {
-                "tmt": {
-                    "url": self.project.get_pr(self.metadata.pr_id)
-                    .source_project.get_git_urls()
-                    .get("git"),
-                    "ref": self.metadata.commit_sha,
-                },
+        payload = self._get_tf_base_payload(distro, compose)
+        payload["test"] = {
+            "tmt": {
+                "url": self.project.get_pr(self.metadata.pr_id)
+                .source_project.get_git_urls()
+                .get("git"),
+                "ref": self.metadata.commit_sha,
             },
+        }
+        return payload
+
+    def _get_tf_base_payload(self, distro: str, compose: str) -> dict:
+        """
+        Common payload for all fedora-ci testing-farm jobs.
+
+        Does not contain the ``test`` field
+        """
+        return {
             "environments": [
                 {
                     "arch": "x86_64",
