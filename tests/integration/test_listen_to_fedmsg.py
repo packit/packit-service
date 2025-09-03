@@ -2661,6 +2661,51 @@ def test_koji_build_end_downstream(
         },
     }
 
+    rpminspect_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
+    rpminspect_hash = "8468ca157be75b41824535a315e1f80a5aa4fa9d"
+
+    flexmock(commands).should_receive("run_command").with_args(
+        ["git", "ls-remote", rpminspect_repo, "HEAD"], output=True
+    ).and_return(flexmock(stdout=f"{rpminspect_hash}\tHEAD"))
+
+    payload_rpminspect = {
+        "test": {
+            "tmt": {
+                "url": rpminspect_repo,
+                "ref": rpminspect_hash,
+            },
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "os": {"compose": "Fedora-Rawhide"},
+                "variables": {
+                    "KOJI_TASK_ID": "1",
+                },
+                "artifacts": [
+                    {
+                        "id": "1",
+                        "type": "fedora-koji-build",
+                    },
+                ],
+                "tmt": {
+                    "context": {
+                        "distro": "fedora-rawhide",
+                        "arch": "x86_64",
+                        "trigger": "commit",
+                        "initiator": "fedora-ci",
+                    },
+                },
+            },
+        ],
+        "notification": {
+            "webhook": {
+                "url": "https://stg.packit.dev/api/testing-farm/results",
+                "token": "secret token",
+            },
+        },
+    }
+
     payload_custom = {
         "test": {
             "tmt": {
@@ -2715,6 +2760,16 @@ def test_koji_build_end_downstream(
     flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload_installability).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        ),
+    ).once()
+    flexmock(TestingFarmClient).should_receive(
+        "send_testing_farm_request",
+    ).with_args(endpoint="requests", method="POST", data=payload_rpminspect).and_return(
         RequestResponse(
             status_code=200,
             ok=True,
