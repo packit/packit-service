@@ -1458,6 +1458,23 @@ class DownstreamTestingFarmJobHelper:
             },
         }
 
+    @implements_fedora_ci_test("rpminspect")
+    def _payload_rpminspect(self, distro: str, compose: str) -> dict:
+        git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
+        git_ref = (
+            commands.run_command(["git", "ls-remote", git_repo, "HEAD"], output=True)
+            .stdout.strip()
+            .split()[0]
+        )
+        payload = self._get_tf_base_payload(distro, compose)
+        payload["test"] = {
+            "tmt": {
+                "url": git_repo,
+                "ref": git_ref,
+            },
+        }
+        return payload
+
     @staticmethod
     def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
         try:
