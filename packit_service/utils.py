@@ -1,9 +1,11 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import argparse
 import logging
 import os
 import tempfile
+from argparse import RawTextHelpFormatter
 from datetime import datetime, timedelta, timezone
 from io import StringIO
 from logging import StreamHandler
@@ -218,6 +220,112 @@ def get_packit_commands_from_comment(
             return packit_command
 
     return []
+
+
+def _create_base_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog=prog,
+        description=description,
+        epilog=epilog,
+        formatter_class=RawTextHelpFormatter,
+    )
+    parser.add_argument("--package", help="Specific package from monorepo to run job for")
+    return parser
+
+
+def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
+    parser = _create_base_parser(prog, description, epilog)
+
+    subparsers = parser.add_subparsers(
+        dest="command",
+        help="Jobs available",
+    )
+
+    build_parser = subparsers.add_parser(
+        "copr-build",
+        aliases=["build"],
+        help="Build package(s) in Copr",
+    )
+    build_parser.add_argument(
+        "--commit", help="Run Copr build jobs configured with the commit trigger"
+    )
+    build_parser.add_argument(
+        "--release", help="Run Copr build jobs configured with the release trigger"
+    )
+    subparsers.add_parser("rebuild-failed", help="Re-build failed builds in Copr")
+    subparsers.add_parser(
+        "upstream-koji-build",
+        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+    )
+
+    test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
+    test_parser.add_argument(
+        "target",
+        nargs="?",
+        help="Reference to a PR in a different repository containing builds to test",
+    )
+    test_parser.add_argument("--commit", help="Run tests configured with the commit trigger")
+    test_parser.add_argument("--release", help="Run tests configured with the release trigger")
+    test_parser.add_argument(
+        "--identifier", "--id", "-i", help="Identifier of job for which to run tests"
+    )
+    test_parser.add_argument(
+        "--labels",
+        type=lambda s: s.split(","),
+        help="Comma-separated list of labels identifying tests to run",
+    )
+    test_parser.add_argument("--env", action="append", help="Environment variables")
+
+    subparsers.add_parser("retest-failed", help="Re-run failed tests in Testing Farm")
+    subparsers.add_parser("vm-image-build", help="Trigger VM image build")
+    subparsers.add_parser("propose-downstream", help="Trigger propose-downstream job")
+
+    pull_from_upstream_parser = subparsers.add_parser(
+        "pull-from-upstream", help="Trigger pull-from-upstream job"
+    )
+    pull_from_upstream_parser.add_argument(
+        "--resolve-bug",
+        type=lambda s: s.split(","),
+        help="Override the referenced resolved bug set by Packit",
+    )
+    pull_from_upstream_parser.add_argument(
+        "--with-pr-config",
+        action="store_true",
+        help="Use the configuration file from this dist-git pull request",
+    )
+
+    subparsers.add_parser(
+        "koji-build",
+        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+    )
+
+    koji_tag_parser = subparsers.add_parser("koji-tag", help="Tag Koji build to the common sidetag")
+    koji_tag_parser.add_argument("--all-branches", action="store_true", help="Target all branches")
+
+    subparsers.add_parser("create-update", help="Trigger Bodhi update job")
+
+    return parser
+
+
+def get_pr_comment_parser_fedora_ci(
+    prog: str, description: str, epilog: str
+) -> argparse.ArgumentParser:
+    parser = _create_base_parser(prog, description, epilog)
+
+    subparsers = parser.add_subparsers(
+        dest="command",
+        help="Jobs available",
+    )
+    test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
+    test_parser.add_argument(
+        "target",
+        nargs="?",
+        choices=["installability", "rpmlint", "rpminspect", "custom"],
+        help="Specific type of tests to run",
+    )
+    subparsers.add_parser("scratch-build", help="Build package in Scratch")
+
+    return parser
 
 
 def get_koji_task_id_and_url_from_stdout(stdout: str) -> tuple[Optional[int], Optional[str]]:
