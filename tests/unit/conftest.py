@@ -22,12 +22,12 @@ from packit_service.models import (
     ProjectEventModelType,
     PullRequestModel,
 )
-from packit_service.utils import get_pr_comment_parser, get_pr_comment_parser_fedora_ci
+from packit_service.utils import get_comment_parser, get_comment_parser_fedora_ci
 
 
 @pytest.fixture(scope="module")
 def comment_parser() -> argparse.ArgumentParser:
-    return get_pr_comment_parser(
+    return get_comment_parser(
         prog=HELP_COMMENT_PROG,
         description=HELP_COMMENT_DESCRIPTION,
         epilog=HELP_COMMENT_EPILOG,
@@ -36,7 +36,7 @@ def comment_parser() -> argparse.ArgumentParser:
 
 @pytest.fixture(scope="module")
 def comment_parser_fedora_ci() -> argparse.ArgumentParser:
-    return get_pr_comment_parser_fedora_ci(
+    return get_comment_parser_fedora_ci(
         prog=HELP_COMMENT_PROG_FEDORA_CI,
         description=HELP_COMMENT_DESCRIPTION,
         epilog=HELP_COMMENT_EPILOG,

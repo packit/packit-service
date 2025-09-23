@@ -234,6 +234,7 @@ def run_for_check_rerun(prefix: str):
 
 
 class TaskName(str, enum.Enum):
+    help = "task.run_help_handler"
     copr_build_start = "task.run_copr_build_start_handler"
     copr_build_end = "task.run_copr_build_end_handler"
     copr_build = "task.run_copr_build_handler"
