@@ -373,6 +373,9 @@ class ForgejoWebhook(Resource):
     @ns.response(HTTPStatus.UNAUTHORIZED.value, "X-Forgejo-Signature validation failed")
     @ns.expect(ping_payload_forgejo)
     def post(self):
+        """
+        A webhook used by Packit-as-a-Service Forgejo hook.
+        """
         msg = request.json
 
         if not msg:
@@ -385,17 +388,17 @@ class ForgejoWebhook(Resource):
             logger.debug(f"/webhooks/forgejo received ping event: {msg['hook']}")
             forgejo_webhook_calls.labels(result="pong", process_id=os.getpid()).inc()
             return "Pong!", HTTPStatus.OK
-        # TODO
-        # try:
-        #     self.validate_token()
-        # except ValidationFailed as exc:
-        #     logger.info(f"/webhooks/forgejo {exc}")
-        #     forgejo_webhook_calls.labels(
-        #         result="invalid_signature",
-        #         process_id=os.getpid(),
-        #     ).inc()
-        #     return str(exc), HTTPStatus.UNAUTHORIZED
-        #
+
+        try:
+            self.validate_token()
+        except ValidationFailed as exc:
+            logger.info(f"/webhooks/forgejo {exc}")
+            forgejo_webhook_calls.labels(
+                result="invalid_signature",
+                process_id=os.getpid(),
+            ).inc()
+            return str(exc), HTTPStatus.UNAUTHORIZED
+
         if not self.interested(msg):
             forgejo_webhook_calls.labels(
                 result="not_interested",
@@ -419,19 +422,22 @@ class ForgejoWebhook(Resource):
         """
         Validate the Forgejo webhook signature.
         The signature is a direct SHA256 HMAC hex digest of the raw request body
-        using the webhook secret as the key, in a similar fashion to Github.
-
+        using the webhook secret as the key, in a similar fashion to GitHub.
         """
         if "X-Forgejo-Signature" not in request.headers:
+            if config.validate_webhooks:
+                msg = "X-Forgejo-Signature not in request.headers"
+                logger.warning(msg)
+                raise ValidationFailed(msg)
+
+            # don't validate signatures when testing locally
             logger.debug("Ain't validating signatures.")
             return
 
-        if not (webhook_secret := getenv("WEBHOOK_SECRET")):
+        if not (webhook_secret := config.webhook_secret):
             msg = "'webhook_secret' not specified in the config."
             logger.error(msg)
             raise ValidationFailed(msg)
-
-        # Get raw payload
 
         payload = request.get_data()
         if not payload:
@@ -439,18 +445,20 @@ class ForgejoWebhook(Resource):
             logger.error(msg)
             raise ValidationFailed(msg)
 
+        # Calculate payload signature using HMAC-SHA256
         data_hmac = hmac.new(webhook_secret.encode(), msg=payload, digestmod=sha256)
         payload_signature = data_hmac.hexdigest()
-        header_sig = request.headers["X-Forgejo-Signature"]
+        header_signature = request.headers["X-Forgejo-Signature"]
 
-        if header_sig != payload_signature:
+        if not hmac.compare_digest(header_signature, payload_signature):
             msg = "Payload signature validation failed."
-
             logger.warning(msg)
             logger.debug(
-                f"X-Forgejo-Signature: {header_sig!r} != computed: {payload_signature}",
+                f"X-Forgejo-Signature: {header_signature!r} != computed: {payload_signature}",
             )
             raise ValidationFailed(msg)
+
+        logger.debug("Payload signature is OK.")
 
     @staticmethod
     def interested(msg):
@@ -475,7 +483,7 @@ class ForgejoWebhook(Resource):
             "release": action == "published",
             "issues": action in {"opened", "edited", "closed", "reopened"},
             "issue_comment": action in {"created", "edited"},
-            "pull_request": action in {"opened", "edited", "closed", "reopened", "synchronize"},
+            "pull_request": action in {"opened", "reopened", "synchronize"},
         }
 
         _interested = interests.get(event or "", False)
