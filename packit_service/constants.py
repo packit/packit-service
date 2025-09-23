@@ -256,6 +256,7 @@ CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
 FASJSON_URL = "https://fasjson.fedoraproject.org"
 
 PACKIT_VERIFY_FAS_COMMAND = "verify-fas"
+PACKIT_HELP_COMMAND = "help"
 
 MISSING_PERMISSIONS_TO_BUILD_IN_COPR = "You don't have permissions to build in this copr."
 NOT_ALLOWED_TO_BUILD_IN_COPR = "is not allowed to build in the copr"

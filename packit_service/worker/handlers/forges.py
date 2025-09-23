@@ -7,6 +7,7 @@ TODO: The build and test handlers are independent and should be moved away.
 """
 
 import logging
+from typing import Optional
 
 from packit.config import (
     Deployment,
@@ -14,16 +15,30 @@ from packit.config import (
 )
 from packit.config.package_config import PackageConfig
 
-from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
+from packit_service.constants import (
+    CONTACTS_URL,
+    DOCS_APPROVAL_URL,
+    HELP_COMMENT_DESCRIPTION,
+    HELP_COMMENT_EPILOG,
+    HELP_COMMENT_PROG,
+    HELP_COMMENT_PROG_FEDORA_CI,
+    NOTIFICATION_REPO,
+)
 from packit_service.events import (
     github,
+    gitlab,
+    pagure,
 )
 from packit_service.models import (
     AllowlistModel,
     AllowlistStatus,
     GithubInstallationModel,
 )
-from packit_service.utils import get_packit_commands_from_comment
+from packit_service.utils import (
+    get_packit_commands_from_comment,
+    get_pr_comment_parser,
+    get_pr_comment_parser_fedora_ci,
+)
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import IsIssueInNotificationRepoChecker
@@ -35,6 +50,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     GetIssueMixin,
+    GetPullRequestMixin,
     PackitAPIWithDownstreamMixin,
 )
 from packit_service.worker.reporting import create_issue_if_needed
@@ -279,3 +295,47 @@ class GithubFasVerificationHandler(
             self.issue.comment(msg)
 
         return TaskResults(success=True, details={"msg": msg})
+
+
+@reacts_to(event=github.pr.Comment)
+@reacts_to(event=gitlab.mr.Comment)
+@reacts_to(event=pagure.pr.Comment)
+class GitPullRequestHelpHandler(
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetPullRequestMixin,
+):
+    task_name = TaskName.help
+
+    def __init__(
+        self,
+        package_config: Optional[PackageConfig],
+        job_config: Optional[JobConfig],
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self.sender_login = self.data.actor
+        self.comment = self.data.event_dict.get("comment")
+
+    def run(self) -> TaskResults:
+        if self.comment.startswith("/packit-ci"):  # type: ignore
+            parser = get_pr_comment_parser_fedora_ci(
+                prog=HELP_COMMENT_PROG_FEDORA_CI,
+                description=HELP_COMMENT_DESCRIPTION,
+                epilog=HELP_COMMENT_EPILOG,
+            )
+        else:
+            parser = get_pr_comment_parser(
+                prog=HELP_COMMENT_PROG,
+                description=HELP_COMMENT_DESCRIPTION,
+                epilog=HELP_COMMENT_EPILOG,
+            )
+
+        help_message = parser.format_help()
+
+        self.pr.comment(body=help_message)
+        return TaskResults(success=True, details={"msg": help_message})
