@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import argparse
 import logging
 import os
 from datetime import datetime, timezone
@@ -215,6 +216,79 @@ def get_packit_commands_from_comment(
             return packit_command
 
     return []
+
+
+def get_pr_comment_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="/packit")
+    parser.add_argument("--package", help="Specific package from monorepo to apply job to")
+
+    subparsers = parser.add_subparsers(
+        dest="command",
+        help="Jobs available",
+    )
+
+    build_parser = subparsers.add_parser(
+        "copr-build",
+        aliases=["build"],
+        help="Build package(s) in copr",
+    )
+    build_parser.add_argument(
+        "--commit", help="Run copr build jobs configured with the commit trigger"
+    )
+    build_parser.add_argument(
+        "--release", help="Run copr build jobs configured with the release trigger"
+    )
+    subparsers.add_parser("rebuild-failed", help="Re-build failed builds in copr")
+    subparsers.add_parser(
+        "upstream-koji-build",
+        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+    )
+    test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
+    test_parser.add_argument("--commit", help="Run tests configured with the commit trigger")
+    test_parser.add_argument("--release", help="Run tests configured with the release trigger")
+    test_parser.add_argument("target", nargs="*", help="Test target(s)")
+    test_parser.add_argument("env", nargs="*", help="Environment variables")
+    subparsers.add_parser("retest-failed", help="Re-run failed tests in Testing Farm")
+    subparsers.add_parser("vm-image-build", help="Trigger VM image build")
+    subparsers.add_parser("propose-downstream", help="Trigger propose-downstream job")
+    pull_from_upstream_parser = subparsers.add_parser(
+        "pull-from-upstream", help="Trigger pull-from-upstream job"
+    )
+    pull_from_upstream_parser.add_argument(
+        "--resolve-bug",
+        help="Override the referenced resolved bug set by Packit",
+    )
+    pull_from_upstream_parser.add_argument(
+        "--with-pr-config",
+        action="store_true",
+        help="Use the configuration file from this dist-git pull request",
+    )
+    subparsers.add_parser(
+        "koji-build",
+        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+    )
+    koji_tag_parser = subparsers.add_parser("koji-tag", help="Tag Koji build to the common sidetag")
+    koji_tag_parser.add_argument("--all-branches", action="store_true", help="Target all branches")
+    subparsers.add_parser("create-update", help="Trigger Bodhi update job")
+
+    return parser
+
+
+def get_pr_comment_parser_fedora_ci() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="/packit-ci")
+    parser.add_argument("--package", help="Specific package from monorepo to apply job to")
+
+    subparsers = parser.add_subparsers(
+        dest="command",
+        help="Jobs available",
+    )
+    test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
+    test_parser.add_argument("target", nargs="*", help="Test target(s)")
+    test_parser.add_argument("env", nargs="*", help="Environment variables")
+    subparsers.add_parser("retest-failed", help="Re-run failed tests in Testing Farm")
+    subparsers.add_parser("scratch-build", help="Build package in Scratch")
+
+    return parser
 
 
 def get_koji_task_id_and_url_from_stdout(stdout: str) -> tuple[Optional[int], Optional[str]]:
