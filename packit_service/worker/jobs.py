@@ -5,7 +5,6 @@
 We love you, Steve Jobs.
 """
 
-import argparse
 import logging
 from datetime import datetime
 from functools import cached_property
@@ -36,6 +35,8 @@ from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import (
     elapsed_seconds,
     get_packit_commands_from_comment,
+    get_pr_comment_parser,
+    get_pr_comment_parser_fedora_ci,
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
@@ -107,19 +108,18 @@ def parse_comment(
     if not commands:
         return {}
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--package", help="Specific package from monorepo to apply job to")
-    parser.add_argument("command", nargs="*", help="Command to perform")
-    parser.add_argument("--all-branches", action="store_true")
-    parser.add_argument("--with-pr-config", action="store_true")
-    parser.add_argument("--resolve-bug")
+    if comment.startswith("/packit-ci"):
+        parser = get_pr_comment_parser_fedora_ci()
+    else:
+        parser = get_pr_comment_parser()
 
     try:
         args = parser.parse_args(commands)
         return {"command": args.command, "monorepo_package": args.package}
-    except argparse.ArgumentError:
+    except SystemExit:
+        # tests expect invalid syntax comments be ignored
         logger.debug(f"Command {commands} uses unexpected syntax.")
-        return {}
+        return {"command": ""}
 
 
 def get_handlers_for_command(
@@ -137,7 +137,7 @@ def get_handlers_for_command(
     if not command:
         return set()
 
-    handlers = MAP_COMMENT_TO_HANDLER[command[0]]
+    handlers = MAP_COMMENT_TO_HANDLER[command]
     if not handlers:
         logger.debug(f"Command {command} not supported by packit.")
     return handlers
@@ -158,7 +158,7 @@ def get_handlers_for_command_fedora_ci(
     if not command:
         return set()
 
-    handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[command[0]]
+    handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[command]
     if not handlers:
         logger.debug(f"Command {command} not supported by packit.")
     return handlers
