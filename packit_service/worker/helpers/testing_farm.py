@@ -1500,17 +1500,22 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    def _get_tf_base_payload(self, distro: str, compose: str) -> dict:
+    def _get_tf_base_payload(self, distro: str, compose: Optional[str]) -> dict:
         """
         Common payload for all fedora-ci testing-farm jobs.
 
         Does not contain the ``test`` field
         """
+        # Normally testing-farm should decide if it imposes artemis provision or not
+        # based on the presence/absence of `provision` fields in the tmt plans. For now
+        # this has to be specified at the api request level.
+        # TODO: Revisit when 0.2 testing-farm API is decided
+        os_params = {"os": {"compose": compose}} if compose else {}
         return {
             "environments": [
                 {
                     "arch": "x86_64",
-                    "os": {"compose": compose},
+                    **os_params,
                     "variables": {
                         "KOJI_TASK_ID": self.koji_build.task_id,
                     },
