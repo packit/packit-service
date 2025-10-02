@@ -1462,7 +1462,8 @@ class DownstreamTestingFarmJobHelper:
     def _payload_rpminspect(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
         git_ref = "master"
-        payload = self._get_tf_base_payload(distro, compose)
+        # rpminspect defines its own container in the plan file
+        payload = self._get_tf_base_payload(distro, None)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
