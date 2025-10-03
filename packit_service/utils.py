@@ -4,6 +4,7 @@
 import argparse
 import logging
 import os
+from argparse import RawTextHelpFormatter
 from datetime import datetime, timezone
 from io import StringIO
 from logging import StreamHandler
@@ -223,6 +224,7 @@ def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.
         prog=prog,
         description=description,
         epilog=epilog,
+        formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument("--package", help="Specific package from monorepo to apply job to")
 
@@ -285,6 +287,7 @@ def get_pr_comment_parser_fedora_ci(
         prog=prog,
         description=description,
         epilog=epilog,
+        formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument("--package", help="Specific package from monorepo to apply job to")
 
