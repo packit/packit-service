@@ -3298,48 +3298,26 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     assert first_dict_value(results["job"])["success"]
 
 
-@pytest.mark.parametrize(
-    "comment",
-    [
-        pytest.param("/packit-ci test"),
-        pytest.param("/packit-ci test installability"),
-    ],
-)
-@pytest.mark.parametrize(
-    "target_branch, uid, check_name",
-    [
-        pytest.param(
-            "rawhide",
-            "380723461ab74e1cde4eb89b711c8f1d",
-            "Packit - installability test(s) - rawhide",
-            id="rawhide target branch",
-        ),
-        pytest.param(
-            "f42",
-            "a478035df5f8599527e3e37bfc2ca25f",
-            "Packit - installability test(s) - f42",
-            id="f42 target branch",
-        ),
-    ],
-)
-def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
-    pagure_pr_comment_added, comment, target_branch, uid, check_name
+def _test_downstream_tf_retrigger_common(
+    pagure_pr_comment_added,
+    target_branch,
+    flags,
+    comment,
+    tests=1,
 ):
     pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = comment
     pagure_pr_comment_added["pullrequest"]["branch"] = target_branch
-    pr_object = (
-        flexmock(target_branch=target_branch, head_commit="abcdef")
-        .should_receive("set_flag")
-        .with_args(
+
+    pr_object = flexmock(target_branch=target_branch, head_commit="abcdef")
+    for uid, check_name in flags:
+        pr_object.should_receive("set_flag").with_args(
             username=check_name,
             comment="The task was accepted.",
             url=str,
             status=CommitStatus,
             uid=uid,
         )
-        .once()
-        .mock()
-    )
+
     dg_project = (
         flexmock(
             PagureProject(
@@ -3432,7 +3410,9 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
         "get_last_successful_scratch_by_commit_target"
     ).with_args("abcdef", target_branch).and_return(koji_build)
 
-    flexmock(DownstreamTestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("run_testing_farm").times(
+        tests
+    ).and_return(
         TaskResults(success=True, details={}),
     )
 
@@ -3451,3 +3431,79 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
     )
 
     assert first_dict_value(results["job"])["success"]
+
+
+# [NOTE] To regenerate the UIDs for Pagure commit statuses below, use:
+#
+#     import hashlib
+#     hashlib.sha256(check_name.encode()).hexdigest()[:32]
+@pytest.mark.parametrize(
+    "target_branch, flags",
+    [
+        pytest.param(
+            "rawhide",
+            [
+                ("380723461ab74e1cde4eb89b711c8f1d", "Packit - installability test(s) - rawhide"),
+                ("27516f942959e4114b2856f76852577a", "Packit - rpminspect test(s) - rawhide"),
+            ],
+            id="rawhide target branch",
+        ),
+        pytest.param(
+            "f42",
+            [
+                ("a478035df5f8599527e3e37bfc2ca25f", "Packit - installability test(s) - f42"),
+                ("e9d900e81542cc243d51d9058f1845d3", "Packit - rpminspect test(s) - f42"),
+            ],
+            id="f42 target branch",
+        ),
+    ],
+)
+def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
+    pagure_pr_comment_added,
+    target_branch,
+    flags,
+):
+    _test_downstream_tf_retrigger_common(
+        pagure_pr_comment_added,
+        target_branch,
+        flags,
+        "/packit-ci test",
+        tests=2,
+    )
+
+
+@pytest.mark.parametrize(
+    "comment, target_branch, uid, check_name",
+    [
+        pytest.param(
+            "/packit-ci test installability",
+            "rawhide",
+            "380723461ab74e1cde4eb89b711c8f1d",
+            "Packit - installability test(s) - rawhide",
+            id="installability - rawhide target branch",
+        ),
+        pytest.param(
+            "/packit-ci test installability",
+            "f42",
+            "a478035df5f8599527e3e37bfc2ca25f",
+            "Packit - installability test(s) - f42",
+            id="installability - f42 target branch",
+        ),
+        pytest.param(
+            "/packit-ci test rpminspect",
+            "rawhide",
+            "27516f942959e4114b2856f76852577a",
+            "Packit - rpminspect test(s) - rawhide",
+            id="rpminspect - rawhide target branch",
+        ),
+    ],
+)
+def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment(
+    pagure_pr_comment_added, comment, target_branch, uid, check_name
+):
+    _test_downstream_tf_retrigger_common(
+        pagure_pr_comment_added,
+        target_branch,
+        [(uid, check_name)],
+        comment,
+    )
