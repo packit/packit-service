@@ -99,7 +99,7 @@ def parse_comment(
     packit_comment_command_prefix: str,
 ) -> dict[str, str]:
     """
-    Get arguments from the given comment respecting packit_comment_command_prefix.
+    Get arguments from the given comment respecting `packit_comment_command_prefix`.
 
     Args:
         comment: comment we are reacting to
@@ -577,7 +577,7 @@ class SteveJobs:
             A list of task results for each task created.
         """
         handlers_triggered_by_job = None
-        # if there are ever monorepos in Fedora CI...
+        # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
 
         if isinstance(self.event, abstract.comment.CommentEvent):
@@ -586,7 +586,7 @@ class SteveJobs:
                 replace_packit_comment_command_prefix(self.service_config.comment_command_prefix),
             )
 
-            # if there are ever monorepos in Fedora CI...
+            # [XXX] if there are ever monorepos in Fedora CI…
             # monorepo_package = arguments.get("monorepo_package", None)
             command = arguments["command"]
             handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
@@ -614,7 +614,7 @@ class SteveJobs:
             ):
                 continue
 
-            # if there are ever monorepos in Fedora CI...
+            # [XXX] if there are ever monorepos in Fedora CI…
             # if monorepo_package and handler_kls.job_config.package == monorepo_package:
             #     continue
 
