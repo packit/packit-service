@@ -6,6 +6,7 @@ We love you, Steve Jobs.
 """
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from re import match
@@ -94,10 +95,16 @@ logger = logging.getLogger(__name__)
 MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, github.check.Rerun]
 
 
+@dataclass
+class ParsedComment:
+    command: str
+    package: str
+
+
 def parse_comment(
     comment: str,
     packit_comment_command_prefix: str,
-) -> dict[str, str]:
+) -> Optional[ParsedComment]:
     """
     Get arguments from the given comment respecting `packit_comment_command_prefix`.
 
@@ -106,11 +113,16 @@ def parse_comment(
         packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
 
     Returns:
-        Dictionary storing command inside comment and monorepo package if specified
+        ParsedComment storing command inside comment and monorepo package if specified
+        If comment isn't recognized, ParsedComment containing empty strings is returned instead
+
+        For example: If the comment is `/packit build --commit 123 --package best-package-ever`,
+        it would return ParsedComment(command="build", package="best-package-ever")
+        Other aguments are ignored because they are handled separately by job handlers
     """
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
     if not commands:
-        return {}
+        return None
 
     if comment.startswith("/packit-ci"):
         parser = get_pr_comment_parser_fedora_ci(
@@ -127,11 +139,11 @@ def parse_comment(
 
     try:
         args = parser.parse_args(commands)
-        return {"command": args.command, "monorepo_package": args.package}
+        return ParsedComment(command=args.command, package=args.package)
     except SystemExit:
         # tests expect invalid syntax comments be ignored
         logger.debug(f"Command {commands} uses unexpected syntax.")
-        return {"command": ""}
+        return None
 
 
 def get_handlers_for_command(
@@ -543,7 +555,7 @@ class SteveJobs:
                 self.event.comment,
                 self.service_config.comment_command_prefix,
             )
-            command = arguments["command"]
+            command = arguments.command if arguments else ""
 
             if handlers := get_handlers_for_command(command):
                 # we require packit config file when event is triggered by /packit command
@@ -587,8 +599,8 @@ class SteveJobs:
             )
 
             # [XXX] if there are ever monorepos in Fedora CI…
-            # monorepo_package = arguments.get("monorepo_package", None)
-            command = arguments["command"]
+            # monorepo_package = arguments.package if arguments else ""
+            command = arguments.command if arguments else ""
             handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
 
         matching_handlers = {
@@ -662,8 +674,8 @@ class SteveJobs:
                 self.service_config.comment_command_prefix,
             )
 
-            monorepo_package = arguments.get("monorepo_package", None)
-            command = arguments.get("command", "")
+            monorepo_package = arguments.package if arguments else ""
+            command = arguments.command if arguments else ""
 
             if not get_handlers_for_command(command):
                 return [
@@ -1006,7 +1018,7 @@ class SteveJobs:
                 self.service_config.comment_command_prefix,
             )
 
-            command = arguments.get("command", "")
+            command = arguments.command if arguments else ""
             handlers_triggered_by_job = get_handlers_for_command(command)
 
             if handlers_triggered_by_job and not isinstance(
