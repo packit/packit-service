@@ -1458,6 +1458,21 @@ class DownstreamTestingFarmJobHelper:
             },
         }
 
+    @implements_fedora_ci_test("rpminspect")
+    def _payload_rpminspect(self, distro: str, compose: str) -> dict:
+        git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
+        git_ref = "master"
+        # rpminspect defines its own container in the tmt plan file,
+        # hence `compose=None`
+        payload = self._get_tf_base_payload(distro, None)
+        payload["test"] = {
+            "tmt": {
+                "url": git_repo,
+                "ref": git_ref,
+            },
+        }
+        return payload
+
     @staticmethod
     def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
         try:
@@ -1476,19 +1491,33 @@ class DownstreamTestingFarmJobHelper:
         ),
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
-        return {
-            "test": {
-                "tmt": {
-                    "url": self.project.get_pr(self.metadata.pr_id)
-                    .source_project.get_git_urls()
-                    .get("git"),
-                    "ref": self.metadata.commit_sha,
-                },
+        payload = self._get_tf_base_payload(distro, compose)
+        payload["test"] = {
+            "tmt": {
+                "url": self.project.get_pr(self.metadata.pr_id)
+                .source_project.get_git_urls()
+                .get("git"),
+                "ref": self.metadata.commit_sha,
             },
+        }
+        return payload
+
+    def _get_tf_base_payload(self, distro: str, compose: Optional[str]) -> dict:
+        """
+        Common payload for all fedora-ci testing-farm jobs.
+
+        Does not contain the ``test`` field
+        """
+        # Normally testing-farm should decide if it imposes artemis provision or not
+        # based on the presence/absence of `provision` fields in the tmt plans. For now
+        # this has to be specified at the api request level.
+        # TODO: Revisit when 0.2 testing-farm API is decided
+        os_params = {"os": {"compose": compose}} if compose else {}
+        return {
             "environments": [
                 {
                     "arch": "x86_64",
-                    "os": {"compose": compose},
+                    **os_params,
                     "variables": {
                         "KOJI_TASK_ID": self.koji_build.task_id,
                     },

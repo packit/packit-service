@@ -2661,6 +2661,45 @@ def test_koji_build_end_downstream(
         },
     }
 
+    rpminspect_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
+
+    payload_rpminspect = {
+        "test": {
+            "tmt": {
+                "url": rpminspect_repo,
+                "ref": "master",
+            },
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "variables": {
+                    "KOJI_TASK_ID": "1",
+                },
+                "artifacts": [
+                    {
+                        "id": "1",
+                        "type": "fedora-koji-build",
+                    },
+                ],
+                "tmt": {
+                    "context": {
+                        "distro": "fedora-rawhide",
+                        "arch": "x86_64",
+                        "trigger": "commit",
+                        "initiator": "fedora-ci",
+                    },
+                },
+            },
+        ],
+        "notification": {
+            "webhook": {
+                "url": "https://stg.packit.dev/api/testing-farm/results",
+                "token": "secret token",
+            },
+        },
+    }
+
     payload_custom = {
         "test": {
             "tmt": {
@@ -2724,6 +2763,16 @@ def test_koji_build_end_downstream(
     ).once()
     flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
+    ).with_args(endpoint="requests", method="POST", data=payload_rpminspect).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        ),
+    ).once()
+    flexmock(TestingFarmClient).should_receive(
+        "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload_custom).and_return(
         RequestResponse(
             status_code=200,
@@ -2759,7 +2808,26 @@ def test_koji_build_end_downstream(
         .once()
         .mock()
     )
-    group = flexmock(grouped_targets=[tft_test_run_model_installability, tft_test_run_model_custom])
+    tft_test_run_model_rpminspect = (
+        flexmock(
+            id=7,
+            koji_builds=[koji_build_pr_downstream],
+            status=TestingFarmResult.new,
+            target="fedora-rawhide",
+            data={"fedora_ci_test": "rpminspect"},
+        )
+        .should_receive("set_pipeline_id")
+        .with_args(pipeline_id)
+        .once()
+        .mock()
+    )
+    group = flexmock(
+        grouped_targets=[
+            tft_test_run_model_installability,
+            tft_test_run_model_custom,
+            tft_test_run_model_rpminspect,
+        ]
+    )
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [koji_build_pr_downstream.group_of_targets.runs[-1]],
         ranch="public",
@@ -2790,6 +2858,19 @@ def test_koji_build_end_downstream(
             "fedora_ci_test": "custom",
         },
     ).and_return(tft_test_run_model_custom).once()
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+        pipeline_id=None,
+        identifier=None,
+        status=TestingFarmResult.new,
+        target="fedora-rawhide",
+        web_url=None,
+        test_run_group=group,
+        koji_build_targets=[koji_build_pr_downstream],
+        data={
+            "base_project_url": "https://src.fedoraproject.org/rpms/packit",
+            "fedora_ci_test": "rpminspect",
+        },
+    ).and_return(tft_test_run_model_rpminspect).once()
 
     # check if packit-service set correct PR statuses
     flexmock(StatusReporter).should_receive("set_status").with_args(
@@ -2825,6 +2906,20 @@ def test_koji_build_end_downstream(
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/6",
         check_name="Packit - custom test(s)",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        url="",
+        check_name="Packit - rpminspect test(s)",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Tests have been submitted ...",
+        url="https://dashboard.localhost/jobs/testing-farm/7",
+        check_name="Packit - rpminspect test(s)",
         target_branch="rawhide",
     ).once()
 
