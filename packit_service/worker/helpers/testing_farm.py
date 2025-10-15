@@ -1475,6 +1475,22 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
+    @implements_fedora_ci_test("rpmlint")
+    def _payload_rpmlint(self, distro: str, compose: str) -> dict:
+        git_repo = "https://github.com/packit/tmt-plans.git"
+        git_ref = "main"
+        # rpmlint defines its own container in the tmt plan file,
+        # hence `compose=None`
+        payload = self._get_tf_base_payload(distro, None)
+        payload["test"] = {
+            "tmt": {
+                "url": git_repo,
+                "ref": git_ref,
+                "name": "/plans/rpmlint",
+            },
+        }
+        return payload
+
     @staticmethod
     def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
         try:
