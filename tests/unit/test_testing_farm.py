@@ -959,8 +959,10 @@ def test_payload(
     # URLs shortened for clarity
     log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
     srpm_url = f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
+    copr_build_id = "42"
     copr_build = flexmock(
-        id=build_id,
+        id=int(build_id),
+        build_id=copr_build_id,
         built_packages=[
             {
                 "name": repo,
@@ -1022,6 +1024,7 @@ def test_payload(
                 "PACKIT_TARGET_URL": "https://github.com/packit/packit",
                 "PACKIT_PR_ID": 123,
                 "PACKIT_COPR_PROJECT": "builder/some_package",
+                "PACKIT_COPR_BUILD_ID": int(copr_build_id),
                 "MY_ENV_VARIABLE": "my-value",
             },
         },
@@ -1410,11 +1413,13 @@ def test_test_repo(
     flexmock(TFClient).should_receive("distro2compose").and_return(compose)
 
     build_id = 1
+    copr_build_id = "22"
     # URLs shortened for clarity
     log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
     srpm_url = f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
     copr_build = flexmock(
         id=build_id,
+        build_id=copr_build_id,
         built_packages=[
             {
                 "name": repo,

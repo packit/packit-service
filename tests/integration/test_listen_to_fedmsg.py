@@ -711,6 +711,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     "PACKIT_TARGET_URL": "https://github.com/target/bar",
                     "PACKIT_PR_ID": 24,
                     "PACKIT_COPR_PROJECT": "some-owner/some-project",
+                    "PACKIT_COPR_BUILD_ID": 1,
                     "PACKIT_COPR_RPMS": "hello-world-0.1-1.noarch",
                 },
             },
