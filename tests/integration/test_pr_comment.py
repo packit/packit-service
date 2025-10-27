@@ -2146,6 +2146,7 @@ def test_pr_test_command_handler_multiple_builds(
                     "PACKIT_TARGET_URL": "https://github.com/packit-service/hello-world",
                     "PACKIT_PR_ID": 9,
                     "PACKIT_COPR_PROJECT": "mf/tree another-owner/another-repo",
+                    "PACKIT_COPR_BUILD_ID": 123456,
                     "PACKIT_COPR_RPMS": "repo-0:0.1-1.noarch another-repo-0:0.1-1.noarch",
                 },
                 "artifacts": [

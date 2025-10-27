@@ -483,8 +483,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             else:
                 nvr = None
             packit_copr_projects.append(f"{build.owner}/{build.project_name}")
+            build_id = int(build.build_id)
         else:
-            build_log_url = nvr = srpm_url = None
+            build_log_url = nvr = srpm_url = build_id = None
 
         if additional_build is not None:
             packit_copr_projects.append(
@@ -528,6 +529,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_COPR_PROJECT": (
                 " ".join(packit_copr_projects) if packit_copr_projects else None
             ),
+            "PACKIT_COPR_BUILD_ID": build_id,
             "PACKIT_COPR_RPMS": (" ".join(packit_copr_rpms) if packit_copr_rpms else None),
         }
         predefined_environment = {k: v for k, v in predefined_environment.items() if v is not None}
