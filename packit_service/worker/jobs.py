@@ -19,12 +19,14 @@ from packit.utils import nested_get
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
+    PACKIT_HELP_COMMAND,
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
 from packit_service.events import (
     abstract,
     github,
+    gitlab,
     koji,
     pagure,
     testing_farm,
@@ -42,6 +44,7 @@ from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
     GithubFasVerificationHandler,
+    GitPullRequestHelpHandler,
     KojiBuildHandler,
     ProposeDownstreamHandler,
     TestingFarmHandler,
@@ -264,6 +267,15 @@ class SteveJobs:
                 ).apply_async()
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
+        elif isinstance(
+            self.event,
+            (github.pr.Comment, gitlab.mr.Comment, pagure.pr.Comment),
+        ) and self.is_help_comment(self.event.comment):
+            self.event.comment_object.add_reaction(COMMENT_REACTION)
+            GitPullRequestHelpHandler.get_signature(
+                event=self.event,
+                job=None,
+            ).apply_async()
         else:
             if (
                 isinstance(
@@ -1115,6 +1127,24 @@ class SteveJobs:
         )
 
         return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
+
+    def is_help_comment(self, comment: str) -> bool:
+        """
+        Checks whether the comment contains Packit help command:
+        `/packit(-stg) | /packit-ci(-stg) help`
+
+        Args:
+            comment: Comment to be checked.
+
+        Returns:
+            `True`, if is help comment, `False` otherwise.
+        """
+        command = get_packit_commands_from_comment(
+            comment,
+            self.service_config.comment_command_prefix,
+        )
+
+        return bool(command and command[0] == PACKIT_HELP_COMMAND)
 
     def report_task_accepted_for_downstream_retrigger_comments(
         self,
