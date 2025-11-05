@@ -97,8 +97,8 @@ MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, 
 
 @dataclass
 class ParsedComment:
-    command: str
-    package: str
+    command: Optional[str] = None
+    package: Optional[str] = None
 
 
 def parse_comment(
@@ -122,7 +122,7 @@ def parse_comment(
     """
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
     if not commands:
-        return None
+        return ParsedComment()
 
     if comment.startswith("/packit-ci"):
         parser = get_pr_comment_parser_fedora_ci(
@@ -143,7 +143,7 @@ def parse_comment(
     except SystemExit:
         # tests expect invalid syntax comments be ignored
         logger.debug(f"Command {commands} uses unexpected syntax.")
-        return None
+        return ParsedComment()
 
 
 def get_handlers_for_command(
@@ -555,7 +555,7 @@ class SteveJobs:
                 self.event.comment,
                 self.service_config.comment_command_prefix,
             )
-            command = arguments.command if arguments else ""
+            command = arguments.command
 
             if handlers := get_handlers_for_command(command):
                 # we require packit config file when event is triggered by /packit command
@@ -599,8 +599,8 @@ class SteveJobs:
             )
 
             # [XXX] if there are ever monorepos in Fedora CI…
-            # monorepo_package = arguments.package if arguments else ""
-            command = arguments.command if arguments else ""
+            # monorepo_package = arguments.package
+            command = arguments.command
             handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
 
         matching_handlers = {
@@ -674,8 +674,8 @@ class SteveJobs:
                 self.service_config.comment_command_prefix,
             )
 
-            monorepo_package = arguments.package if arguments else ""
-            command = arguments.command if arguments else ""
+            monorepo_package = arguments.package
+            command = arguments.command
 
             if not get_handlers_for_command(command):
                 return [
@@ -1018,7 +1018,7 @@ class SteveJobs:
                 self.service_config.comment_command_prefix,
             )
 
-            command = arguments.command if arguments else ""
+            command = arguments.command
             handlers_triggered_by_job = get_handlers_for_command(command)
 
             if handlers_triggered_by_job and not isinstance(
