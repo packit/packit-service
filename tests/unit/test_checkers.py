@@ -561,7 +561,10 @@ def test_tf_comment_identifier(comment, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
+        flexmock(id=1)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock(),
     )
 
     checker = IsIdentifierFromCommentMatching(
@@ -654,7 +657,10 @@ def test_tf_comment_default_identifier(
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
+        flexmock(id=1)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock(),
     )
 
     checker = IsIdentifierFromCommentMatching(
@@ -662,6 +668,7 @@ def test_tf_comment_default_identifier(
         job_config=job_config,
         event=event,
     )
+
     assert checker.pre_check() == result
 
 
@@ -719,7 +726,10 @@ def test_tf_comment_labels(comment, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
+        flexmock(id=1)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock(),
     )
 
     checker = IsLabelFromCommentMatching(
@@ -808,7 +818,10 @@ def test_tf_comment_default_labels(comment, default_labels, job_labels, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
+        flexmock(id=1)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock(),
     )
 
     checker = IsLabelFromCommentMatching(
@@ -871,7 +884,10 @@ def test_tf_comment_labels_none_in_config(comment, result):
         pr_id=1,
     )
     flexmock(EventData).should_receive("db_project_event").and_return(
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
+        flexmock(id=1)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock(),
     )
 
     checker = IsLabelFromCommentMatching(

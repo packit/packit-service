@@ -336,12 +336,18 @@ class Handler(PackitAPIProtocol, Config):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-    ) -> bool:
+    ) -> tuple[bool, list[dict]]:
         """
-        Returns
-            bool: False if we have to skip the job execution.
+        Run pre-checks for the handler.
+
+        Returns:
+            tuple[bool, list[dict]]: (checks_pass, failure_messages)
+                - checks_pass: False if we have to skip the job execution
+                - failure_messages: List of failure messages from failed checkers
         """
         checks_pass = True
+        failure_messages = []
+
         for checker_cls in cls.get_checkers():
             task_name = getattr(cls, "task_name", None)
             checker = checker_cls(
@@ -350,9 +356,14 @@ class Handler(PackitAPIProtocol, Config):
                 event=event,
                 task_name=task_name.value if task_name else None,
             )
-            checks_pass = checks_pass and checker.pre_check()
+            passed = checker.pre_check()
+            checks_pass = checks_pass and passed
 
-        return checks_pass
+            # Collect failure messages to be aggregated at event level
+            if not passed and (failure_msg := checker.get_failure_message()):
+                failure_messages.append(failure_msg)
+
+        return checks_pass, failure_messages
 
     @staticmethod
     def get_handler_specific_task_accepted_message(

@@ -38,6 +38,10 @@ from packit_service.utils import (
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.checker.testing_farm import (
+    IsIdentifierFromCommentMatching,
+    IsLabelFromCommentMatching,
+)
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -79,7 +83,7 @@ from packit_service.worker.helpers.sync_release.propose_downstream import (
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
-from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -169,6 +173,7 @@ class SteveJobs:
     def __init__(self, event: Optional[Event] = None) -> None:
         self.event = event
         self.pushgateway = Pushgateway()
+        self.mismatch_data: list[dict] = []
 
     @cached_property
     def service_config(self) -> ServiceConfig:
@@ -209,6 +214,10 @@ class SteveJobs:
             steve.pushgateway.events_pre_check_failed.inc()
 
         result = [] if (event_not_handled or pre_check_failed) else steve.process()
+
+        # Post aggregated failure comment if there are any failure messages
+        if steve.mismatch_data:
+            steve._post_aggregated_mismatch_comment()
 
         steve.pushgateway.push()
         return result
@@ -252,11 +261,12 @@ class SteveJobs:
             self.event,
             github.issue.Comment,
         ) and self.is_fas_verification_comment(self.event.comment):
-            if GithubFasVerificationHandler.pre_check(
+            checks_pass, _ = GithubFasVerificationHandler.pre_check(
                 package_config=None,
                 job_config=None,
                 event=self.event.get_dict(),
-            ):
+            )
+            if checks_pass:
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
                 GithubFasVerificationHandler.get_signature(
                     event=self.event,
@@ -530,11 +540,12 @@ class SteveJobs:
         processing_results: list[TaskResults] = []
 
         for handler_kls in matching_handlers:
-            if not handler_kls.pre_check(
+            checks_pass, _ = handler_kls.pre_check(
                 package_config=None,
                 job_config=None,
                 event=self.event.get_dict(),
-            ):
+            )
+            if not checks_pass:
                 continue
 
             self.report_task_accepted_for_fedora_ci(handler_kls)
@@ -631,9 +642,17 @@ class SteveJobs:
                     for job_config in job_configs
                 ]
 
-            processing_results.extend(
-                self.create_tasks(job_configs, handler_kls, statuses_check_feedback),
+            handler_results, failure_messages = self.create_tasks(
+                job_configs, handler_kls, statuses_check_feedback
             )
+            processing_results.extend(handler_results)
+
+            # Only add failure messages if NO tasks were created for this handler
+            # If at least one job matched and created a task, we don't want to post
+            # failure messages about the jobs that didn't match
+            if not handler_results and failure_messages:
+                self.mismatch_data.extend(failure_messages)
+
         self.push_statuses_metrics(statuses_check_feedback)
 
         return processing_results
@@ -643,22 +662,37 @@ class SteveJobs:
         job_configs: list[JobConfig],
         handler_kls: type[JobHandler],
         statuses_check_feedback: list[datetime],
-    ) -> list[TaskResults]:
+    ) -> tuple[list[TaskResults], list[dict]]:
         """
         Create handler tasks for handler and job configs.
 
         Args:
             job_configs: Matching job configs.
             handler_kls: Handler class that will be used.
+            statuses_check_feedback: List to collect status check feedback times.
+
+        Returns:
+            tuple[list[TaskResults], list[dict]]: (processing_results, failure_messages)
+                - processing_results: List of task results
+                - failure_messages: Aggregated mismatch data dicts from failed checkers
         """
         processing_results: list[TaskResults] = []
         signatures = []
+        all_failure_messages: list[dict] = []
+
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
-            if self.should_task_be_created_for_job_config_and_handler(
-                job_config,
-                handler_kls,
-            ):
+            should_create, failure_messages = (
+                self.should_task_be_created_for_job_config_and_handler(
+                    job_config,
+                    handler_kls,
+                )
+            )
+
+            # Collect failure messages from this job
+            all_failure_messages.extend(failure_messages)
+
+            if should_create:
                 self.report_task_accepted(
                     handler_kls=handler_kls,
                     job_config=job_config,
@@ -689,13 +723,13 @@ class SteveJobs:
         # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
         celery.group(signatures).apply_async()
         logger.debug("Signatures were sent to Celery.")
-        return processing_results
+        return processing_results, all_failure_messages
 
     def should_task_be_created_for_job_config_and_handler(
         self,
         job_config: JobConfig,
         handler_kls: type[JobHandler],
-    ) -> bool:
+    ) -> tuple[bool, list[dict]]:
         """
         Check whether a new task should be created for job config and handler.
 
@@ -704,7 +738,9 @@ class SteveJobs:
             handler_kls: Type of handler class to check.
 
         Returns:
-            Whether the task should be created.
+            tuple[bool, list[dict]]: (should_create, failure_messages)
+                - should_create: Whether the task should be created
+                - failure_messages: List of failure messages from failed checkers
         """
         if self.service_config.deployment not in job_config.packit_instances:
             logger.debug(
@@ -712,7 +748,7 @@ class SteveJobs:
                 f"does not match the job configuration ({job_config.packit_instances}). "
                 "The job will not be run.",
             )
-            return False
+            return False, []
 
         return handler_kls.pre_check(
             package_config=(
@@ -1142,3 +1178,122 @@ class SteveJobs:
             self.event.pull_request_object.comment(message)
         if isinstance(self.event, abstract.comment.Issue):
             self.event.issue_object.comment(message)
+
+    def _post_aggregated_mismatch_comment(self) -> None:
+        """
+        Post an aggregated comment with all mismatch messages from failed checkers.
+        Groups structured mismatch data into tables for better readability.
+        """
+        if not self.mismatch_data:
+            return
+
+        # Group dict messages by (type, comment_value)
+        grouped_dict_messages: dict[tuple[str, str], list[dict]] = {}
+
+        for mismatch in self.mismatch_data:
+            key = (mismatch["type"], str(mismatch["comment_value"]))
+            if key not in grouped_dict_messages:
+                grouped_dict_messages[key] = []
+            grouped_dict_messages[key].append(mismatch)
+
+        # Generate formatted messages for grouped dicts
+        formatted_messages = []
+        for (msg_type, _), messages in grouped_dict_messages.items():
+            formatted = self._format_mismatch_table(msg_type, messages)
+            formatted_messages.append(formatted)
+
+        if not formatted_messages:
+            return
+
+        # Create aggregated message
+        aggregated_body = "\n\n---\n\n".join(formatted_messages)
+
+        # Post comment using StatusReporter
+        try:
+            metadata = EventData.from_event_dict(self.event.get_dict())
+
+            reporter = StatusReporter.get_instance(
+                project=self.event.project,
+                commit_sha=metadata.commit_sha,
+                packit_user=self.service_config.get_github_account_name(),
+                project_event_id=self.event.db_project_event.id
+                if self.event.db_project_event
+                else None,
+                pr_id=metadata.pr_id,
+            )
+            reporter.comment(body=aggregated_body)
+            logger.info(
+                f"Posted aggregated failure comment with {len(formatted_messages)} table(s)."
+            )
+        except Exception as e:
+            logger.error(f"Failed to post aggregated failure comment: {e}")
+
+    def _format_mismatch_table(self, msg_type: str, messages: list[dict]) -> str:
+        """
+        Format mismatch data into a markdown table.
+
+        Args:
+            msg_type: Type of mismatch (identifier_explicit, identifier_default, etc.)
+            messages: List of mismatch data dicts
+
+        Returns:
+            Formatted markdown string with header, table, and footer
+        """
+        # Determine header and footer based on type
+        if "identifier" in msg_type:
+            header = IsIdentifierFromCommentMatching.DESCRIPTION
+            if "default" in msg_type:
+                comment_label = "Default identifier"
+                footer = (
+                    "The default identifier is configured but does not match these jobs' "
+                    "identifiers."
+                )
+            else:
+                comment_label = "Comment identifier"
+                footer = "Please check for typos in your `/packit test --identifier` command."
+            job_column_header = "Job Identifier"
+        else:
+            header = IsLabelFromCommentMatching.DESCRIPTION
+            if "default" in msg_type:
+                comment_label = "Default labels"
+                footer = "The default labels are configured but do not match these jobs' labels."
+            else:
+                comment_label = "Comment labels"
+                footer = "Please check for typos in your `/packit test --labels` command."
+            job_column_header = "Job Labels"
+
+        # Get comment value (same for all messages in group)
+        comment_value = messages[0]["comment_value"]
+        if isinstance(comment_value, list):
+            comment_value_str = ", ".join(f"`{v}`" for v in comment_value)
+        else:
+            comment_value_str = f"`{comment_value}`"
+
+        # Build table rows
+        rows: list[str] = []
+        for msg in messages:
+            job_value = msg["job_value"]
+            if isinstance(job_value, list):
+                if not job_value:
+                    job_value_str = "(none)"
+                else:
+                    job_value_str = ", ".join(f"`{v}`" for v in job_value)
+            else:
+                job_value_str = f"`{job_value}`"
+
+            # Add row for each target
+            rows.extend(
+                f"| {job_value_str} | {target} |" for target in msg.get("targets", ["unknown"])
+            )
+
+        # Assemble the message
+        return "\n".join(
+            [
+                f"{header}\n",
+                f"{comment_label}: {comment_value_str}\n",
+                f"| {job_column_header} | Target |",
+                "|" + "-" * (len(job_column_header) + 2) + "|" + "-" * 8 + "|",
+                *rows,
+                f"\n{footer}",
+            ]
+        )
