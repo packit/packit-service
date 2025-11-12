@@ -3451,7 +3451,7 @@ def test_create_tasks_tf_identifier(
     ).and_return(flexmock().should_receive("apply_async").mock())
     statuses_check_feedback = flexmock()
     assert tasks_created == len(
-        SteveJobs(event).create_tasks(jobs, handler_kls, statuses_check_feedback),
+        SteveJobs(event).create_tasks(jobs, handler_kls, statuses_check_feedback)[0],
     )
 
 
@@ -3607,7 +3607,8 @@ def test_invalid_packit_deployment():
     job_config = flexmock(packit_instances=["dev", "stg"])
 
     # handler class doesn't matter in this case
-    assert not jobs.should_task_be_created_for_job_config_and_handler(job_config, None)
+    checks_pass, _ = jobs.should_task_be_created_for_job_config_and_handler(job_config, None)
+    assert not checks_pass
 
 
 def test_unapproved_jobs():

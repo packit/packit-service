@@ -2996,8 +2996,8 @@ def test_koji_build_tag(
         "get_package_config_from_repo",
     ).and_return(pc_koji_build_tag_specfile).and_return(pc_koji_build_tag_packit)
 
-    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
-    flexmock(BodhiUpdateFromSidetagHandler).should_receive("pre_check").and_return(True)
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return((True, []))
+    flexmock(BodhiUpdateFromSidetagHandler).should_receive("pre_check").and_return((True, []))
 
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(celery_group).should_receive("apply_async").once()

@@ -106,12 +106,12 @@ def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_pass
 
     flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
-    result = DownstreamKojiBuildHandler.pre_check(
+    checks_pass, _ = DownstreamKojiBuildHandler.pre_check(
         None,
         flexmock(issue_repository=flexmock()),
         data_dict,
     )
-    assert result == check_passed
+    assert checks_pass == check_passed
 
 
 def test_downstream_handler_init_order():

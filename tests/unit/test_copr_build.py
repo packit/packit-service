@@ -1021,16 +1021,14 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
     if not should_pass:
         flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").once()
 
-    assert (
-        CoprBuildHandler.pre_check(
-            package_config,
-            jobs[0],
-            {
-                "event_type": "github.pr.Action",
-                "actor": "actor",
-                "project_url": "url",
-                "commit_sha": "abcdef",
-            },
-        )
-        == should_pass
+    checks_pass, _ = CoprBuildHandler.pre_check(
+        package_config,
+        jobs[0],
+        {
+            "event_type": "github.pr.Action",
+            "actor": "actor",
+            "project_url": "url",
+            "commit_sha": "abcdef",
+        },
     )
+    assert checks_pass == should_pass

@@ -73,6 +73,10 @@ from packit_service.utils import (
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
+from packit_service.worker.checker.testing_farm import (
+    IsIdentifierFromCommentMatching,
+    IsLabelFromCommentMatching,
+)
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
@@ -824,6 +828,302 @@ def test_pr_test_command_handler_identifiers(
 
 
 @pytest.mark.parametrize(
+    "test_type,job_1_config_extra,job_2_config_extra,comment_body,should_post_comment,expected_tasks,expected_comment_body",
+    [
+        pytest.param(
+            "default_labels",
+            {
+                "labels": [],
+                "test_command": {"default_labels": ["fedora"]},
+            },
+            {
+                "labels": [],
+                "test_command": {"default_labels": ["fedora"]},
+            },
+            "/packit test",
+            True,
+            0,
+            f"""{IsLabelFromCommentMatching.DESCRIPTION}
+
+Default labels: `fedora`
+
+| Job Labels | Target |
+|------------|--------|
+| (none) | regression-1-x86_64 |
+| (none) | regression-2-x86_64 |
+
+The default labels are configured but do not match these jobs' labels.""",
+            id="default_labels_mismatch_no_job_labels",
+        ),
+        pytest.param(
+            "default_labels",
+            {
+                "labels": ["centos"],
+                "test_command": {"default_labels": ["fedora"]},
+            },
+            {
+                "labels": ["centos"],
+                "test_command": {"default_labels": ["fedora"]},
+            },
+            "/packit test",
+            True,
+            0,
+            f"""{IsLabelFromCommentMatching.DESCRIPTION}
+
+Default labels: `fedora`
+
+| Job Labels | Target |
+|------------|--------|
+| `centos` | regression-1-x86_64 |
+| `centos` | regression-2-x86_64 |
+
+The default labels are configured but do not match these jobs' labels.""",
+            id="default_labels_mismatch_different_labels",
+        ),
+        pytest.param(
+            "default_identifier",
+            {
+                "identifier": "wrong-id-1",
+                "test_command": {"default_identifier": "test-job"},
+            },
+            {
+                "identifier": "wrong-id-2",
+                "test_command": {"default_identifier": "test-job"},
+            },
+            "/packit test",
+            True,
+            0,
+            f"""{IsIdentifierFromCommentMatching.DESCRIPTION}
+
+Default identifier: `test-job`
+
+| Job Identifier | Target |
+|----------------|--------|
+| `wrong-id-1` | regression-1-x86_64 |
+| `wrong-id-2` | regression-2-x86_64 |
+
+The default identifier is configured but does not match these jobs' identifiers.""",
+            id="default_identifier_mismatch",
+        ),
+        pytest.param(
+            "explicit_labels",
+            {
+                "labels": [],
+            },
+            {
+                "labels": [],
+            },
+            "/packit test --labels test",
+            True,
+            0,
+            f"""{IsLabelFromCommentMatching.DESCRIPTION}
+
+Comment labels: `test`
+
+| Job Labels | Target |
+|------------|--------|
+| (none) | regression-1-x86_64 |
+| (none) | regression-2-x86_64 |
+
+Please check for typos in your `/packit test --labels` command.""",
+            id="explicit_labels_mismatch_no_job_labels",
+        ),
+        pytest.param(
+            "explicit_labels",
+            {
+                "labels": ["centos"],
+            },
+            {
+                "labels": ["centos"],
+            },
+            "/packit test --labels test",
+            True,
+            0,
+            f"""{IsLabelFromCommentMatching.DESCRIPTION}
+
+Comment labels: `test`
+
+| Job Labels | Target |
+|------------|--------|
+| `centos` | regression-1-x86_64 |
+| `centos` | regression-2-x86_64 |
+
+Please check for typos in your `/packit test --labels` command.""",
+            id="explicit_labels_mismatch_different_labels",
+        ),
+        pytest.param(
+            "explicit_labels_single_match",
+            {
+                "labels": ["centos"],
+            },
+            {
+                "labels": ["magic-label"],
+            },
+            "/packit test --labels magic-label",
+            False,
+            1,
+            None,
+            id="explicit_labels_single_match",
+        ),
+        pytest.param(
+            "explicit_identifier",
+            {
+                "identifier": "wrong-id-1",
+            },
+            {
+                "identifier": "wrong-id-2",
+            },
+            "/packit test --identifier test",
+            True,
+            0,
+            f"""{IsIdentifierFromCommentMatching.DESCRIPTION}
+
+Comment identifier: `test`
+
+| Job Identifier | Target |
+|----------------|--------|
+| `wrong-id-1` | regression-1-x86_64 |
+| `wrong-id-2` | regression-2-x86_64 |
+
+Please check for typos in your `/packit test --identifier` command.""",
+            id="explicit_identifier_mismatch",
+        ),
+        pytest.param(
+            "explicit_identifier_label",
+            {
+                "identifier": "wrong-id-1",
+                "labels": ["centos"],
+            },
+            {
+                "identifier": "wrong-id-2",
+                "labels": ["centos"],
+            },
+            "/packit test --identifier test --label test",
+            True,
+            0,
+            f"""{IsIdentifierFromCommentMatching.DESCRIPTION}
+
+Comment identifier: `test`
+
+| Job Identifier | Target |
+|----------------|--------|
+| `wrong-id-1` | regression-1-x86_64 |
+| `wrong-id-2` | regression-2-x86_64 |
+
+Please check for typos in your `/packit test --identifier` command.
+
+---
+
+{IsLabelFromCommentMatching.DESCRIPTION}
+
+Comment labels: `test`
+
+| Job Labels | Target |
+|------------|--------|
+| `centos` | regression-1-x86_64 |
+| `centos` | regression-2-x86_64 |
+
+Please check for typos in your `/packit test --labels` command.""",
+            id="explicit_identifier_label_mismatch",
+        ),
+    ],
+)
+def test_pr_test_command_handler_mismatch(
+    add_pull_request_event_with_pr_id_9,
+    pr_embedded_command_comment_event,
+    test_type,
+    job_1_config_extra,
+    job_2_config_extra,
+    comment_body,
+    should_post_comment,
+    expected_tasks,
+    expected_comment_body,
+):
+    """
+    Test that when default labels/identifiers don't match,
+    a comment and neutral status are posted.
+    """
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "regression-1-x86_64", "skip_build": True},
+            **job_1_config_extra,
+        },
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "regression-2-x86_64", "skip_build": True},
+            **job_2_config_extra,
+        },
+    ]
+    packit_yaml = "{'specfile_path': 'the-specfile.spec', 'jobs': " + str(jobs) + "}"
+    db_project_object, db_project_event = add_pull_request_event_with_pr_id_9
+    # Add id attribute to db_project_event for StatusReporter
+    flexmock(db_project_event, id=1)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    pr_embedded_command_comment_event["comment"]["body"] = comment_body
+    flexmock(
+        GithubProject,
+        get_files=lambda ref, recursive: ["the-specfile.spec", "packit.yaml"],
+    )
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+
+    comment_body_capture = []
+
+    if should_post_comment:
+        flexmock(StatusReporter).should_receive("comment").replace_with(
+            lambda body: (
+                print(f"\n{'=' * 80}\nAGGREGATED COMMENT BODY:\n{'=' * 80}\n{body}\n{'=' * 80}\n"),
+                comment_body_capture.append(body),
+            )[-1]
+        ).once()
+    else:
+        flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
+            description=TASK_ACCEPTED,
+            state=BaseCommitStatus.pending,
+            url="",
+            markdown_content=None,
+            links_to_external_services=None,
+            update_feedback_time=object,
+        ).once()
+        # Mock Celery since a task will be created
+        flexmock(celery_group).should_receive("apply_async").once()
+        flexmock(Pushgateway).should_receive("push").once().and_return()
+        flexmock(StatusReporter).should_receive("comment").never()
+
+    # Should NOT run testing farm for jobs that don't match
+    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").never()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+
+    # Verify expected number of tasks created
+    assert len(processing_results) == expected_tasks
+
+    if should_post_comment:
+        # Verify that a comment was posted with expected content
+        assert len(comment_body_capture) == 1
+        assert comment_body_capture[0] == expected_comment_body
+    else:
+        # Verify NO comment was posted when at least one job matched
+        assert len(comment_body_capture) == 0
+
+
+@pytest.mark.parametrize(
     "retry_number,description,markdown_content,status,response,delay",
     (
         [
@@ -1557,7 +1857,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         namespace="packit-service",
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
-    ).and_return(db_project_object).times(5)
+    ).and_return(db_project_object).times(7)
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject,
@@ -1619,7 +1919,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         namespace="packit-service",
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
-    ).and_return(db_project_object).times(8)
+    ).and_return(db_project_object).times(10)
     pr_embedded_command_comment_event["comment"]["body"] = "/packit build"
     flexmock(
         GithubProject,
@@ -2424,7 +2724,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         get_pr=lambda id: pr_mock,
     )
 
-    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return((True, []))
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(celery_group).should_receive("apply_async").once()
@@ -2721,7 +3021,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         recursive=False,
     ).and_return(["jouduv-dort.spec", ".packit.yaml"])
 
-    flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(True)
+    flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return((True, []))
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(celery_group).should_receive("apply_async").once()
@@ -2922,7 +3222,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         status=SyncReleaseStatus.finished,
     ).once()
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return((True, []))
 
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
         flexmock(
@@ -3093,7 +3393,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         status=SyncReleaseStatus.finished,
     ).once()
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return((True, []))
 
     flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
         flexmock(
@@ -3211,7 +3511,7 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
         get_pr=lambda id: pr_mock,
     )
 
-    flexmock(TagIntoSidetagHandler).should_receive("pre_check").and_return(True)
+    flexmock(TagIntoSidetagHandler).should_receive("pre_check").and_return((True, []))
     flexmock(celery_group).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return()
