@@ -301,6 +301,12 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
     def run(self):
         run_start_time = datetime.now(timezone.utc)
+        logger.info(
+            f"[CELERY_EXEC] CoprBuildEndHandler execution started for "
+            f"build_id={self.copr_event.build_id} "
+            f"chroot={self.copr_event.chroot} "
+            f"at {run_start_time.isoformat()}"
+        )
         if not self.build:
             # TODO: how could this happen?
             model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"

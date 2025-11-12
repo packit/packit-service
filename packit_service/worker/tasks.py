@@ -120,6 +120,7 @@ def setup_loggers(logger, *args, **kwargs):
     logging.getLogger("sandcastle").setLevel(logging.INFO)
     # easier debugging
     logging.getLogger("packit").setLevel(logging.DEBUG)
+    logging.getLogger("packit_service").setLevel(logging.DEBUG)
 
     class CustomFormatter(logging.Formatter):
         def format(self, record):
@@ -149,6 +150,11 @@ def setup_loggers(logger, *args, **kwargs):
         project = getenv("PROJECT", "packit")
         handler.setFormatter(RFC5424Formatter(msgid=project))
         logger.addHandler(handler)
+        # Also add to root logger to ensure all loggers (including child loggers) inherit it
+        root_logger = logging.getLogger()
+        # Check if handler already exists to avoid duplicates
+        if not any(isinstance(h, logging.handlers.SysLogHandler) for h in root_logger.handlers):
+            root_logger.addHandler(handler)
 
     package_versions = [
         ("OGR", ogr_version),
