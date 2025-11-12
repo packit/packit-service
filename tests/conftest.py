@@ -646,3 +646,9 @@ def pagure_pr_comment_added():
 def new_hotness_update():
     with open(DATA_DIR / "fedmsg" / "new_hotness_update.json") as outfile:
         return json.load(outfile)
+
+
+@pytest.fixture()
+def logdetective_analysis_result():
+    with open(DATA_DIR / "fedmsg" / "logdetective_analysis_result.json") as outfile:
+        return json.load(outfile)
