@@ -275,12 +275,15 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             self.build.target,
         ).ended_on
 
+        build_ended_on_datetime = datetime.fromtimestamp(build_ended_on, timezone.utc)
         reported_after_time = elapsed_seconds(
-            begin=datetime.fromtimestamp(build_ended_on, timezone.utc),
+            begin=build_ended_on_datetime,
             end=reported_time,
         )
-        logger.debug(
-            f"Copr build end reported after {reported_after_time / 60} minutes.",
+        logger.info(
+            f"Copr build {self.build.build_id} for {self.build.target} "
+            f"reported after {reported_after_time / 60} minutes.\n"
+            f"Copr build ended at {build_ended_on_datetime} and was reported at {reported_time}."
         )
 
         self.pushgateway.copr_build_end_reported_after_time.observe(reported_after_time)
