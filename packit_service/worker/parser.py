@@ -29,6 +29,7 @@ from packit_service.events import (
     github,
     gitlab,
     koji,
+    logdetective,
     openscanhub,
     pagure,
     testing_farm,
@@ -41,6 +42,8 @@ from packit_service.events.enums import (
 )
 from packit_service.models import (
     GitBranchModel,
+    LogDetectiveBuildSystem,
+    LogDetectiveResult,
     ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -136,6 +139,7 @@ class Parser:
             pagure.push.Commit,
             testing_farm.Result,
             vm_image.Result,
+            logdetective.Result,
         ]
     ]:
         """
@@ -186,6 +190,7 @@ class Parser:
                 Parser.parse_openscanhub_task_started_event,
                 Parser.parse_commit_comment_event,
                 Parser.parse_pagure_pull_request_event,
+                Parser.parse_logdetective_analysis_event,
             )
         ):
             if response:
@@ -1853,6 +1858,41 @@ class Parser:
             return None
         return event
 
+    @staticmethod
+    def parse_logdetective_analysis_event(event) -> Optional[logdetective.Result]:
+        """Parse logdetective.analysis events. Discard events using unsupported
+        build systems or with incorrect topic."""
+
+        if "logdetective.analysis" not in event.get("topic", ""):
+            return None
+
+        target_build = event.get("target_build")
+        build_system = event.get("build_system")
+        identifier = event.get("identifier")
+        status = LogDetectiveResult.from_string(event.get("result"))
+
+        try:
+            build_system = LogDetectiveBuildSystem(build_system)
+        except ValueError:
+            logger.error(
+                f"Recieved Log Detective analysis: '{identifier}' for build: {target_build} "
+                f"from an incompatible build system {build_system}. Dropping the message."
+            )
+            return None
+
+        logger.info(
+            f"Log Detective analysis: '{identifier}' for build: {target_build} "
+            f"in {build_system} is in state {status}."
+        )
+
+        return logdetective.Result(
+            target_build=target_build,
+            log_detective_response=event.get("log_detective_response"),
+            status=status,
+            build_system=build_system,
+            identifier=identifier,
+        )
+
     # The .__func__ are needed for Python < 3.10
     MAPPING: ClassVar[dict[str, dict[str, Callable]]] = {
         "github": {
@@ -1895,6 +1935,9 @@ class Parser:
             ),
             "openscanhub.task.finished": (
                 parse_openscanhub_task_finished_event.__func__  # type: ignore
+            ),
+            "logdetective.analysis": (
+                parse_logdetective_analysis_event.__func__  # type: ignore
             ),
         },
         "testing-farm": {

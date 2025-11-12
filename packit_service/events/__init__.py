@@ -10,6 +10,7 @@ from . import (
     github,
     gitlab,
     koji,
+    logdetective,
     openscanhub,
     pagure,
     testing_farm,
@@ -29,4 +30,5 @@ __all__ = [
     event.__name__,
     testing_farm.__name__,
     vm_image.__name__,
+    logdetective.__name__,
 ]
