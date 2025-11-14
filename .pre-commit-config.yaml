@@ -96,7 +96,7 @@ repos:
         files: /tests_openshift.*\.yaml$
         stages: [manual, pre-push]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.23.1
+    rev: v8.29.0
     hooks:
       - id: gitleaks
         # The hook runs 'gitleaks protect --staged' which parses output of
