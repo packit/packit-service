@@ -139,6 +139,15 @@ class AbstractCoprBuildReportHandler(
         return (AreOwnerAndProjectMatchingJob, IsPackageMatchingJobView)
 
 
+def report_long_runtime(method: str, length: int, start_time: datetime):
+    end_time = datetime.now(timezone.utc)
+    run_time = elapsed_seconds(start_time, end_time)
+    if run_time > length:
+        m = f"{method} run time takes {run_time} seconds."
+        logger.info(m)
+        sentry_integration.send_to_sentry(RuntimeWarning(m))
+
+
 @configured_as(job_type=JobType.copr_build)
 @reacts_to(event=copr.Start)
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
@@ -165,6 +174,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
         self.build.set_build_logs_url(copr_build_logs)
 
     def run(self):
+        run_start_time = datetime.now(timezone.utc)
         if not self.build:
             model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"
             msg = f"Copr build {self.copr_event.build_id} not in {model}."
@@ -201,6 +211,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             )
             msg = "SRPM build in Copr has started..."
             self.set_start_time()
+            report_long_runtime("SRPM build start", 120, run_start_time)
             return TaskResults(success=True, details={"msg": msg})
 
         self.pushgateway.copr_builds_started.inc()
@@ -220,6 +231,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
         )
         msg = f"Build on {self.copr_event.chroot} in copr has started..."
         self.set_start_time()
+        report_long_runtime("Copr build start", 120, run_start_time)
         return TaskResults(success=True, details={"msg": msg})
 
 
@@ -263,12 +275,15 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             self.build.target,
         ).ended_on
 
+        build_ended_on_datetime = datetime.fromtimestamp(build_ended_on, timezone.utc)
         reported_after_time = elapsed_seconds(
-            begin=datetime.fromtimestamp(build_ended_on, timezone.utc),
+            begin=build_ended_on_datetime,
             end=reported_time,
         )
-        logger.debug(
-            f"Copr build end reported after {reported_after_time / 60} minutes.",
+        logger.info(
+            f"Copr build {self.build.build_id} for {self.build.target} "
+            f"reported after {reported_after_time / 60} minutes.\n"
+            f"Copr build ended at {build_ended_on_datetime} and was reported at {reported_time}."
         )
 
         self.pushgateway.copr_build_end_reported_after_time.observe(reported_after_time)
@@ -285,6 +300,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         self.build.set_built_packages(built_packages)
 
     def run(self):
+        run_start_time = datetime.now(timezone.utc)
+        logger.info(
+            f"[CELERY_EXEC] CoprBuildEndHandler execution started for "
+            f"build_id={self.copr_event.build_id} "
+            f"chroot={self.copr_event.chroot} "
+            f"at {run_start_time.isoformat()}"
+        )
         if not self.build:
             # TODO: how could this happen?
             model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"
@@ -338,6 +360,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                     logs_url=self.build.build_logs_url,
                 )
             self.build.set_status(BuildStatus.failure)
+            report_long_runtime("Copr build failed end", 120, run_start_time)
             return TaskResults(success=False, details={"msg": failed_msg})
 
         self.report_successful_build()
@@ -365,6 +388,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                     f"as this is only experimental functionality for now.",
                 )
 
+        report_long_runtime("Copr build end", 120, run_start_time)
         return TaskResults(success=True, details={})
 
     def report_successful_build(self):
