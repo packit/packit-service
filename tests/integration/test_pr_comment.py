@@ -3446,6 +3446,7 @@ def _test_downstream_tf_retrigger_common(
             [
                 ("380723461ab74e1cde4eb89b711c8f1d", "Packit - installability test(s) - rawhide"),
                 ("27516f942959e4114b2856f76852577a", "Packit - rpminspect test(s) - rawhide"),
+                ("e02f17936a385a5031056e304b9c5de6", "Packit - rpmlint test(s) - rawhide"),
             ],
             id="rawhide target branch",
         ),
@@ -3454,6 +3455,7 @@ def _test_downstream_tf_retrigger_common(
             [
                 ("a478035df5f8599527e3e37bfc2ca25f", "Packit - installability test(s) - f42"),
                 ("e9d900e81542cc243d51d9058f1845d3", "Packit - rpminspect test(s) - f42"),
+                ("a4de9ef7a17005c5404c54acab49d599", "Packit - rpmlint test(s) - f42"),
             ],
             id="f42 target branch",
         ),
@@ -3469,7 +3471,7 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
         target_branch,
         flags,
         "/packit-ci test",
-        tests=2,
+        tests=3,
     )
 
 
