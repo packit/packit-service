@@ -25,7 +25,9 @@
         }
       ]
     },
-    "target_build": "9999"
+    "target_build": "9999",
+    "build_system": "koji",
+    "result": "complete"
   },
   "headers": {
     "fedora_messaging_schema": "base.message",
