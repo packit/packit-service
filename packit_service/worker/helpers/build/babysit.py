@@ -57,6 +57,18 @@ logger = logging.getLogger(__name__)
 
 def celery_run_async(signatures: list[Signature]) -> None:
     logger.debug("Signatures are going to be sent to Celery (from babysit task).")
+    # Extract build_id from signatures for tracking
+    build_ids = [
+        str(build_id)
+        for sig in signatures
+        if sig.kwargs and (build_id := sig.kwargs.get("event", {}).get("build_id"))
+    ]
+    build_ids_str = ", ".join(build_ids) if build_ids else "unknown"
+    queued_time = datetime.now(timezone.utc)
+    logger.info(
+        f"[CELERY_QUEUE] Queuing {len(signatures)} task(s) for Copr build(s) {build_ids_str} "
+        f"at {queued_time.isoformat()}"
+    )
     # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
     celery.group(signatures).apply_async()
     logger.debug("Signatures were sent to Celery.")
