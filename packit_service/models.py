@@ -2156,6 +2156,8 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
 
     scan = relationship("OSHScanModel", back_populates="copr_build_target")
 
+    log_detective_runs = relationship("LogDetectiveRunModel", back_populates="copr_build_target")
+
     identifier = Column(String)
 
     def set_built_packages(self, built_packages):
@@ -2391,6 +2393,13 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             scan.copr_build_target = self
             session.add(scan)
             return scan
+
+    def add_log_detective_run(self, identifier: str) -> "LogDetectiveRunModel":
+        with sa_session_transaction(commit=True) as session:
+            ld_run = LogDetectiveRunModel.get_or_create(identifier)
+            ld_run.copr_build_target = self
+            session.add(ld_run)
+            return ld_run
 
     @contextmanager
     def add_scan_transaction(self) -> Generator["OSHScanModel"]:
@@ -2700,6 +2709,8 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         back_populates="koji_build_targets",
     )
 
+    log_detective_runs = relationship("LogDetectiveRunModel", back_populates="koji_build_target")
+
     def set_status(self, status: str):
         with sa_session_transaction(commit=True) as session:
             self.status = status
@@ -2753,6 +2764,13 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         # All SRPMBuild models for all the runs have to be same.
         return self.group_of_targets.runs[0].srpm_build if self.group_of_targets.runs else None
+
+    def add_log_detective_run(self, identifier: str) -> "LogDetectiveRunModel":
+        with sa_session_transaction(commit=True) as session:
+            ld_run = LogDetectiveRunModel.get_or_create(identifier)
+            ld_run.koji_build_target = self
+            session.add(ld_run)
+            return ld_run
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildTargetModel"]:
@@ -4434,6 +4452,152 @@ class OSHScanModel(Base):
     def get_range(cls, first: int, last: int) -> Iterable["OSHScanModel"]:
         with sa_session_transaction() as session:
             return session.query(OSHScanModel).order_by(desc(OSHScanModel.id)).slice(first, last)
+
+
+class LogDetectiveBuildSystem(enum.Enum):
+    """Build systems that may use Log Detective for build
+    failure analysis. Each requires separate handling of responses."""
+
+    copr = "copr"
+    koji = "koji"
+
+
+class LogDetectiveResult(str, enum.Enum):
+    """Results of Log Detective analysis"""
+
+    __test__ = False
+
+    complete = "complete"
+    running = "running"
+    unknown = "unknown"
+    error = "error"
+
+    @classmethod
+    def from_string(cls, value):
+        try:
+            return cls(value)
+        except ValueError:
+            return cls.unknown
+
+
+class LogDetectiveRunModel(Base):
+    """States of Log Detective runs. Tracking runs of Log Detective analysis in supported
+    build systems, with relationships to their respective models."""
+
+    __tablename__ = "log_detective_run"
+
+    id = Column(Integer, primary_key=True)
+    status = Column(Enum(LogDetectiveResult), nullable=False)
+    # Set from `target_build` field of the message created by logdetective-packit
+    target_build = Column(String)
+    log_detective_response = Column(JSON)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+    # UUID of Log Detective analysis, provided by logdetective-packit
+    # interface server https://github.com/fedora-copr/logdetective-packit
+    identifier = Column(String, unique=True, nullable=False)
+    build_system = Column(Enum(LogDetectiveBuildSystem))
+
+    # In both cases, we don't need to keep Log Detective analysis
+    # for a build that doesn't exist anymore.
+    copr_build_target_id = Column(
+        Integer,
+        ForeignKey("copr_build_targets.id", ondelete="CASCADE"),
+    )
+    koji_build_target_id = Column(
+        Integer,
+        ForeignKey("koji_build_targets.id", ondelete="CASCADE"),
+    )
+
+    copr_build_target = relationship(
+        "CoprBuildTargetModel",
+        back_populates="log_detective_runs",
+        uselist=False,
+    )
+
+    koji_build_target = relationship(
+        "KojiBuildTargetModel", back_populates="log_detective_runs", uselist=False
+    )
+
+    def set_status(self, status: LogDetectiveResult, created: Optional[DateTime] = None):
+        """Set status of Log Detective run, optionally with created time"""
+        with sa_session_transaction(commit=True) as session:
+            self.status = status
+            if created and not self.submitted_time:
+                self.submitted_time = created
+            session.add(self)
+
+    def set_log_detective_response(
+        self, log_detective_response: dict, status: Optional[LogDetectiveResult]
+    ):
+        """Set `log_detective_response` field with response from Log Detective service,
+        and the `status` field to complete, if no other state is given."""
+        with sa_session_transaction(commit=True) as session:
+            self.log_detective_response = log_detective_response
+            if status:
+                self.status = status
+            else:
+                self.status = LogDetectiveResult.complete
+            session.add(self)
+
+    @classmethod
+    def get_or_create(cls, identifier: str) -> "LogDetectiveRunModel":
+        with sa_session_transaction(commit=True) as session:
+            ld_run = cls.get_by_identifier(identifier)
+            if not ld_run:
+                ld_run = cls()
+                ld_run.identifier = identifier
+                ld_run.status = LogDetectiveResult.running
+                session.add(ld_run)
+            return ld_run
+
+    @classmethod
+    def create(
+        cls,
+        status: LogDetectiveResult,
+        target_build: str,
+        build_system: LogDetectiveBuildSystem,
+        identifier: str,
+        log_detective_response: Optional[dict] = None,
+    ) -> "LogDetectiveRunModel":
+        with sa_session_transaction(commit=True) as session:
+            log_detective_run = cls()
+            log_detective_run.status = status
+            log_detective_run.target_build = target_build
+            log_detective_run.build_system = build_system
+            log_detective_run.identifier = identifier
+            if log_detective_response:
+                log_detective_run.log_detective_response = log_detective_response
+            session.add(log_detective_run)
+
+        return log_detective_run
+
+    @classmethod
+    def get_by_build(
+        cls, target_build: str, build_system: LogDetectiveBuildSystem
+    ) -> "LogDetectiveRunModel":
+        """Get all analysis matching given target and build system."""
+        with sa_session_transaction() as session:
+            return (
+                session.query(LogDetectiveRunModel)
+                .filter_by(target_build=target_build, build_system=build_system)
+                .all()
+            )
+
+    @classmethod
+    def get_all_by_status(cls, status: LogDetectiveResult) -> Iterable["LogDetectiveRunModel"]:
+        """Get all Log Detective analysis with matching status"""
+        with sa_session_transaction() as session:
+            return (
+                session.query(LogDetectiveRunModel)
+                .filter(LogDetectiveRunModel.status == status)
+                .all()
+            )
+
+    @classmethod
+    def get_by_identifier(cls, identifier: str) -> "LogDetectiveRunModel":
+        """Get analysis matching given identifier. Identifiers are unique."""
+        with sa_session_transaction() as session:
+            return session.query(LogDetectiveRunModel).filter_by(identifier=identifier).first()
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
