@@ -183,7 +183,7 @@ def test_koji_build_error_msg(distgit_push_packit):
         flexmock(grouped_targets=[koji_build]),
     )
 
-    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return((True, []))
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(group).should_receive("apply_async").once()
 

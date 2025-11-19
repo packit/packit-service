@@ -332,7 +332,7 @@ def test_downstream_koji_build(sidetag_group):
         flexmock(grouped_targets=[koji_build]),
     )
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True, [])
 
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(group).should_receive("apply_async").once()
@@ -433,7 +433,7 @@ def test_downstream_koji_build_failure_no_issue():
         flexmock(id=1, grouped_targets=[koji_build]),
     )
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True, [])
 
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
@@ -531,7 +531,7 @@ def test_downstream_koji_build_failure_issue_created():
 
     flexmock(DistGit).should_receive("get_nvr").and_return(nvr)
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True, [])
 
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
     flexmock(KojiBuildTargetModel).should_receive(
@@ -651,7 +651,7 @@ def test_downstream_koji_build_failure_issue_comment():
         flexmock(grouped_targets=[koji_build]),
     )
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True, [])
 
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
@@ -836,7 +836,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
 
     flexmock(DistGit).should_receive("get_nvr").and_return(nvr)
 
-    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True, [])
 
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
     flexmock(KojiBuildTargetModel).should_receive(
@@ -1025,7 +1025,8 @@ def test_precheck_koji_build_push(
     )
     job_config = jobs[0]
     event = distgit_push_event.get_dict()
-    assert DownstreamKojiBuildHandler.pre_check(package_config, job_config, event) == should_pass
+    checks_pass, _ = DownstreamKojiBuildHandler.pre_check(package_config, job_config, event)
+    assert checks_pass == should_pass
 
 
 @pytest.mark.parametrize(
@@ -1102,4 +1103,5 @@ def test_precheck_koji_build_push_pr(
     )
     job_config = jobs[0]
     event = distgit_push_event.get_dict()
-    assert DownstreamKojiBuildHandler.pre_check(package_config, job_config, event) == should_pass
+    checks_pass, _ = DownstreamKojiBuildHandler.pre_check(package_config, job_config, event)
+    assert checks_pass == should_pass
