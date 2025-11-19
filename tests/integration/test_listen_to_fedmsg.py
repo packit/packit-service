@@ -419,7 +419,7 @@ def test_copr_build_end(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -491,7 +491,7 @@ def test_copr_build_end_push(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_push)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -558,7 +558,7 @@ def test_copr_build_end_release(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_release)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -811,7 +811,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -957,7 +957,7 @@ def test_copr_build_end_testing_farm_pr_branch(copr_build_end, copr_build_pr):
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1091,7 +1091,7 @@ def test_copr_build_end_testing_farm_different_pr_branch(copr_build_end, copr_bu
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1249,7 +1249,7 @@ def test_copr_build_end_testing_farm_manual_trigger(
     copr_event = copy.deepcopy(copr_build_end)
     copr_event["status"] = 1 if build_status == BuildStatus.success else 0
     processing_results = SteveJobs().process_message(copr_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1388,7 +1388,7 @@ def test_copr_build_end_testing_farm_labels_matching(copr_build_end, copr_build_
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1526,7 +1526,7 @@ def test_copr_build_end_testing_farm_labels_not_matching(copr_build_end, copr_bu
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1634,7 +1634,7 @@ def test_copr_build_end_push_testing_farm(copr_build_end_push, copr_build_branch
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_push)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1737,7 +1737,7 @@ def test_copr_build_end_push_testing_farm_different_branch(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end_push)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1898,7 +1898,7 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2081,7 +2081,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2269,7 +2269,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2338,7 +2338,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2392,7 +2392,7 @@ def test_copr_build_start_already_ended(copr_build_start, pc_build_pr, copr_buil
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2458,7 +2458,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2504,7 +2504,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2566,7 +2566,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2999,7 +2999,7 @@ def test_koji_build_end_downstream(
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
 
     # reporting
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         [processing_results[0]],
     )
     assert json.dumps(event_dict)
@@ -3013,7 +3013,7 @@ def test_koji_build_end_downstream(
     assert first_dict_value(results["job"])["success"]
 
     # Testing Farm
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         [processing_results[1]],
     )
     assert json.dumps(event_dict)
@@ -3070,7 +3070,7 @@ def test_koji_build_tag(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(koji_build_tagged)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -3137,7 +3137,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
     ).mock()
 
     processing_results = SteveJobs().process_message(srpm_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -3201,7 +3201,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
     ).mock()
 
     processing_results = SteveJobs().process_message(srpm_build_end)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -3251,7 +3251,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(srpm_build_start)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

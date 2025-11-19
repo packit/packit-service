@@ -291,7 +291,7 @@ def test_check_rerun_pr_testing_farm_handler(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_testing_farm)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -349,7 +349,7 @@ def test_check_rerun_pr_koji_build_handler(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -408,7 +408,7 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -494,7 +494,7 @@ def test_check_rerun_push_testing_farm_handler(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_testing_farm)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert event_dict["tests_targets_override"] == [("fedora-rawhide-x86_64", None)]
@@ -554,7 +554,7 @@ def test_check_rerun_push_koji_build_handler(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build_push)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert event_dict["build_targets_override"] == [("f34", None)]
@@ -613,7 +613,7 @@ def test_check_rerun_release_koji_build_handler(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert event_dict["build_targets_override"] == [("f34", None)]
@@ -676,7 +676,7 @@ def test_check_rerun_release_propose_downstream_handler(
     processing_results = SteveJobs().process_message(
         check_rerun_event_propose_downstream,
     )
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, _, _ = get_parameters_from_results(
         processing_results,
     )
     assert event_dict["branches_override"] == ["f34"]

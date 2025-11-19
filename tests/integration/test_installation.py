@@ -47,7 +47,7 @@ def test_installation():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -80,7 +80,7 @@ def test_reinstallation_already_approved_namespace():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -116,7 +116,7 @@ def test_reinstallation_denied_namespace():
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -163,7 +163,7 @@ def test_reinstallation_not_approved_namespace(previous_sender_login, create_iss
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
     processing_results = SteveJobs().process_message(installation_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

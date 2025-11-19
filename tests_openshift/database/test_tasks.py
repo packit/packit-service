@@ -56,7 +56,7 @@ BUILD_ID = 1300329
 
 @pytest.fixture()
 def packit_build_752():
-    pr_model, pr_event = ProjectEventModel.add_pull_request_event(
+    _, pr_event = ProjectEventModel.add_pull_request_event(
         pr_id=752,
         namespace="packit-service",
         repo_name="packit",

@@ -321,7 +321,7 @@ def test_pr_comment_build_build_and_test_handler(
     test_job = [item for item in processing_results if item["details"]["job"] == "tests"]
     assert test_job
 
-    event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
+    event_dict, _, job_config, package_config = get_parameters_from_results(test_job)
     assert json.dumps(event_dict)
     results = run_testing_farm_handler(
         package_config=package_config,
@@ -396,7 +396,7 @@ def test_pr_comment_build_build_and_test_handler_manual_test_reporting(
     test_job = [item for item in processing_results if item["details"]["job"] == "tests"]
     assert test_job
 
-    event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
+    event_dict, _, job_config, package_config = get_parameters_from_results(test_job)
     assert json.dumps(event_dict)
     results = run_testing_farm_handler(
         package_config=package_config,
@@ -488,7 +488,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_production_build_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -719,7 +719,7 @@ def test_pr_test_command_handler(
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -811,7 +811,7 @@ def test_pr_test_command_handler_identifiers(
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1053,7 +1053,7 @@ def test_pr_test_command_handler_retries(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
 
@@ -1258,7 +1258,7 @@ def test_pr_test_command_handler_skip_build_option(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1386,7 +1386,7 @@ def test_pr_test_command_handler_compose_not_present(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1505,7 +1505,7 @@ def test_pr_test_command_handler_composes_not_available(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1816,7 +1816,7 @@ def test_retest_failed(
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert event_dict["tests_targets_override"] == [("some_tf_target", None)]
@@ -1935,7 +1935,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2306,7 +2306,7 @@ def test_pr_test_command_handler_multiple_builds(
     flexmock(celery_group).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2439,7 +2439,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2597,7 +2597,7 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
     ).once()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2736,7 +2736,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -2940,7 +2940,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     ).once().and_return(distgit_project)
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -3111,7 +3111,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     ).once().and_return(distgit_project)
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -3286,7 +3286,7 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -3421,7 +3421,7 @@ def _test_downstream_tf_retrigger_common(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

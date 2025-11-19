@@ -56,7 +56,7 @@ def test_verification_successful():
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(issue_comment_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -118,7 +118,7 @@ def test_verification_not_successful():
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(issue_comment_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -188,7 +188,7 @@ def test_verification_incorrect_format(comment):
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(event_issue_comment)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -242,7 +242,7 @@ def test_verification_already_approved():
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(issue_comment_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -289,7 +289,7 @@ def test_verification_wrong_repository():
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(issue_comment_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, _, _ = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -317,7 +317,7 @@ def test_verification_wrong_issue():
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(issue_comment_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, _, _ = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -349,7 +349,7 @@ def test_verification_not_original_triggerer():
     flexmock(GithubProject).should_receive("get_issue").and_return(issue)
 
     processing_results = SteveJobs().process_message(issue_comment_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

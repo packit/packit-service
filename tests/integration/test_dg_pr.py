@@ -152,7 +152,7 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
     ).once()
 
     processing_results = SteveJobs().process_message(distgit_pr_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

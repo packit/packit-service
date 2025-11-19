@@ -270,7 +270,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
 
     processing_results = SteveJobs().process_message(new_hotness_update)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -449,7 +449,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     processing_results = SteveJobs().process_message(new_hotness_update)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

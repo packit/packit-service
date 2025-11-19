@@ -126,7 +126,7 @@ def test_sync_from_downstream():
     )
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -345,7 +345,7 @@ def test_downstream_koji_build(sidetag_group):
         koji_target=sidetag if sidetag_group else None,
     ).and_return("")
     processing_results = SteveJobs().process_message(distgit_commit_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -450,7 +450,7 @@ def test_downstream_koji_build_failure_no_issue():
     pagure_project_mock.should_receive("create_issue").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -558,7 +558,7 @@ def test_downstream_koji_build_failure_issue_created():
     ).once()
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -681,7 +681,7 @@ def test_downstream_koji_build_failure_issue_comment():
     issue_project_mock.should_receive("create_issue").times(0)
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -866,7 +866,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
     assert len(processing_results) == 1
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

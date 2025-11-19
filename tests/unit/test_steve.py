@@ -250,7 +250,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         assert processing_results == []
         return
 
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
