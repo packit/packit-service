@@ -23,7 +23,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     filter_most_recent_target_names_by_status,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm_client import TestingFarmClient
 from packit_service.worker.parser import Parser
 from tests_openshift.conftest import SampleValues
 
@@ -266,7 +266,7 @@ def test_testing_farm_response_existing_pr(
     tf_notification,
     tf_result,
 ):
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
@@ -288,7 +288,7 @@ def test_testing_farm_response_non_existing_pr(
     tf_notification,
     tf_result,
 ):
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
@@ -306,7 +306,7 @@ def test_testing_farm_response_existing_branch_push(
     tf_notification,
     tf_result,
 ):
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         SampleValues.pipeline_id,
     ).and_return(tf_result)
     branch_model = branch_project_event_model.get_project_event_object()
@@ -329,7 +329,7 @@ def test_testing_farm_response_non_existing_branch_push(
     tf_notification,
     tf_result,
 ):
-    flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+    flexmock(TestingFarmClient).should_receive("get_request_details").with_args(
         SampleValues.pipeline_id,
     ).and_return(tf_result)
     event_object = Parser.parse_event(tf_notification)
