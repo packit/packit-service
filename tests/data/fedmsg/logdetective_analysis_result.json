@@ -1,0 +1,42 @@
+{
+  "body": {
+    "log_detective_response": {
+      "explanation": {
+        "text": "The RPM build failed due to a test setup failure and a specific test case \"XXXX\" failing.\nThe overall result of the build process was also reported as FAIL.\nTo resolve this, investigate the test setup environment and the failing test case to identify the root cause.",
+        "logprobs": null
+      },
+      "response_certainty": 0.0,
+      "snippets": [
+        {
+          "explanation": {
+            "text": "The snippet indicates uncertainty about an event that occured during the build.",
+            "relevance": 95
+          },
+          "text": "What happened?",
+          "line_number": 0
+        },
+        {
+          "explanation": {
+            "text": "The log snippet indicates a generic failure during an RPM build process. The message 'Failure!' suggests that a command or script executed during the build returned a non-zero exit code, halting the process.",
+            "relevance": 95
+          },
+          "text": "Failure!",
+          "line_number": 0
+        }
+      ]
+    },
+    "target_build": "9999",
+    "build_system": "koji",
+    "result": "complete"
+  },
+  "headers": {
+    "fedora_messaging_schema": "base.message",
+    "fedora_messaging_severity": 20,
+    "priority": 0,
+    "sent-at": "2025-11-29T00:00:00+00:00"
+  },
+  "id": "197dc06b-3ae6-435a-93dc-baad4e39cda2",
+  "priority": 0,
+  "queue": null,
+  "topic": "org.fedoraproject.prod.logdetective.analysis"
+}

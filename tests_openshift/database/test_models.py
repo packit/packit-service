@@ -16,6 +16,9 @@ from packit_service.models import (
     GitProjectModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    LogDetectiveBuildSystem,
+    LogDetectiveResult,
+    LogDetectiveRunModel,
     OSHScanModel,
     PipelineModel,
     ProjectAuthenticationIssueModel,
@@ -1277,3 +1280,19 @@ def test_tmt_get_running_different_ranches(
     assert {test_run.pipeline_id for (test_run,) in running} == {"cafe-internal", "42-internal"}, (
         "Test runs created by the test are in the running state"
     )
+
+
+def test_create_log_detective_run_target_model(clean_before_and_after):
+    """Create LogDetectiveRunTargetModel for with an empty
+    `log_detective_response` field."""
+
+    run_target_model = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.complete,
+        target_build="99999",
+        build_system=LogDetectiveBuildSystem.copr,
+    )
+
+    assert run_target_model.status == LogDetectiveResult.complete
+    assert run_target_model.log_detective_response is None
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr
