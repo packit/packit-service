@@ -41,6 +41,7 @@ from packit_service.utils import (
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
+    AreFilesChanged,
     AreOwnerAndProjectMatchingJob,
     BuildNotAlreadyStarted,
     CanActorRunTestsJob,
@@ -116,6 +117,7 @@ class CoprBuildHandler(
             IsJobConfigTriggerMatching,
             IsGitForgeProjectAndEventOk,
             CanActorRunTestsJob,
+            AreFilesChanged,
         )
 
     def run(self) -> TaskResults:
