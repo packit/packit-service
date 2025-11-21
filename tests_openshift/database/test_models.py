@@ -274,6 +274,7 @@ def test_get_or_create_pr(clean_before_and_after):
 
 def test_errors_while_doing_db(clean_before_and_after):
     with sa_session_transaction() as session:
+        assert len(session.query(PullRequestModel).all()) == 0
         with contextlib.suppress(ProgrammingError):
             PullRequestModel.get_or_create(
                 pr_id="nope",
