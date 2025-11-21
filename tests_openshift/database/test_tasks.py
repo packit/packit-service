@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
+from celery.canvas import Signature
 from copr.v3 import BuildChrootProxy, BuildProxy, Client
 from flexmock import flexmock
 from munch import Munch
@@ -23,8 +24,10 @@ from packit_service.models import (
     ProjectEventModel,
     SRPMBuildModel,
 )
+from packit_service.worker.helpers.build import babysit
 from packit_service.worker.helpers.build.babysit import check_copr_build
 from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.tasks import run_copr_build_end_handler
 
 BUILD_ID = 1300329
 
@@ -84,6 +87,7 @@ def packit_build_752():
 
 
 def test_check_copr_build(clean_before_and_after, packit_build_752):
+    assert packit_build_752.status == BuildStatus.pending
     flexmock(Client).should_receive("create_from_config_file").and_return(
         Client(
             config={
@@ -214,6 +218,45 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
         },
     )
     flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(CoprBuild).should_receive("get_packages_config").and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
+                ),
+            ],
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
+        ),
+    )
 
-    check_copr_build(BUILD_ID)
-    assert packit_build_752.status == BuildStatus.success
+    # Define the mock execution
+    def celery_run_async_stub(signatures, handlers) -> None:
+        assert isinstance(signatures, list)
+        results = []
+        handler = handlers.pop(0)
+        for sig in signatures:
+            assert isinstance(sig, Signature)
+            event_dict = sig.kwargs["event"]
+            job_config = sig.kwargs["job_config"]
+            package_config = sig.kwargs["package_config"]
+
+            result = handler(
+                package_config=package_config,
+                event=event_dict,
+                job_config=job_config,
+            )
+            results.append(result)
+
+    flexmock(
+        babysit,
+        celery_run_async=lambda signatures: celery_run_async_stub(
+            signatures, [run_copr_build_end_handler]
+        ),
+    )
+
+    assert check_copr_build(BUILD_ID)
+    build = CoprBuildTargetModel.get_by_id(packit_build_752.id)
+    assert build is not None
+    assert build.status == BuildStatus.success
