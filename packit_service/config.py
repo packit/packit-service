@@ -25,6 +25,7 @@ from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     TESTING_FARM_API_URL,
 )
+from packit_service.utils import get_user_agent
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,6 @@ class ServiceConfig(Config):
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
-        user_agent: str = "",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -181,8 +181,6 @@ class ServiceConfig(Config):
         # Appcode used in MP+ to differentiate applications
         self.appcode = appcode
 
-        self.user_agent = user_agent
-
     service_config = None
 
     def __repr__(self):
@@ -212,8 +210,7 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
-            f"user_agent='{self.user_agent}')"
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}')"
         )
 
     @classmethod
@@ -299,6 +296,5 @@ class ServiceConfig(Config):
         required: bool = True,
         get_project_kwargs: Optional[dict] = None,
     ) -> Proxy:
-        if self.user_agent:
-            get_project_kwargs = (get_project_kwargs or {}) | {"user_agent": self.user_agent}
+        get_project_kwargs = (get_project_kwargs or {}) | {"user_agent": get_user_agent()}
         return super().get_project(url, required, get_project_kwargs)

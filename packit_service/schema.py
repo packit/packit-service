@@ -84,7 +84,6 @@ class ServiceConfigSchema(UserConfigSchema):
     command_handler_storage_class = fields.String(missing="gp2")
     appcode = fields.String()
     enabled_projects_for_fedora_ci = fields.List(fields.String())
-    user_agent = fields.String(default="")
 
     @post_load
     def make_instance(self, data, **kwargs):
