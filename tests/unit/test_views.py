@@ -16,7 +16,7 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.service import urls
-from packit_service.service.app import packit_as_a_service as application
+from packit_service.service.app import flask_app as application
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,
@@ -118,7 +118,7 @@ def test_get_srpm_logs(client):
 
 
 def test_system_api(client):
-    response = client.get("/api/system")
+    response = client.get("/system")
     assert response.status_code == 200
     response_data = response.json
     for package in ["ogr", "packit", "specfile", "packit_service"]:
