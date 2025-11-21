@@ -264,6 +264,12 @@ def pr_labels_match_configuration(
     )
 
 
+def get_user_agent() -> str:
+    return (
+        os.getenv("PACKIT_USER_AGENT") or f"packit-service/{ps_version or 'dev'} (hello@packit.dev)"
+    )
+
+
 def download_file(url: str, path: Path):
     """
     Download a file from given url to the given path.
@@ -274,11 +280,10 @@ def download_file(url: str, path: Path):
     # TODO: use a library to make the downloads more robust (e.g. pycurl),
     # unify with packit code:
     # https://github.com/packit/packit/blob/2e75e6ff4c0cadb55da1c8daf9315e4b0a69e4a8/packit/base_git.py#L566-L583
-    user_agent = os.getenv("PACKIT_USER_AGENT") or f"packit-service/{ps_version} (hello@packit.dev)"
     try:
         with requests.get(
             url,
-            headers={"User-Agent": user_agent},
+            headers={"User-Agent": get_user_agent()},
             # connection and read timout
             timeout=(10, 30),
             stream=True,
