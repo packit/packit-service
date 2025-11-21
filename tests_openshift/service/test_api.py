@@ -787,8 +787,6 @@ def test_detailed_pull_from_upstream_without_pr_model(
         "jobs/srpm_builds/top_projects_by_job_runs",
         "jobs/copr_build_groups/job_runs",
         "jobs/copr_build_groups/top_projects_by_job_runs",
-        "jobs/copr_build_groups/per_event/pull_request/job_runs",
-        "jobs/copr_build_groups/per_event/pull_request/top_projects_by_job_runs",
     ],
 )
 def test_usage_info_structure(
@@ -846,14 +844,6 @@ def test_usage_info_top(client, clean_before_and_after, full_database):
         (
             "jobs/copr_build_groups/top_projects_by_job_runs",
             {"https://github.com/the-namespace/the-repo-name": 13},
-        ),
-        (
-            "jobs/copr_build_groups/per_event/pull_request/job_runs",
-            9,
-        ),
-        (
-            "jobs/copr_build_groups/per_event/pull_request/top_projects_by_job_runs",
-            {"https://github.com/the-namespace/the-repo-name": 9},
         ),
     ],
 )
