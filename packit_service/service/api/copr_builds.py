@@ -7,7 +7,6 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    BuildStatus,
     CoprBuildGroupModel,
     CoprBuildTargetModel,
     optional_timestamp,
@@ -35,15 +34,6 @@ class CoprBuildsList(Resource):
         first, last = indices()
         for build in CoprBuildTargetModel.get_merged_chroots(first, last):
             build_info = CoprBuildTargetModel.get_by_build_id(build.build_id, None)
-            if build_info.status == BuildStatus.waiting_for_srpm:
-                continue
-            if (
-                build_info.status == BuildStatus.failure
-                and not build_info.build_start_time
-                and not build_info.build_logs_url
-            ):
-                # SRPM build failed, it doesn't make sense to list this build
-                continue
             project_info = build_info.get_project()
             build_dict = {
                 "packit_id": build_info.id,
