@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
 
+from lazy_object_proxy import Proxy
 from packit.config import (
     Config,
     RunCommandType,
@@ -105,6 +106,7 @@ class ServiceConfig(Config):
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
+        user_agent: str = "",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -179,6 +181,8 @@ class ServiceConfig(Config):
         # Appcode used in MP+ to differentiate applications
         self.appcode = appcode
 
+        self.user_agent = user_agent
+
     service_config = None
 
     def __repr__(self):
@@ -208,7 +212,8 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}')"
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
+            f"user_agent='{self.user_agent}')"
         )
 
     @classmethod
@@ -287,3 +292,13 @@ class ServiceConfig(Config):
             Deployment.stg: "packit-as-a-service-stg[bot]",
             Deployment.dev: "packit-as-a-service-dev[bot]",
         }.get(self.deployment)
+
+    def get_project(
+        self,
+        url: str,
+        required: bool = True,
+        get_project_kwargs: Optional[dict] = None,
+    ) -> Proxy:
+        if self.user_agent:
+            get_project_kwargs = (get_project_kwargs or {}) | {"user_agent": self.user_agent}
+        return super().get_project(url, required, get_project_kwargs)
