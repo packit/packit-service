@@ -142,7 +142,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -247,7 +247,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     with pytest.raises(PackitException):
@@ -358,7 +358,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     CreateBodhiUpdateHandler(
@@ -483,7 +483,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     CreateBodhiUpdateHandler(
@@ -598,7 +598,7 @@ def test_bodhi_update_build_not_tagged_yet(
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     celery_task = flexmock(CeleryTask)
@@ -791,7 +791,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -943,7 +943,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1190,7 +1190,7 @@ def test_bodhi_update_from_sidetag(
     flexmock(BodhiUpdateTargetModel).should_receive("create").replace_with(_create)
 
     processing_results = SteveJobs().process_message(koji_build_tagged)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

@@ -249,7 +249,7 @@ class TestingFarmHandler(
         if not targets_with_builds:
             return
 
-        group, test_runs = self._get_or_create_group(targets_with_builds)
+        _, test_runs = self._get_or_create_group(targets_with_builds)
         for test_run in test_runs:
             copr_build = test_run.copr_builds[0]
             if copr_build.status in (
@@ -326,8 +326,8 @@ class TestingFarmHandler(
         failed: dict[str, str] = {}
 
         if self.testing_farm_job_helper.skip_build:
-            group, test_runs = self._get_or_create_group(
-                {target: None for target in targets},
+            _, test_runs = self._get_or_create_group(
+                dict.fromkeys(targets),
             )
             for test_run in test_runs:
                 # Only retry what's needed
@@ -467,7 +467,7 @@ class DownstreamTestingFarmHandler(
             self.service_config, self.project, self.data
         )
 
-        group, test_runs = self._get_or_create_group(fedora_ci_tests)
+        _, test_runs = self._get_or_create_group(fedora_ci_tests)
         for test_run in test_runs:
             # Only retry what's needed
             if test_run.status not in [

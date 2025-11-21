@@ -304,7 +304,7 @@ def test_handle_scan_task_finished(
             ).once().and_return()
 
         for sub_results in processing_results:
-            event_dict, job, job_config, package_config = get_parameters_from_results(
+            event_dict, _, job_config, package_config = get_parameters_from_results(
                 [sub_results],
             )
             assert json.dumps(event_dict)
@@ -381,7 +381,7 @@ def test_handle_scan_task_started(
             ).once().and_return()
 
         for sub_results in processing_results:
-            event_dict, job, job_config, package_config = get_parameters_from_results(
+            event_dict, _, job_config, package_config = get_parameters_from_results(
                 [sub_results],
             )
             assert json.dumps(event_dict)

@@ -280,7 +280,7 @@ def test_dist_git_push_release_handle(
     ).once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -437,7 +437,7 @@ def test_dist_git_push_release_handle_fast_forward_branches(
     ).once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -580,7 +580,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     flexmock(shutil).should_receive("rmtree").and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -752,7 +752,7 @@ def test_dist_git_push_release_handle_one_failed(
     flexmock(shutil).should_receive("rmtree").and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -895,7 +895,7 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1023,7 +1023,7 @@ def test_retry_propose_downstream_task(
     ).once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1153,7 +1153,7 @@ def test_dont_retry_propose_downstream_task(
     ).once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)
@@ -1240,7 +1240,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

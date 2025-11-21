@@ -230,7 +230,7 @@ def test_vm_image_build_result_handler_ko(
         package_config,
         job_config,
         project,
-        db_project_object,
+        _,
     ) = fake_package_config_job_config_project_db_trigger
     handler = VMImageBuildResultHandler(
         package_config,

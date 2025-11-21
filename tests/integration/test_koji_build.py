@@ -102,7 +102,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
 
     processing_results = SteveJobs().process_message(koji_build_event)
     # 1*KojiBuildReportHandler
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

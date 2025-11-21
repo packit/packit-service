@@ -608,7 +608,7 @@ def test_tmt_test_get_by_pipeline_id_branch_push(
     srpm_build_model_with_new_run_and_tf_for_branch,
     a_copr_build_for_branch_push,
 ):
-    _, tf_group_model, run_model = srpm_build_model_with_new_run_and_tf_for_branch
+    _, tf_group_model, _ = srpm_build_model_with_new_run_and_tf_for_branch
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         target=SampleValues.target,
@@ -627,7 +627,7 @@ def test_tmt_test_get_by_pipeline_id_release(
     srpm_build_model_with_new_run_and_tf_for_release,
     a_copr_build_for_release,
 ):
-    _, tf_group_model, run_model = srpm_build_model_with_new_run_and_tf_for_release
+    _, tf_group_model, _ = srpm_build_model_with_new_run_and_tf_for_release
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         target=SampleValues.target,

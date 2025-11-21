@@ -303,7 +303,7 @@ def test_issue_comment_propose_downstream_handler(
     )
 
     processing_results = SteveJobs().process_message(comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert json.dumps(event_dict)

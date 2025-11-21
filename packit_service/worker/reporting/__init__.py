@@ -25,5 +25,5 @@ __all__ = [
     StatusReporterGithubStatuses.__name__,
     StatusReporterGitlab.__name__,
     create_issue_if_needed.__name__,
-    comment_without_duplicating,
+    comment_without_duplicating.__name__,
 ]
