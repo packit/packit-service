@@ -198,7 +198,7 @@ def global_service_config():
 
 
 def clean_db():
-    with sa_session_transaction() as session:
+    with sa_session_transaction(commit=True) as session:
         session.query(SourceGitPRDistGitPRModel).delete()
         session.query(OSHScanModel).delete()
 
