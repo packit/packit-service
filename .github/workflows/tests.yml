@@ -1,0 +1,40 @@
+name: Tests
+# This workflow is intended to follow testing as performed manually
+# by an actual developer. This includes using make and relying on docker
+# or podman CLI to build images.
+# The intent is to verify that developers can run these tests locally,
+# with no, or at worst minimal, modifications.
+# As such, all changes, that would lead to divergence with recommended
+# developer practice, must be justified in comments.
+# Divergence:
+# SOURCE_BRANCH variable value is set for each execution of make,
+# since the actions/checkout execution switches to a single commit.
+# COMPOSE variable value is set to `podman-compose`, since podman is
+# default for github runners
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compose
+        run: |
+          sudo apt install podman-compose
+          podman-compose --version
+
+      - name: Build Test Image
+        run: make build-test-image SOURCE_BRANCH=${{ github.head_ref || github.ref_name }}
+
+      - name: Configure unprivileged ports
+        run: sudo sysctl -w net.ipv4.ip_unprivileged_port_start=443
+
+      - name: Run Database Tests
+        run: |
+          make check-db SOURCE_BRANCH=${{ github.head_ref || github.ref_name }} COMPOSE=podman-compose
