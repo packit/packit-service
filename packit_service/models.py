@@ -1610,7 +1610,7 @@ class ProjectEventModel(Base):
 
     __tablename__ = "project_events"
     id = Column(Integer, primary_key=True)  # our database PK
-    type = Column(Enum(ProjectEventModelType))
+    type = Column(Enum(ProjectEventModelType, name="projecteventtype"))
     event_id = Column(Integer, index=True)
     commit_sha = Column(String, index=True)
     packages_config = Column(JSON)
