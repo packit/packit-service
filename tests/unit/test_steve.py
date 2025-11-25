@@ -75,7 +75,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     gh_project = flexmock(
         GithubProject,
-        get_file_content=lambda path, ref: dumps(packit_yaml),
+        get_file_content=lambda path, ref, headers: dumps(packit_yaml),
         full_repo_name="the-namespace/the-repo",
         get_sha_from_tag=lambda tag_name: "12345",
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",

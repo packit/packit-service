@@ -60,6 +60,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -135,6 +136,7 @@ def test_koji_build_error_msg(distgit_push_packit):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",

@@ -94,7 +94,7 @@ jobs:
 """
     flexmock(
         project_class,
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="packit-service/packit",
         get_web_url=lambda: f"https://{forge}.com/packit-service/packit",
         default_branch="main",
