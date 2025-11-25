@@ -72,6 +72,7 @@ def test_sync_from_downstream():
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -157,6 +158,7 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -233,6 +235,7 @@ def test_downstream_koji_build(sidetag_group):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -379,6 +382,7 @@ def test_downstream_koji_build_failure_no_issue():
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -484,6 +488,7 @@ def test_downstream_koji_build_failure_issue_created():
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -596,6 +601,7 @@ def test_downstream_koji_build_failure_issue_comment():
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -790,6 +796,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -929,6 +936,7 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",

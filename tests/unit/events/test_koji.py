@@ -82,10 +82,12 @@ def test_parse_koji_build_event_start_old_format(
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -123,10 +125,12 @@ def test_parse_koji_build_event_start_rawhide(koji_build_start_rawhide, mock_con
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -164,10 +168,12 @@ def test_parse_koji_build_event_start_f36(koji_build_start_f36, mock_config):
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -205,10 +211,12 @@ def test_parse_koji_build_event_start_epel8(koji_build_start_epel8, mock_config)
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -246,10 +254,12 @@ def test_parse_koji_build_event_completed_old_format(
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -290,10 +300,12 @@ def test_parse_koji_build_event_completed_rawhide(
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -332,10 +344,12 @@ def test_parse_koji_build_event_completed_f36(koji_build_completed_f36, mock_con
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config
@@ -377,10 +391,12 @@ def test_parse_koji_build_event_completed_epel8(
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".distro/source-git.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_raise(FileNotFoundError, "Not found.")
     flexmock(PagureProject).should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="rawhide",
+        headers=dict,
     ).and_return(packit_yaml)
 
     assert event_object.packages_config

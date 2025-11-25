@@ -173,7 +173,7 @@ def test_dist_git_push_release_handle(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = flexmock(
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="packit-service/hello-world",
         repo="hello-world",
         namespace="packit-service",
@@ -318,7 +318,7 @@ def test_dist_git_push_release_handle_fast_forward_branches(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = flexmock(
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="packit-service/hello-world",
         repo="hello-world",
         namespace="packit-service",
@@ -464,7 +464,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = flexmock(
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="packit-service/hello-world",
         repo="hello-world",
         namespace="packit-service",
@@ -608,7 +608,7 @@ def test_dist_git_push_release_handle_one_failed(
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = (
         flexmock(
-            get_file_content=lambda path, ref: packit_yaml,
+            get_file_content=lambda path, ref, headers: packit_yaml,
             full_repo_name="packit-service/hello-world",
             repo="hello-world",
             namespace="packit-service",
@@ -791,7 +791,7 @@ def test_dist_git_push_release_handle_all_failed(
         )
     project = (
         flexmock(
-            get_file_content=lambda path, ref: packit_yaml,
+            get_file_content=lambda path, ref, headers: packit_yaml,
             full_repo_name="packit-service/hello-world",
             repo="hello-world",
             namespace="packit-service",
@@ -924,7 +924,7 @@ def test_retry_propose_downstream_task(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = flexmock(
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="packit-service/hello-world",
         repo="hello-world",
         namespace="packit-service",
@@ -1050,7 +1050,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = (
         flexmock(
-            get_file_content=lambda path, ref: packit_yaml,
+            get_file_content=lambda path, ref, headers: packit_yaml,
             full_repo_name="packit-service/hello-world",
             repo="hello-world",
             namespace="packit-service",
@@ -1188,7 +1188,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
         table_content += f"| `{model.branch}` | See {get_propose_downstream_info_url(model.id)} |\n"
     project = (
         flexmock(
-            get_file_content=lambda path, ref: packit_yaml,
+            get_file_content=lambda path, ref, headers: packit_yaml,
             full_repo_name="packit-service/hello-world",
             repo="hello-world",
             namespace="packit-service",

@@ -152,7 +152,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     distgit_project = flexmock(
         get_files=lambda ref, recursive: [".packit.yaml"],
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="rpms/redis",
         repo="redis",
         is_private=lambda: False,
@@ -294,7 +294,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     distgit_project = flexmock(
         get_files=lambda ref, recursive: [".packit.yaml"],
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="rpms/redis",
         repo="redis",
         is_private=lambda: False,
@@ -348,7 +348,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     distgit_project = flexmock(
         get_files=lambda ref, recursive: [".packit.yaml"],
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name="rpms/redis",
         repo="redis",
         namespace="rpms",

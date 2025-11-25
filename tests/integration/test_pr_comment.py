@@ -170,7 +170,7 @@ def mock_pr_comment_functionality(request):
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
@@ -423,7 +423,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_pr=lambda pr_id: flexmock(
@@ -670,7 +670,7 @@ def test_pr_test_command_handler(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
@@ -758,7 +758,7 @@ def test_pr_test_command_handler_identifiers(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
@@ -910,7 +910,7 @@ def test_pr_test_command_handler_retries(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
@@ -1109,7 +1109,7 @@ def test_pr_test_command_handler_skip_build_option(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
@@ -1302,7 +1302,7 @@ def test_pr_test_command_handler_compose_not_present(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
@@ -1430,7 +1430,7 @@ def test_pr_test_command_handler_composes_not_available(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
@@ -1543,7 +1543,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     gh_project = flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
@@ -1605,7 +1605,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
     gh_project = flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
@@ -1861,7 +1861,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
@@ -2053,7 +2053,7 @@ def test_pr_test_command_handler_multiple_builds(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
@@ -2338,6 +2338,7 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -2715,6 +2716,7 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -2786,7 +2788,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
     )
     distgit_project = flexmock(
         get_files=lambda ref, recursive: [".packit.yaml"],
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name=pagure_pr_comment_added["pullrequest"]["project"]["fullname"],
         repo=pagure_pr_comment_added["pullrequest"]["project"]["name"],
         namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
@@ -2990,7 +2992,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     )
     distgit_project = flexmock(
         get_files=lambda ref, recursive: [".packit.yaml"],
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         full_repo_name=pagure_pr_comment_added["pullrequest"]["project"]["fullname"],
         repo=pagure_pr_comment_added["pullrequest"]["project"]["name"],
         namespace=pagure_pr_comment_added["pullrequest"]["project"]["namespace"],
@@ -3149,6 +3151,7 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",

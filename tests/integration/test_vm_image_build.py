@@ -69,6 +69,7 @@ def test_vm_image_build(github_vm_image_build_comment):
     project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="123456",
+        headers=dict,
     ).and_return(packit_yaml)
     project.should_receive("get_files").with_args(
         ref="123456",

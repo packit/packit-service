@@ -94,7 +94,7 @@ def mock_pr_functionality(request):
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_pr=lambda pr_id: flexmock(head_commit="12345"),
@@ -139,7 +139,7 @@ def mock_push_functionality(request):
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_pr=lambda pr_id: flexmock(head_commit="12345"),
@@ -185,7 +185,7 @@ def mock_release_functionality(request):
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_pr=lambda pr_id: flexmock(head_commit="12345"),

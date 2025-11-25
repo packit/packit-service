@@ -70,6 +70,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -175,6 +176,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -281,6 +283,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -396,6 +399,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -523,6 +527,7 @@ def test_bodhi_update_build_not_tagged_yet(
     pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project_mock.should_receive("get_files").with_args(
         ref="main",
@@ -648,6 +653,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -732,6 +738,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -824,6 +831,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -884,6 +892,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref="main",
+        headers=dict,
     ).and_return(packit_yaml)
     pagure_project.should_receive("get_files").with_args(
         ref="main",
@@ -1066,6 +1075,7 @@ def test_bodhi_update_from_sidetag(
     specfile_pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref=None,
+        headers=dict,
     ).and_return(specfile_packit_yaml)
     specfile_pagure_project.should_receive("get_files").with_args(
         ref=None,
@@ -1100,6 +1110,7 @@ def test_bodhi_update_from_sidetag(
     packit_pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml",
         ref=None,
+        headers=dict,
     ).and_return(packit_packit_yaml)
     packit_pagure_project.should_receive("get_files").with_args(
         ref=None,

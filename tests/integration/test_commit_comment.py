@@ -44,7 +44,7 @@ def mock_commit_comment_functionality(request):
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_commits=lambda branch: ["eea05dd6fab70d8c4afc10b58ef14ecb25e4f9d8"],
