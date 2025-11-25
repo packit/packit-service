@@ -116,7 +116,7 @@ def setup_loggers(logger, *args, **kwargs):
     logging.getLogger("botocore").setLevel(logging.WARNING)
     logging.getLogger("s3transfer").setLevel(logging.WARNING)
     # info is just enough
-    logging.getLogger("ogr").setLevel(logging.INFO)
+    logging.getLogger("ogr").setLevel(logging.DEBUG)
     logging.getLogger("sandcastle").setLevel(logging.INFO)
     # easier debugging
     logging.getLogger("packit").setLevel(logging.DEBUG)
