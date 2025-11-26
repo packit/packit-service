@@ -6,10 +6,8 @@ This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
 
-# import io
 import logging
 
-# import sys
 from packit.config import (
     Deployment,
     JobConfig,
@@ -343,14 +341,7 @@ class GitPullRequestHelpHandler(
         #         epilog=HELP_COMMENT_EPILOG,
         #     )
 
-        # # prevent help message from being printed to stdout
-        # # save help message to buffer
-        # help_message_buffer = io.StringIO()
-        # backup_stdout = sys.stdout
-        # sys.stdout = help_message_buffer
-        # parser.print_help()
-        # sys.stdout = backup_stdout
-        # help_message = help_message_buffer.getvalue()
+        # help_message = parser.format_help()
 
         self.pr.comment(body=help_message)
         return TaskResults(success=True, details={"msg": help_message})
