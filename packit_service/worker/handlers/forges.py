@@ -6,15 +6,25 @@ This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
 
+# import io
 import logging
 
+# import sys
 from packit.config import (
     Deployment,
     JobConfig,
 )
 from packit.config.package_config import PackageConfig
 
-from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
+from packit_service.constants import (
+    CONTACTS_URL,
+    DOCS_APPROVAL_URL,
+    # HELP_COMMENT_PROG,
+    # HELP_COMMENT_PROG_FEDORA_CI,
+    # HELP_COMMENT_DESCRIPTION,
+    # HELP_COMMENT_EPILOG,
+    NOTIFICATION_REPO,
+)
 from packit_service.events import (
     github,
     gitlab,
@@ -26,7 +36,9 @@ from packit_service.models import (
     GithubInstallationModel,
 )
 from packit_service.utils import (
-    get_packit_commands_from_comment,  # , get_pr_comment_parser, get_pr_comment_parser_fedora_ci
+    get_packit_commands_from_comment,
+    # get_pr_comment_parser,
+    # get_pr_comment_parser_fedora_ci,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
