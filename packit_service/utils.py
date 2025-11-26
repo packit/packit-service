@@ -219,7 +219,7 @@ def get_packit_commands_from_comment(
     return []
 
 
-def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
+def _create_base_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=prog,
         description=description,
@@ -227,6 +227,11 @@ def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.
         formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument("--package", help="Specific package from monorepo to run job for")
+    return parser
+
+
+def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
+    parser = _create_base_parser(prog, description, epilog)
 
     subparsers = parser.add_subparsers(
         dest="command",
@@ -289,13 +294,7 @@ def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.
 def get_pr_comment_parser_fedora_ci(
     prog: str, description: str, epilog: str
 ) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog=prog,
-        description=description,
-        epilog=epilog,
-        formatter_class=RawTextHelpFormatter,
-    )
-    parser.add_argument("--package", help="Specific package from monorepo to apply job to")
+    parser = _create_base_parser(prog, description, epilog)
 
     subparsers = parser.add_subparsers(
         dest="command",
