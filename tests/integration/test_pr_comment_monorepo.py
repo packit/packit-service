@@ -150,7 +150,7 @@ def test_pr_comment_monorepo_build_build_and_test_handler(
     test_job = [item for item in processing_results if item["details"]["job"] == "tests"]
     assert test_job
 
-    event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
+    event_dict, _, job_config, package_config = get_parameters_from_results(test_job)
     assert json.dumps(event_dict)
     results = run_testing_farm_handler(
         package_config=package_config,
