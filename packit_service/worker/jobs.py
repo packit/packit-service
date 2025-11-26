@@ -973,13 +973,11 @@ class SteveJobs:
         jobs_matching_trigger.extend(self.check_explicit_matching())
 
         if monorepo_package:
-            filtered_jobs: list[JobConfig] = []
-            for job in jobs_matching_trigger:
-                if isinstance(job, JobConfigView) and job.package != monorepo_package:
-                    continue
-                filtered_jobs.append(job)
-
-            jobs_matching_trigger = filtered_jobs
+            jobs_matching_trigger = [
+                job
+                for job in jobs_matching_trigger
+                if isinstance(job, JobConfigView) and job.package == monorepo_package
+            ]
 
         return jobs_matching_trigger
 
