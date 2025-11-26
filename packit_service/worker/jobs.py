@@ -197,31 +197,6 @@ def replace_packit_comment_command_prefix(
     return "/packit-ci"
 
 
-def get_handlers_for_comment_fedora_ci(
-    comment: str,
-    packit_comment_command_prefix: str,
-) -> set[type[FedoraCIJobHandler]]:
-    """
-    Get handlers for the given Fedora CI command respecting packit_comment_command_prefix.
-
-    Args:
-        comment: comment we are reacting to
-        packit_comment_command_prefix: `/packit-ci` for prod or `/packit-ci-stg` for stg
-
-    Returns:
-        Set of handlers that are triggered by a comment.
-    """
-
-    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
-    if not commands:
-        return set()
-
-    handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[commands[0]]
-    if not handlers:
-        logger.debug(f"Command {commands[0]} not supported by packit.")
-    return handlers
-
-
 def get_handlers_for_check_rerun(check_name_job: str) -> set[type[JobHandler]]:
     """
     Get handlers for the given check name.
