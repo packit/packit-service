@@ -104,7 +104,7 @@ class ParsedComment:
 def parse_comment(
     comment: str,
     packit_comment_command_prefix: str,
-) -> Optional[ParsedComment]:
+) -> ParsedComment:
     """
     Get arguments from the given comment respecting `packit_comment_command_prefix`.
 
@@ -113,8 +113,7 @@ def parse_comment(
         packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
 
     Returns:
-        ParsedComment storing command inside comment and monorepo package if specified
-        If comment isn't recognized, ParsedComment containing empty strings is returned instead
+        ParsedComment storing command and monorepo package if specified
 
         For example: If the comment is `/packit build --commit 123 --package best-package-ever`,
         it would return ParsedComment(command="build", package="best-package-ever")
