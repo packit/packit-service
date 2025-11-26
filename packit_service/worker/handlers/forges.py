@@ -7,6 +7,7 @@ TODO: The build and test handlers are independent and should be moved away.
 """
 
 import logging
+from typing import Optional
 
 from packit.config import (
     Deployment,
@@ -308,8 +309,8 @@ class GitPullRequestHelpHandler(
 
     def __init__(
         self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
+        package_config: Optional[PackageConfig],
+        job_config: Optional[JobConfig],
         event: dict,
     ):
         super().__init__(
