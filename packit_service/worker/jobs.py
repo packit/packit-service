@@ -969,8 +969,6 @@ class SteveJobs:
                 if isinstance(job, JobConfigView) and job.package == monorepo_package
             ]
 
-
-
         return jobs_matching_trigger
 
     def get_handlers_for_comment_and_rerun_event(self) -> set[type[JobHandler]]:
