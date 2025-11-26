@@ -247,7 +247,7 @@ def test_pr_comment_help_handler_github(
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_help_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert len(processing_results) == 1
@@ -282,7 +282,7 @@ def test_pr_comment_help_handler_pagure(pagure_pr_comment_added):
     )
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
+    event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
     assert len(processing_results) == 1
