@@ -50,7 +50,7 @@ def mock_pr_comment_monorepo_functionality(request):
     flexmock(
         GithubProject,
         full_repo_name="packit/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref, headers: packit_yaml,
         get_files=lambda ref, filter_regex: ["hello.spec", "world.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
