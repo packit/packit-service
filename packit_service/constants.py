@@ -17,6 +17,17 @@ DOCS_TESTING_FARM = f"{DOCS_URL}/configuration/upstream/tests"
 DOCS_VALIDATE_CONFIG = f"{DOCS_URL}/cli/config/validate"
 DOCS_VALIDATE_HOOKS = "https://packit.dev/posts/pre-commit-hooks#validate-config"
 
+HELP_COMMENT_PROG = "/packit | /packit-stg"
+HELP_COMMENT_PROG_FEDORA_CI = "/packit-ci | /packit-ci-stg"
+HELP_COMMENT_DESCRIPTION = ""
+HELP_COMMENT_EPILOG = (
+    f"Documentation: {DOCS_URL}\n"
+    "Contact:\n"
+    "     Email:    hello@packit.dev\n"
+    "     Matrix:   #packit:fedora.im\n"
+    "     Mastodon: @packit@fosstodon.org"
+)
+
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
 SANDCASTLE_WORK_DIR = "/tmp/sandcastle"
