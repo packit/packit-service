@@ -343,8 +343,7 @@ def test_copr_build_end(
                 author="packit-as-a-service[bot]",
                 body="Congratulations! One of the builds has completed. :champagne:\n\n"
                 "You can install the built RPMs by following these steps:\n\n* "
-                "`sudo yum install -y dnf-plugins-core` on RHEL 8\n* "
-                "`sudo dnf install -y dnf-plugins-core` on Fedora\n* "
+                "`sudo dnf install -y 'dnf*-command(copr)'`\n* "
                 "`dnf copr enable packit/packit-service-hello-world-24`\n* "
                 "And now you can install the packages.\n\n"
                 "Please note that the RPMs should be used only in a testing environment.",

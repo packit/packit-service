@@ -402,8 +402,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             msg = (
                 f"Congratulations! One of the builds has completed. :champagne:\n\n"
                 "You can install the built RPMs by following these steps:\n\n"
-                "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
-                "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
+                "* `sudo dnf install -y 'dnf*-command(copr)'`\n"
                 f"* `dnf copr enable {self.copr_event.owner}/{self.copr_event.project_name}`\n"
                 "* And now you can install the packages.\n"
                 "\nPlease note that the RPMs should be used only in a testing environment."
