@@ -1243,9 +1243,13 @@ class SteveJobs:
         Returns:
             `True`, if is help comment, `False` otherwise.
         """
+        packit_comment_command_prefix = (
+            "/packit-ci" if comment.startswith("/packit-ci") else "/packit"
+        )
+
         command = get_packit_commands_from_comment(
             comment,
-            self.service_config.comment_command_prefix,
+            packit_comment_command_prefix,
         )
 
         return bool(command and command[0] == PACKIT_HELP_COMMAND)
