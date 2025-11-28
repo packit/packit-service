@@ -1232,6 +1232,24 @@ class SteveJobs:
 
         return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
 
+    def retrieve_comment_command_prefix(self, comment: str) -> Optional[str]:
+        """
+        Retrieves the Packit prefix used in comment.
+
+        Args:
+            comment: Comment to retrieve prefix from.
+
+        Returns:
+            Packit comment command prefix or None if none is found.
+        """
+        prefixes = ["/packit-ci-stg", "/packit-ci", "/packit-stg", "/packit"]
+
+        for prefix in prefixes:
+            if comment.startswith(prefix):
+                return prefix
+
+        return None
+
     def is_help_comment(self, comment: str) -> bool:
         """
         Checks whether the comment contains Packit help command:
@@ -1243,9 +1261,8 @@ class SteveJobs:
         Returns:
             `True`, if is help comment, `False` otherwise.
         """
-        packit_comment_command_prefix = (
-            "/packit-ci" if comment.startswith("/packit-ci") else "/packit"
-        )
+        if not (packit_comment_command_prefix := self.retrieve_comment_command_prefix(comment)):
+            return False
 
         command = get_packit_commands_from_comment(
             comment,
