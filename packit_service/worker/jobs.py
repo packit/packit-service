@@ -1128,7 +1128,7 @@ class SteveJobs:
 
         return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
 
-    def retieve_comment_command_prefix(self, comment: str) -> Optional[str]:
+    def retrieve_comment_command_prefix(self, comment: str) -> Optional[str]:
         """
         Retrieves the Packit prefix used in comment.
 
@@ -1157,7 +1157,7 @@ class SteveJobs:
         Returns:
             `True`, if is help comment, `False` otherwise.
         """
-        if not (packit_comment_command_prefix := self.retieve_comment_command_prefix(comment)):
+        if not (packit_comment_command_prefix := self.retrieve_comment_command_prefix(comment)):
             return False
 
         command = get_packit_commands_from_comment(
