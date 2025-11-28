@@ -109,6 +109,11 @@ class ServiceConfig(Config):
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
         **kwargs,
     ):
+        if "authentication" in kwargs:
+            user_agent = get_user_agent()
+            for service in kwargs["authentication"]:
+                kwargs["authentication"][service] |= {"user_agent": user_agent}
+
         super().__init__(**kwargs)
 
         self.deployment = deployment
