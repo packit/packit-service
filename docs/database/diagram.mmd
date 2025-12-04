@@ -3,10 +3,73 @@ erDiagram
         character_varying version_num PK
     }
 
-    pull_requests {
+    allowlist {
+        character_varying fas_account
         integer id PK
-        integer pr_id
+        character_varying namespace
+        allowliststatus status
+    }
+
+    anitya_multiple_versions {
+        integer id PK
         integer project_id FK
+        ARRAY versions
+    }
+
+    anitya_projects {
+        integer id PK
+        character_varying package
+        integer project_id
+        character_varying project_name
+    }
+
+    anitya_versions {
+        integer id PK
+        integer project_id FK
+        character_varying version
+    }
+
+    bodhi_update_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    bodhi_update_targets {
+        character_varying alias
+        integer bodhi_update_group_id FK
+        json data
+        integer id PK
+        character_varying koji_nvrs
+        character_varying sidetag
+        character_varying status
+        timestamp_without_time_zone submitted_time
+        character_varying target
+        timestamp_without_time_zone update_creation_time
+        character_varying web_url
+    }
+
+    copr_build_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    copr_build_targets {
+        timestamp_without_time_zone build_finished_time
+        character_varying build_id
+        character_varying build_logs_url
+        timestamp_without_time_zone build_start_time
+        timestamp_without_time_zone build_submitted_time
+        json built_packages
+        integer copr_build_group_id FK
+        json data
+        integer id PK
+        character_varying identifier
+        character_varying owner
+        character_varying project_name
+        buildstatus status
+        character_varying target
+        timestamp_without_time_zone task_accepted_time
+        character_varying web_url
     }
 
     git_branches {
@@ -15,10 +78,101 @@ erDiagram
         integer project_id FK
     }
 
-    job_triggers {
+    git_projects {
         integer id PK
-        jobtriggertype type
-        integer trigger_id
+        character_varying instance_url
+        character_varying namespace
+        boolean onboarded_downstream
+        character_varying project_url
+        character_varying repo_name
+    }
+
+    github_installations {
+        integer account_id
+        character_varying account_login
+        character_varying account_type
+        character_varying account_url
+        timestamp_without_time_zone created_at
+        integer id PK
+        ARRAY repositories
+        integer sender_id
+        character_varying sender_login
+    }
+
+    koji_build_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    koji_build_tags {
+        integer id PK
+        character_varying koji_tag_name
+        integer project_id FK
+        character_varying target
+        character_varying task_id
+    }
+
+    koji_build_targets {
+        timestamp_without_time_zone build_finished_time
+        json build_logs_urls
+        timestamp_without_time_zone build_start_time
+        text build_submission_stdout
+        timestamp_without_time_zone build_submitted_time
+        json data
+        integer id PK
+        integer koji_build_group_id FK
+        character_varying nvr
+        boolean scratch
+        character_varying sidetag
+        character_varying status
+        character_varying target
+        character_varying task_id
+        character_varying web_url
+    }
+
+    koji_tag_request_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
+    koji_tag_request_targets {
+        integer id PK
+        integer koji_tag_request_group_id FK
+        character_varying nvr
+        character_varying sidetag
+        timestamp_without_time_zone tag_request_submitted_time
+        character_varying target
+        character_varying task_id
+        character_varying web_url
+    }
+
+    pipelines {
+        integer bodhi_update_group_id FK
+        integer copr_build_group_id FK
+        timestamp_without_time_zone datetime
+        integer id PK
+        integer koji_build_group_id FK
+        integer koji_tag_request_group_id FK
+        character_varying package_name
+        integer project_event_id FK
+        integer srpm_build_id FK
+        integer sync_release_run_id FK
+        integer test_run_group_id FK
+        integer vm_image_build_id FK
+    }
+
+    project_authentication_issue {
+        integer id PK
+        boolean issue_created
+        integer project_id FK
+    }
+
+    project_events {
+        character_varying commit_sha
+        integer event_id
+        integer id PK
+        json packages_config
+        projecteventtype type
     }
 
     project_issues {
@@ -28,199 +182,171 @@ erDiagram
     }
 
     project_releases {
-        integer id PK
-        character_varying tag_name
         character_varying commit_hash
+        integer id PK
+        integer project_id FK
+        character_varying tag_name
+    }
+
+    pull_requests {
+        integer id PK
+        integer pr_id
         integer project_id FK
     }
 
-    github_installations {
+    scans {
+        integer copr_build_target_id FK,UK
         integer id PK
-        character_varying account_login
-        integer account_id
-        character_varying account_url
-        character_varying account_type
-        integer sender_id
-        character_varying sender_login
-        timestamp_without_time_zone created_at
-        ARRAY repositories
+        integer issues_added_count
+        character_varying issues_added_url
+        character_varying issues_fixed_url
+        character_varying scan_results_url
+        oshscanstatus status
+        timestamp_without_time_zone submitted_time
+        integer task_id UK
+        character_varying url
     }
 
-    project_authentication_issue {
+    sidetag_groups {
         integer id PK
-        boolean issue_created
-        integer project_id FK
+        character_varying name
     }
 
-    git_projects {
+    sidetags {
         integer id PK
-        character_varying namespace
-        character_varying repo_name
-        character_varying project_url
-        character_varying instance_url
-    }
-
-    srpm_builds {
-        integer id PK
-        text logs
-        timestamp_without_time_zone build_submitted_time
-        text url
-        timestamp_without_time_zone build_finished_time
-        timestamp_without_time_zone build_start_time
-        character_varying commit_sha
-        character_varying copr_build_id
-        text copr_web_url
-        text logs_url
-        buildstatus status
-    }
-
-    allowlist {
-        integer id PK
-        character_varying namespace
-        allowliststatus status
-        character_varying fas_account
+        character_varying koji_name
+        integer sidetag_group_id FK
+        character_varying target
     }
 
     source_git_pr_dist_git_pr {
+        integer dist_git_pull_request_id FK
         integer id PK
         integer source_git_pull_request_id FK
-        integer dist_git_pull_request_id FK
     }
 
-    vm_image_build_targets {
-        integer id PK
-        character_varying build_id
-        character_varying project_url
-        character_varying project_name
-        character_varying owner
-        character_varying commit_sha
-        vmimagebuildstatus status
-        character_varying target
-        character_varying pr_id
-        timestamp_without_time_zone task_accepted_time
-        timestamp_without_time_zone build_submitted_time
-        timestamp_without_time_zone build_start_time
+    srpm_builds {
         timestamp_without_time_zone build_finished_time
-        json data
+        timestamp_without_time_zone build_start_time
+        timestamp_without_time_zone build_submitted_time
+        character_varying copr_build_id
+        text copr_web_url
+        integer id PK
+        text logs
+        text logs_url
+        buildstatus status
+        text url
+    }
+
+    sync_release_pr_association {
+        integer sync_release_pr_id PK,FK
+        integer sync_release_target_id PK,FK
+    }
+
+    sync_release_pull_request {
+        integer id PK
+        boolean is_fast_forward
+        integer pr_id
+        integer project_id FK
+        character_varying target_branch
+        character_varying url
+    }
+
+    sync_release_run_targets {
+        character_varying branch
+        character_varying downstream_pr_url
+        timestamp_without_time_zone finished_time
+        integer id PK
+        text logs
+        timestamp_without_time_zone start_time
+        syncreleasetargetstatus status
+        timestamp_without_time_zone submitted_time
+        integer sync_release_id FK
     }
 
     sync_release_runs {
         integer id PK
+        syncreleasejobtype job_type
         syncreleasestatus status
         timestamp_without_time_zone submitted_time
-        syncreleasejobtype job_type
-    }
-
-    sync_release_run_targets {
-        integer id PK
-        character_varying branch
-        character_varying downstream_pr_url
-        syncreleasetargetstatus status
-        timestamp_without_time_zone submitted_time
-        timestamp_without_time_zone start_time
-        timestamp_without_time_zone finished_time
-        text logs
-        integer sync_release_id FK
     }
 
     tf_copr_build_association_table {
-        integer copr_id PK
-        integer tft_id PK
+        integer copr_id PK,FK
+        integer tft_id PK,FK
     }
 
-    tft_test_run_targets {
-        integer id PK
-        character_varying pipeline_id
-        character_varying commit_sha
-        testingfarmresult status
-        character_varying target
-        character_varying web_url
-        json data
-        timestamp_without_time_zone submitted_time
-        character_varying identifier
-        integer tft_test_run_group_id FK
+    tf_koji_build_association_table {
+        integer koji_id PK,FK
+        integer tft_id PK,FK
     }
 
     tft_test_run_groups {
         integer id PK
+        character_varying ranch
         timestamp_without_time_zone submitted_time
     }
 
-    copr_build_targets {
-        integer id PK
-        character_varying build_id
-        character_varying commit_sha
-        buildstatus status
-        character_varying target
-        character_varying web_url
-        character_varying build_logs_url
+    tft_test_run_targets {
         json data
+        integer id PK
+        character_varying identifier
+        character_varying pipeline_id
+        testingfarmresult status
+        timestamp_without_time_zone submitted_time
+        character_varying target
+        integer tft_test_run_group_id FK
+        character_varying web_url
+    }
+
+    vm_image_build_targets {
         timestamp_without_time_zone build_finished_time
+        character_varying build_id
         timestamp_without_time_zone build_start_time
         timestamp_without_time_zone build_submitted_time
-        character_varying project_name
+        json data
+        integer id PK
         character_varying owner
-        timestamp_without_time_zone task_accepted_time
-        json built_packages
-        integer copr_build_group_id FK
-    }
-
-    copr_build_groups {
-        integer id PK
-        timestamp_without_time_zone submitted_time
-    }
-
-    koji_build_targets {
-        integer id PK
-        character_varying build_id
-        character_varying commit_sha
-        character_varying status
+        character_varying pr_id
+        character_varying project_name
+        character_varying project_url
+        vmimagebuildstatus status
         character_varying target
-        character_varying web_url
-        character_varying build_logs_url
-        timestamp_without_time_zone build_submitted_time
-        timestamp_without_time_zone build_start_time
-        timestamp_without_time_zone build_finished_time
-        json data
-        boolean scratch
-        integer koji_build_group_id FK
+        timestamp_without_time_zone task_accepted_time
     }
 
-    koji_build_groups {
-        integer id PK
-        timestamp_without_time_zone submitted_time
-    }
-
-    pipelines {
-        integer id PK
-        timestamp_without_time_zone datetime
-        integer job_trigger_id FK
-        integer srpm_build_id FK
-        integer sync_release_run_id FK
-        integer vm_image_build_id FK
-        integer test_run_group_id FK
-        integer copr_build_group_id FK
-        integer koji_build_group_id FK
-    }
-
-    pull_requests }o--|| git_projects : "project_id"
-    pull_requests }o--|| git_projects : "project_id"
-    source_git_pr_dist_git_pr }o--|| pull_requests : "dist_git_pull_request_id"
-    source_git_pr_dist_git_pr }o--|| pull_requests : "source_git_pull_request_id"
-    git_branches }o--|| git_projects : "project_id"
-    pipelines }o--|| job_triggers : "job_trigger_id"
-    project_issues }o--|| git_projects : "project_id"
-    project_releases }o--|| git_projects : "project_id"
-    project_authentication_issue }o--|| git_projects : "project_id"
-    pipelines }o--|| srpm_builds : "srpm_build_id"
-    pipelines }o--|| vm_image_build_targets : "vm_image_build_id"
-    sync_release_run_targets }o--|| sync_release_runs : "sync_release_id"
-    pipelines }o--|| sync_release_runs : "sync_release_run_id"
-    tf_copr_build_association_table }o--|| copr_build_targets : "copr_id"
-    tf_copr_build_association_table }o--|| tft_test_run_targets : "tft_id"
-    tft_test_run_targets }o--|| tft_test_run_groups : "tft_test_run_group_id"
-    pipelines }o--|| tft_test_run_groups : "test_run_group_id"
+    anitya_multiple_versions }o--|| anitya_projects : "project_id"
+    anitya_versions }o--|| anitya_projects : "project_id"
+    bodhi_update_targets }o--|| bodhi_update_groups : "bodhi_update_group_id"
+    pipelines }o--|| bodhi_update_groups : "bodhi_update_group_id"
     copr_build_targets }o--|| copr_build_groups : "copr_build_group_id"
     pipelines }o--|| copr_build_groups : "copr_build_group_id"
+    scans }o--|| copr_build_targets : "copr_build_target_id"
+    tf_copr_build_association_table }o--|| copr_build_targets : "copr_id"
+    git_branches }o--|| git_projects : "project_id"
+    koji_build_tags }o--|| git_projects : "project_id"
+    project_authentication_issue }o--|| git_projects : "project_id"
+    project_issues }o--|| git_projects : "project_id"
+    project_releases }o--|| git_projects : "project_id"
+    pull_requests }o--|| git_projects : "project_id"
+    pull_requests }o--|| git_projects : "project_id"
+    sync_release_pull_request }o--|| git_projects : "project_id"
     koji_build_targets }o--|| koji_build_groups : "koji_build_group_id"
     pipelines }o--|| koji_build_groups : "koji_build_group_id"
+    tf_koji_build_association_table }o--|| koji_build_targets : "koji_id"
+    koji_tag_request_targets }o--|| koji_tag_request_groups : "koji_tag_request_group_id"
+    pipelines }o--|| koji_tag_request_groups : "koji_tag_request_group_id"
+    pipelines }o--|| project_events : "project_event_id"
+    pipelines }o--|| srpm_builds : "srpm_build_id"
+    pipelines }o--|| sync_release_runs : "sync_release_run_id"
+    pipelines }o--|| tft_test_run_groups : "test_run_group_id"
+    pipelines }o--|| vm_image_build_targets : "vm_image_build_id"
+    source_git_pr_dist_git_pr }o--|| pull_requests : "dist_git_pull_request_id"
+    source_git_pr_dist_git_pr }o--|| pull_requests : "source_git_pull_request_id"
+    sidetags }o--|| sidetag_groups : "sidetag_group_id"
+    sync_release_pr_association }o--|| sync_release_pull_request : "sync_release_pr_id"
+    sync_release_pr_association }o--|| sync_release_run_targets : "sync_release_target_id"
+    sync_release_run_targets }o--|| sync_release_runs : "sync_release_id"
+    tf_copr_build_association_table }o--|| tft_test_run_targets : "tft_id"
+    tf_koji_build_association_table }o--|| tft_test_run_targets : "tft_id"
+    tft_test_run_targets }o--|| tft_test_run_groups : "tft_test_run_group_id"

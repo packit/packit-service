@@ -177,10 +177,21 @@ check-db: build-test-image compose-for-db-up
 		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database tests_openshift/service"
 		$(COMPOSE) down
 
+# Generate new ER Diagram with mermed and mermaid-cli
 # To install mermerd run:
 #     go install github.com/KarnerTh/mermerd@latest
 regenerate-db-diagram: compose-for-db-up
 	sleep 10
-	mermerd -c postgresql://packit:secret-password@localhost:5432 -s public --useAllTables -o alembic/diagram.mmd
+	mermerd \
+	-c postgresql://packit:secret-password@localhost:5432 \
+	-s public \
+	--useAllTables \
+	-o docs/database/diagram.mmd
+
+	$(CONTAINER_ENGINE) run --rm \
+	-v ./docs/database:/data:z \
+	--user $(id -u):$(id -g) \
+	ghcr.io/mermaid-js/mermaid-cli/mermaid-cli:10.9.1 -i /data/diagram.mmd -o /data/ERDiagram.png --scale 9.0
+	$(COMPOSE) down
 
 .PHONY: build-revdep-test-image
