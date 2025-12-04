@@ -16,6 +16,9 @@ from packit_service.models import (
     GitProjectModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    LogDetectiveBuildSystem,
+    LogDetectiveResult,
+    LogDetectiveRunModel,
     OSHScanModel,
     PipelineModel,
     ProjectAuthenticationIssueModel,
@@ -1149,6 +1152,18 @@ def test_add_scan_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert scan.task_id == 123
 
 
+def test_add_log_detective_run_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
+    a_copr_build_for_pr.add_log_detective_run("edc826d0-cec8-11f0-a464-9a478821d0e2")
+    ld_run = LogDetectiveRunModel.get_by_identifier("edc826d0-cec8-11f0-a464-9a478821d0e2")
+    assert ld_run.identifier == "edc826d0-cec8-11f0-a464-9a478821d0e2"
+
+
+def test_add_log_detective_run_to_koji_build(clean_before_and_after, a_koji_build_for_pr):
+    a_koji_build_for_pr.add_log_detective_run("edc826d0-cec8-11f0-a464-9a478821d0e2")
+    ld_run = LogDetectiveRunModel.get_by_identifier("edc826d0-cec8-11f0-a464-9a478821d0e2")
+    assert ld_run.identifier == "edc826d0-cec8-11f0-a464-9a478821d0e2"
+
+
 def test_bodhi_model_get_last_successful_by_sidetag(
     clean_before_and_after, successful_bodhi_update_model
 ):
@@ -1277,3 +1292,89 @@ def test_tmt_get_running_different_ranches(
     assert {test_run.pipeline_id for (test_run,) in running} == {"cafe-internal", "42-internal"}, (
         "Test runs created by the test are in the running state"
     )
+
+
+def test_create_log_detective_run_model(clean_before_and_after):
+    """Create LogDetectiveRunModel for with an empty
+    `log_detective_response` field."""
+
+    run_target_model = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.complete,
+        target_build="99999",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+    )
+
+    assert run_target_model.status == LogDetectiveResult.complete
+    assert run_target_model.log_detective_response is None
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr
+
+    run_target_model = LogDetectiveRunModel.get_or_create("4e2f949a-cec4-11f0-99ca-9a478821d0e2")
+
+    assert run_target_model.status == LogDetectiveResult.complete
+    assert run_target_model.log_detective_response is None
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr
+
+
+def test_set_log_detective_run_model_status(clean_before_and_after):
+    """Create a new LogDetectiveRunModel with default values.
+    Then set the `status` field to `LogDetectiveResult.complete` and verify."""
+
+    run_target_model = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.unknown,
+        target_build="99999",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+    )
+
+    assert run_target_model.status == LogDetectiveResult.unknown
+    assert run_target_model.log_detective_response is None
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr
+
+    run_target_model.set_status(LogDetectiveResult.complete)
+
+    run_target_model = LogDetectiveRunModel.get_or_create("4e2f949a-cec4-11f0-99ca-9a478821d0e2")
+
+    assert run_target_model.status == LogDetectiveResult.complete
+    assert run_target_model.log_detective_response is None
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr
+
+
+@pytest.mark.parametrize("status", [*list(LogDetectiveResult), None])
+def test_set_log_detective_run_model_response(clean_before_and_after, status):
+    """Create a new LogDetectiveRunModel with default values.
+    Then set the `log_detective_response` field and verify."""
+
+    # Dummy Log Detective response, not representative of actual contents
+    log_detective_response = {"explanation": {"text": "Explanation text", "logprobs": None}}
+
+    run_target_model = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.unknown,
+        target_build="99999",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+    )
+
+    assert run_target_model.status == LogDetectiveResult.unknown
+    assert run_target_model.log_detective_response is None
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr
+
+    run_target_model.set_log_detective_response(log_detective_response, status=status)
+
+    run_target_model = LogDetectiveRunModel.get_or_create("4e2f949a-cec4-11f0-99ca-9a478821d0e2")
+
+    # In case we don't set status explicitly, the `LogDetectiveResult.complete`
+    # is used as value instead
+    if not status:
+        assert run_target_model.status == LogDetectiveResult.complete
+    else:
+        assert run_target_model.status == status
+
+    assert run_target_model.log_detective_response == log_detective_response
+    assert run_target_model.target_build == "99999"
+    assert run_target_model.build_system == LogDetectiveBuildSystem.copr

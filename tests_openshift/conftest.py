@@ -36,6 +36,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     KojiTagRequestGroupModel,
     KojiTagRequestTargetModel,
+    LogDetectiveRunModel,
     OSHScanModel,
     OSHScanStatus,
     PipelineModel,
@@ -228,6 +229,8 @@ def clean_db():
         session.query(ProjectAuthenticationIssueModel).delete()
 
         session.query(GitProjectModel).delete()
+
+        session.query(LogDetectiveRunModel).delete()
 
 
 @pytest.fixture()

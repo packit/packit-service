@@ -1,0 +1,17 @@
+{
+  "body": {
+    "target_build": "9999",
+    "build_system": "koji",
+    "result": "error"
+  },
+  "headers": {
+    "fedora_messaging_schema": "base.message",
+    "fedora_messaging_severity": 20,
+    "priority": 0,
+    "sent-at": "2025-11-29T00:00:00+00:00"
+  },
+  "id": "197dc06b-3ae6-435a-93dc-baad4e39cda2",
+  "priority": 0,
+  "queue": null,
+  "topic": "org.fedoraproject.prod.logdetective.analysis"
+}
