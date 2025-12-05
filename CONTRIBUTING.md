@@ -47,11 +47,11 @@ This repository contains [docker-compose.yml](./docker-compose.yml) for
 (can be also [used with podman](https://fedoramagazine.org/use-docker-compose-with-podman-to-orchestrate-containers-on-fedora)).
 Before you run it, we suggest that you open the file and read all the comments.
 You can also run only certain pieces of packit-service for local development
-(e.g. worker, database or service/httpd).
+(e.g. worker, database or http service).
 You also need to populate `secrets/packit/dev/` manually, for instructions
 see [deployment repo](https://github.com/packit/deployment/tree/main/secrets).
 
-When you are running service/httpd and making requests to it,
+When you are running http service and making requests to it,
 make sure that `server_name` configuration file in `packit-service.yaml` is set.
 
 ### tokman
@@ -84,7 +84,7 @@ For this reason `docker-compose` needs access to ports lower than 1024:
 ### binding on other hosts
 
 If you are not binding the service on `localhost`
-then you **need** to make requests to httpd using the hostname
+then you **need** to make requests to http service using the hostname
 (which can be done by creating a new entry in `/etc/hosts` on your laptop)
 and you have to provide a route to that host.
 
