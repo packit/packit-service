@@ -148,6 +148,7 @@ def test_handle_scan(build_models):
     )
 
     project = flexmock(
+        default_branch="main",
         get_pr=lambda pr_id: flexmock(
             target_branch="main",
             target_branch_head_commit="abcdef",

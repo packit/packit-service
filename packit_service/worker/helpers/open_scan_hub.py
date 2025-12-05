@@ -210,21 +210,16 @@ class CoprOpenScanHubHelper(OpenScanHubHelper):
         (with `commit` trigger and same branch configured as the target PR branch).
         """
         base_build_job = None
+        target_branch = self.copr_build_helper.pull_request_object.target_branch
+        default_branch = self.copr_build_helper.project.default_branch
 
         for job in self.copr_build_helper.package_config.get_job_views():
             if (
                 job.type == JobType.copr_build
                 and job.trigger == JobConfigTriggerType.commit
                 and (
-                    (
-                        job.branch
-                        and job.branch == self.copr_build_helper.pull_request_object.target_branch
-                    )
-                    or (
-                        not job.branch
-                        and self.copr_build_helper.project.default_branch
-                        == self.copr_build_helper.pull_request_object.target_branch
-                    )
+                    (job.branch and job.branch == target_branch)
+                    or (not job.branch and default_branch == target_branch)
                 )
             ):
                 base_build_job = job
