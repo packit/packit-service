@@ -2240,6 +2240,12 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
                         "packit_id_per_chroot",
                     ),
                 )
+                .filter(
+                    # Exclude builds without build_id - these are builds waiting for SRPM
+                    # or where SRPM build failed, so technically they are not actual Copr
+                    # builds yet.
+                    CoprBuildTargetModel.build_id.isnot(None),
+                )
                 .group_by(
                     CoprBuildTargetModel.build_id,
                 )  # Group by identical element(s)
