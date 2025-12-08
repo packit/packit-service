@@ -15,7 +15,7 @@ COV_REPORT ?= --cov=packit_service --cov-report=term-missing
 COLOR ?= yes
 SOURCE_BRANCH ?= $(shell git branch --show-current)
 CONTAINER_RUN_INTERACTIVE ?= -it
-COMPOSE ?= docker-compose
+COMPOSE ?= $(if $(shell command -v podman-compose 2>/dev/null),podman-compose,docker-compose)
 MY_ID ?= `id -u`
 
 service: files/install-deps.yaml files/recipe.yaml
