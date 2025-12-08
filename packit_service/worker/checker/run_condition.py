@@ -171,10 +171,13 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
                 except FileNotFoundError:
                     pass
                 else:
-                    with Specfile(
-                        content=specfile_content, sourcedir=".", force_parse=True
-                    ) as specfile:
-                        version = specfile.expanded_version
+                    try:
+                        with Specfile(
+                            content=specfile_content, sourcedir=".", force_parse=True
+                        ) as specfile:
+                            version = specfile.expanded_version
+                    except Exception as ex:
+                        logger.debug(f"Failed to parse {specfile_path}@{git_ref}: {ex}")
         try:
             from sandcastle.exceptions import SandcastleCommandFailed
 
