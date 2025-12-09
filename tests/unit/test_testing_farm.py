@@ -2197,7 +2197,8 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
 
     event.update({"actor": "actor", "project_url": "url"})
 
-    assert TestingFarmHandler.pre_check(package_config, jobs[0], event) == should_pass
+    checks_pass, _ = TestingFarmHandler.pre_check(package_config, jobs[0], event)
+    assert checks_pass == should_pass
 
 
 @pytest.mark.parametrize(
