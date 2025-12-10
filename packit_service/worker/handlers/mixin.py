@@ -353,7 +353,10 @@ class GetKojiBuildDataFromKojiServiceMixin(
 ):
     @property
     def _dist_git_branch(self) -> str:
-        return self.project.get_pr(self.data.pr_id).target_branch
+        if (branch := self.project.get_pr(self.data.pr_id).target_branch) == "main":
+            # Koji doesn't recognize main, only rawhide
+            return "rawhide"
+        return branch
 
     @property
     def num_of_branches(self):
