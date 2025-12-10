@@ -1871,12 +1871,15 @@ class Parser:
         identifier = event.get("identifier")
         log_detective_analysis_start = event.get("log_detective_analysis_start")
         status = LogDetectiveResult.from_string(event.get("result"))
+        project_url = event.get("project_url")
+        commit_sha = event.get("commit_sha")
+        pr_id = event.get("pr_id")
 
         try:
             log_detective_analysis_start = datetime.fromisoformat(log_detective_analysis_start)
-        except ValueError:
+        except (TypeError, ValueError):
             logger.error(
-                f"Recieved Log Detective analysis: '{identifier}' for build: '{target_build}' "
+                f"Received Log Detective analysis: '{identifier}' for build: '{target_build}' "
                 f"with invalid creation time: '{log_detective_analysis_start}'"
             )
             return None
@@ -1885,7 +1888,7 @@ class Parser:
             build_system = LogDetectiveBuildSystem(build_system)
         except ValueError:
             logger.error(
-                f"Recieved Log Detective analysis: '{identifier}' for build: {target_build} "
+                f"Received Log Detective analysis: '{identifier}' for build: {target_build} "
                 f"from an incompatible build system {build_system}. Dropping the message."
             )
             return None
@@ -1902,6 +1905,9 @@ class Parser:
             build_system=build_system,
             identifier=identifier,
             log_detective_analysis_start=log_detective_analysis_start,
+            project_url=project_url,
+            commit_sha=commit_sha,
+            pr_id=pr_id,
         )
 
     # The .__func__ are needed for Python < 3.10
