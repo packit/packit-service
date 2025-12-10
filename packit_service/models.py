@@ -4491,6 +4491,7 @@ class LogDetectiveRunModel(Base):
     # Set from `target_build` field of the message created by logdetective-packit
     target_build = Column(String)
     log_detective_response = Column(JSON)
+    # Derived from `log_detective_analysis_start` field of the event
     submitted_time = Column(DateTime, default=datetime.utcnow)
     # UUID of Log Detective analysis, provided by logdetective-packit
     # interface server https://github.com/fedora-copr/logdetective-packit
@@ -4518,12 +4519,14 @@ class LogDetectiveRunModel(Base):
         "KojiBuildTargetModel", back_populates="log_detective_runs", uselist=False
     )
 
-    def set_status(self, status: LogDetectiveResult, created: Optional[DateTime] = None):
-        """Set status of Log Detective run, optionally with created time"""
+    def set_status(
+        self, status: LogDetectiveResult, log_detective_analysis_start: Optional[DateTime] = None
+    ):
+        """Set status of Log Detective run, optionally with log_detective_analysis_start time"""
         with sa_session_transaction(commit=True) as session:
             self.status = status
-            if created and not self.submitted_time:
-                self.submitted_time = created
+            if log_detective_analysis_start and not self.submitted_time:
+                self.submitted_time = log_detective_analysis_start
             session.add(self)
 
     def set_log_detective_response(
