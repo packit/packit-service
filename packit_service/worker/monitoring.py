@@ -159,6 +159,26 @@ class Pushgateway:
             registry=self.registry,
         )
 
+        self.log_detective_runs_started = Counter(
+            "log_detective_runs_started",
+            "Number of Log Detective runs started",
+            registry=self.registry,
+        )
+
+        self.log_detective_run_finished = Histogram(
+            "log_detective_run_finished_time",
+            "Time it takes from submitting the Log Detective run to set finished status",
+            registry=self.registry,
+            buckets=(
+                180,
+                2 * 180,
+                4 * 180,
+                8 * 180,
+                16 * 180,
+                float("inf"),
+            ),
+        )
+
     def push(self):
         if not (self.pushgateway_address and self.worker_name):
             logger.debug("Pushgateway address or worker name not defined.")
