@@ -165,6 +165,12 @@ class Pushgateway:
             registry=self.registry,
         )
 
+        self.log_detective_runs_finished = Counter(
+            "log_detective_runs_finished",
+            "Number of Log Detective runs finished",
+            registry=self.registry,
+        )
+
         self.log_detective_run_finished = Histogram(
             "log_detective_run_finished_time",
             "Time it takes from submitting the Log Detective run to set finished status",

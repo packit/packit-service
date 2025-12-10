@@ -36,14 +36,18 @@ class Result(AbstractResult):
         build_system: LogDetectiveBuildSystem,
         identifier: str,
         log_detective_analysis_start: datetime,
+        project_url: str,
+        commit_sha: str,
+        pr_id: Optional[int] = None,
     ):
-        super().__init__()
+        super().__init__(pr_id=pr_id, project_url=project_url)
         self.target_build = target_build
         self.log_detective_response = log_detective_response
         self.status = status
         self.build_system = build_system
         self.identifier = identifier
         self.log_detective_analysis_start = log_detective_analysis_start
+        self.commit_sha = commit_sha
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         """Return Log Detective result as a dictionary,

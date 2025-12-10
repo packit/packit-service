@@ -29,5 +29,8 @@
   "result": "complete",
   "topic": "org.fedoraproject.prod.logdetective.analysis",
   "log_detective_analysis_id": "4f2fa9aa-8fe6-4325-a317-473ca180e75d",
-  "log_detective_analysis_start": "2025-12-10 10:57:57.341695+00:00"
+  "log_detective_analysis_start": "2025-12-10 10:57:57.341695+00:00",
+  "commit_sha": "9deb98c730bb4123f518ca13a0dbec5d7c0669ca",
+  "project_url": "www.logdetective.com",
+  "pr_id": 1
 }

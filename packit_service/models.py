@@ -4675,6 +4675,9 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     @classmethod
     def create(cls, run_models: list["PipelineModel"]) -> "LogDetectiveRunGroupModel":
+        """Creates a new LogDetectiveRunGroupModel record.
+        In order to keep track of retries, `PipelineModel` in `run_models` is either cloned
+        or the `log_detective_run_group` is set for it."""
         with sa_session_transaction(commit=True) as session:
             log_detective_run_group = cls()
             session.add(log_detective_run_group)
@@ -4688,6 +4691,7 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                     )
                     new_run_model.srpm_build = run_model.srpm_build
                     new_run_model.copr_build_group = run_model.copr_build_group
+                    new_run_model.koji_build_group = run_model.koji_build_group
                     new_run_model.log_detective_run_group = log_detective_run_group
                     session.add(new_run_model)
                 else:
@@ -4706,7 +4710,7 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(LogDetectiveRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[tuple["LogDetectiveRunGroupModel"]]:
+    def get_running(cls, commit_sha: str) -> Iterable[tuple[LogDetectiveRunModel]]:
         """Get list of currently running Log Detective runs matching the passed
         arguments.
 
