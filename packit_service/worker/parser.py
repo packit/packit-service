@@ -1869,7 +1869,17 @@ class Parser:
         target_build = event.get("target_build")
         build_system = event.get("build_system")
         identifier = event.get("identifier")
+        log_detective_analysis_start = event.get("log_detective_analysis_start")
         status = LogDetectiveResult.from_string(event.get("result"))
+
+        try:
+            log_detective_analysis_start = datetime.fromisoformat(log_detective_analysis_start)
+        except ValueError:
+            logger.error(
+                f"Recieved Log Detective analysis: '{identifier}' for build: '{target_build}' "
+                f"with invalid creation time: '{log_detective_analysis_start}'"
+            )
+            return None
 
         try:
             build_system = LogDetectiveBuildSystem(build_system)
@@ -1891,6 +1901,7 @@ class Parser:
             status=status,
             build_system=build_system,
             identifier=identifier,
+            log_detective_analysis_start=log_detective_analysis_start,
         )
 
     # The .__func__ are needed for Python < 3.10
