@@ -1235,6 +1235,9 @@ class DownstreamKojiBuildHandler(
             if self.data.event_type in (pagure.pr.Comment.event_type(),)
             else self.dg_branch
         )
+        if branch == "main":
+            # Koji doesn't recognize main, only rawhide
+            branch = "rawhide"
         return [branch]
 
     def get_trigger_type_description(self) -> str:
