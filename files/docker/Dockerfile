@@ -1,4 +1,4 @@
-# Image for the web service (httpd), for celery worker see files/docker/Dockerfile.worker
+# Image for the web service, for celery worker see files/docker/Dockerfile.worker
 
 FROM quay.io/packit/base:fedora
 
@@ -34,4 +34,4 @@ COPY alembic/ ./alembic/
 
 EXPOSE 8443
 
-CMD ["/usr/bin/run_httpd.sh"]
+CMD ["/usr/bin/run_server.sh"]
