@@ -30,6 +30,7 @@ from packit_service.worker.handlers.koji import (
     KojiBuildHandler,
     KojiTaskReportHandler,
 )
+from packit_service.worker.handlers.logdetective import DownstreamLogDetectiveResultsHandler
 from packit_service.worker.handlers.open_scan_hub import (
     CoprOpenScanHubTaskFinishedHandler,
     CoprOpenScanHubTaskStartedHandler,
@@ -65,4 +66,5 @@ __all__ = [
     VMImageBuildResultHandler.__name__,
     CoprOpenScanHubTaskFinishedHandler.__name__,
     CoprOpenScanHubTaskStartedHandler.__name__,
+    DownstreamLogDetectiveResultsHandler.__name__,
 ]
