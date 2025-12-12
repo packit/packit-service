@@ -34,6 +34,15 @@ class StatusReporterPagure(StatusReporter):
         markdown_content: Optional[str] = None,
         target_branch: Optional[str] = None,
     ):
+        """
+        Set status of a Pagure check.
+
+        If used for a pull request, the UID is derived from SHA256
+        of `check_name` or combination of `check_name` and `target_branch`.
+
+        Value of `url` defaults to `CONTACTS_URL`, since Pagure requires
+        some URL to be submitted.
+        """
         state_to_set = self.get_commit_status(state)
         logger.debug(
             f"Setting Pagure status '{state_to_set.name}' for check '{check_name}' and "

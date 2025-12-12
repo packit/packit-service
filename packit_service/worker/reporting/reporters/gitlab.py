@@ -33,6 +33,14 @@ class StatusReporterGitlab(StatusReporter):
         markdown_content: Optional[str] = None,
         target_branch: Optional[str] = None,
     ):
+        """
+        Set status of a Gitlab check.
+
+        Discards `markdown_content`, as it isn't supported by Gitlab.
+        If attempt to set status of a commit fails with `GitlabAPIException`
+        and error code 400, 403 or 404, it attempts to add a comment instead.
+        """
+
         state_to_set = self.get_commit_status(state)
         logger.debug(
             f"Setting Gitlab status '{state_to_set.name}' for check '{check_name}': {description}",
