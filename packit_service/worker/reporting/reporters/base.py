@@ -53,6 +53,8 @@ class StatusReporter:
     ) -> "StatusReporter":
         """
         Get the StatusReporter instance.
+        The `project` determines type of the reporter returned. All other
+        parameters are passed to the initializer of the chosen reporter.
         """
         from .github import StatusReporterGithubChecks
         from .gitlab import StatusReporterGitlab
@@ -105,6 +107,7 @@ class StatusReporter:
         markdown_content: Optional[str] = None,
         target_branch: Optional[str] = None,
     ):
+        """Set status of the check."""
         raise NotImplementedError()
 
     def report(
@@ -130,7 +133,7 @@ class StatusReporter:
                 e.g. `{"Testing Farm": "url-to-testing-farm"}`
 
                 Defaults to None
-            check_names: Those in bold.
+            check_names: List of check names
 
                 Defaults to None
             markdown_content: In GitHub checks, we can provide a markdown content.

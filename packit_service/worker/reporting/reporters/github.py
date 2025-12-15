@@ -100,6 +100,13 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         markdown_content: Optional[str] = None,
         target_branch: Optional[str] = None,
     ):
+        """
+        Set status of a Github check.
+
+        When encountering `GithubAPIException` falls back to setting
+        Github status directly.
+        """
+
         markdown_content = markdown_content or ""
         state_to_set = self.get_check_run(state)
         logger.debug(
