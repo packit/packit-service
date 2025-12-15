@@ -95,7 +95,7 @@ class DownstreamLogDetectiveResultsHandler(
 
         status = BaseCommitStatus.error
         if self.result == LogDetectiveResult.complete:
-            status = BaseCommitStatus.neutral
+            status = BaseCommitStatus.success
         elif self.result == LogDetectiveResult.running:
             status = BaseCommitStatus.running
             self.pushgateway.log_detective_runs_started.inc()

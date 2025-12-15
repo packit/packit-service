@@ -124,7 +124,7 @@ def test_parse_logdetective_analysis_result_wrong_build_system(logdetective_anal
     [
         (
             "complete",
-            BaseCommitStatus.neutral,
+            BaseCommitStatus.success,
             "copr",
         ),
         (
@@ -299,7 +299,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
     flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(build_model)
 
     flexmock(FedoraCIHelper).should_receive("report").with_args(
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.success,
         description="Log Detective analysis status: complete",
         url="",
         check_name="Log Detective Analysis",
