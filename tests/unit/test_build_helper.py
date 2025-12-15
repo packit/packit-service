@@ -2724,9 +2724,39 @@ def test_copr_project_and_namespace(
                     ),
                 },
             ),
+            ["git.instance.io/the/example/namespace/*"],
+            True,
+            id="wildcard",
+        ),
+        pytest.param(
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    ),
+                },
+            ),
             ["something/different", "git.instance.io/the/example/namespace/the-example-repo"],
             True,
             id="present-more-values",
+        ),
+        pytest.param(
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    ),
+                },
+            ),
+            ["something/different", "git.instance.io/the/example/namespace/*"],
+            True,
+            id="wildcard-more-values",
         ),
     ],
 )
