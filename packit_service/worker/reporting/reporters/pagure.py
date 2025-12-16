@@ -75,8 +75,7 @@ class StatusReporterPagure(StatusReporter):
                 status=state_to_set,
                 uid=uid,
             )
-
-        else:
+        elif self.commit_sha:
             self.project_with_commit.set_commit_status(
                 self.commit_sha,
                 state_to_set,
@@ -84,4 +83,8 @@ class StatusReporterPagure(StatusReporter):
                 description,
                 check_name,
                 trim=True,
+            )
+        else:
+            logger.warning(
+                "Cannot set status: no commit SHA and no PR id available.",
             )
