@@ -66,15 +66,6 @@ class StatusReporterGitlab(StatusReporter):
             if e.response_code != 400 or "Cannot transition status" not in str(e):
                 # 403: No permissions to set status, falling back to comment
                 # 404: Commit has not been found, e.g. used target project on GitLab
-                logger.debug(
-                    f"Failed to set status for {self.commit_sha},"
-                    f"  commenting on commit as a fallback: {e}",
-                )
-                self._add_commit_comment_with_status(
-                    state,
-                    description,
-                    check_name,
-                    url,
-                )
+                self._comment_as_set_status_fallback(e, state, description, check_name, url)
             if e.response_code not in {400, 403, 404}:
                 raise
