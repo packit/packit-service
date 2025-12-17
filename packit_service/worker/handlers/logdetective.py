@@ -50,7 +50,7 @@ class DownstreamLogDetectiveResultsHandler(
     def __init__(self, package_config: PackageConfig, job_config: JobConfig, event: dict):
         super().__init__(package_config, job_config, event)
 
-        self.result = LogDetectiveResult.from_string(event.get("result", ""))
+        self.status = LogDetectiveResult.from_string(event.get("status", ""))
         self.identifier = event.get("identifier", "")
         self.log_detective_analysis_start = datetime.fromisoformat(
             event.get("log_detective_analysis_start")
@@ -75,7 +75,7 @@ class DownstreamLogDetectiveResultsHandler(
         Number of started runs is incremented and information about elapsed time recorded
         by Pushgateway. New state of the run is then recorded.
         """
-        logger.debug(f"Log Detective run {self.identifier} result: {self.result}")
+        logger.debug(f"Log Detective run {self.identifier} result: {self.status}")
 
         if not self.project:
             msg = f"No project set for Log Detective run: {self.identifier}"
@@ -88,21 +88,21 @@ class DownstreamLogDetectiveResultsHandler(
             logger.warning(msg=msg)
             return TaskResults(success=False, details={"msg": msg})
 
-        if log_detective_run_model.status == self.result:
+        if log_detective_run_model.status == self.status:
             msg = f"Log Detective result for run {self.identifier} already processed"
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 
         status = BaseCommitStatus.error
-        if self.result == LogDetectiveResult.complete:
+        if self.status == LogDetectiveResult.complete:
             status = BaseCommitStatus.success
-        elif self.result == LogDetectiveResult.running:
+        elif self.status == LogDetectiveResult.running:
             status = BaseCommitStatus.running
             self.pushgateway.log_detective_runs_started.inc()
-        elif self.result == LogDetectiveResult.error or self.result == LogDetectiveResult.unknown:
+        elif self.status == LogDetectiveResult.error or self.status == LogDetectiveResult.unknown:
             status = BaseCommitStatus.error
 
-        if self.result != LogDetectiveResult.running:
+        if self.status != LogDetectiveResult.running:
             self.pushgateway.log_detective_runs_finished.inc()
             log_detective_run_time = elapsed_seconds(
                 begin=log_detective_run_model.submitted_time, end=datetime.now(timezone.utc)
@@ -129,11 +129,11 @@ class DownstreamLogDetectiveResultsHandler(
 
         url = build.web_url or ""
         self.report(
-            state=status, description=f"Log Detective analysis status: {self.result.value}", url=url
+            state=status, description=f"Log Detective analysis status: {self.status.value}", url=url
         )
 
         log_detective_run_model.set_status(
-            self.result, log_detective_analysis_start=self.log_detective_analysis_start
+            self.status, log_detective_analysis_start=self.log_detective_analysis_start
         )
 
         return TaskResults(success=True, details={})

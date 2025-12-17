@@ -47,7 +47,7 @@ def handler_and_models():
         packages={"package": {}},
     )
     event_data = {
-        "result": "complete",
+        "status": "complete",
         "identifier": "123456",
         "log_detective_analysis_start": "2024-01-01T12:00:00+00:00",
         "target_build": "999",
@@ -65,23 +65,23 @@ def handler_and_models():
     return handler
 
 
-@pytest.mark.parametrize("result", [e.value for e in LogDetectiveResult])
+@pytest.mark.parametrize("status", [e.value for e in LogDetectiveResult])
 @pytest.mark.parametrize("build_system", [e.value for e in LogDetectiveBuildSystem])
 def test_parse_logdetective_analysis_result(
-    logdetective_analysis_result, log_detective_result_event_creation, build_system, result
+    logdetective_analysis_result, log_detective_result_event_creation, build_system, status
 ):
     """Test standard message from Log Detective with all combinations of build systems
     and result states"""
 
     logdetective_analysis_result["build_system"] = build_system
-    logdetective_analysis_result["result"] = result
+    logdetective_analysis_result["status"] = status
 
     event_object = Parser.parse_event(logdetective_analysis_result)
 
     assert isinstance(event_object, LogDetectiveResultEvent)
     assert isinstance(event_object.log_detective_response, dict)
     assert event_object.target_build == "9999"
-    assert event_object.status == result
+    assert event_object.status == status
     assert event_object.build_system == LogDetectiveBuildSystem(build_system)
 
     # Attempt to serialize dictionary form of the object
@@ -120,7 +120,7 @@ def test_parse_logdetective_analysis_result_wrong_build_system(logdetective_anal
 
 
 @pytest.mark.parametrize(
-    "result_str, expected_status, build_system",
+    "status_str, expected_status, build_system",
     [
         (
             "complete",
@@ -146,21 +146,21 @@ def test_parse_logdetective_analysis_result_wrong_build_system(logdetective_anal
 )
 def test_logdetective_run_success(
     handler_and_models,
-    result_str,
+    status_str,
     expected_status,
     build_system,
 ):
     """Test successful run of the handler starting with a record of Log Detective run
     in an unknown state."""
     handler = handler_and_models
-    handler.result = LogDetectiveResult.from_string(result_str)
+    handler.status = LogDetectiveResult.from_string(status_str)
     handler.build_system = build_system
 
     # Mock LogDetectiveRunModel if the new state is `LogDetectiveResult.unknown`
     # we must change the mock so that the existing state is different
     # otherwise, the `run` method would report that there is nothing left
     # for it to change.
-    if result_str == "unknown":
+    if status_str == "unknown":
         run_model = flexmock(
             status=LogDetectiveResult.running,
             submitted_time=datetime.now(timezone.utc),
@@ -180,7 +180,7 @@ def test_logdetective_run_success(
 
     # Expect set_status to be called with a datetime object
     run_model.should_receive("set_status").with_args(
-        handler.result,
+        handler.status,
         log_detective_analysis_start=datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc),
     ).once()
 
@@ -200,13 +200,13 @@ def test_logdetective_run_success(
     # Mock FedoraCIHelper report
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=expected_status,
-        description=f"Log Detective analysis status: {result_str}",
+        description=f"Log Detective analysis status: {status_str}",
         url="https://build.url",
         check_name="Log Detective Analysis",
     ).once()
 
     # Mock Metrics
-    if result_str == "running":
+    if status_str == "running":
         flexmock(handler.pushgateway).should_receive("log_detective_runs_started.inc").once()
         flexmock(handler.pushgateway).should_receive("log_detective_runs_finished.inc").never()
     else:
@@ -317,7 +317,7 @@ def test_logdetective_run_no_project(handler_and_models):
 
     event_dict = {
         "event_type": "logdetective.result",
-        "result": "complete",
+        "status": "complete",
         "identifier": "123456",
         "log_detective_analysis_start": "2024-01-01T12:00:00+00:00",
         "target_build": "123456",

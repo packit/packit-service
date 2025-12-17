@@ -1870,7 +1870,7 @@ class Parser:
         build_system = event.get("build_system")
         identifier = event.get("identifier")
         log_detective_analysis_start = event.get("log_detective_analysis_start")
-        status = LogDetectiveResult.from_string(event.get("result"))
+        status = LogDetectiveResult.from_string(event.get("status"))
         project_url = event.get("project_url")
         commit_sha = event.get("commit_sha")
         pr_id = event.get("pr_id")

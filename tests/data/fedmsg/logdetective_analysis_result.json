@@ -26,7 +26,7 @@
   },
   "target_build": "9999",
   "build_system": "koji",
-  "result": "complete",
+  "status": "complete",
   "topic": "org.fedoraproject.prod.logdetective.analysis",
   "log_detective_analysis_id": "4f2fa9aa-8fe6-4325-a317-473ca180e75d",
   "log_detective_analysis_start": "2025-12-10 10:57:57.341695+00:00",
