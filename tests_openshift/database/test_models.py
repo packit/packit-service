@@ -4,6 +4,7 @@ import contextlib
 from datetime import datetime, timedelta
 
 import pytest
+from sqlalchemy import null
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from packit_service.models import (
@@ -1465,13 +1466,20 @@ def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with
     assert run_model.identifier == "uuid-1"
 
 
-def test_get_or_create_with_orphaned_build(clean_before_and_after):
+@pytest.mark.parametrize(
+    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
+)
+def test_get_or_create_with_orphaned_build(clean_before_and_after, build_system):
     """Test that get_or_create does not crash if the
-    CoprBuildTargetModel is 'orphaned' (has no group).
+    CoprBuildTargetModel or KojiBuildModel is 'orphaned' (has no group).
     """
 
     with sa_session_transaction(commit=True) as session:
-        orphan_build = CoprBuildTargetModel()
+        if build_system == LogDetectiveBuildSystem.copr:
+            orphan_build = CoprBuildTargetModel()
+        else:
+            orphan_build = KojiBuildTargetModel()
+
         orphan_build.build_id = "999999"
         orphan_build.status = BuildStatus.success
         orphan_build.target = "fedora-rawhide-x86_64"
@@ -1481,7 +1489,7 @@ def test_get_or_create_with_orphaned_build(clean_before_and_after):
         build_id = orphan_build.id
 
     ld_run = LogDetectiveRunModel.get_or_create(
-        identifier="safe-uuid-123", build_system=LogDetectiveBuildSystem.copr, build_id=build_id
+        identifier="safe-uuid-123", build_system=build_system, build_id=build_id
     )
 
     assert ld_run
@@ -1489,3 +1497,131 @@ def test_get_or_create_with_orphaned_build(clean_before_and_after):
     assert ld_run.group_of_targets is not None
     assert isinstance(ld_run.group_of_targets.runs, list)
     assert len(ld_run.group_of_targets.runs) == 0
+    assert ld_run.build_system == build_system
+    if build_system == LogDetectiveBuildSystem.copr:
+        assert ld_run.koji_build_target is None
+    else:
+        assert ld_run.copr_build_target is None
+
+
+def test_log_detective_get_by_build(clean_before_and_after, srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = LogDetectiveRunGroupModel.create([run_model])
+
+    # Create multiple LogDetectiveRunModel records
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="111",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-1",
+        log_detective_run_group=group,
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.complete,
+        target_build="222",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-2",
+        log_detective_run_group=group,
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.error,
+        target_build="333",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-3",
+        log_detective_run_group=group,
+    )
+
+    records = LogDetectiveRunModel.get_by_build(
+        target_build="333", build_system=LogDetectiveBuildSystem.copr
+    )
+
+    assert isinstance(records, list)
+    assert len(records) == 1
+
+    run = records[0]
+    assert run.target_build == "333"
+    assert run.build_system == LogDetectiveBuildSystem.copr
+    assert run.log_detective_run_group_id == group.id
+
+
+def test_log_detective_run_get_all_by_status(clean_before_and_after):
+    group = LogDetectiveRunGroupModel.create([])
+
+    # Create multiple LogDetectiveRunModel records
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="111",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-1",
+        log_detective_run_group=group,
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="222",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-2",
+        log_detective_run_group=group,
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.error,
+        target_build="333",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-3",
+        log_detective_run_group=group,
+    )
+
+    records = LogDetectiveRunModel.get_all_by_status(LogDetectiveResult.running)
+
+    assert isinstance(records, list)
+    assert len(records) == 2
+
+    assert {record.identifier for record in records} == {"uuid-1", "uuid-2"}
+
+
+def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
+    """Verify if providing a time to set_status updates the submitted_time,
+    if, and only if, the the `submitted_time` is `None`."""
+    group = LogDetectiveRunGroupModel.create([])
+    run = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="1",
+        build_system=LogDetectiveBuildSystem.copr,
+        identifier="uuid-time-test",
+        log_detective_run_group=group,
+    )
+
+    # Ensure default time was set
+    assert run.submitted_time is not None
+
+    # Try to update status with a specific time
+    new_time = datetime(2023, 1, 1, 12, 0, 0)
+    run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
+
+    # Reload to check persistence
+    run = LogDetectiveRunModel.get_by_identifier("uuid-time-test")
+
+    assert run.submitted_time != new_time
+
+    with sa_session_transaction(commit=True) as session:
+        run_without_time = LogDetectiveRunModel()
+        run_without_time.build_system = LogDetectiveBuildSystem.copr
+        run_without_time.target_build = "2"
+        run_without_time.submitted_time = null()  # Hard setting `submitted_time` to `None`
+        run_without_time.group_of_targets = group
+        run_without_time.identifier = "uuid-build-without-time"
+        run_without_time.status = LogDetectiveResult.complete
+
+        session.add(run_without_time)
+
+    run = LogDetectiveRunModel.get_by_identifier("uuid-build-without-time")
+
+    assert run.submitted_time is None
+    run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
+
+    run = LogDetectiveRunModel.get_by_identifier("uuid-build-without-time")
+
+    assert run.submitted_time == new_time
