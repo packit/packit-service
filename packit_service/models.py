@@ -4486,7 +4486,9 @@ class LogDetectiveBuildSystem(enum.Enum):
 
 
 class LogDetectiveResult(str, enum.Enum):
-    """Results of Log Detective analysis"""
+    """Values represents a state the Log Detective analysis.
+    Log Detective analysis is perfomed only on failing builds.
+    However, analysis itself can not fail."""
 
     __test__ = False
 
