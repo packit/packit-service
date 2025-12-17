@@ -48,6 +48,7 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
     get_koji_build_info_url,
     get_srpm_build_info_url,
+    get_testing_farm_info_url,
 )
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.handlers.bodhi import BodhiUpdateFromSidetagHandler
@@ -745,7 +746,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
-        url="",
+        url=get_testing_farm_info_url(5),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -2008,6 +2009,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
     test = (
         flexmock(
+            id=1,
             status=TestingFarmResult.new,
             copr_builds=[copr_build_pr],
             target="fedora-rawhide-x86_64",
@@ -2044,7 +2046,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
-        url="",
+        url=get_testing_farm_info_url(1),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -2199,6 +2201,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
     test = (
         flexmock(
+            id=1,
             status=TestingFarmResult.new,
             copr_builds=[copr_build_pr],
             target="fedora-rawhide-x86_64",
@@ -2236,7 +2239,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
-        url="",
+        url=get_testing_farm_info_url(1),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -2936,7 +2939,7 @@ def test_koji_build_end_downstream(
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
-        url="",
+        url="https://dashboard.localhost/jobs/testing-farm/5",
         check_name="Packit - installability test(s)",
         target_branch="rawhide",
     ).once()
@@ -2950,7 +2953,7 @@ def test_koji_build_end_downstream(
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
-        url="",
+        url="https://dashboard.localhost/jobs/testing-farm/6",
         check_name="Packit - custom test(s)",
         target_branch="rawhide",
     ).once()
@@ -2964,7 +2967,7 @@ def test_koji_build_end_downstream(
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
-        url="",
+        url="https://dashboard.localhost/jobs/testing-farm/7",
         check_name="Packit - rpminspect test(s)",
         target_branch="rawhide",
     ).once()
@@ -2978,7 +2981,7 @@ def test_koji_build_end_downstream(
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
-        url="",
+        url="https://dashboard.localhost/jobs/testing-farm/8",
         check_name="Packit - rpmlint test(s)",
         target_branch="rawhide",
     ).once()

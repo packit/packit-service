@@ -784,6 +784,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             state=BaseCommitStatus.running,
             description=f"{'Build succeeded. ' if not self.skip_build else ''}"
             f"Submitting the tests ...",
+            url=get_testing_farm_info_url(test_run.id),
             target=test_run.target,
         )
 
@@ -1373,6 +1374,7 @@ class DownstreamTestingFarmJobHelper:
             test_run=test_run,
             state=BaseCommitStatus.running,
             description="Submitting the tests ...",
+            url=get_testing_farm_info_url(test_run.id),
         )
 
         return self.prepare_and_send_tf_request(test_run)
