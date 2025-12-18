@@ -67,6 +67,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
 )
 from packit_service.service.db_project_events import AddPullRequestEventToDb
+from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import (
     get_packit_commands_from_comment,
 )
@@ -920,6 +921,7 @@ def test_pr_test_command_handler_retries(
         "https://api.dev.testing-farm.io/v0.1/"
     )
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
@@ -1004,7 +1006,7 @@ def test_pr_test_command_handler_retries(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         check_name="testing-farm:fedora-rawhide-x86_64",
-        url="",
+        url=get_testing_farm_info_url(1),
         markdown_content=None,
         links_to_external_services=None,
     ).once()
@@ -1036,11 +1038,11 @@ def test_pr_test_command_handler_retries(
     if retry_number == 2:
         flexmock(test_run).should_receive("set_status").with_args(
             TestingFarmResult.error,
-        )
+        ).once()
     else:
         flexmock(test_run).should_receive("set_status").with_args(
             TestingFarmResult.retry,
-        )
+        ).once()
 
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=status,
@@ -1209,7 +1211,7 @@ def test_pr_test_command_handler_skip_build_option(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         check_names="testing-farm:fedora-rawhide-x86_64",
-        url="",
+        url=get_testing_farm_info_url(5),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -1354,7 +1356,7 @@ def test_pr_test_command_handler_compose_not_present(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         check_names="testing-farm:fedora-rawhide-x86_64",
-        url="",
+        url=get_testing_farm_info_url(1),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -1482,7 +1484,7 @@ def test_pr_test_command_handler_composes_not_available(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         check_names="testing-farm:fedora-rawhide-x86_64",
-        url="",
+        url=get_testing_farm_info_url(1),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -1912,7 +1914,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         check_names="testing-farm:fedora-rawhide-x86_64",
-        url="",
+        url=get_testing_farm_info_url(1),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
@@ -2192,7 +2194,7 @@ def test_pr_test_command_handler_multiple_builds(
         state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names="testing-farm:fedora-rawhide-x86_64",
-        url="",
+        url=get_testing_farm_info_url(5),
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
