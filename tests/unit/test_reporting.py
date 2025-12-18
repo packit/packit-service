@@ -63,6 +63,32 @@ create_table_content = StatusReporterGithubChecks._create_table
             "8d8d0d428ccee1112042f6d06f6b334a",
             id="Pagure PR, head commit",
         ),
+        pytest.param(
+            flexmock(),
+            None,
+            1,
+            flexmock(head_commit="7654321", source_project=flexmock()),
+            BaseCommitStatus.error,
+            "We made it!",
+            "packit/pagure-rpm-build",
+            "https://api.packit.dev/build/114/logs",
+            CommitStatus.error,
+            "9c7deecdc3ab908cb5a555edd192135e",
+            id="No commit_sha, pr_id exists",
+        ),
+        pytest.param(
+            flexmock(),
+            None,
+            None,
+            flexmock(head_commit="7654321", source_project=flexmock()),
+            BaseCommitStatus.error,
+            "We made it!",
+            "packit/pagure-rpm-build",
+            "https://api.packit.dev/build/114/logs",
+            CommitStatus.error,
+            "9c7deecdc3ab908cb5a555edd192135e",
+            id="No commit_sha and no pr_id",
+        ),
     ],
 )
 def test_set_status_pagure(
@@ -86,14 +112,23 @@ def test_set_status_pagure(
     )
     act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(PagureProject)
 
-    act_upon.should_receive("set_commit_status").with_args(
-        commit_sha,
-        state_to_set,
-        url,
-        description,
-        check_name,
-        trim=True,
-    ).once()
+    if commit_sha:
+        act_upon.should_receive("set_commit_status").with_args(
+            commit_sha,
+            state_to_set,
+            url,
+            description,
+            check_name,
+            trim=True,
+        ).once()
+    elif pr_id:
+        act_upon.should_receive("set_commit_status").never()
+        pr_object.should_receive("set_flag").with_args(
+            username=check_name, comment=description, url=url, status=state_to_set, uid=uid
+        ).once()
+    else:
+        # Without pr_id of commit_sha the status cannot be set
+        pass
 
     if pr_id is not None:
         flexmock(PagureProject).should_receive("get_pr").with_args(pr_id).and_return(
@@ -296,6 +331,38 @@ def test_set_status_github_check(
         ),
         pytest.param(
             flexmock(),
+            None,
+            "11",
+            True,
+            flexmock(),
+            BaseCommitStatus.success,
+            "We made it!",
+            "packit/pr-rpm-build",
+            "https://api.packit.dev/build/111/logs",
+            CommitStatus.success,
+            GithubAPIException,
+            {},
+            StatusReporterGithubStatuses,
+            id="GitHub commit_sha None, pr_id present",
+        ),
+        pytest.param(
+            flexmock(),
+            None,
+            None,
+            False,
+            flexmock(),
+            BaseCommitStatus.success,
+            "We made it!",
+            "packit/pr-rpm-build",
+            "https://api.packit.dev/build/111/logs",
+            CommitStatus.success,
+            GithubAPIException,
+            {},
+            StatusReporterGithubStatuses,
+            id="GitHub commit_sha None, pr_id None",
+        ),
+        pytest.param(
+            flexmock(),
             "7654321",
             None,
             False,
@@ -309,6 +376,38 @@ def test_set_status_github_check(
             {"__cause__": GitlabError(response_code=403)},
             StatusReporterGitlab,
             id="branch push",
+        ),
+        pytest.param(
+            flexmock(),
+            None,
+            11,
+            True,
+            flexmock(source_project=flexmock()),
+            BaseCommitStatus.failure,
+            "We made it!",
+            "packit/branch-rpm-build",
+            "https://api.packit.dev/build/112/logs",
+            CommitStatus.failure,
+            GitlabAPIException,
+            {"__cause__": GitlabError(response_code=404)},
+            StatusReporterGitlab,
+            id="Gitlab commit_sha None, PR present",
+        ),
+        pytest.param(
+            flexmock(),
+            None,
+            None,
+            False,
+            flexmock(source_project=flexmock()),
+            BaseCommitStatus.failure,
+            "We made it!",
+            "packit/branch-rpm-build",
+            "https://api.packit.dev/build/112/logs",
+            CommitStatus.failure,
+            GitlabAPIException,
+            {"__cause__": GitlabError(response_code=404)},
+            StatusReporterGitlab,
+            id="Gitlab commit_sha None, PR None",
         ),
     ],
 )
@@ -327,7 +426,9 @@ def test_commit_comment_instead_of_status(
     exception_dict,
     status_reporter_type,
 ):
-    reporter = status_reporter_type(project, commit_sha, pr_id)
+    reporter = status_reporter_type(
+        project=project, commit_sha=commit_sha, pr_id=pr_id, packit_user="packit"
+    )
 
     exception = exception_type()
     for key, value in exception_dict.items():
@@ -341,17 +442,33 @@ def test_commit_comment_instead_of_status(
         check_name,
         trim=True,
     ).and_raise(exception).once()
-    project.should_receive("commit_comment").with_args(
-        commit=commit_sha,
-        body="\n".join(
-            [
-                f"- name: {check_name}",
-                f"- state: {state.name}",
-                f"- url: {url if url else 'not provided'}",
-            ],
+
+    if commit_sha:
+        project.should_receive("commit_comment").with_args(
+            commit=commit_sha,
+            body="\n".join(
+                [
+                    f"- name: {check_name}",
+                    f"- state: {state.name}",
+                    f"- url: {url if url else 'not provided'}",
+                ],
+            )
+            + f"\n\n{description}",
+        ).once()
+        pr_object.should_receive("comment").never()
+    elif has_pr_id:
+        project.should_receive("commit_comment").never()
+        expected_comment = (
+            "| Job | Result |\n"
+            "| ------------- | ------------ |\n"
+            f"| [{check_name}]({url}) | {state.name.upper()} |\n"
+            f"### Description\n\n{description}"
         )
-        + f"\n\n{description}",
-    )
+        pr_object.should_receive("comment").with_args(body=expected_comment).once()
+    else:
+        project.should_receive("commit_comment").never()
+        pr_object.should_receive("comment").never()
+
     project.should_receive("get_commit_comments").and_return([])
     if has_pr_id:
         project.should_receive("get_pr").with_args(pr_id).and_return(pr_object)
