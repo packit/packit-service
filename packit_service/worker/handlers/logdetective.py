@@ -23,7 +23,7 @@ from packit_service.models import (
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.testing_farm import IsEventForJob
+from packit_service.worker.checker.logdetective import IsEventForJob
 from packit_service.worker.handlers.abstract import (
     FedoraCIJobHandler,
     TaskName,
@@ -58,6 +58,7 @@ class DownstreamLogDetectiveResultsHandler(
         self.target_build = event.get("target_build")
         self.build_system = event.get("build_system")
         self._ci_helper: Optional[FedoraCIHelper] = None
+        self.log_detective_response = event.get("log_detective_response")
         self.branch_name = ""
 
     @staticmethod
@@ -131,6 +132,11 @@ class DownstreamLogDetectiveResultsHandler(
         self.report(
             state=status, description=f"Log Detective analysis status: {self.status.value}", url=url
         )
+
+        if self.log_detective_response:
+            log_detective_run_model.set_log_detective_response(
+                self.log_detective_response, self.status
+            )
 
         log_detective_run_model.set_status(
             self.status, log_detective_analysis_start=self.log_detective_analysis_start
