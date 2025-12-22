@@ -13,7 +13,107 @@
 # the repo. Unless a later match takes precedence
 *	@packit/the-packit-team
 
+# Core Service
+packit_service/__init__.py                      @mfocko
+packit_service/celerizer.py                     @majamassarini
+packit_service/celery_config.py                 @majamassarini
+packit_service/package_config_getter.py         @lbarcziova
+packit_service/sentry_integration.py            @mfocko
+packit_service/utils.py                         @lbarcziova @mfocko
+
+# Service API
+packit_service/service/api/__init__.py          @mfocko @lbarcziova
+packit_service/service/api/bodhi_updates.py     @lbarcziova
+packit_service/service/api/copr_builds.py       @mfocko @nforro
+packit_service/service/api/healthz.py           @mfocko
+packit_service/service/api/installations.py     @mfocko
+packit_service/service/api/koji_builds.py       @mfocko @lbarcziova
+packit_service/service/api/koji_tag_requests.py @nforro
+packit_service/service/api/osh_scans.py         @lbarcziova
+packit_service/service/api/parsers.py           @mfocko
+packit_service/service/api/projects.py          @mfocko
+packit_service/service/api/propose_downstream.py @mfocko
+packit_service/service/api/pull_from_upstream.py @mfocko
+packit_service/service/api/runs.py              @mfocko @nforro
+packit_service/service/api/srpm_builds.py       @mfocko
+packit_service/service/api/system.py            @mfocko
+packit_service/service/api/testing_farm.py      @mfocko
+packit_service/service/api/usage.py             @majamassarini
+packit_service/service/api/utils.py             @lbarcziova @mfocko
+packit_service/service/api/webhooks.py          @mfocko
+packit_service/service/app.py                   @mfocko
+packit_service/service/db_project_events.py     @mfocko
+packit_service/service/tasks.py                 @majamassarini
+packit_service/service/urls.py                  @lbarcziova
+
+# Events - all forge event handling
+packit_service/events/*                         @mfocko
+
+# Worker Core
 packit_service/worker/allowlist.py              @mfocko
-packit_service/worker/events/*                  @mfocko
-packit_service/worker/helpers/testing_farm.py   @mfocko
-packit_service/worker/reporting/*               @mfocko
+packit_service/worker/celery_task.py            @mfocko
+packit_service/worker/database.py               @mfocko @lbarcziova
+packit_service/worker/jobs.py                   @mfocko @nforro
+packit_service/worker/monitoring.py             @mfocko
+packit_service/worker/parser.py                 @mfocko
+packit_service/worker/result.py                 @mfocko
+
+# Worker Checkers
+packit_service/worker/checker/__init__.py       @mfocko
+packit_service/worker/checker/abstract.py       @mfocko
+packit_service/worker/checker/bodhi.py          @mfocko
+packit_service/worker/checker/copr.py           @mfocko @majamassarini
+packit_service/worker/checker/forges.py         @mfocko
+packit_service/worker/checker/helper.py         @lbarcziova
+packit_service/worker/checker/koji.py           @mfocko
+packit_service/worker/checker/open_scan_hub.py  @majamassarini @lbarcziova
+packit_service/worker/checker/run_condition.py  @nforro
+packit_service/worker/checker/testing_farm.py   @mfocko @nforro
+packit_service/worker/checker/vm_image.py       @majamassarini @mfocko
+
+# Worker Handlers
+packit_service/worker/handlers/forges.py        @mfocko
+packit_service/worker/handlers/testing_farm.py  @nforro @mfocko
+packit_service/worker/handlers/usage.py         @majamassarini
+packit_service/worker/handlers/vm_image.py      @mfocko
+
+# Worker Helpers
+packit_service/worker/helpers/build/babysit.py  @mfocko @nforro
+packit_service/worker/helpers/build/build_helper.py @mfocko @majamassarini
+packit_service/worker/helpers/build/copr_build.py @mfocko
+packit_service/worker/helpers/build/koji_build.py @mfocko
+packit_service/worker/helpers/fedora_ci.py      @lbarcziova
+packit_service/worker/helpers/open_scan_hub.py  @majamassarini
+packit_service/worker/helpers/sidetag.py        @nforro
+packit_service/worker/helpers/sync_release/__init__.py @mfocko
+packit_service/worker/helpers/sync_release/propose_downstream.py @mfocko
+packit_service/worker/helpers/sync_release/pull_from_upstream.py @mfocko
+packit_service/worker/helpers/sync_release/sync_release.py @majamassarini @mfocko
+packit_service/worker/helpers/testing_farm_client.py @nforro @mfocko
+
+# Worker Reporting
+packit_service/worker/reporting/__init__.py     @mfocko
+packit_service/worker/reporting/enums.py        @mfocko
+packit_service/worker/reporting/news.py         @mfocko @lbarcziova
+packit_service/worker/reporting/reporters/base.py @mfocko
+packit_service/worker/reporting/reporters/github.py @mfocko
+packit_service/worker/reporting/reporters/gitlab.py @mfocko
+packit_service/worker/reporting/reporters/pagure.py @mfocko @lbarcziova
+packit_service/worker/reporting/utils.py        @lbarcziova @mfocko
+
+# Scripts & Infrastructure
+files/install-deps-worker.yaml                  @nforro
+files/install-deps.yaml                         @nforro
+files/recipe-tests.yaml                         @mfocko @majamassarini
+files/scripts/allowlist.py                      @mfocko
+files/scripts/db-cleanup.py                     @mfocko
+files/scripts/webhook.py                        @mfocko
+files/tasks/setup-copr-repos.yaml               @mfocko
+
+# Configuration
+.gemini/config.yaml                             @lbarcziova
+.pre-commit-config.yaml                         @mfocko
+alembic.ini                                     @nforro
+alembic/env.py                                  @mfocko
+docker-compose.yml                              @nforro
+ruff.toml                                       @mfocko
