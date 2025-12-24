@@ -26,6 +26,7 @@ from packit_service.events import (
     abstract,
     github,
     koji,
+    logdetective,
     pagure,
     testing_farm,
 )
@@ -268,7 +269,13 @@ class SteveJobs:
             if (
                 isinstance(
                     self.event,
-                    (pagure.pr.Action, pagure.pr.Comment, koji.result.Task, testing_farm.Result),
+                    (
+                        pagure.pr.Action,
+                        pagure.pr.Comment,
+                        koji.result.Task,
+                        testing_farm.Result,
+                        logdetective.Result,
+                    ),
                 )
                 and self.event.db_project_object
                 and (url := self.event.db_project_object.project.project_url)
