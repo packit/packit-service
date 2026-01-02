@@ -134,11 +134,21 @@ class CommentArguments:
 
     def parse_unknown_arguments(self, unknown_args: list[str]) -> None:
         # Process unknown_args to find pr_argument
+        # Supports these formats:
+        # - namespace/repo#<pr_id>
+        # - https://github.com/namespace/repo/pull/<pr_id> (GitHub auto-converts the above to this)
         pr_argument_pattern = re.compile(r"^[^/\s]+/[^#\s]+#\d+$")
+        github_url_pattern = re.compile(r"^https://github\.com/([^/\s]+)/([^/\s]+)/pull/(\d+)$")
         for arg in unknown_args:
             if pr_argument_pattern.match(arg):
                 self.pr_argument = arg
                 logger.debug(f"Parsed pr_argument: {self.pr_argument}")
+                break
+            if match := github_url_pattern.match(arg):
+                # Convert GitHub URL format back to namespace/repo#pr_id format
+                namespace, repo, pr_id = match.groups()
+                self.pr_argument = f"{namespace}/{repo}#{pr_id}"
+                logger.debug(f"Parsed pr_argument from GitHub URL: {arg} -> {self.pr_argument}")
                 break
 
 

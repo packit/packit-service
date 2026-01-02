@@ -2288,6 +2288,28 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             "namespace-2/repo-2#36",
             {"IP_FAMILY": "ipv6", "INSTALL_TYPE": ""},
         ),
+        # Test GitHub URL format (auto-converted by GitHub)
+        (
+            "/packit-dev test https://github.com/kontura/librepo/pull/4",
+            None,
+            None,
+            "kontura/librepo#4",
+            None,
+        ),
+        (
+            "/packit-dev test https://github.com/namespace-3/repo-3/pull/42 --identifier my-id-3",
+            "my-id-3",
+            None,
+            "namespace-3/repo-3#42",
+            None,
+        ),
+        (
+            "/packit-dev test --labels label1,label2 https://github.com/namespace-4/repo-4/pull/99",
+            None,
+            ["label1", "label2"],
+            "namespace-4/repo-4#99",
+            None,
+        ),
     ],
 )
 def test_parse_comment_arguments(
