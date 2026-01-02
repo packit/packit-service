@@ -23,7 +23,6 @@ from packit_service.models import (
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.logdetective import IsEventForJob
 from packit_service.worker.handlers.abstract import (
     FedoraCIJobHandler,
     TaskName,
@@ -51,10 +50,10 @@ class DownstreamLogDetectiveResultsHandler(
         super().__init__(package_config, job_config, event)
 
         self.status = LogDetectiveResult.from_string(event.get("status", ""))
-        self.identifier = event.get("identifier", "")
+        self.analysis_id = event.get("log_detective_analysis_id", "")
         self.log_detective_analysis_start = datetime.fromisoformat(
             event.get("log_detective_analysis_start")
-        )
+        ).replace(tzinfo=None)
         self.target_build = event.get("target_build")
         self.build_system = event.get("build_system")
         self._ci_helper: Optional[FedoraCIHelper] = None
@@ -63,34 +62,34 @@ class DownstreamLogDetectiveResultsHandler(
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return (IsEventForJob,)
+        """Downstream Log Detective analysis results don't need any additional checking."""
+        return ()
 
     def run(self) -> TaskResults:
         """Submit report about result of Log Detective analysis.
 
-        The status value is set to neutral when result matches `LogDetectiveResult.complete`,
-        because Log Detective is always analyzing a failed build, rather than checking
-        for a possible failure.
         Information about Log Detective run, is retrieved and recorded state compared
         to the change. If the state matches no further processing occurs.
         Number of started runs is incremented and information about elapsed time recorded
         by Pushgateway. New state of the run is then recorded.
         """
-        logger.debug(f"Log Detective run {self.identifier} result: {self.status}")
+        logger.debug(f"Log Detective run {self.analysis_id} result: {self.status}")
 
         if not self.project:
-            msg = f"No project set for Log Detective run: {self.identifier}"
+            msg = f"No project set for Log Detective run: {self.analysis_id}"
             logger.error(msg=msg)
             return TaskResults(success=False, details={"msg": msg})
 
-        log_detective_run_model = LogDetectiveRunModel.get_by_identifier(identifier=self.identifier)
+        log_detective_run_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+            analysis_id=self.analysis_id
+        )
         if not log_detective_run_model:
-            msg = f"Unknown identifier received from Log Detective: {self.identifier}"
+            msg = f"Unknown identifier received from Log Detective: {self.analysis_id}"
             logger.warning(msg=msg)
             return TaskResults(success=False, details={"msg": msg})
 
         if log_detective_run_model.status == self.status:
-            msg = f"Log Detective result for run {self.identifier} already processed"
+            msg = f"Log Detective result for run {self.analysis_id} already processed"
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 
@@ -106,7 +105,8 @@ class DownstreamLogDetectiveResultsHandler(
         if self.status != LogDetectiveResult.running:
             self.pushgateway.log_detective_runs_finished.inc()
             log_detective_run_time = elapsed_seconds(
-                begin=log_detective_run_model.submitted_time, end=datetime.now(timezone.utc)
+                begin=log_detective_run_model.submitted_time,
+                end=datetime.now(timezone.utc).replace(tzinfo=None),
             )
             self.pushgateway.log_detective_run_finished.observe(log_detective_run_time)
 

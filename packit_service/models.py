@@ -159,7 +159,7 @@ def optional_timestamp(datetime_object: Optional[datetime]) -> Optional[int]:
 
 
 def get_submitted_time_from_model(
-    model: Union["CoprBuildTargetModel", "TFTTestRunTargetModel"],
+    model: Union["CoprBuildTargetModel", "TFTTestRunTargetModel", "LogDetectiveRunModel"],
 ) -> datetime:
     # TODO: unify `submitted_name` (or better -> create for both models `task_accepted_time`)
     # to delete this mess plz
@@ -183,18 +183,28 @@ def get_most_recent_targets(
     """Overload for type-checking"""
 
 
+@overload
+def get_most_recent_targets(
+    models: Iterable["LogDetectiveRunModel"],
+) -> list["LogDetectiveRunModel"]:
+    """Overload for type-checking"""
+
+
 def get_most_recent_targets(
     models: Union[
         Iterable["CoprBuildTargetModel"],
         Iterable["TFTTestRunTargetModel"],
+        Iterable["LogDetectiveRunModel"],
     ],
-) -> Union[list["CoprBuildTargetModel"], list["TFTTestRunTargetModel"]]:
+) -> Union[
+    list["CoprBuildTargetModel"], list["TFTTestRunTargetModel"], list["LogDetectiveRunModel"]
+]:
     """
     Gets most recent models from an iterable (regarding submission time).
 
     Args:
-        models: Copr or TF models - if there are any duplicates in them then use the most
-         recent model
+        models: Copr, TF or Log Detective models - if there are any duplicates in them
+         then use the most recent model
 
     Returns:
         list of the most recent target models
@@ -1919,7 +1929,7 @@ class PipelineModel(Base):
     bodhi_update_group = relationship("BodhiUpdateGroupModel", back_populates="runs")
     log_detective_run_group_id = Column(
         Integer,
-        ForeignKey("log_detective_run_groups.id"),
+        ForeignKey("log_detective_run_groups.id", name="fk_pipelines_log_detective_run_groups_id"),
         index=True,
     )
     log_detective_run_group = relationship("LogDetectiveRunGroupModel", back_populates="runs")
@@ -2404,10 +2414,15 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             session.add(scan)
             return scan
 
-    def add_log_detective_run(self, identifier: str) -> "LogDetectiveRunModel":
+    def add_log_detective_run(
+        self, analysis_id: str, identifier: Optional[str] = None
+    ) -> "LogDetectiveRunModel":
         with sa_session_transaction(commit=True) as session:
             ld_run = LogDetectiveRunModel.get_or_create(
-                identifier, build_system=LogDetectiveBuildSystem.copr, build_id=self.id
+                analysis_id=analysis_id,
+                build_system=LogDetectiveBuildSystem.copr,
+                build_id=self.id,
+                identifier=identifier,
             )
             ld_run.copr_build_target = self
             session.add(ld_run)
@@ -2777,10 +2792,15 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         # All SRPMBuild models for all the runs have to be same.
         return self.group_of_targets.runs[0].srpm_build if self.group_of_targets.runs else None
 
-    def add_log_detective_run(self, identifier: str) -> "LogDetectiveRunModel":
+    def add_log_detective_run(
+        self, analysis_id: str, identifier: Optional[str] = None
+    ) -> "LogDetectiveRunModel":
         with sa_session_transaction(commit=True) as session:
             ld_run = LogDetectiveRunModel.get_or_create(
-                identifier, build_system=LogDetectiveBuildSystem.koji, build_id=self.id
+                analysis_id=analysis_id,
+                build_system=LogDetectiveBuildSystem.koji,
+                build_id=self.id,
+                identifier=identifier,
             )
             ld_run.koji_build_target = self
             session.add(ld_run)
@@ -4513,14 +4533,18 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
 
     id = Column(Integer, primary_key=True)
     status = Column(Enum(LogDetectiveResult), nullable=False)
+    # From job configuration
+    identifier = Column(String, nullable=True)
     # Set from `target_build` field of the message created by logdetective-packit
     target_build = Column(String)
+    # Target architecture
+    target = Column(String)
     log_detective_response = Column(JSON)
     # Derived from `log_detective_analysis_start` field of the event
     submitted_time = Column(DateTime, default=datetime.utcnow)
     # UUID of Log Detective analysis, provided by logdetective-packit
     # interface server https://github.com/fedora-copr/logdetective-packit
-    identifier = Column(String, unique=True, nullable=False)
+    analysis_id = Column(String, unique=True, nullable=False)
     build_system = Column(Enum(LogDetectiveBuildSystem))
 
     # In both cases, we don't need to keep Log Detective analysis
@@ -4534,7 +4558,11 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         ForeignKey("koji_build_targets.id", ondelete="CASCADE"),
     )
     log_detective_run_group_id = Column(
-        Integer, ForeignKey("log_detective_run_groups.id"), index=True
+        Integer,
+        ForeignKey(
+            "log_detective_run_groups.id", name="fk_log_detective_run_log_detective_run_groups_id"
+        ),
+        index=True,
     )
 
     group_of_targets = relationship(
@@ -4576,15 +4604,20 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
 
     @classmethod
     def get_or_create(
-        cls, identifier: str, build_system: LogDetectiveBuildSystem, build_id: int
+        cls,
+        analysis_id: str,
+        build_system: LogDetectiveBuildSystem,
+        build_id: int,
+        identifier: Optional[str] = None,
     ) -> "LogDetectiveRunModel":
         with sa_session_transaction(commit=True) as session:
-            ld_run = cls.get_by_identifier(identifier)
+            ld_run = cls.get_by_log_detective_analysis_id(analysis_id)
             if not ld_run:
                 ld_run = cls()
-                ld_run.identifier = identifier
+                ld_run.analysis_id = analysis_id
                 ld_run.status = LogDetectiveResult.running
                 ld_run.build_system = build_system
+                ld_run.identifier = identifier
 
                 build: Union[CoprBuildTargetModel, KojiBuildTargetModel, None] = None
 
@@ -4599,6 +4632,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                     raise ValueError(
                         f"Build ID: {build_id} not found for build system: {build_system}"
                     )
+                ld_run.target = build.target
 
                 runs = []
                 if build.group_of_targets and build.group_of_targets.runs:
@@ -4613,16 +4647,20 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         cls,
         status: LogDetectiveResult,
         target_build: str,
+        target: str,
         build_system: LogDetectiveBuildSystem,
-        identifier: str,
+        log_detective_analysis_id: str,
         log_detective_run_group: "LogDetectiveRunGroupModel",
         log_detective_response: Optional[dict] = None,
+        identifier: Optional[str] = None,
     ) -> "LogDetectiveRunModel":
         with sa_session_transaction(commit=True) as session:
             log_detective_run = cls()
             log_detective_run.status = status
             log_detective_run.target_build = target_build
+            log_detective_run.target = target
             log_detective_run.build_system = build_system
+            log_detective_run.analysis_id = log_detective_analysis_id
             log_detective_run.identifier = identifier
             if log_detective_response:
                 log_detective_run.log_detective_response = log_detective_response
@@ -4654,10 +4692,10 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             )
 
     @classmethod
-    def get_by_identifier(cls, identifier: str) -> "LogDetectiveRunModel":
-        """Get analysis matching given identifier. Identifiers are unique."""
+    def get_by_log_detective_analysis_id(cls, analysis_id: str) -> "LogDetectiveRunModel":
+        """Get analysis matching given analysis id. Identifiers are unique."""
         with sa_session_transaction() as session:
-            return session.query(LogDetectiveRunModel).filter_by(identifier=identifier).first()
+            return session.query(LogDetectiveRunModel).filter_by(analysis_id=analysis_id).first()
 
 
 class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
