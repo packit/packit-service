@@ -1156,14 +1156,18 @@ def test_add_scan_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
 
 def test_add_log_detective_run_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
     a_copr_build_for_pr.add_log_detective_run("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    ld_run = LogDetectiveRunModel.get_by_identifier("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    assert ld_run.identifier == "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    ld_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    )
+    assert ld_run.analysis_id == "edc826d0-cec8-11f0-a464-9a478821d0e2"
 
 
 def test_add_log_detective_run_to_koji_build(clean_before_and_after, a_koji_build_for_pr):
     a_koji_build_for_pr.add_log_detective_run("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    ld_run = LogDetectiveRunModel.get_by_identifier("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    assert ld_run.identifier == "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    ld_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    )
+    assert ld_run.analysis_id == "edc826d0-cec8-11f0-a464-9a478821d0e2"
 
 
 def test_bodhi_model_get_last_successful_by_sidetag(
@@ -1305,7 +1309,7 @@ def test_create_log_detective_run_model(clean_before_and_after):
         status=LogDetectiveResult.complete,
         target_build="99999",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_analysis_id="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
         log_detective_run_group=log_detective_run_group,
     )
 
@@ -1314,7 +1318,7 @@ def test_create_log_detective_run_model(clean_before_and_after):
     assert run_target_model.target_build == "99999"
     assert run_target_model.build_system == LogDetectiveBuildSystem.copr
 
-    run_target_model = LogDetectiveRunModel.get_by_identifier(
+    run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
         "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
     )
 
@@ -1333,7 +1337,7 @@ def test_set_log_detective_run_model_status(clean_before_and_after):
         status=LogDetectiveResult.unknown,
         target_build="99999",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_analysis_id="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
         log_detective_run_group=log_detective_run_group,
     )
 
@@ -1344,7 +1348,7 @@ def test_set_log_detective_run_model_status(clean_before_and_after):
 
     run_target_model.set_status(LogDetectiveResult.complete)
 
-    run_target_model = LogDetectiveRunModel.get_by_identifier(
+    run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
         "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
     )
 
@@ -1366,7 +1370,7 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
         status=LogDetectiveResult.unknown,
         target_build="99999",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_analysis_id="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
         log_detective_run_group=log_detective_run_group,
     )
 
@@ -1377,7 +1381,7 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
 
     run_target_model.set_log_detective_response(log_detective_response, status=status)
 
-    run_target_model = LogDetectiveRunModel.get_by_identifier(
+    run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
         "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
     )
 
@@ -1415,7 +1419,7 @@ def test_log_detective_run_group_targets(
         status=LogDetectiveResult.running,
         target_build="12345",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="some-uuid",
+        log_detective_analysis_id="some-uuid",
         log_detective_run_group=group,
     )
 
@@ -1432,7 +1436,7 @@ def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with
         status=LogDetectiveResult.running,
         target_build="111",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-1",
+        log_detective_analysis_id="uuid-1",
         log_detective_run_group=group,
     )
 
@@ -1441,7 +1445,7 @@ def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with
         status=LogDetectiveResult.complete,
         target_build="222",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-2",
+        log_detective_analysis_id="uuid-2",
         log_detective_run_group=group,
     )
 
@@ -1450,7 +1454,7 @@ def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with
         status=LogDetectiveResult.error,
         target_build="333",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-3",
+        log_detective_analysis_id="uuid-3",
         log_detective_run_group=group,
     )
 
@@ -1463,7 +1467,7 @@ def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with
     # get_running returns a list of tuples (LogDetectiveRunModel, )
     run_model = running[0][0]
     assert isinstance(run_model, LogDetectiveRunModel)
-    assert run_model.identifier == "uuid-1"
+    assert run_model.analysis_id == "uuid-1"
 
 
 @pytest.mark.parametrize(
@@ -1493,7 +1497,7 @@ def test_get_or_create_with_orphaned_build(clean_before_and_after, build_system)
     )
 
     assert ld_run
-    assert ld_run.identifier == "safe-uuid-123"
+    assert ld_run.analysis_id == "safe-uuid-123"
     assert ld_run.group_of_targets is not None
     assert isinstance(ld_run.group_of_targets.runs, list)
     assert len(ld_run.group_of_targets.runs) == 0
@@ -1513,7 +1517,7 @@ def test_log_detective_get_by_build(clean_before_and_after, srpm_build_model_wit
         status=LogDetectiveResult.running,
         target_build="111",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-1",
+        log_detective_analysis_id="uuid-1",
         log_detective_run_group=group,
     )
 
@@ -1521,7 +1525,7 @@ def test_log_detective_get_by_build(clean_before_and_after, srpm_build_model_wit
         status=LogDetectiveResult.complete,
         target_build="222",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-2",
+        log_detective_analysis_id="uuid-2",
         log_detective_run_group=group,
     )
 
@@ -1529,7 +1533,7 @@ def test_log_detective_get_by_build(clean_before_and_after, srpm_build_model_wit
         status=LogDetectiveResult.error,
         target_build="333",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-3",
+        log_detective_analysis_id="uuid-3",
         log_detective_run_group=group,
     )
 
@@ -1554,7 +1558,7 @@ def test_log_detective_run_get_all_by_status(clean_before_and_after):
         status=LogDetectiveResult.running,
         target_build="111",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-1",
+        log_detective_analysis_id="uuid-1",
         log_detective_run_group=group,
     )
 
@@ -1562,7 +1566,7 @@ def test_log_detective_run_get_all_by_status(clean_before_and_after):
         status=LogDetectiveResult.running,
         target_build="222",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-2",
+        log_detective_analysis_id="uuid-2",
         log_detective_run_group=group,
     )
 
@@ -1570,7 +1574,7 @@ def test_log_detective_run_get_all_by_status(clean_before_and_after):
         status=LogDetectiveResult.error,
         target_build="333",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-3",
+        log_detective_analysis_id="uuid-3",
         log_detective_run_group=group,
     )
 
@@ -1579,7 +1583,7 @@ def test_log_detective_run_get_all_by_status(clean_before_and_after):
     assert isinstance(records, list)
     assert len(records) == 2
 
-    assert {record.identifier for record in records} == {"uuid-1", "uuid-2"}
+    assert {record.analysis_id for record in records} == {"uuid-1", "uuid-2"}
 
 
 def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
@@ -1590,7 +1594,7 @@ def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
         status=LogDetectiveResult.running,
         target_build="1",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="uuid-time-test",
+        log_detective_analysis_id="uuid-time-test",
         log_detective_run_group=group,
     )
 
@@ -1602,7 +1606,7 @@ def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
     run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
 
     # Reload to check persistence
-    run = LogDetectiveRunModel.get_by_identifier("uuid-time-test")
+    run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-time-test")
 
     assert run.submitted_time != new_time
 
@@ -1612,16 +1616,16 @@ def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
         run_without_time.target_build = "2"
         run_without_time.submitted_time = null()  # Hard setting `submitted_time` to `None`
         run_without_time.group_of_targets = group
-        run_without_time.identifier = "uuid-build-without-time"
+        run_without_time.analysis_id = "uuid-build-without-time"
         run_without_time.status = LogDetectiveResult.complete
 
         session.add(run_without_time)
 
-    run = LogDetectiveRunModel.get_by_identifier("uuid-build-without-time")
+    run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-build-without-time")
 
     assert run.submitted_time is None
     run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
 
-    run = LogDetectiveRunModel.get_by_identifier("uuid-build-without-time")
+    run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-build-without-time")
 
     assert run.submitted_time == new_time

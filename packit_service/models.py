@@ -4511,7 +4511,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     submitted_time = Column(DateTime, default=datetime.utcnow)
     # UUID of Log Detective analysis, provided by logdetective-packit
     # interface server https://github.com/fedora-copr/logdetective-packit
-    identifier = Column(String, unique=True, nullable=False)
+    analysis_id = Column(String, unique=True, nullable=False)
     build_system = Column(Enum(LogDetectiveBuildSystem))
 
     # In both cases, we don't need to keep Log Detective analysis
@@ -4570,10 +4570,10 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         cls, identifier: str, build_system: LogDetectiveBuildSystem, build_id: int
     ) -> "LogDetectiveRunModel":
         with sa_session_transaction(commit=True) as session:
-            ld_run = cls.get_by_identifier(identifier)
+            ld_run = cls.get_by_log_detective_analysis_id(identifier)
             if not ld_run:
                 ld_run = cls()
-                ld_run.identifier = identifier
+                ld_run.analysis_id = identifier
                 ld_run.status = LogDetectiveResult.running
                 ld_run.build_system = build_system
 
@@ -4605,7 +4605,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         status: LogDetectiveResult,
         target_build: str,
         build_system: LogDetectiveBuildSystem,
-        identifier: str,
+        log_detective_analysis_id: str,
         log_detective_run_group: "LogDetectiveRunGroupModel",
         log_detective_response: Optional[dict] = None,
     ) -> "LogDetectiveRunModel":
@@ -4614,7 +4614,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             log_detective_run.status = status
             log_detective_run.target_build = target_build
             log_detective_run.build_system = build_system
-            log_detective_run.identifier = identifier
+            log_detective_run.analysis_id = log_detective_analysis_id
             if log_detective_response:
                 log_detective_run.log_detective_response = log_detective_response
             log_detective_run_group.log_detective_run_targets.append(log_detective_run)
@@ -4645,10 +4645,10 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             )
 
     @classmethod
-    def get_by_identifier(cls, identifier: str) -> "LogDetectiveRunModel":
-        """Get analysis matching given identifier. Identifiers are unique."""
+    def get_by_log_detective_analysis_id(cls, analysis_id: str) -> "LogDetectiveRunModel":
+        """Get analysis matching given analysis id. Identifiers are unique."""
         with sa_session_transaction() as session:
-            return session.query(LogDetectiveRunModel).filter_by(identifier=identifier).first()
+            return session.query(LogDetectiveRunModel).filter_by(analysis_id=analysis_id).first()
 
 
 class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):

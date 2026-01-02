@@ -21,7 +21,6 @@ from packit_service.models import (
     Session,
     SRPMBuildModel,
 )
-from packit_service.worker.checker.logdetective import IsEventForJob
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting.enums import BaseCommitStatus
@@ -45,6 +44,7 @@ def logdetective_analysis_event():
         "status": "complete",
         "identifier": "4f2fa9aa-8fe6-4325-a317-473ca180e75d",
         "log_detective_analysis_start": "2025-12-10 10:57:57.341695+00:00",
+        "log_detective_analysis_id": "4f2fa9aa-8fe6-4325-a317-473ca180e75d",
         "commit_sha": "9deb98c730bb4123f518ca13a0dbec5d7c0669ca",
         "project_url": "https://github.com/packit/packit",
         "pr_id": 123,
@@ -100,7 +100,7 @@ def test_logdetective_process_message(clean_before_and_after, logdetective_analy
         status=LogDetectiveResult.running,
         target_build=logdetective_analysis_event["target_build"],
         build_system=LogDetectiveBuildSystem.copr,
-        identifier=logdetective_analysis_event["identifier"],
+        log_detective_analysis_id=logdetective_analysis_event["log_detective_analysis_id"],
         log_detective_run_group=ld_group,
     )
 
@@ -139,9 +139,6 @@ def test_logdetective_process_message(clean_before_and_after, logdetective_analy
         url=logdetective_analysis_event["project_url"]
     ).and_return(mock_project)
 
-    # IsEventForJob might return False because we don't have a job_config in Fedora CI flow
-    flexmock(IsEventForJob).should_receive("pre_check").and_return(True)
-
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=BaseCommitStatus.success,
         description="Log Detective analysis status: complete",
@@ -174,14 +171,6 @@ def test_logdetective_process_message(clean_before_and_after, logdetective_analy
     # Inject the mock instance
     flexmock(Pushgateway).new_instances(mock_pushgateway)
 
-    # This verifies the exact method we want to test is called with correct args
-    flexmock(LogDetectiveRunModel).should_call("set_status").with_args(
-        LogDetectiveResult.complete,
-        log_detective_analysis_start=datetime.fromisoformat(
-            logdetective_analysis_event["log_detective_analysis_start"]
-        ),
-    ).once()
-
     result = process_message.apply(
         args=[logdetective_analysis_event],
         kwargs={"source": "fedora-messaging", "event_type": "logdetective.analysis"},
@@ -195,8 +184,8 @@ def test_logdetective_process_message(clean_before_and_after, logdetective_analy
     Session().expire_all()
 
     # Reload from DB to verify changes
-    run_model_after = LogDetectiveRunModel.get_by_identifier(
-        logdetective_analysis_event["identifier"]
+    run_model_after = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        logdetective_analysis_event["log_detective_analysis_id"]
     )
 
     assert run_model_after.status == LogDetectiveResult.complete

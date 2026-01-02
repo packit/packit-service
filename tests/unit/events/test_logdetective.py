@@ -174,8 +174,8 @@ def test_logdetective_run_success(
             copr_build_target_id=10,
             koji_build_target_id=20,
         )
-    flexmock(LogDetectiveRunModel).should_receive("get_by_identifier").with_args(
-        identifier="123456"
+    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").with_args(
+        analysis_id="123456"
     ).and_return(run_model)
 
     # Expect set_status to be called with a datetime object
@@ -227,8 +227,8 @@ def test_logdetective_run_unknown_identifier(handler_and_models):
     the issue is reported in details and result is not a success."""
     handler = handler_and_models
 
-    flexmock(LogDetectiveRunModel).should_receive("get_by_identifier").with_args(
-        identifier="123456"
+    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").with_args(
+        analysis_id="123456"
     ).and_return(None)
 
     result = handler.run()
@@ -245,7 +245,9 @@ def test_logdetective_run_already_processed(handler_and_models):
 
     # Simulate DB already having the same status
     run_model = flexmock(status=LogDetectiveResult.complete)
-    flexmock(LogDetectiveRunModel).should_receive("get_by_identifier").and_return(run_model)
+    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
+        run_model
+    )
 
     flexmock(FedoraCIHelper).should_receive("report").never()
 
@@ -265,7 +267,9 @@ def test_logdetective_run_build_not_found(handler_and_models):
         submitted_time=datetime.now(timezone.utc),
         copr_build_target_id=10,
     )
-    flexmock(LogDetectiveRunModel).should_receive("get_by_identifier").and_return(run_model)
+    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
+        run_model
+    )
 
     # Simulate build lookup failure
     flexmock(CoprBuildTargetModel).should_receive("get_by_id").with_args(10).and_return(None)
@@ -291,7 +295,9 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
         copr_build_target_id=10,
     )
     run_model.should_receive("set_status")
-    flexmock(LogDetectiveRunModel).should_receive("get_by_identifier").and_return(run_model)
+    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
+        run_model
+    )
 
     # Build has no web_url
     build_model = flexmock(web_url=None)
