@@ -4741,7 +4741,7 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return log_detective_run_group
 
     @property
-    def grouped_targets(self) -> list["LogDetectiveRunGroupModel"]:
+    def grouped_targets(self) -> list[LogDetectiveRunModel]:
         return self.log_detective_run_targets
 
     @classmethod
