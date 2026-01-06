@@ -153,6 +153,7 @@ def test_parse_logdetective_analysis_result_wrong_build_system(logdetective_anal
 )
 def test_logdetective_run_success(
     handler_and_models,
+    log_detective_run_model_get_by_identifier,
     status_str,
     expected_status,
     build_system,
@@ -161,7 +162,7 @@ def test_logdetective_run_success(
     in an unknown state."""
     handler = handler_and_models
     handler.status = LogDetectiveResult.from_string(status_str)
-    handler.build_system = build_system
+    handler.build_system = LogDetectiveBuildSystem(build_system)
 
     # Mock LogDetectiveRunModel if the new state is `LogDetectiveResult.unknown`
     # we must change the mock so that the existing state is different
@@ -171,15 +172,15 @@ def test_logdetective_run_success(
         run_model = flexmock(
             status=LogDetectiveResult.running,
             submitted_time=datetime.now(timezone.utc),
-            copr_build_target_id=10,
-            koji_build_target_id=20,
+            copr_build_target_id=999,
+            koji_build_target_id=999,
         )
     else:
         run_model = flexmock(
             status=LogDetectiveResult.unknown,
             submitted_time=datetime.now(timezone.utc),
-            copr_build_target_id=10,
-            koji_build_target_id=20,
+            copr_build_target_id=999,
+            koji_build_target_id=999,
         )
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").with_args(
         analysis_id="123456"
@@ -197,14 +198,13 @@ def test_logdetective_run_success(
     build_model = flexmock(web_url="https://build.url")
     build_model.should_receive("get_branch_name").and_return("main")
 
-    if build_system == "copr":
-        flexmock(CoprBuildTargetModel).should_receive("get_by_id").with_args(10).and_return(
-            build_model
-        )
-    else:
-        flexmock(KojiBuildTargetModel).should_receive("get_by_id").with_args(20).and_return(
-            build_model
-        )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_id").with_args(999).and_return(
+        build_model
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("get_by_id").with_args(999).and_return(
+        build_model
+    )
 
     # Mock FedoraCIHelper report
     flexmock(FedoraCIHelper).should_receive("report").with_args(
@@ -296,7 +296,7 @@ def test_logdetective_run_build_not_found(handler_and_models):
 def test_logdetective_run_empty_url_fallback(handler_and_models):
     """Test that missing web_url in build model is handled by passing empty string"""
     handler = handler_and_models
-    handler.build_system = "copr"
+    handler.build_system = LogDetectiveBuildSystem.copr
 
     run_model = flexmock(
         status=LogDetectiveResult.running,

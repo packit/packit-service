@@ -1903,6 +1903,12 @@ class Parser:
         log_detective_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
             analysis_id=analysis_id
         )
+        if not log_detective_run:
+            logger.error(
+                f"Received results Log Detective analysis: '{analysis_id}' "
+                "but no analysis with this id was requested."
+            )
+            return None
 
         identifier = log_detective_run.identifier
 

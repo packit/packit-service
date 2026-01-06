@@ -18,6 +18,7 @@ from packit_service.events import (
 from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildTargetModel,
+    LogDetectiveBuildSystem,
     LogDetectiveResult,
     LogDetectiveRunModel,
 )
@@ -55,7 +56,7 @@ class DownstreamLogDetectiveResultsHandler(
             event.get("log_detective_analysis_start")
         ).replace(tzinfo=None)
         self.target_build = event.get("target_build")
-        self.build_system = event.get("build_system")
+        self.build_system = LogDetectiveBuildSystem(event.get("build_system"))
         self._ci_helper: Optional[FedoraCIHelper] = None
         self.log_detective_response = event.get("log_detective_response")
         self.branch_name = ""
@@ -112,9 +113,9 @@ class DownstreamLogDetectiveResultsHandler(
 
         build: Union[None, CoprBuildTargetModel, KojiBuildTargetModel] = None
 
-        if self.build_system == "copr":
+        if self.build_system == LogDetectiveBuildSystem.copr:
             build = CoprBuildTargetModel.get_by_id(log_detective_run_model.copr_build_target_id)
-        elif self.build_system == "koji":
+        elif self.build_system == LogDetectiveBuildSystem.koji:
             build = KojiBuildTargetModel.get_by_id(log_detective_run_model.koji_build_target_id)
         if build is None:
             msg = f"No build with id: {self.target_build} found in build system {self.build_system}"
