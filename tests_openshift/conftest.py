@@ -550,7 +550,7 @@ def different_release_project_event_model(different_release_model):
 @pytest.fixture()
 def srpm_build_model_with_new_run_and_tf_for_pr(srpm_build_model_with_new_run_for_pr):
     srpm_model, run_model = srpm_build_model_with_new_run_for_pr
-    tf_group_model = TFTTestRunGroupModel.create([run_model], ranch="public")
+    tf_group_model = TFTTestRunGroupModel.create(run_model, ranch="public")
     yield srpm_model, tf_group_model, run_model
 
 
@@ -588,7 +588,7 @@ def srpm_build_model_with_new_run_and_tf_for_branch(
     srpm_build_model_with_new_run_for_branch,
 ):
     srpm_model, run_model = srpm_build_model_with_new_run_for_branch
-    tf_group_model = TFTTestRunGroupModel.create([run_model], ranch="public")
+    tf_group_model = TFTTestRunGroupModel.create(run_model, ranch="public")
     yield srpm_model, tf_group_model, run_model
 
 
@@ -607,7 +607,7 @@ def srpm_build_model_with_new_run_and_tf_for_release(
     srpm_build_model_with_new_run_for_release,
 ):
     srpm_model, run_model = srpm_build_model_with_new_run_for_release
-    tf_group_model = TFTTestRunGroupModel.create([run_model], ranch="public")
+    tf_group_model = TFTTestRunGroupModel.create(run_model, ranch="public")
     yield srpm_model, tf_group_model, run_model
 
 
@@ -1070,7 +1070,7 @@ def multiple_koji_builds(pr_project_event_model, different_pr_project_event_mode
 @pytest.fixture()
 def a_new_test_run_pr(srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create([run_model], ranch="public")
+    group = TFTTestRunGroupModel.create(run_model, ranch="public")
     yield TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
         web_url=SampleValues.testing_farm_url,
@@ -1086,7 +1086,7 @@ def a_new_test_run_branch_push(
     a_copr_build_for_branch_push,
 ):
     _, run_model = srpm_build_model_with_new_run_for_branch
-    group = TFTTestRunGroupModel.create([run_model], ranch="public")
+    group = TFTTestRunGroupModel.create(run_model, ranch="public")
     yield TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
         web_url=SampleValues.testing_farm_url,
@@ -1101,12 +1101,12 @@ def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_mo
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
-    test_group_for_pr = TFTTestRunGroupModel.create([run_model_for_pr], ranch="public")
+    test_group_for_pr = TFTTestRunGroupModel.create(run_model_for_pr, ranch="public")
     build_group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
-    test_group_for_same_pr = TFTTestRunGroupModel.create([run_model_for_same_pr], ranch="public")
+    test_group_for_same_pr = TFTTestRunGroupModel.create(run_model_for_same_pr, ranch="public")
     build_group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=different_pr_project_event_model,
@@ -1115,7 +1115,7 @@ def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_mo
         run_model_for_a_different_pr,
     )
     test_group_for_different_pr = TFTTestRunGroupModel.create(
-        [run_model_for_a_different_pr], ranch="public"
+        run_model_for_a_different_pr, ranch="public"
     )
 
     CoprBuildTargetModel.create(
@@ -2267,7 +2267,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
         project_event_model=pr_project_event_model,
     )
     build_group = CoprBuildGroupModel.create(run_model_for_pr)
-    TFTTestRunGroupModel.create([run_model_for_pr], ranch="public")
+    TFTTestRunGroupModel.create(run_model_for_pr, ranch="public")
 
     for target in (SampleValues.target, SampleValues.different_target):
         copr_build = CoprBuildTargetModel.create(
@@ -2291,7 +2291,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
     _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=different_pr_project_event_model,
     )
-    TFTTestRunGroupModel.create([run_model_for_different_pr], ranch="public")
+    TFTTestRunGroupModel.create(run_model_for_different_pr, ranch="public")
     build_group = CoprBuildGroupModel.create(run_model_for_different_pr)
 
     runs = []
@@ -2332,11 +2332,11 @@ def runs_without_build(pr_project_event_model, branch_project_event_model):
     run_model_for_pr_only_test = PipelineModel.create(
         project_event=pr_project_event_model,
     )
-    TFTTestRunGroupModel.create([run_model_for_pr_only_test], ranch="public")
+    TFTTestRunGroupModel.create(run_model_for_pr_only_test, ranch="public")
     run_model_for_branch_only_test = PipelineModel.create(
         project_event=branch_project_event_model,
     )
-    TFTTestRunGroupModel.create([run_model_for_branch_only_test], ranch="public")
+    TFTTestRunGroupModel.create(run_model_for_branch_only_test, ranch="public")
 
     TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,

@@ -178,7 +178,7 @@ class TestingFarmHandler(
         )
         group = (
             TFTTestRunGroupModel.create(
-                [run_model], ranch=self.testing_farm_job_helper.tft_client.default_ranch
+                run_model, ranch=self.testing_farm_job_helper.tft_client.default_ranch
             )
             if not run_model.test_run_group
             else run_model.test_run_group
@@ -420,7 +420,7 @@ class DownstreamTestingFarmHandler(
         run_model = self.koji_build.group_of_targets.runs[-1]
         group = (
             TFTTestRunGroupModel.create(
-                [run_model], ranch=self.downstream_testing_farm_job_helper.tft_client.default_ranch
+                run_model, ranch=self.downstream_testing_farm_job_helper.tft_client.default_ranch
             )
             if not run_model.test_run_group
             else run_model.test_run_group

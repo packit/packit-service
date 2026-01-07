@@ -770,7 +770,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
     group = flexmock(grouped_targets=[tft_test_run_model])
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [copr_build_pr.group_of_targets.runs[-1]],
+        copr_build_pr.group_of_targets.runs[-1],
         ranch="public",
     ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
@@ -2020,7 +2020,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [copr_build_pr.group_of_targets.runs[-1]], ranch="public"
+        copr_build_pr.group_of_targets.runs[-1], ranch="public"
     ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
@@ -2211,7 +2211,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         .mock()
     )
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [copr_build_pr.group_of_targets.runs[-1]],
+        copr_build_pr.group_of_targets.runs[-1],
         ranch="public",
     ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
@@ -2872,7 +2872,7 @@ def test_koji_build_end_downstream(
         ]
     )
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [koji_build_pr_downstream.group_of_targets.runs[-1]],
+        koji_build_pr_downstream.group_of_targets.runs[-1],
         ranch="public",
     ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(

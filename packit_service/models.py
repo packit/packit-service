@@ -3390,39 +3390,35 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return f"TFTTestRunGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @classmethod
-    def create(cls, run_models: list["PipelineModel"], ranch: str) -> "TFTTestRunGroupModel":
+    def create(cls, run_model: "PipelineModel", ranch: str) -> "TFTTestRunGroupModel":
         with sa_session_transaction(commit=True) as session:
             test_run_group = cls()
             test_run_group.ranch = ranch
             session.add(test_run_group)
 
-            for run_model in run_models:
-                # lock the run_model in the DB by using SELECT ... FOR UPDATE
-                # all other workers accessing this run_model will block here
-                # until the context is exited
-                locked_run_model = (
-                    session.query(PipelineModel)
-                    .filter_by(id=run_model.id)
-                    .with_for_update()
-                    .first()
-                )
+            # lock the run_model in the DB by using SELECT ... FOR UPDATE
+            # all other workers accessing this run_model will block here
+            # until the context is exited
+            locked_run_model = (
+                session.query(PipelineModel).filter_by(id=run_model.id).with_for_update().first()
+            )
 
-                if not locked_run_model:
-                    logger.warning(f"PipelineModel with id={run_model.id} not found in DB.")
-                    continue
+            if not locked_run_model:
+                logger.warning(f"PipelineModel with id={run_model.id} not found in DB.")
+                return test_run_group
 
-                if locked_run_model.test_run_group:
-                    # Clone run model
-                    new_run_model = PipelineModel()
-                    new_run_model.project_event = locked_run_model.project_event
-                    new_run_model.package_name = locked_run_model.package_name
-                    new_run_model.srpm_build = locked_run_model.srpm_build
-                    new_run_model.copr_build_group = locked_run_model.copr_build_group
-                    new_run_model.test_run_group = test_run_group
-                    session.add(new_run_model)
-                else:
-                    locked_run_model.test_run_group = test_run_group
-                    session.add(locked_run_model)
+            if locked_run_model.test_run_group:
+                # Clone run model
+                new_run_model = PipelineModel()
+                new_run_model.project_event = locked_run_model.project_event
+                new_run_model.package_name = locked_run_model.package_name
+                new_run_model.srpm_build = locked_run_model.srpm_build
+                new_run_model.copr_build_group = locked_run_model.copr_build_group
+                new_run_model.test_run_group = test_run_group
+                session.add(new_run_model)
+            else:
+                locked_run_model.test_run_group = test_run_group
+                session.add(locked_run_model)
 
             return test_run_group
 
