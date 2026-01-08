@@ -37,7 +37,6 @@ from packit_service.utils import (
     dump_job_config,
     dump_package_config,
     elapsed_seconds,
-    pr_labels_match_configuration,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
@@ -484,15 +483,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 and not job_config.manual_trigger
                 # we need to check the labels here
                 # the same way as when scheduling jobs for event
-                and (
-                    job_config.trigger != JobConfigTriggerType.pull_request
-                    or not (job_config.require.label.present or job_config.require.label.absent)
-                    or pr_labels_match_configuration(
-                        pull_request=self.copr_build_helper.pull_request_object,
-                        configured_labels_absent=job_config.require.label.absent,
-                        configured_labels_present=job_config.require.label.present,
-                    )
-                )
+                and self.copr_build_helper.test_job_labels_match(job_config)
                 and self.copr_event.chroot
                 in self.copr_build_helper.build_targets_for_test_job(job_config)
             ):

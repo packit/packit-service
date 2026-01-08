@@ -33,6 +33,7 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.service.urls import get_srpm_build_info_url
+from packit_service.utils import pr_labels_match_configuration
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
@@ -630,6 +631,31 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         return results
 
+    def test_job_labels_match(self, test_job: JobConfig) -> bool:
+        """
+        Check if test job matches the PR label requirements.
+
+        Always returns True for non-PR events or jobs without label requirements.
+        For PRs with label requirements, checks if the PR labels satisfy the configuration.
+
+        Args:
+            test_job: The test job configuration to check.
+
+        Returns:
+            False if the label requirements for the test job are not being met, True otherwise.
+        """
+        if test_job.trigger != JobConfigTriggerType.pull_request:
+            return True
+
+        if not (test_job.require.label.present or test_job.require.label.absent):
+            return True
+
+        return pr_labels_match_configuration(
+            pull_request=self.pull_request_object,
+            configured_labels_absent=test_job.require.label.absent,
+            configured_labels_present=test_job.require.label.present,
+        )
+
     def report_status_to_all(
         self,
         description: str,
@@ -686,7 +712,11 @@ class BaseBuildJobHelper(BaseJobHelper):
         update_feedback_time: Optional[Callable] = None,
     ) -> None:
         for test_job in self.job_tests_all:
-            if test_job.skip_build or test_job.manual_trigger:
+            if (
+                test_job.skip_build
+                or test_job.manual_trigger
+                or not self.test_job_labels_match(test_job)
+            ):
                 continue
             check_names = self.test_check_names_for_test_job(test_job)
             self._report(
@@ -735,6 +765,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             if (
                 not test_job.skip_build
                 and not test_job.manual_trigger
+                and self.test_job_labels_match(test_job)
                 and chroot in self.build_targets_for_test_job(test_job)
             ):
                 test_targets = self.build_target2test_targets_for_test_job(
