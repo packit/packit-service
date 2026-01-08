@@ -1875,7 +1875,6 @@ class Parser:
         project_url = event.get("project_url")
         commit_sha = event.get("commit_sha")
         pr_id = event.get("pr_id")
-        identifier = event.get("identifier")
 
         try:
             log_detective_analysis_start = datetime.fromisoformat(log_detective_analysis_start)
