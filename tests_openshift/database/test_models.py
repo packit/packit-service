@@ -557,7 +557,7 @@ def test_tmt_test_run_set_web_url(
     srpm_build_model_with_new_run_for_pr,
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
+    group = TFTTestRunGroupModel.create(run_model, ranch="public")
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         target=SampleValues.target,
@@ -585,7 +585,7 @@ def test_tmt_test_get_by_pipeline_id_pr(
     srpm_build_model_with_new_run_for_pr,
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
+    group = TFTTestRunGroupModel.create(run_model, ranch="public")
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         target=SampleValues.target,
@@ -1221,7 +1221,7 @@ def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_wit
 
 def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
+    group = TFTTestRunGroupModel.create(run_model, ranch="public")
 
     for pipeline_id, target, status in (
         ("deadbeef", "fedora-rawhide-x86_64", TestingFarmResult.new),
@@ -1251,8 +1251,8 @@ def test_tmt_get_running_different_ranches(
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
 
-    public_group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="public")
-    redhat_group = TFTTestRunGroupModel.create(run_models=[run_model], ranch="redhat")
+    public_group = TFTTestRunGroupModel.create(run_model, ranch="public")
+    redhat_group = TFTTestRunGroupModel.create(run_model, ranch="redhat")
 
     # run tests in the public and internal ranch
     for pipeline_id, target, status in (

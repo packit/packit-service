@@ -699,7 +699,7 @@ def test_pr_test_command_handler(
     flexmock(PipelineModel).should_receive("create").and_return(run)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run], ranch="public"
+        run, ranch="public"
     ).and_return(
         flexmock(grouped_targets=[test_run]),
     )
@@ -786,7 +786,7 @@ def test_pr_test_command_handler_identifiers(
     flexmock(PipelineModel).should_receive("create").and_return(run)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run], ranch="public"
+        run, ranch="public"
     ).and_return(
         flexmock(grouped_targets=[test_run]),
     )
@@ -1230,7 +1230,7 @@ def test_pr_test_command_handler_skip_build_option(
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     group = flexmock(grouped_targets=[tft_test_run_model])
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run_model],
+        run_model,
         ranch="public",
     ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
@@ -1325,7 +1325,7 @@ def test_pr_test_command_handler_compose_not_present(
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run_model],
+        run_model,
         ranch="public",
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -1453,7 +1453,7 @@ def test_pr_test_command_handler_composes_not_available(
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run_model],
+        run_model,
         ranch="public",
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -1895,7 +1895,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     group_model = flexmock(grouped_targets=[test_run])
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run_model],
+        run_model,
         ranch="public",
     ).and_return(group_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
@@ -3407,7 +3407,7 @@ def _test_downstream_tf_retrigger_common(
     flexmock(PipelineModel).should_receive("create").and_return(run)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        [run], ranch="public"
+        run, ranch="public"
     ).and_return(
         flexmock(grouped_targets=[test_run]),
     )
