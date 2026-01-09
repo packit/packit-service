@@ -8,13 +8,6 @@ A service which helps you integrate your upstream GitHub project into Fedora
 ecosystem. Think of it as [packit](https://github.com/packit/packit) on
 steroids.
 
-## Current status
-
-If you are interested in the status of the development,
-take a look at [our Kanban board](https://github.com/orgs/packit/projects/7).
-Bigger stories can be seen [here](https://github.com/orgs/packit/projects/7/views/18)
-and the ones that are being worked on this quarter are [here](https://github.com/orgs/packit/projects/7/views/25).
-
 ## More info
 
 If you'd like to know more about packit, please check:
