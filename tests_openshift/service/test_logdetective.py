@@ -3,6 +3,7 @@
 
 from datetime import datetime
 
+import pytest
 from flexmock import flexmock
 from packit.config.common_package_config import Deployment
 
@@ -11,6 +12,8 @@ from packit_service.models import (
     BuildStatus,
     CoprBuildGroupModel,
     CoprBuildTargetModel,
+    KojiBuildGroupModel,
+    KojiBuildTargetModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
     LogDetectiveRunGroupModel,
@@ -25,7 +28,11 @@ from packit_service.worker.reporting.enums import BaseCommitStatus
 from packit_service.worker.tasks import process_message
 
 
+@pytest.mark.parametrize(
+    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
+)
 def test_logdetective_process_message(
+    build_system,
     clean_before_and_after,
     logdetective_analysis_success_event,
     mock_metrics_counters,
@@ -34,6 +41,8 @@ def test_logdetective_process_message(
     """Test that the processing of a Log Detective event
     via the main Celery task `process_message`.
     """
+
+    logdetective_analysis_success_event["build_system"] = build_system
 
     # Create the Project Event and Pull Request
     pr_model = PullRequestModel.get_or_create(
@@ -54,18 +63,30 @@ def test_logdetective_process_message(
         project_event_model=project_event, package_name="packit"
     )
 
-    # The .create() method handles the logic of attaching to the pipeline
-    copr_group = CoprBuildGroupModel.create(run_model=pipeline)
+    if build_system == LogDetectiveBuildSystem.copr:
+        # The .create() method handles the logic of attaching to the pipeline
+        build_group = CoprBuildGroupModel.create(run_model=pipeline)
 
-    copr_build = CoprBuildTargetModel.create(
-        build_id=logdetective_analysis_success_event["target_build"],
-        project_name="packit-packit-123",
-        owner="packit",
-        web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-        target="fedora-rawhide-x86_64",
-        status=BuildStatus.failure,
-        copr_build_group=copr_group,
-    )
+        build = CoprBuildTargetModel.create(
+            build_id=logdetective_analysis_success_event["target_build"],
+            project_name="packit-packit-123",
+            owner="packit",
+            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
+            target="fedora-rawhide-x86_64",
+            status=BuildStatus.failure,
+            copr_build_group=build_group,
+        )
+    else:
+        build_group = KojiBuildGroupModel.create(run_model=pipeline)
+
+        build = KojiBuildTargetModel.create(
+            task_id=logdetective_analysis_success_event["target_build"],
+            scratch=False,
+            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
+            target="fedora-rawhide-x86_64",
+            status=BuildStatus.failure,
+            koji_build_group=build_group,
+        )
 
     # This ensures the LD run is associated with the correct PR/Commit
     ld_group = LogDetectiveRunGroupModel.create(run_models=[pipeline])
@@ -73,7 +94,7 @@ def test_logdetective_process_message(
     ld_run = LogDetectiveRunModel.create(
         status=LogDetectiveResult.running,
         target_build=logdetective_analysis_success_event["target_build"],
-        build_system=LogDetectiveBuildSystem.copr,
+        build_system=build_system,
         log_detective_analysis_id=logdetective_analysis_success_event["log_detective_analysis_id"],
         log_detective_run_group=ld_group,
         target="fedora-rawhide-x86_64",
@@ -90,7 +111,10 @@ def test_logdetective_process_message(
     ld_run.submitted_time = expected_time
 
     # Manually link the run to the target build (create doesn't do this part)
-    ld_run.copr_build_target = copr_build
+    if build_system == LogDetectiveBuildSystem.copr:
+        ld_run.copr_build_target = build
+    else:
+        ld_run.koji_build_target = build
     Session().add(ld_run)
     Session().commit()
 
@@ -154,7 +178,11 @@ def test_logdetective_process_message(
     assert run_model_after.submitted_time == expected_time.replace(tzinfo=None)
 
 
+@pytest.mark.parametrize(
+    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
+)
 def test_logdetective_process_message_error(
+    build_system,
     clean_before_and_after,
     logdetective_analysis_error_event,
     mock_metrics_counters,
@@ -163,6 +191,8 @@ def test_logdetective_process_message_error(
     """Test that the processing of a Log Detective event
     via the main Celery task `process_message` if the analysis state is `error`.
     """
+
+    logdetective_analysis_error_event["build_system"] = build_system
 
     # Create the Project Event and Pull Request
     pr_model = PullRequestModel.get_or_create(
@@ -184,17 +214,30 @@ def test_logdetective_process_message_error(
     )
 
     # The .create() method handles the logic of attaching to the pipeline
-    copr_group = CoprBuildGroupModel.create(run_model=pipeline)
+    if build_system == LogDetectiveBuildSystem.copr:
+        # The .create() method handles the logic of attaching to the pipeline
+        build_group = CoprBuildGroupModel.create(run_model=pipeline)
 
-    copr_build = CoprBuildTargetModel.create(
-        build_id=logdetective_analysis_error_event["target_build"],
-        project_name="packit-packit-123",
-        owner="packit",
-        web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-        target="fedora-rawhide-x86_64",
-        status=BuildStatus.failure,
-        copr_build_group=copr_group,
-    )
+        build = CoprBuildTargetModel.create(
+            build_id=logdetective_analysis_error_event["target_build"],
+            project_name="packit-packit-123",
+            owner="packit",
+            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
+            target="fedora-rawhide-x86_64",
+            status=BuildStatus.failure,
+            copr_build_group=build_group,
+        )
+    else:
+        build_group = KojiBuildGroupModel.create(run_model=pipeline)
+
+        build = KojiBuildTargetModel.create(
+            task_id=logdetective_analysis_error_event["target_build"],
+            scratch=False,
+            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
+            target="fedora-rawhide-x86_64",
+            status=BuildStatus.failure,
+            koji_build_group=build_group,
+        )
 
     # This ensures the LD run is associated with the correct PR/Commit
     ld_group = LogDetectiveRunGroupModel.create(run_models=[pipeline])
@@ -202,7 +245,7 @@ def test_logdetective_process_message_error(
     ld_run = LogDetectiveRunModel.create(
         status=LogDetectiveResult.running,
         target_build=logdetective_analysis_error_event["target_build"],
-        build_system=LogDetectiveBuildSystem.copr,
+        build_system=build_system,
         log_detective_analysis_id=logdetective_analysis_error_event["log_detective_analysis_id"],
         log_detective_run_group=ld_group,
         target="fedora-rawhide-x86_64",
@@ -219,7 +262,11 @@ def test_logdetective_process_message_error(
     ld_run.submitted_time = expected_time
 
     # Manually link the run to the target build (create doesn't do this part)
-    ld_run.copr_build_target = copr_build
+    if build_system == LogDetectiveBuildSystem.copr:
+        ld_run.copr_build_target = build
+    else:
+        ld_run.koji_build_target = build
+
     Session().add(ld_run)
     Session().commit()
 
