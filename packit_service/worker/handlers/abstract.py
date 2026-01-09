@@ -328,6 +328,8 @@ class Handler(PackitAPIProtocol, Config):
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
+        """Return tuple of Checker objects to be one by one executed
+        during pre_check."""
         return ()
 
     @classmethod
@@ -338,6 +340,9 @@ class Handler(PackitAPIProtocol, Config):
         event: dict,
     ) -> bool:
         """
+        Verify that the handler should be used for incoming event with given
+        job and package configuration.
+
         Returns
             bool: False if we have to skip the job execution.
         """

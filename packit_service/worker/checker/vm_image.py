@@ -72,6 +72,8 @@ class GetVMImageBuildReporterFromJobHelperMixin(
 
 
 class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin):
+    """Verifies that copr build is associated with given task."""
+
     def pre_check(
         self,
     ) -> bool:
