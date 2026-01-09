@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import fnmatch
 import logging
 import re
 from collections.abc import Iterable
@@ -392,7 +393,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self.job_project,
         )
         allowed_projects = copr_project["packit_forge_projects_allowed"]
-        allowed = self.forge_project in allowed_projects
+        allowed = any(fnmatch.fnmatch(self.forge_project, pattern) for pattern in allowed_projects)
         if not allowed:
             logger.warning(
                 f"git-forge project {self.forge_project} "
