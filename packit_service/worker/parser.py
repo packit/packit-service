@@ -44,6 +44,7 @@ from packit_service.models import (
     GitBranchModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
+    LogDetectiveRunModel,
     ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -1868,22 +1869,47 @@ class Parser:
 
         target_build = event.get("target_build")
         build_system = event.get("build_system")
-        identifier = event.get("identifier")
-        status = LogDetectiveResult.from_string(event.get("result"))
+        analysis_id = event.get("log_detective_analysis_id")
+        log_detective_analysis_start = event.get("log_detective_analysis_start")
+        status = LogDetectiveResult.from_string(event.get("status"))
+        project_url = event.get("project_url")
+        commit_sha = event.get("commit_sha")
+        pr_id = event.get("pr_id")
+
+        try:
+            log_detective_analysis_start = datetime.fromisoformat(log_detective_analysis_start)
+        except (TypeError, ValueError):
+            logger.error(
+                f"Received Log Detective analysis: '{analysis_id}' for build: '{target_build}' "
+                f"with invalid creation time: '{log_detective_analysis_start}'"
+            )
+            return None
 
         try:
             build_system = LogDetectiveBuildSystem(build_system)
         except ValueError:
             logger.error(
-                f"Recieved Log Detective analysis: '{identifier}' for build: {target_build} "
+                f"Received Log Detective analysis: '{analysis_id}' for build: {target_build} "
                 f"from an incompatible build system {build_system}. Dropping the message."
             )
             return None
 
         logger.info(
-            f"Log Detective analysis: '{identifier}' for build: {target_build} "
+            f"Log Detective analysis: '{analysis_id}' for build: {target_build} "
             f"in {build_system} is in state {status}."
         )
+
+        log_detective_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+            analysis_id=analysis_id
+        )
+        if not log_detective_run:
+            logger.error(
+                f"Received results Log Detective analysis: '{analysis_id}' "
+                "but no analysis with this id was requested."
+            )
+            return None
+
+        identifier = log_detective_run.identifier
 
         return logdetective.Result(
             target_build=target_build,
@@ -1891,6 +1917,11 @@ class Parser:
             status=status,
             build_system=build_system,
             identifier=identifier,
+            log_detective_analysis_start=log_detective_analysis_start,
+            log_detective_analysis_id=analysis_id,
+            project_url=project_url,
+            commit_sha=commit_sha,
+            pr_id=pr_id,
         )
 
     # The .__func__ are needed for Python < 3.10
