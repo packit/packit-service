@@ -1495,6 +1495,8 @@ def test_copr_build_end_testing_farm_labels_not_matching(copr_build_end, copr_bu
         update_feedback_time=object,
     ).once()
 
+    # Testing farm status should NOT be reported because labels don't match
+    # (PR has "another-label" but test requires "a-label")
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.pending,
         description="RPMs were built successfully.",
@@ -1503,12 +1505,14 @@ def test_copr_build_end_testing_farm_labels_not_matching(copr_build_end, copr_bu
         markdown_content=None,
         links_to_external_services=None,
         update_feedback_time=object,
-    ).once()
+    ).never()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/foo/bar",
     )
 
+    # Testing farm task should NOT be submitted because labels don't match
+    flexmock(Signature).should_receive("apply_async").never()
     flexmock(celery_group).should_receive("apply_async").once()
 
     # skip SRPM url since it touches multiple classes
