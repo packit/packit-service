@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class Checker(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
+    """Verifies conditions before proceeding based on supplied event data,
+    task name, job and package configuration."""
+
     def __init__(
         self,
         package_config: PackageConfig,

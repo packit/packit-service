@@ -32,6 +32,11 @@ logger = logging.getLogger(__name__)
 
 
 class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
+    """Verifies that state of labels on the PR matches the configuration.
+
+    The check passes also if the event is not a `pagure.push.Commit`,
+    or if no configuration exists."""
+
     def pre_check(self) -> bool:
         if self.data.event_type not in (pagure.push.Commit.event_type(),) or not (
             self.job_config.require.label.present or self.job_config.require.label.absent
@@ -46,6 +51,11 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
 
 
 class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
+    """Verifies that author of given event has permissions for the workflow.
+
+    If the check fails for `pagure.pr.Comment` event, a notification is posted
+    in the same thread."""
+
     def pre_check(self) -> bool:
         if self.data.event_type in (
             pagure.push.Commit.event_type(),
@@ -131,6 +141,8 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
 
 
 class PermissionOnDistgitForFedoraCI(Checker, GetPagurePullRequestMixin):
+    """Verifies if user posting a comment with command is a packager."""
+
     def pre_check(self) -> bool:
         if self.data.event_type in (pagure.pr.Comment.event_type(),):
             comment = self.data.event_dict.get("comment", "")
@@ -291,6 +303,13 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
 
 
 class IsUpstreamTagMatchingConfig(Checker):
+    """Verifies that the tag is either among configured included tags,
+    or not among configured excluded tags.
+
+    If the tag in event is `None`, for example in case of pull-from-upstream
+    retriggering the check passes.
+    """
+
     def pre_check(self) -> bool:
         tag = self.data.tag_name
 

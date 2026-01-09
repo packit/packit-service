@@ -34,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 
 class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstreamMixin):
+    """Verifies if the user defined run_condition action passes,
+    optionally cloning the repository to evaluate the condition in the project's context."""
+
     def __init__(
         self,
         package_config: PackageConfig,
