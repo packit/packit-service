@@ -7,7 +7,6 @@ body:
       value: |
         Please search existing issues to avoid creating duplicates.
         If this is more of a discussion topic, you might rather want to create a new thread [here](https://github.com/packit/packit/discussions/2520).
-        You can also see our current priorities on our board: https://github.com/orgs/packit/projects/7/views/29
 
   - type: textarea
     id: description
