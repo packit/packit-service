@@ -365,6 +365,8 @@ def run_downstream_testing_farm_results_handler(
 @celery_app.task(
     bind=True,
     name=TaskName.propose_downstream,
+    # longer time limit for sync release tasks (30 minutes)
+    time_limit=1800,
     base=TaskWithRetry,
     queue="long-running",
 )
@@ -388,6 +390,8 @@ def run_propose_downstream_handler(
 @celery_app.task(
     bind=True,
     name=TaskName.pull_from_upstream,
+    # longer time limit for sync release tasks (30 minutes)
+    time_limit=1800,
     base=TaskWithRetry,
     queue="long-running",
 )
