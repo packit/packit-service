@@ -176,6 +176,8 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 
 
 class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
+    """Verifies that the author is a packager if the event is `pagure.pr.Comment`."""
+
     def _pre_check(self) -> bool:
         if self.data.event_type not in (pagure.pr.Comment.event_type(),) or self.is_packager(
             user=self.actor

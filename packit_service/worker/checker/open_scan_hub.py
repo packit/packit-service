@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class RawhideX86Target(
     Checker,
 ):
+    """Verifies that build targets include `fedora-rawhide-x86_64`."""
+
     def pre_check(self) -> bool:
         branches = aliases.get_build_targets(
             *self.job_config.targets,
