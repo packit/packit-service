@@ -48,6 +48,9 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.helpers.testing_farm import (
+    DownstreamTestingFarmJobHelper,
+)
+from packit_service.worker.helpers.testing_farm import (
     TestingFarmClient as TFClient,
 )
 from packit_service.worker.helpers.testing_farm import (
@@ -2348,3 +2351,50 @@ def test_parse_comment_arguments(
     assert helper.comment_arguments.identifier == expected_identifier
     assert helper.comment_arguments.labels == expected_labels
     assert helper.comment_arguments.envs == expected_envs
+
+
+def test_downstream_tf_base_payload():
+    """Test that _get_tf_base_payload returns the correct payload structure."""
+    service_config = ServiceConfig.get_service_config()
+    service_config.testing_farm_api_url = "https://api.testing-farm.io/v0.1/"
+    service_config.testing_farm_secret = "secret-token"
+
+    # Create a mock koji_build with a specific target
+    koji_build = flexmock(
+        task_id="12345678",
+        target="rawhide",
+    )
+
+    # Create the helper with minimal required mocks
+    helper = DownstreamTestingFarmJobHelper(
+        service_config=service_config,
+        project=flexmock(repo="test-package"),
+        metadata=flexmock(
+            commit_sha="abcd1234",
+        ),
+        koji_build=koji_build,
+    )
+
+    # Call the method under test
+    payload = helper._get_tf_base_payload(distro="fedora-rawhide", compose="Fedora-Rawhide")
+
+    # Verify the complete payload structure
+    assert payload["environments"] == [
+        {
+            "arch": "x86_64",
+            "os": {"compose": "Fedora-Rawhide"},
+            "tmt": {
+                "context": {
+                    "distro": "fedora-rawhide",
+                    "arch": "x86_64",
+                    "trigger": "commit",
+                    "initiator": "fedora-ci",
+                    "dist-git-branch": "rawhide",
+                }
+            },
+            "artifacts": [
+                {"id": "12345678", "type": "fedora-koji-build"},
+            ],
+            "variables": {"KOJI_TASK_ID": "12345678"},
+        }
+    ]

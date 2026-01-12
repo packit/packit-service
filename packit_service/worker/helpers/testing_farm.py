@@ -1557,6 +1557,7 @@ class DownstreamTestingFarmJobHelper:
                     "tmt": {
                         "context": {
                             "distro": distro,
+                            "dist-git-branch": self.koji_build.target,
                             "arch": "x86_64",
                             "trigger": "commit",
                             "initiator": "fedora-ci",
