@@ -7,8 +7,6 @@ body:
       value: |
         Please search existing issues to avoid creating duplicates.
 
-        You can also see our current priorities on our board: https://github.com/orgs/packit/projects/7/views/29
-
   - type: textarea
     id: description
     attributes:
