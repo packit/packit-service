@@ -36,6 +36,11 @@ TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES = (
 )
 TESTING_FARM_ARTIFACTS_KEY = "artifacts"
 
+ELN_PACKAGE_LIST = "https://tiny.distro.builders/view-all-source-package-name-list--view-eln.txt"
+ELN_EXTRAS_PACKAGE_LIST = (
+    "https://tiny.distro.builders/view-all-source-package-name-list--view-eln-extras.txt"
+)
+
 MSG_DOWNSTREAM_JOB_ERROR_HEADER = (
     "Packit failed on creating {object} in dist-git "
     "({dist_git_url}):\n\n"

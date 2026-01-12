@@ -74,6 +74,7 @@ from packit_service.worker.handlers.bodhi import (
 )
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
+    DownstreamKojiELNScratchBuildHandler,
     DownstreamKojiScratchBuildHandler,
     PullFromUpstreamHandler,
     RetriggerDownstreamKojiBuildHandler,
@@ -456,6 +457,24 @@ def run_downstream_koji_scratch_build_handler(
     self, event: dict, package_config: dict, job_config: dict
 ):
     handler = DownstreamKojiScratchBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    bind=True,
+    name=TaskName.downstream_koji_eln_scratch_build,
+    base=TaskWithRetry,
+    queue="long-running",
+)
+def run_downstream_koji_eln_scratch_build_handler(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = DownstreamKojiELNScratchBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
