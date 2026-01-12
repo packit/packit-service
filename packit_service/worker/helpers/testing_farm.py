@@ -1543,6 +1543,7 @@ class DownstreamTestingFarmJobHelper:
         # this has to be specified at the api request level.
         # TODO: Revisit when 0.2 testing-farm API is decided
         os_params = {"os": {"compose": compose}} if compose else {}
+        dist_git_branch = self.project.get_pr(self.metadata.pr_id).target_branch
         return {
             "environments": [
                 {
@@ -1560,6 +1561,7 @@ class DownstreamTestingFarmJobHelper:
                             "arch": "x86_64",
                             "trigger": "commit",
                             "initiator": "fedora-ci",
+                            "dist-git-branch": dist_git_branch,
                         }
                     },
                 },
