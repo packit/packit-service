@@ -10,7 +10,7 @@ the project which handles migrations and schema versioning for SQLAlchemy.
 To generate a migration script for your recent change you can use docker or
 more easily, with rootless podman, you can use our make target.
 
-Both expect that the `alembic upgrade head` is run in [run_httpd.sh](../../files/run_httpd.sh)
+Both expect that the `alembic upgrade head` is run in [run_server.sh](../../files/run_server.sh)
 during (packit-)service pod/container start.
 
 When modifying the migration manually, do not forget to update the downgrade
