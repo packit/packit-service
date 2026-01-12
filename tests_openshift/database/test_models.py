@@ -4,6 +4,7 @@ import contextlib
 from datetime import datetime, timedelta
 
 import pytest
+from sqlalchemy import null
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from packit_service.models import (
@@ -18,6 +19,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
+    LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
     OSHScanModel,
     PipelineModel,
@@ -1154,14 +1156,18 @@ def test_add_scan_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
 
 def test_add_log_detective_run_to_copr_build(clean_before_and_after, a_copr_build_for_pr):
     a_copr_build_for_pr.add_log_detective_run("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    ld_run = LogDetectiveRunModel.get_by_identifier("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    assert ld_run.identifier == "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    ld_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    )
+    assert ld_run.analysis_id == "edc826d0-cec8-11f0-a464-9a478821d0e2"
 
 
 def test_add_log_detective_run_to_koji_build(clean_before_and_after, a_koji_build_for_pr):
     a_koji_build_for_pr.add_log_detective_run("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    ld_run = LogDetectiveRunModel.get_by_identifier("edc826d0-cec8-11f0-a464-9a478821d0e2")
-    assert ld_run.identifier == "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    ld_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "edc826d0-cec8-11f0-a464-9a478821d0e2"
+    )
+    assert ld_run.analysis_id == "edc826d0-cec8-11f0-a464-9a478821d0e2"
 
 
 def test_bodhi_model_get_last_successful_by_sidetag(
@@ -1298,11 +1304,14 @@ def test_create_log_detective_run_model(clean_before_and_after):
     """Create LogDetectiveRunModel for with an empty
     `log_detective_response` field."""
 
+    log_detective_run_group = LogDetectiveRunGroupModel.create([])
     run_target_model = LogDetectiveRunModel.create(
         status=LogDetectiveResult.complete,
         target_build="99999",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_analysis_id="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_run_group=log_detective_run_group,
+        target="",
     )
 
     assert run_target_model.status == LogDetectiveResult.complete
@@ -1310,7 +1319,9 @@ def test_create_log_detective_run_model(clean_before_and_after):
     assert run_target_model.target_build == "99999"
     assert run_target_model.build_system == LogDetectiveBuildSystem.copr
 
-    run_target_model = LogDetectiveRunModel.get_or_create("4e2f949a-cec4-11f0-99ca-9a478821d0e2")
+    run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
+    )
 
     assert run_target_model.status == LogDetectiveResult.complete
     assert run_target_model.log_detective_response is None
@@ -1322,11 +1333,14 @@ def test_set_log_detective_run_model_status(clean_before_and_after):
     """Create a new LogDetectiveRunModel with default values.
     Then set the `status` field to `LogDetectiveResult.complete` and verify."""
 
+    log_detective_run_group = LogDetectiveRunGroupModel.create([])
     run_target_model = LogDetectiveRunModel.create(
         status=LogDetectiveResult.unknown,
         target_build="99999",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_analysis_id="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_run_group=log_detective_run_group,
+        target="",
     )
 
     assert run_target_model.status == LogDetectiveResult.unknown
@@ -1336,7 +1350,9 @@ def test_set_log_detective_run_model_status(clean_before_and_after):
 
     run_target_model.set_status(LogDetectiveResult.complete)
 
-    run_target_model = LogDetectiveRunModel.get_or_create("4e2f949a-cec4-11f0-99ca-9a478821d0e2")
+    run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
+    )
 
     assert run_target_model.status == LogDetectiveResult.complete
     assert run_target_model.log_detective_response is None
@@ -1351,12 +1367,14 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
 
     # Dummy Log Detective response, not representative of actual contents
     log_detective_response = {"explanation": {"text": "Explanation text", "logprobs": None}}
-
+    log_detective_run_group = LogDetectiveRunGroupModel.create([])
     run_target_model = LogDetectiveRunModel.create(
         status=LogDetectiveResult.unknown,
         target_build="99999",
         build_system=LogDetectiveBuildSystem.copr,
-        identifier="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_analysis_id="4e2f949a-cec4-11f0-99ca-9a478821d0e2",
+        log_detective_run_group=log_detective_run_group,
+        target="",
     )
 
     assert run_target_model.status == LogDetectiveResult.unknown
@@ -1366,7 +1384,9 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
 
     run_target_model.set_log_detective_response(log_detective_response, status=status)
 
-    run_target_model = LogDetectiveRunModel.get_or_create("4e2f949a-cec4-11f0-99ca-9a478821d0e2")
+    run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
+        "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
+    )
 
     # In case we don't set status explicitly, the `LogDetectiveResult.complete`
     # is used as value instead
@@ -1378,3 +1398,248 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
     assert run_target_model.log_detective_response == log_detective_response
     assert run_target_model.target_build == "99999"
     assert run_target_model.build_system == LogDetectiveBuildSystem.copr
+
+
+def test_create_log_detective_run_group(
+    clean_before_and_after, srpm_build_model_with_new_run_for_pr
+):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = LogDetectiveRunGroupModel.create([run_model])
+
+    assert group.id
+    assert len(group.runs) == 1
+    assert group.runs[0] == run_model
+    assert run_model.log_detective_run_group == group
+
+
+def test_log_detective_run_group_targets(
+    clean_before_and_after, srpm_build_model_with_new_run_for_pr
+):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = LogDetectiveRunGroupModel.create([run_model])
+
+    run_target = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="12345",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="some-uuid",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    assert len(group.grouped_targets) == 1
+    assert group.grouped_targets[0] == run_target
+
+
+def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = LogDetectiveRunGroupModel.create([run_model])
+
+    # Create a running target
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="111",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-1",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    # Create a completed target
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.complete,
+        target_build="222",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-2",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    # Create an error target
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.error,
+        target_build="333",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-3",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    # The fixture uses SampleValues.commit_sha ("80201a74d96c")
+    running = list(LogDetectiveRunGroupModel.get_running(SampleValues.commit_sha))
+
+    assert running, "There should be running analysis present"
+    assert len(running) == 1, "There is exactly 1 analysis running"
+
+    # get_running returns a list of tuples (LogDetectiveRunModel, )
+    run_model = running[0][0]
+    assert isinstance(run_model, LogDetectiveRunModel)
+    assert run_model.analysis_id == "uuid-1"
+
+
+@pytest.mark.parametrize(
+    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
+)
+def test_get_or_create_with_orphaned_build(clean_before_and_after, build_system):
+    """Test that get_or_create does not crash if the
+    CoprBuildTargetModel or KojiBuildModel is 'orphaned' (has no group).
+    """
+
+    with sa_session_transaction(commit=True) as session:
+        if build_system == LogDetectiveBuildSystem.copr:
+            orphan_build = CoprBuildTargetModel()
+        else:
+            orphan_build = KojiBuildTargetModel()
+
+        orphan_build.build_id = "999999"
+        orphan_build.status = BuildStatus.success
+        orphan_build.target = "fedora-rawhide-x86_64"
+        session.add(orphan_build)
+
+        session.flush()
+        build_id = orphan_build.id
+
+    ld_run = LogDetectiveRunModel.get_or_create(
+        analysis_id="safe-uuid-123", build_system=build_system, build_id=build_id
+    )
+
+    assert ld_run
+    assert ld_run.analysis_id == "safe-uuid-123"
+    assert ld_run.group_of_targets is not None
+    assert isinstance(ld_run.group_of_targets.runs, list)
+    assert len(ld_run.group_of_targets.runs) == 0
+    assert ld_run.build_system == build_system
+    if build_system == LogDetectiveBuildSystem.copr:
+        assert ld_run.koji_build_target is None
+    else:
+        assert ld_run.copr_build_target is None
+
+
+def test_log_detective_get_by_build(clean_before_and_after, srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    group = LogDetectiveRunGroupModel.create([run_model])
+
+    # Create multiple LogDetectiveRunModel records
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="111",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-1",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.complete,
+        target_build="222",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-2",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.error,
+        target_build="333",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-3",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    records = LogDetectiveRunModel.get_by_build(
+        target_build="333", build_system=LogDetectiveBuildSystem.copr
+    )
+
+    assert isinstance(records, list)
+    assert len(records) == 1
+
+    run = records[0]
+    assert run.target_build == "333"
+    assert run.build_system == LogDetectiveBuildSystem.copr
+    assert run.log_detective_run_group_id == group.id
+
+
+def test_log_detective_run_get_all_by_status(clean_before_and_after):
+    group = LogDetectiveRunGroupModel.create([])
+
+    # Create multiple LogDetectiveRunModel records
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="111",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-1",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="222",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-2",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.error,
+        target_build="333",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-3",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    records = LogDetectiveRunModel.get_all_by_status(LogDetectiveResult.running)
+
+    assert isinstance(records, list)
+    assert len(records) == 2
+
+    assert {record.analysis_id for record in records} == {"uuid-1", "uuid-2"}
+
+
+def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
+    """Verify if providing a time to set_status updates the submitted_time,
+    if, and only if, the the `submitted_time` is `None`."""
+    group = LogDetectiveRunGroupModel.create([])
+    run = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="1",
+        build_system=LogDetectiveBuildSystem.copr,
+        log_detective_analysis_id="uuid-time-test",
+        log_detective_run_group=group,
+        target="",
+    )
+
+    # Ensure default time was set
+    assert run.submitted_time is not None
+
+    # Try to update status with a specific time
+    new_time = datetime(2023, 1, 1, 12, 0, 0)
+    run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
+
+    # Reload to check persistence
+    run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-time-test")
+
+    assert run.submitted_time != new_time
+
+    with sa_session_transaction(commit=True) as session:
+        run_without_time = LogDetectiveRunModel()
+        run_without_time.build_system = LogDetectiveBuildSystem.copr
+        run_without_time.target_build = "2"
+        run_without_time.submitted_time = null()  # Hard setting `submitted_time` to `None`
+        run_without_time.group_of_targets = group
+        run_without_time.analysis_id = "uuid-build-without-time"
+        run_without_time.status = LogDetectiveResult.complete
+
+        session.add(run_without_time)
+
+    run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-build-without-time")
+
+    assert run.submitted_time is None
+    run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
+
+    run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-build-without-time")
+
+    assert run.submitted_time == new_time
