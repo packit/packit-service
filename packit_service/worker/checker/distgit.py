@@ -35,7 +35,7 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
     """Verifies that state of labels on the PR matches the configuration.
 
     The check passes also if the event is not a `pagure.push.Commit`,
-    or if no configuration exists."""
+    or if labels are not defined in the configuration."""
 
     def pre_check(self) -> bool:
         if self.data.event_type not in (pagure.push.Commit.event_type(),) or not (
