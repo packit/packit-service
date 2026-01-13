@@ -36,7 +36,7 @@ class IsGitForgeProjectAndEventOk(
     ConfigFromEventMixin,
     GetCoprBuildJobHelperMixin,
 ):
-    """Verifies that mergerequest isn't closed, is in appropriate stage
+    """Verifies that mergerequest isn't closed (only for gitlab), is in appropriate stage
     and in case of custom projects that it satisfies criteria for using Copr."""
 
     def pre_check(
