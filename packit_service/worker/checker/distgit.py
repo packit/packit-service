@@ -5,7 +5,9 @@ import logging
 import re
 
 from packit.config.aliases import get_branches
+from packit.utils import commands
 
+from packit_service import utils
 from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.events import (
     anitya,
@@ -153,6 +155,20 @@ class PermissionOnDistgitForFedoraCI(Checker, GetPagurePullRequestMixin):
                 return False
 
         return True
+
+
+class PackageNeedsELNBuildFromRawhide(Checker, GetPagurePullRequestMixin):
+    def pre_check(self) -> bool:
+        if (
+            self.pull_request.target_branch == "rawhide"
+            and self.project.repo in utils.get_eln_packages()
+        ):
+            repo_url = self.project.get_git_urls().get("git")
+            return not commands.run_command(
+                ["git", "ls-remote", repo_url, "eln"], output=True
+            ).stdout.strip()
+
+        return False
 
 
 class HasIssueCommenterRetriggeringPermissions(ActorChecker):

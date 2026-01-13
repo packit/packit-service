@@ -80,6 +80,7 @@ from packit_service.worker.checker.distgit import (
     IsProjectOk,
     IsUpstreamTagMatchingConfig,
     LabelsOnDistgitPR,
+    PackageNeedsELNBuildFromRawhide,
     PermissionOnDistgit,
     PermissionOnDistgitForFedoraCI,
     TaggedBuildIsNotABuildOfSelf,
@@ -792,7 +793,6 @@ class DownstreamKojiScratchBuildHandler(
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
-        koji_group_model_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -802,7 +802,6 @@ class DownstreamKojiScratchBuildHandler(
         )
         self._project_url = self.data.project_url
         self._packit_api = None
-        self._koji_group_model_id = koji_group_model_id
         self._ci_helper: Optional[FedoraCIHelper] = None
 
     @property
@@ -964,6 +963,21 @@ class DownstreamKojiScratchBuildHandler(
             output=True,
             print_live=True,
         ).stdout
+
+
+@run_for_comment_as_fedora_ci(command="scratch-build")
+@reacts_to_as_fedora_ci(event=pagure.pr.Action)
+@reacts_to_as_fedora_ci(event=pagure.pr.Comment)
+class DownstreamKojiELNScratchBuildHandler(DownstreamKojiScratchBuildHandler):
+    task_name = TaskName.downstream_koji_eln_scratch_build
+
+    @property
+    def dist_git_branch(self) -> str:
+        return "eln"
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (PermissionOnDistgitForFedoraCI, PackageNeedsELNBuildFromRawhide)
 
 
 class AbstractDownstreamKojiBuildHandler(

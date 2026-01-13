@@ -3,7 +3,8 @@
 
 import logging
 import os
-from datetime import datetime, timezone
+import tempfile
+from datetime import datetime, timedelta, timezone
 from io import StringIO
 from logging import StreamHandler
 from pathlib import Path
@@ -11,12 +12,14 @@ from re import search
 from typing import Optional
 
 import requests
+from cachetools.func import ttl_cache
 from ogr.abstract import PullRequest
 from packit.config import JobConfig, PackageConfig
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
 
 from packit_service import __version__ as ps_version
+from packit_service.constants import ELN_EXTRAS_PACKAGE_LIST, ELN_PACKAGE_LIST
 
 logger = logging.getLogger(__name__)
 
@@ -298,3 +301,13 @@ def download_file(url: str, path: Path):
         return False
 
     return True
+
+
+@ttl_cache(maxsize=1, ttl=timedelta(hours=12).seconds)
+def get_eln_packages():
+    packages = []
+    for url in (ELN_PACKAGE_LIST, ELN_EXTRAS_PACKAGE_LIST):
+        with tempfile.NamedTemporaryFile() as tmp:
+            if download_file(url, tmp.name):
+                packages.extend(Path(tmp.name).read_text().splitlines())
+    return packages

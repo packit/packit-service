@@ -14,6 +14,7 @@ from packit.config import Deployment, JobConfigTriggerType
 from packit.local_project import LocalProjectBuilder
 from packit.utils import commands
 
+from packit_service import utils
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
@@ -28,6 +29,7 @@ from packit_service.worker.handlers import distgit
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
+    run_downstream_koji_eln_scratch_build_handler,
     run_downstream_koji_scratch_build_handler,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
@@ -39,30 +41,47 @@ def distgit_pr_event():
 
 
 @pytest.mark.parametrize(
-    "target_branch, uid, check_name",
+    "target_branch, uid, check_name, eln",
     [
         pytest.param(
             "rawhide",
             "e0091d5fbcb20572cbf2e6442af9bed5",
             "Packit - scratch build - rawhide",
+            False,
             id="rawhide target branch",
+        ),
+        pytest.param(
+            "rawhide",
+            "8edd48272efe6aff7d1d92bdffcaf9a0",
+            "Packit - scratch build - eln",
+            True,
+            id="rawhide branch, rawhide + eln target",
         ),
         pytest.param(
             "f42",
             "6f08c3bbb20660dc8c597bc7dbe4f056",
             "Packit - scratch build - f42",
+            False,
             id="f42 target branch",
         ),
     ],
 )
-def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, check_name):
+def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, check_name, eln):
     distgit_pr_event["pullrequest"]["branch"] = target_branch
     pr_object = (
-        flexmock()
+        flexmock(target_branch=target_branch)
         .should_receive("set_flag")
         .with_args(username=check_name, comment=str, url=str, status=CommitStatus, uid=uid)
         .mock()
     )
+    if eln:
+        check_name = "Packit - scratch build - rawhide"
+        uid = "e0091d5fbcb20572cbf2e6442af9bed5"
+        (
+            pr_object.should_receive("set_flag")
+            .with_args(username=check_name, comment=str, url=str, status=CommitStatus, uid=uid)
+            .mock()
+        )
     dg_project = (
         flexmock(
             PagureProject(namespace="rpms", repo="optee_os", service=flexmock(read_only=False))
@@ -72,6 +91,9 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
         .mock()
         .should_receive("get_pr")
         .and_return(pr_object)
+        .mock()
+        .should_receive("get_git_urls")
+        .and_return({"git": "https://src.fedoraproject.org/rpms/optee_os.git"})
         .mock()
     )
     service_config = (
@@ -112,6 +134,13 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
     )
     flexmock(PipelineModel).should_receive("create")
 
+    flexmock(utils).should_receive("get_eln_packages").and_return(["optee_os"] if eln else [])
+    if eln:
+        flexmock(commands).should_receive("run_command").with_args(
+            ["git", "ls-remote", "https://src.fedoraproject.org/rpms/optee_os.git", "eln"],
+            output=True,
+        ).and_return(flexmock(stdout=""))
+
     koji_build = flexmock(
         id=123,
         target="main",
@@ -130,8 +159,8 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
     )
 
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(Signature).should_receive("apply_async").times(2 if eln else 1)
+    flexmock(Pushgateway).should_receive("push").times(3 if eln else 2).and_return()
     flexmock(commands).should_receive("run_command_remote").with_args(
         cmd=[
             "koji",
@@ -145,15 +174,29 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
         output=True,
         print_live=True,
     ).and_return(flexmock(stdout="some output"))
+    if eln:
+        flexmock(commands).should_receive("run_command_remote").with_args(
+            cmd=[
+                "koji",
+                "build",
+                "--scratch",
+                "--nowait",
+                "eln",
+                "git+https://src.fedoraproject.org/forks/zbyszek/rpms/optee_os.git#889f07af35d27bbcaf9c535c17a63b974aa42ee3",
+            ],
+            cwd=Path,
+            output=True,
+            print_live=True,
+        ).and_return(flexmock(stdout="some output"))
     flexmock(PackitAPI).should_receive("init_kerberos_ticket")
 
     flexmock(distgit).should_receive("get_koji_task_id_and_url_from_stdout").and_return(
         (123, "koji-web-url")
-    ).once()
+    ).times(2 if eln else 1)
 
     processing_results = SteveJobs().process_message(distgit_pr_event)
     event_dict, _, job_config, package_config = get_parameters_from_results(
-        processing_results,
+        processing_results[:1],
     )
     assert json.dumps(event_dict)
     results = run_downstream_koji_scratch_build_handler(
@@ -163,3 +206,12 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
     )
 
     assert first_dict_value(results["job"])["success"]
+
+    if eln:
+        results = run_downstream_koji_eln_scratch_build_handler(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
+        assert first_dict_value(results["job"])["success"]
