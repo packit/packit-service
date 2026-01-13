@@ -2460,14 +2460,14 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
     [
         pytest.param(
             "rawhide",
-            "e0091d5fbcb20572cbf2e6442af9bed5",
-            "Packit - scratch build - rawhide",
+            "45f8d1e6ef3ca9f57d9ed4dc82919216",
+            "Packit - scratch build - rawhide [beaf90b]",
             id="rawhide target branch",
         ),
         pytest.param(
             "f42",
-            "6f08c3bbb20660dc8c597bc7dbe4f056",
-            "Packit - scratch build - f42",
+            "436202b02405a83e4f8cf57ed908c0cc",
+            "Packit - scratch build - f42 [beaf90b]",
             id="f42 target branch",
         ),
     ],
@@ -3449,18 +3449,30 @@ def _test_downstream_tf_retrigger_common(
         pytest.param(
             "rawhide",
             [
-                ("380723461ab74e1cde4eb89b711c8f1d", "Packit - installability test(s) - rawhide"),
-                ("27516f942959e4114b2856f76852577a", "Packit - rpminspect test(s) - rawhide"),
-                ("e02f17936a385a5031056e304b9c5de6", "Packit - rpmlint test(s) - rawhide"),
+                (
+                    "6d28c456bdf4e04a37e17a0527b0c633",
+                    "Packit - installability test(s) - rawhide [beaf90b]",
+                ),
+                (
+                    "a231e6f97db9f0eeae88562074829b96",
+                    "Packit - rpminspect test(s) - rawhide [beaf90b]",
+                ),
+                (
+                    "690a6d39ff6a64745b865d8bf60ae684",
+                    "Packit - rpmlint test(s) - rawhide [beaf90b]",
+                ),
             ],
             id="rawhide target branch",
         ),
         pytest.param(
             "f42",
             [
-                ("a478035df5f8599527e3e37bfc2ca25f", "Packit - installability test(s) - f42"),
-                ("e9d900e81542cc243d51d9058f1845d3", "Packit - rpminspect test(s) - f42"),
-                ("a4de9ef7a17005c5404c54acab49d599", "Packit - rpmlint test(s) - f42"),
+                (
+                    "a06b8e95e117b23181a5eb84e6693ed8",
+                    "Packit - installability test(s) - f42 [beaf90b]",
+                ),
+                ("2c66f7d41b22fefcbf2647b14ff52781", "Packit - rpminspect test(s) - f42 [beaf90b]"),
+                ("e0dd5f45df5956423b73de783fd211d0", "Packit - rpmlint test(s) - f42 [beaf90b]"),
             ],
             id="f42 target branch",
         ),
@@ -3486,22 +3498,22 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
         pytest.param(
             "/packit-ci test installability",
             "rawhide",
-            "380723461ab74e1cde4eb89b711c8f1d",
-            "Packit - installability test(s) - rawhide",
+            "6d28c456bdf4e04a37e17a0527b0c633",
+            "Packit - installability test(s) - rawhide [beaf90b]",
             id="installability - rawhide target branch",
         ),
         pytest.param(
             "/packit-ci test installability",
             "f42",
-            "a478035df5f8599527e3e37bfc2ca25f",
-            "Packit - installability test(s) - f42",
+            "a06b8e95e117b23181a5eb84e6693ed8",
+            "Packit - installability test(s) - f42 [beaf90b]",
             id="installability - f42 target branch",
         ),
         pytest.param(
             "/packit-ci test rpminspect",
             "rawhide",
-            "27516f942959e4114b2856f76852577a",
-            "Packit - rpminspect test(s) - rawhide",
+            "a231e6f97db9f0eeae88562074829b96",
+            "Packit - rpminspect test(s) - rawhide [beaf90b]",
             id="rpminspect - rawhide target branch",
         ),
     ],
