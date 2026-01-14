@@ -9,3 +9,4 @@ secrets
 *.egg-info
 .mypy_cache/
 /build/
+node_modules

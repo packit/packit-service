@@ -154,6 +154,8 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
     otherwise only jobs with the same identifier.
     """
 
+    DESCRIPTION: str = "**Identifiers don't match** - test run will be skipped"
+
     def pre_check(self) -> bool:
         if (
             not self.testing_farm_job_helper.comment_arguments.labels
@@ -163,7 +165,17 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             logger.info(
                 f"Using the default identifier for test command: {default_identifier}",
             )
-            return self.job_config.identifier == default_identifier
+            if self.job_config.identifier != default_identifier:
+                # Create structured mismatch data for aggregation
+                self._mismatch_data = {
+                    "type": "identifier_default",
+                    "job_value": self.job_config.identifier,
+                    "comment_value": default_identifier,
+                    "targets": list(self.job_config.targets),
+                }
+
+                return False
+            return True
 
         if (
             not self.testing_farm_job_helper.comment_arguments.identifier
@@ -177,6 +189,15 @@ class IsIdentifierFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             f"(job:{self.job_config.identifier} "
             f"!= comment:${self.testing_farm_job_helper.comment_arguments.identifier})",
         )
+
+        # Create structured mismatch data for aggregation
+        self._mismatch_data = {
+            "type": "identifier_explicit",
+            "job_value": self.job_config.identifier,
+            "comment_value": self.testing_farm_job_helper.comment_arguments.identifier,
+            "targets": list(self.job_config.targets),
+        }
+
         return False
 
 
@@ -187,6 +208,8 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
     otherwise only jobs with the same label.
     """
 
+    DESCRIPTION: str = "**Labels don't match** - test run will be skipped"
+
     def pre_check(self) -> bool:
         if (
             not self.testing_farm_job_helper.comment_arguments.labels
@@ -194,10 +217,30 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             and (default_labels := self.job_config.test_command.default_labels)
         ):
             logger.info(f"Using the default labels for test command: {default_labels}")
+
             if not self.job_config.labels:
+                # Create structured mismatch data for aggregation
+                self._mismatch_data = {
+                    "type": "labels_default",
+                    "job_value": self.job_config.labels or [],
+                    "comment_value": list(default_labels),
+                    "targets": list(self.job_config.targets),
+                }
+
                 return False
 
-            return any(x in default_labels for x in self.job_config.labels)
+            if not any(x in default_labels for x in self.job_config.labels):
+                # Create structured mismatch data for aggregation
+                self._mismatch_data = {
+                    "type": "labels_default",
+                    "job_value": list(self.job_config.labels),
+                    "comment_value": list(default_labels),
+                    "targets": list(self.job_config.targets),
+                }
+
+                return False
+
+            return True
 
         if not self.testing_farm_job_helper.comment_arguments.labels or (
             self.job_config.labels
@@ -213,4 +256,13 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             f"(job:{self.job_config.labels} "
             f"!= comment:${self.testing_farm_job_helper.comment_arguments.labels})",
         )
+
+        # Create structured mismatch data for aggregation
+        self._mismatch_data = {
+            "type": "labels_explicit",
+            "job_value": list(self.job_config.labels) if self.job_config.labels else [],
+            "comment_value": list(self.testing_farm_job_helper.comment_arguments.labels),
+            "targets": list(self.job_config.targets),
+        }
+
         return False

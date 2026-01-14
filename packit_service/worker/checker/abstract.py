@@ -29,9 +29,27 @@ class Checker(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
         self.job_config = job_config
         self.data = EventData.from_event_dict(event)
         self.task_name = task_name
+        self._mismatch_data: Optional[dict] = None
 
     @abstractmethod
     def pre_check(self) -> bool: ...
+
+    def get_failure_message(self) -> Optional[dict]:
+        """
+        Get the failure message/mismatch data if the check failed.
+        This is used to aggregate failure messages into a single comment.
+
+        Returns:
+            Failure message/mismatch data if check failed, None otherwise.
+            Dict with structured data:
+            {
+                "type": str, # type of the matcher failure
+                "job_value": str | list[str],  # job's identifier or labels
+                "comment_value": str | list[str],  # what was specified in command
+                "targets": list[str],  # all targets for this job
+            }
+        """
+        return self._mismatch_data
 
 
 class ActorChecker(Checker):

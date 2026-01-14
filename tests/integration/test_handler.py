@@ -126,7 +126,8 @@ def test_precheck(github_pr_event):
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined",
     ).and_return(False).once()
-    assert CoprBuildHandler.pre_check(package_config, job_config, event)
+    checks_pass, _ = CoprBuildHandler.pre_check(package_config, job_config, event)
+    assert checks_pass
 
 
 def test_precheck_gitlab(gitlab_mr_event):
@@ -180,7 +181,8 @@ def test_precheck_gitlab(gitlab_mr_event):
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined",
     ).and_return(False).once()
-    assert CoprBuildHandler.pre_check(package_config, job_config, event)
+    checks_pass, _ = CoprBuildHandler.pre_check(package_config, job_config, event)
+    assert checks_pass
 
 
 def test_precheck_push(github_push_event):
@@ -279,7 +281,8 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         },
     )
     event = github_push_event.get_dict()
-    assert not CoprBuildHandler.pre_check(package_config, job_config, event)
+    checks_pass, _ = CoprBuildHandler.pre_check(package_config, job_config, event)
+    assert not checks_pass
 
 
 def test_precheck_push_actor_check(github_push_event):
@@ -370,4 +373,5 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         },
     )
     event = github_pr_event.get_dict()
-    assert not KojiBuildHandler.pre_check(package_config, job_config, event)
+    checks_pass, _ = KojiBuildHandler.pre_check(package_config, job_config, event)
+    assert not checks_pass
