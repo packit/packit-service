@@ -141,6 +141,31 @@ def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     assert ["fedora-43-x86_64"] in builds_list[2].target
 
 
+def test_get_merged_chroots_filtering(clean_before_and_after, copr_builds_for_filtering):
+    """Test that get_merged_chroots properly filters out builds without srpm."""
+    merged_builds = list(CoprBuildTargetModel.get_merged_chroots(0, 100))
+    build_ids = [build.build_id for build in merged_builds]
+
+    # Filtered out: build without build_id (None)
+    assert None not in build_ids
+
+    # Filtered out: build waiting for SRPM
+    assert "waiting-build" not in build_ids
+
+    # Filtered out: SRPM build failure (no build_start_time or build_logs_url)
+    assert "srpm-failure" not in build_ids
+
+    # Should be present: regular failures with build_start_time or build_logs_url
+    assert "regular-failure" in build_ids
+    assert "regular-failure-with-logs" in build_ids
+
+    # Should be present: successful build
+    assert "success-build" in build_ids
+
+    # Total: 3 builds should be present (2 regular failures + 1 success)
+    assert len(merged_builds) == 3
+
+
 def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.id
 
