@@ -684,12 +684,13 @@ class DownstreamTestingFarmResultsHandler(
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 
         test_run_model.set_web_url(self.log_url)
-        url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None
+        # For Fedora CI, try to link directly to Testing Farm results instead of dashboard
+        url = self.log_url or get_testing_farm_info_url(test_run_model.id)
         self.downstream_testing_farm_job_helper.report(
             test_run=test_run_model,
             state=status,
             description=summary,
-            url=url if url else self.log_url,
+            url=url,
         )
 
         test_run_model.set_status(self.result, created=self.created)

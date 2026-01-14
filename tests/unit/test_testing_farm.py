@@ -301,7 +301,7 @@ def test_downstream_testing_farm_response(
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=status_status,
         description=status_message,
-        url="https://dashboard.localhost/jobs/testing-farm/123",
+        url="some url",
         check_name="Packit - installability test(s)",
         target_branch="rawhide",
     ).once()

@@ -905,12 +905,14 @@ class DownstreamKojiScratchBuildHandler(
         )
         try:
             stdout = self.run_koji_build()
+            web_url = None
             if stdout:
                 task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)
                 koji_build.set_task_id(str(task_id))
                 koji_build.set_web_url(web_url)
                 koji_build.set_build_submission_stdout(stdout)
-            url = get_koji_build_info_url(koji_build.id)
+            # try to link directly to Koji interface instead of dashboard for Fedora CI
+            url = web_url or get_koji_build_info_url(koji_build.id)
             self.report(
                 commit_status=BaseCommitStatus.running,
                 description="RPM build was submitted ...",

@@ -144,7 +144,13 @@ class AbstractKojiTaskReportHandler(
         self._build: Optional[KojiBuildTargetModel] = None
 
     @abstractmethod
-    def report(self, description: str, commit_status: BaseCommitStatus, url: str): ...
+    def report(
+        self,
+        description: str,
+        commit_status: BaseCommitStatus,
+        dashboard_url: str,
+        koji_web_url: str,
+    ): ...
 
     @abstractmethod
     def notify_about_failure_if_configured(
@@ -192,7 +198,11 @@ class AbstractKojiTaskReportHandler(
             ),
         )
 
-        url = get_koji_build_info_url(self.build.id)
+        dashboard_url = get_koji_build_info_url(self.build.id)
+        koji_web_url = self.build.web_url or koji.result.Task.get_koji_rpm_build_web_url(
+            rpm_build_task_id=int(self.build.task_id),
+            koji_web_url=self.service_config.koji_web_url,
+        )
 
         new_commit_status = {
             KojiTaskState.free: BaseCommitStatus.pending,
@@ -228,22 +238,18 @@ class AbstractKojiTaskReportHandler(
 
         else:
             self.build.set_status(new_commit_status.value)
-            self.report(description, new_commit_status, url)
+            self.report(description, new_commit_status, dashboard_url, koji_web_url)
             koji_build_logs = self.koji_task_event.get_koji_build_rpm_tasks_logs_urls(
                 self.service_config.koji_logs_url,
             )
 
             self.build.set_build_logs_urls(koji_build_logs)
-            koji_rpm_task_web_url = koji.result.Task.get_koji_rpm_build_web_url(
-                rpm_build_task_id=int(self.build.task_id),
-                koji_web_url=self.service_config.koji_web_url,
-            )
-            self.build.set_web_url(koji_rpm_task_web_url)
+            self.build.set_web_url(koji_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
                 self.notify_about_failure_if_configured(
-                    packit_dashboard_url=url,
-                    external_dashboard_url=koji_rpm_task_web_url,
+                    packit_dashboard_url=dashboard_url,
+                    external_dashboard_url=koji_web_url,
                     logs_url=koji_build_logs,
                 )
 
@@ -277,11 +283,17 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
     def get_checkers() -> tuple[type[Checker], ...]:
         return (IsUpstreamKojiScratchBuild,)
 
-    def report(self, description: str, commit_status: BaseCommitStatus, url: str):
+    def report(
+        self,
+        description: str,
+        commit_status: BaseCommitStatus,
+        dashboard_url: str,
+        koji_web_url: str,
+    ):
         self.helper.report_status_to_all_for_chroot(
             description=description,
             state=commit_status,
-            url=url,
+            url=dashboard_url,
             chroot=self.build.target,
         )
 
@@ -311,11 +323,18 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
             )
         return self._helper
 
-    def report(self, description: str, commit_status: BaseCommitStatus, url: str):
+    def report(
+        self,
+        description: str,
+        commit_status: BaseCommitStatus,
+        dashboard_url: str,
+        koji_web_url: str,
+    ):
+        # For Fedora CI, try to link directly to Koji build instead of dashboard
         self.helper.report(
             state=commit_status,
             description=description,
-            url=url,
+            url=koji_web_url or dashboard_url,
             check_name=self.check_name,
         )
 
