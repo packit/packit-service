@@ -38,7 +38,7 @@ class StatusReporterPagure(StatusReporter):
         Set status of a Pagure check.
 
         If used for a pull request, the UID is derived from SHA256
-        of `check_name` or combination of `check_name` and `target_branch`.
+        of `check_name` or combination of `check_name`, `target_branch` and `commit_sha`.
 
         Value of `url` defaults to `CONTACTS_URL`, since Pagure requires
         some URL to be submitted.
@@ -58,12 +58,14 @@ class StatusReporterPagure(StatusReporter):
             url = CONTACTS_URL
 
         if self.pull_request_object:
-            # generate a custom uid from the check_name and target_branch,
+            # generate a custom uid from the check_name, target_branch and commit SHA
             # so that we can update flags we set previously,
             # instead of creating new ones (Pagure specific behaviour)
             # the max length of uid is 32 chars
             composed_check_name = (
-                check_name if not target_branch else f"{check_name} - {target_branch}"
+                check_name
+                if not target_branch
+                else f"{check_name} - {target_branch} [{self.commit_sha[:7]}]"
             )
             uid = hashlib.sha256(composed_check_name.encode()).hexdigest()[:32]
             self.pull_request_object.set_flag(

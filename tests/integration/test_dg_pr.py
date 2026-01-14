@@ -45,22 +45,22 @@ def distgit_pr_event():
     [
         pytest.param(
             "rawhide",
-            "e0091d5fbcb20572cbf2e6442af9bed5",
-            "Packit - scratch build - rawhide",
+            "da02b4ee9881488e777cd22bbb13987f",
+            "Packit - scratch build - rawhide [889f07a]",
             False,
             id="rawhide target branch",
         ),
         pytest.param(
             "rawhide",
-            "8edd48272efe6aff7d1d92bdffcaf9a0",
-            "Packit - scratch build - eln",
+            "f4a160072a397b8fca2304d80f36fc76",
+            "Packit - scratch build - eln [889f07a]",
             True,
             id="rawhide branch, rawhide + eln target",
         ),
         pytest.param(
             "f42",
-            "6f08c3bbb20660dc8c597bc7dbe4f056",
-            "Packit - scratch build - f42",
+            "44e52710e6df077ddc07e16df1cbf6b7",
+            "Packit - scratch build - f42 [889f07a]",
             False,
             id="f42 target branch",
         ),
@@ -75,8 +75,8 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
         .mock()
     )
     if eln:
-        check_name = "Packit - scratch build - rawhide"
-        uid = "e0091d5fbcb20572cbf2e6442af9bed5"
+        check_name = "Packit - scratch build - rawhide [889f07a]"
+        uid = "da02b4ee9881488e777cd22bbb13987f"
         (
             pr_object.should_receive("set_flag")
             .with_args(username=check_name, comment=str, url=str, status=CommitStatus, uid=uid)
