@@ -307,7 +307,7 @@ class IsUpstreamTagMatchingConfig(Checker):
     or not among configured excluded tags.
 
     If the tag in event is `None`, for example in case of pull-from-upstream
-    retriggering the check passes.
+    retriggering, the check passes.
     """
 
     def pre_check(self) -> bool:
