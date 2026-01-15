@@ -501,7 +501,7 @@ logging.getLogger(__name__)
 
 Events are implemented as objects in `packit_service.events` namespace. Different types of events have their own modules, with a name reflecting their origin. For example `packit_service.events.testing_farm`.
 
-Modules of events may consist of a single file, in simpler cases, or in more complex case split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
+Modules of events may consist of a single file, in simpler cases, or in more complex cases, split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
 
 Event classes may implement override of the `get_dict` method from the parent, providing additional fields to the returned structure, while preserving those of the from parent method.
 
