@@ -202,6 +202,43 @@ class StatusReporter:
         else:
             logger.debug(f"Ain't comment as {state!r} is not a final state")
 
+    def _comment_as_set_status_fallback(
+        self,
+        exception: Exception,
+        state: BaseCommitStatus,
+        description: str,
+        check_name: str,
+        url: str,
+    ):
+        """Handle failure to set commit status by falling back to comments.
+
+        If commit_sha exists, adds a comment to the commit.
+        If pr_id exists, adds a comment to the PR.
+        Otherwise, logs a warning.
+        """
+        if self.commit_sha:
+            logger.debug(
+                f"Failed to set status for {self.commit_sha},"
+                f" commenting on commit as a fallback: {exception}",
+            )
+            self._add_commit_comment_with_status(state, description, check_name, url)
+        elif self.pr_id:
+            logger.debug(
+                f"Failed to set status and no commit SHA available,"
+                f" commenting on PR {self.pr_id} as a fallback: {exception}",
+            )
+            self.report_status_by_comment(
+                state,
+                url,
+                check_name,
+                description,
+            )
+        else:
+            logger.warning(
+                f"Failed to set status and cannot comment as a fallback,"
+                f" no commit SHA and no PR id: {exception}",
+            )
+
     def report_status_by_comment(
         self,
         state: BaseCommitStatus,
@@ -222,7 +259,11 @@ class StatusReporter:
         ] + [f"| [{check}]({url}) | {state.name.upper()} |" for check in check_names]
 
         table = "\n".join(comment_table_rows)
-        self.comment(table + f"\n### Description\n\n{description}")
+
+        if self.is_final_state(state):
+            self.comment(table + f"\n### Description\n\n{description}")
+        else:
+            logger.debug(f"Ain't comment as {state!r} is not a final state")
 
     def get_statuses(self):
         self.project_with_commit.get_commit_statuses(commit=self.commit_sha)
@@ -270,6 +311,10 @@ class StatusReporter:
                 (if the instance is tied to a PR) or in a commit.
             to_commit: Add the comment to the commit even if PR is specified.
         """
+        if (to_commit or not self.pr_id) and not self.commit_sha:
+            logger.debug("Cannot comment on commit, commit_sha is None.")
+            return
+
         if self._has_identical_comment(body, duplicate_check, to_commit):
             logger.debug("Identical comment already exists")
             return
