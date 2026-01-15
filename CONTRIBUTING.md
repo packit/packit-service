@@ -426,7 +426,7 @@ def check_subpath(
 
     Args:
         subpath: Subpath to be checked.
-        path: Path agains which subpath is checked.
+        path: Path against which subpath is checked.
 
     Returns:
         'subpath', resolved, in case it is a subpath of 'path'.
