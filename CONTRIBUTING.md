@@ -552,7 +552,7 @@ Parser methods of the `Parser` class are referenced both in the `MAPPING` attrib
 
 #### Actions
 
-Action performed by Packit, such as scheduling or reporting test result, have handlers,
+Actions performed by Packit, such as scheduling or reporting test results, have handlers,
 implemented as subclasses of `Handler` in `packit_service.worker.handlers`.
 Handlers are grouped based on what type of action they perform, such as `packit_service.worker.handlers.testing_farm`. Each handler must have `run` method defined, returning a `TaskResult` object.
 
