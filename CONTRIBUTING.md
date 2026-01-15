@@ -574,7 +574,7 @@ Handlers that are triggered by events use `reacts_to` decorator. Handlers can us
 #### Tests
 
 New code must be covered by some form of automated tests and should be written
-in a way that is conductive to testing when possible.
+in a way that is conducive to testing when possible.
 
 Tests that do not require presence of a cluster during execution, that is unit and integration
 tests, must be placed in `tests/unit` or `tests/integration` path.
