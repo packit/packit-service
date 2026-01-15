@@ -499,7 +499,7 @@ logging.getLogger(__name__)
 
 #### Events
 
-Events are implemeted as objects in `packit_service.events` namespace. Different types of events have their own modules, with a name reflecting their origin. For example `packit_service.events.testing_farm`.
+Events are implemented as objects in `packit_service.events` namespace. Different types of events have their own modules, with a name reflecting their origin. For example `packit_service.events.testing_farm`.
 
 Modules of events may consist of a single file, in simpler cases, or in more complex case split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
 
