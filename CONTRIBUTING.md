@@ -503,7 +503,7 @@ Events are implemented as objects in `packit_service.events` namespace. Differen
 
 Modules of events may consist of a single file, in simpler cases, or in more complex cases, split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
 
-Event classes may implement override of the `get_dict` method from the parent, providing additional fields to the returned structure, while preserving those of the from parent method.
+Event classes may implement override of the `get_dict` method from the parent, providing additional fields to the returned structure, while preserving those from the parent method.
 
 Example:
 
