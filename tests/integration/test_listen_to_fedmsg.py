@@ -2610,7 +2610,8 @@ def test_koji_build_end_downstream(
                         get_git_urls=lambda: {
                             "git": "https://src.fedoraproject.org/fork/packit/rpms/packit.git"
                         }
-                    )
+                    ),
+                    target_branch="rawhide",
                 ),
             )
         )
@@ -2688,6 +2689,7 @@ def test_koji_build_end_downstream(
                         "arch": "x86_64",
                         "trigger": "commit",
                         "initiator": "fedora-ci",
+                        "dist-git-branch": "rawhide",
                     },
                 },
             },
@@ -2749,6 +2751,7 @@ def test_koji_build_end_downstream(
                         "arch": "x86_64",
                         "trigger": "commit",
                         "initiator": "fedora-ci",
+                        "dist-git-branch": "rawhide",
                     },
                 },
             },
