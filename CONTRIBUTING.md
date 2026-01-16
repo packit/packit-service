@@ -401,7 +401,7 @@ a descriptive name.
 Changes to database tables defined in `packit_service.models` must be accompanied by Alembic migration,
 with a revision script placed in `alembic/versions/` path.
 
-The script can be manually edited to account for edge cases.
+The script can be manually edited to account for edge cases or in case existing data requires migration, [example](https://github.com/packit/packit-service/blob/fabffea6a153b505db50232b808d839b5d60a8e8/alembic/versions/70c369f7ba80_add_explicit_mapping_of_tf_to_copr.py#L310) .
 
 Script must have a descriptive name. In cases when the script was manually
 edited, or if it contains operations that are not self-explanatory, additional
