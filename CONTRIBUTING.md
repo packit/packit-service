@@ -359,6 +359,12 @@ Any non-trivial regular expressions must be accompanied by documentation,
 explaining their purpose and function. In cases of very complex regular expressions,
 examples of matching strings should be provided.
 
+Regular expressions used in Python code, should be compiled,
+especially if there are to be used more than once.
+
+Complex regular expressions, should have associated test cases,
+verifying behavior.
+
 ### Python code
 
 When not specified otherwise, the code should follow standards laid out in PEP 8.
@@ -395,7 +401,7 @@ a descriptive name.
 Changes to database tables defined in `packit_service.models` must be accompanied by Alembic migration,
 with a revision script placed in `alembic/versions/` path.
 
-The script can be manually edited to account for edge cases or in case existing data requires migration, [example](https://github.com/packit/packit-service/blob/fabffea6a153b505db50232b808d839b5d60a8e8/alembic/versions/70c369f7ba80_add_explicit_mapping_of_tf_to_copr.py#L310) .
+The script can be manually edited to account for edge cases or in case existing data requires migration, [example](https://github.com/packit/packit-service/blob/fabffea6a153b505db50232b808d839b5d60a8e8/alembic/versions/70c369f7ba80_add_explicit_mapping_of_tf_to_copr.py#L310).
 
 Script must have a descriptive name. In cases when the script was manually
 edited, or if it contains operations that are not self-explanatory, additional
@@ -493,6 +499,23 @@ logging.getLogger(__name__)
 
 #### Events
 
+Packit service performs operations in reaction to events, such as pull requests.
+Events begin as messages, received by Packit service.
+These messages are parsed and resulting objects passed to an appropriate Handler.
+It is the Handler which eventually performs required operation.
+
+The basic life cycle of an event can be described as:
+
+Message --> Parsed Event --> Task Result
+
+Celery task `process_message` passes event data, type and source to the `process_message` class method of the `SteveJobs` class, where an appropriate parser is resolved and event validity checked.
+
+If the `Event` object created by the parser is valid, the `process` method of `SteveJobs` passes the event data to an appropriate handler.
+
+The handler performs any operations that are implemented for the event, and returns a `TaskResult` object.
+
+In some cases, multiple handlers are defined for a single type of event and are used sequentially to create Celery tasks.
+
 Events are implemented as objects in `packit_service.events` namespace. Different types of events have their own modules, with a name reflecting their origin. For example `packit_service.events.testing_farm`.
 
 Modules of events may consist of a single file, in simpler cases, or in more complex cases, split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
@@ -511,11 +534,11 @@ def get_dict(self, default_dict: Optional[dict] = None) -> dict:
 
 All events need to have an associated parser implemented, as a static method of the `Parser` class in the `packit_service.worker.parser` module.
 
-Parsers process dictionaries and must either return parsed object,
+Parsers process dictionaries and must either return a parsed object,
 or `None`, if the dictionary doesn't satisfy conditions specific to the event.
-In cases when parser returns `None`, an event must be logged at a level of warning.
+In cases when parser returns `None`, a warning must be logged.
 
-Additional logging statements should be included to provide information about event
+Additional logging statements should be included to provide information about the event
 being processed by the parser.
 
 Example:
@@ -548,7 +571,8 @@ Parser methods of the `Parser` class are referenced both in the `MAPPING` attrib
 
 Actions performed by Packit, such as scheduling or reporting test results, have handlers,
 implemented as subclasses of `Handler` in `packit_service.worker.handlers`.
-Handlers are grouped based on what type of action they perform, such as `packit_service.worker.handlers.testing_farm`. Each handler must have `run` method defined, returning a `TaskResult` object.
+Handlers are grouped based on what type of action they perform, such as `packit_service.worker.handlers.testing_farm`.
+Each handler must have `run` method defined, returning a `TaskResults` object.
 
 Example:
 
@@ -563,7 +587,29 @@ def run(self) -> TaskResults:
 
 ```
 
-Handlers that are triggered by events use `reacts_to` decorator. Handlers can use mixins, to provide methods required for their purpose, such as `ConfigFromEventMixin`.
+##### Handler class decorators
+
+Class decorators defined in `packit_service.worker.handlers.abstract` are used to specify events configuration and other criteria determining which handler should be used.
+
+Decorators add handlers and events into associated global dictionaries from
+`packit_service.worker.handlers.abstract`, such as `MAP_COMMENT_TO_HANDLER`.
+
+These maps are used by `SteveJobs` to resolve handlers for events.
+
+For example:
+
+- `configured_as`: a job type
+- `reacts_to`: an event
+- `reacts_to_as_fedora_ci`: an event as Fedora CI
+- `run_for_comment`: command in comment
+- `run_for_comment_as_fedora_ci`: command in comment as Fedora CI
+- `run_for_check_rerun`: check prefix
+
+Multiple decorators are often used for a single handler.
+
+##### Handler mixins
+
+Handlers can use mixins, to provide methods required for their purpose, such as `ConfigFromEventMixin`.
 
 #### Tests
 
