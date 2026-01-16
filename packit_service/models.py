@@ -3429,6 +3429,8 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             test_run_group = cls()
             test_run_group.ranch = ranch
             session.add(test_run_group)
+            # Flush to get test_run_group.id before using it
+            session.flush()
 
             # lock the run_model in the DB by using SELECT ... FOR UPDATE
             # all other workers accessing this run_model will block here
@@ -3441,7 +3443,9 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 logger.warning(f"PipelineModel with id={run_model.id} not found in DB.")
                 return test_run_group
 
-            if locked_run_model.test_run_group:
+            # Check test_run_group_id directly to avoid stale relationship cache.
+            # The relationship might not be loaded or might be stale from a different session.
+            if locked_run_model.test_run_group_id:
                 # Clone run model
                 new_run_model = PipelineModel()
                 new_run_model.project_event = locked_run_model.project_event
@@ -3449,10 +3453,10 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 new_run_model.srpm_build = locked_run_model.srpm_build
                 new_run_model.copr_build_group = locked_run_model.copr_build_group
                 new_run_model.koji_build_group = locked_run_model.koji_build_group
-                new_run_model.test_run_group = test_run_group
+                new_run_model.test_run_group_id = test_run_group.id
                 session.add(new_run_model)
             else:
-                locked_run_model.test_run_group = test_run_group
+                locked_run_model.test_run_group_id = test_run_group.id
                 session.add(locked_run_model)
 
             return test_run_group
