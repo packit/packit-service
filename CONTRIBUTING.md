@@ -504,7 +504,7 @@ Message --> Parsed Event --> Task Result
 
 Celery task `process_message` passes event data, type and source to the `process_message` class method of the `SteveJobs` class, where an appropriate parser is resolved and event validity checked.
 
-If the `Event` object created by parser is valid. The `process` method of `SteveJobs` passes the vent data to an appropriate handler.
+If the `Event` object created by the parser is valid, the `process` method of `SteveJobs` passes the event data to an appropriate handler.
 
 The handler performs any operations that are implemented for the event, and returns a `TaskResult` object.
 
