@@ -393,6 +393,58 @@ def test_copr_get_all_by_commit(clean_before_and_after, multiple_copr_builds):
     )
 
 
+def test_copr_get_all_by_ordering_by_id_desc(clean_before_and_after, pr_project_event_model):
+    """
+    Test that get_all_by() orders by id DESC (latest first), not by build_id DESC.
+
+    This is important because build_id is a String, so string ordering would be incorrect.
+    For example, "9931733" > "10020464" as strings, but 10020464 > 9931733 numerically.
+    Ordering by id DESC ensures we get the latest build (highest id) first.
+    """
+    _, run_model_1 = SRPMBuildModel.create_with_new_run(project_event_model=pr_project_event_model)
+    group_1 = CoprBuildGroupModel.create(run_model_1)
+    build_1 = CoprBuildTargetModel.create(
+        build_id="9931733",  # Lower build_id, but created first (lower id)
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url="https://copr.fedorainfracloud.org/coprs/build/9931733/",
+        target=SampleValues.target,
+        status=BuildStatus.success,
+        copr_build_group=group_1,
+    )
+
+    _, run_model_2 = SRPMBuildModel.create_with_new_run(project_event_model=pr_project_event_model)
+    group_2 = CoprBuildGroupModel.create(run_model_2)
+    build_2 = CoprBuildTargetModel.create(
+        build_id="10020464",  # Higher build_id, created second (higher id)
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url="https://copr.fedorainfracloud.org/coprs/build/10020464/",
+        target=SampleValues.target,
+        status=BuildStatus.success,
+        copr_build_group=group_2,
+    )
+
+    # Verify build_2 has higher id (was created later)
+    assert build_2.id > build_1.id
+
+    # Verify that string ordering of build_id would be wrong
+    assert build_1.build_id > build_2.build_id  # "9931733" > "10020464" as strings
+
+    builds = CoprBuildTargetModel.get_all_by(
+        commit_sha=SampleValues.commit_sha,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        target=SampleValues.target,
+        status=BuildStatus.success,
+    )
+
+    # next(iter(builds)) should return the latest build (build_2 with higher id)
+    latest_build = next(iter(builds))
+    assert latest_build.id == build_2.id
+    assert latest_build.build_id == "10020464"
+
+
 def test_multiple_pr_models(clean_before_and_after):
     pr1 = PullRequestModel.get_or_create(
         pr_id=1,
