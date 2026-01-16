@@ -580,7 +580,22 @@ def run(self) -> TaskResults:
 
 ```
 
-Handlers that are triggered by events use `reacts_to` decorator. Handlers can use mixins, to provide methods required for their purpose, such as `ConfigFromEventMixin`.
+##### Handler class decorators
+
+Class decorators defined in `packit_service.worker.handlers.abstract` are used to specify events configuration and other criteria determining which handler should be used.
+
+For example:
+
+- `configured_as`: a job type
+- `reacts_to`: an event
+- `reacts_to_as_fedora_ci`: an event as Fedora CI
+- `run_for_comment`: command in comment
+- `run_for_comment_as_fedora_ci`: command in comment as Fedora CI
+- `run_for_check_rerun`: check prefix
+
+##### Handler mixins
+
+Handlers can use mixins, to provide methods required for their purpose, such as `ConfigFromEventMixin`.
 
 #### Tests
 
