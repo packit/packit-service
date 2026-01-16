@@ -349,15 +349,9 @@ the new RPM is installed.
 ### License information
 
 All code, that is modules, scripts and other executable files,
-must contain a license header, with wording exactly matching that in `LICENSE_HEADER.txt`.
+must contain a license header, containing SPDX identifier, with wording exactly matching that in `LICENSE_HEADER.txt`.
+
 This includes all `.yaml` files.
-
-License header sample:
-
-```
-Copyright Contributors to the Packit project.
-SPDX-License-Identifier: MIT
-```
 
 ### Regular expressions
 
