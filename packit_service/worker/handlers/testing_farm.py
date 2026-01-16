@@ -176,12 +176,11 @@ class TestingFarmHandler(
             # connected to the same pipeline, just take the first one
             else next(iter(builds.values())).group_of_targets.runs[-1]
         )
-        group = (
-            TFTTestRunGroupModel.create(
-                run_model, ranch=self.testing_farm_job_helper.tft_client.default_ranch
-            )
-            if not run_model.test_run_group
-            else run_model.test_run_group
+        # Always call create() to handle race conditions properly.
+        # The create() method will lock the run_model, check if it already has a test_run_group,
+        # and clone the pipeline if needed. This ensures each identifier gets its own pipeline.
+        group = TFTTestRunGroupModel.create(
+            run_model, ranch=self.testing_farm_job_helper.tft_client.default_ranch
         )
         runs = []
         for target, build in builds.items():
@@ -418,12 +417,11 @@ class DownstreamTestingFarmHandler(
             return target_model.group_of_targets, [target_model]
 
         run_model = self.koji_build.group_of_targets.runs[-1]
-        group = (
-            TFTTestRunGroupModel.create(
-                run_model, ranch=self.downstream_testing_farm_job_helper.tft_client.default_ranch
-            )
-            if not run_model.test_run_group
-            else run_model.test_run_group
+        # Always call create() to handle race conditions properly.
+        # The create() method will lock the run_model, check if it already has a test_run_group,
+        # and clone the pipeline if needed. This ensures each identifier gets its own pipeline.
+        group = TFTTestRunGroupModel.create(
+            run_model, ranch=self.downstream_testing_farm_job_helper.tft_client.default_ranch
         )
 
         # convert dist-git branch to distro

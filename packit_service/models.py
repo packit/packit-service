@@ -3448,6 +3448,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 new_run_model.package_name = locked_run_model.package_name
                 new_run_model.srpm_build = locked_run_model.srpm_build
                 new_run_model.copr_build_group = locked_run_model.copr_build_group
+                new_run_model.koji_build_group = locked_run_model.koji_build_group
                 new_run_model.test_run_group = test_run_group
                 session.add(new_run_model)
             else:
