@@ -117,6 +117,7 @@ class SampleValues:
     copr_web_url = "https://copr.something.somewhere/123456"
     koji_web_url = "https://koji.something.somewhere/123456"
     srpm_logs = "some\nboring\nlogs"
+    build_start_time = datetime.datetime(2026, 1, 14, 10, 0, 0)
 
     # TFT
     pipeline_id = "123456"
@@ -883,6 +884,96 @@ def too_many_copr_builds(pr_project_event_model, different_pr_project_event_mode
                 copr_build_group=group_for_a_different_pr,
             ),
         ]
+    yield builds_list
+
+
+@pytest.fixture()
+def copr_builds_for_filtering(pr_project_event_model):
+    """Fixture with builds to test get_merged_chroots filtering logic."""
+    _, run_model = SRPMBuildModel.create_with_new_run(
+        project_event_model=pr_project_event_model,
+    )
+    group = CoprBuildGroupModel.create(run_model)
+    builds_list = []
+
+    # Build without build_id - should be filtered out
+    builds_list.append(
+        CoprBuildTargetModel.create(
+            build_id=None,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + "-no-id",
+            target=SampleValues.target,
+            status=SampleValues.status_pending,
+            copr_build_group=group,
+        )
+    )
+
+    # Build waiting for SRPM - should be filtered out
+    builds_list.append(
+        CoprBuildTargetModel.create(
+            build_id="waiting-build",
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + "-waiting",
+            target=SampleValues.target,
+            status=SampleValues.status_waiting_for_srpm,
+            copr_build_group=group,
+        )
+    )
+
+    # SRPM build failure (no build_start_time or build_logs_url) - should be filtered out
+    builds_list.append(
+        CoprBuildTargetModel.create(
+            build_id="srpm-failure",
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + "-srpm-failure",
+            target=SampleValues.target,
+            status=SampleValues.status_failed,
+            copr_build_group=group,
+        )
+    )
+
+    # Regular build failure with build_start_time - should NOT be filtered
+    build_regular_failure = CoprBuildTargetModel.create(
+        build_id="regular-failure",
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url + "-regular-failure",
+        target=SampleValues.target,
+        status=SampleValues.status_failed,
+        copr_build_group=group,
+    )
+    build_regular_failure.set_start_time(SampleValues.build_start_time)
+    builds_list.append(build_regular_failure)
+
+    # Regular build failure with build_logs_url - should NOT be filtered
+    build_regular_failure_logs = CoprBuildTargetModel.create(
+        build_id="regular-failure-with-logs",
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url + "-regular-failure-logs",
+        target=SampleValues.target,
+        status=SampleValues.status_failed,
+        copr_build_group=group,
+    )
+    build_regular_failure_logs.set_build_logs_url("https://example.com/logs")
+    builds_list.append(build_regular_failure_logs)
+
+    # Successful build - should NOT be filtered
+    builds_list.append(
+        CoprBuildTargetModel.create(
+            build_id="success-build",
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + "-success",
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            copr_build_group=group,
+        )
+    )
+
     yield builds_list
 
 

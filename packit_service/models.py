@@ -41,6 +41,7 @@ from sqlalchemy import (
     desc,
     func,
     null,
+    or_,
     select,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
@@ -2258,6 +2259,19 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
                     ),
                     func.array_agg(psql_array([CoprBuildTargetModel.id])).label(
                         "packit_id_per_chroot",
+                    ),
+                )
+                .filter(
+                    # Exclude builds without build_id (to not mix targets from
+                    # different builds together)
+                    CoprBuildTargetModel.build_id.isnot(None),
+                    # Exclude builds waiting for SRPM - not actual Copr builds yet
+                    CoprBuildTargetModel.status != BuildStatus.waiting_for_srpm,
+                    # Exclude SRPM build failures (no build_start_time/build_logs_url)
+                    or_(
+                        CoprBuildTargetModel.status != BuildStatus.failure,
+                        CoprBuildTargetModel.build_start_time.isnot(None),
+                        CoprBuildTargetModel.build_logs_url.isnot(None),
                     ),
                 )
                 .group_by(
