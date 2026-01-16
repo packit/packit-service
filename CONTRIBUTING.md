@@ -493,6 +493,23 @@ logging.getLogger(__name__)
 
 #### Events
 
+Packit service performs operations in reaction to events, such as pull requests.
+Events begin as messages, received by Packit service.
+These messages are parsed and resulting objects passed to an appropriate Handler.
+It is the Handler which eventually performs required operation.
+
+The basic life cycle of an event can be descibed as:
+
+Message --> Parsed Event --> Task Result
+
+Celery task `process_message` passes event data, type and source to the `process_message` class method of the `SteveJobs` class, where an appropriate parser is resolved and event validity checked.
+
+If the `Event` object created by parser is valid. The `process` method of `SteveJobs` passes the vent data to an appropriate handler.
+
+The handler performs any operations that are implemented for the event, and returns a `TaskResult` object.
+
+In some cases, multiple handlers are defined for a single type of event and are used sequentially to create Celery tasks.
+
 Events are implemented as objects in `packit_service.events` namespace. Different types of events have their own modules, with a name reflecting their origin. For example `packit_service.events.testing_farm`.
 
 Modules of events may consist of a single file, in simpler cases, or in more complex cases, split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
