@@ -298,6 +298,7 @@ class TestingFarmHandler(
             failed[test_run.target] = result.get("details")
 
     def run(self) -> TaskResults:
+        self.check_rate_limit_remaining()
         # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         logger.debug(f"Test job config: {self.job_config}")
@@ -528,6 +529,7 @@ class TestingFarmResultsHandler(
         return self._db_project_event
 
     def run(self) -> TaskResults:
+        self.check_rate_limit_remaining()
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
 
         test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(

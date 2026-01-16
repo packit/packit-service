@@ -24,6 +24,11 @@ from packit.config.common_package_config import Deployment
 from packit.constants import DATETIME_FORMAT
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import (
+    CELERY_TASK_RATE_LIMITED_QUEUE,
+    RATE_LIMIT_THRESHOLD,
+    RATE_LIMITED_QUEUE_EXPIRES_SECONDS,
+)
 from packit_service.events.event import Event
 from packit_service.events.event_data import EventData
 from packit_service.models import (
@@ -455,6 +460,37 @@ class JobHandler(Handler):
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
+
+    def check_rate_limit_remaining(self) -> None:
+        """
+        Check the remaining rate limit towards the service.
+        To be used when running in a task context.
+        If it is low, enqueue the task to the rate-limited queue.
+        """
+        from packit_service.celerizer import celery_app
+
+        # Get the current executing task from the worker context.
+        # This is needed because handlers can be created in different contexts:
+        # - Regular handlers: created in task functions with celery_task=self
+        # - Babysit handlers: created to generate signatures, then executed in new tasks
+        # When check_rate_limit_remaining() is called during execution, we need the
+        # actual task that's currently running, not the one that created the handler.
+        celery_task = celery_app.current_worker_task
+        if not celery_task:
+            logger.warning("No current task found, skipping rate limit check.")
+            return
+        remaining = self.project.get_rate_limit_remaining() if self.project else None
+        if remaining and remaining < RATE_LIMIT_THRESHOLD:
+            logger.warning(
+                f"Rate limit remaining is low: {remaining}, "
+                "enqueuing task to the rate-limited queue."
+            )
+            celery_task.apply_async(
+                queue=CELERY_TASK_RATE_LIMITED_QUEUE,
+                expires=RATE_LIMITED_QUEUE_EXPIRES_SECONDS,
+            )
+        else:
+            logger.info(f"Rate limit remaining is high or not available: {remaining}.")
 
 
 class RetriableJobHandler(JobHandler):

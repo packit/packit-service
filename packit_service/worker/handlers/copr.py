@@ -118,6 +118,7 @@ class CoprBuildHandler(
         )
 
     def run(self) -> TaskResults:
+        self.check_rate_limit_remaining()
         # [XXX] For now cancel only when an environment variable is defined,
         # should allow for less stressful testing and also optionally turning
         # the cancelling on-and-off on the prod
@@ -173,6 +174,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
         self.build.set_build_logs_url(copr_build_logs)
 
     def run(self):
+        self.check_rate_limit_remaining()
         run_start_time = datetime.now(timezone.utc)
         if not self.build:
             model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"
@@ -299,6 +301,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         self.build.set_built_packages(built_packages)
 
     def run(self):
+        self.check_rate_limit_remaining()
         run_start_time = datetime.now(timezone.utc)
         logger.info(
             f"[CELERY_EXEC] CoprBuildEndHandler execution started for "
