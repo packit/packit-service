@@ -2332,7 +2332,8 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
                 )
                 .filter(CoprBuildTargetModel.project_name == project_name)
                 .filter(ProjectEventModel.commit_sha == commit_sha)
-                .order_by(CoprBuildTargetModel.build_id.desc())
+                # we can't order by `build_id` because it's a string
+                .order_by(CoprBuildTargetModel.id.desc())
             )
 
             if owner:
