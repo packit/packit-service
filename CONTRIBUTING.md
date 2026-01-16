@@ -528,11 +528,11 @@ def get_dict(self, default_dict: Optional[dict] = None) -> dict:
 
 All events need to have an associated parser implemented, as a static method of the `Parser` class in the `packit_service.worker.parser` module.
 
-Parsers process dictionaries and must either return parsed object,
+Parsers process dictionaries and must either return a parsed object,
 or `None`, if the dictionary doesn't satisfy conditions specific to the event.
-In cases when parser returns `None`, an event must be logged at a level of warning.
+In cases when parser returns `None`, a warning must be logged.
 
-Additional logging statements should be included to provide information about event
+Additional logging statements should be included to provide information about the event
 being processed by the parser.
 
 Example:
