@@ -498,7 +498,7 @@ Events begin as messages, received by Packit service.
 These messages are parsed and resulting objects passed to an appropriate Handler.
 It is the Handler which eventually performs required operation.
 
-The basic life cycle of an event can be descibed as:
+The basic life cycle of an event can be described as:
 
 Message --> Parsed Event --> Task Result
 
