@@ -544,7 +544,7 @@ def parse_openscanhub_task_started_event(
 
 Parser methods of the `Parser` class are referenced both in the `MAPPING` attribute and the `parse_event` method.
 
-#### Actions
+#### Handlers
 
 Actions performed by Packit, such as scheduling or reporting test results, have handlers,
 implemented as subclasses of `Handler` in `packit_service.worker.handlers`.
