@@ -69,6 +69,10 @@ class IsEventOkForFedoraCI(
         return bool(self.koji_task_event and self.koji_task_event.state == KojiTaskState.closed)
 
 
+class IsEventOkForFedoraCIAsRawhideELN(IsEventOkForFedoraCI):
+    _rawhide_eln_build = True
+
+
 class IsEventForJob(Checker):
     def pre_check(self) -> bool:
         if self.data.identifier != self.job_config.identifier:

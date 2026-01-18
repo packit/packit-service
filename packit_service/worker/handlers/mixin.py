@@ -98,6 +98,7 @@ class GetKojiBuild(Protocol):
 class GetKojiBuildFromTaskOrPullRequestMixin(GetKojiBuild, GetKojiTaskEventMixin):
     _koji_build: Optional[KojiBuildTargetModel] = None
     _db_project_event: Optional[ProjectEventModel] = None
+    _rawhide_eln_build: bool = False
     pipeline_id: Optional[str] = None
 
     @property
@@ -125,7 +126,8 @@ class GetKojiBuildFromTaskOrPullRequestMixin(GetKojiBuild, GetKojiTaskEventMixin
                 pull_request = self.project.get_pr(self.data.pr_id)
                 self._koji_build = (
                     KojiBuildTargetModel.get_last_successful_scratch_by_commit_target(
-                        pull_request.head_commit, pull_request.target_branch
+                        pull_request.head_commit,
+                        pull_request.target_branch if not self._rawhide_eln_build else "eln",
                     )
                 )
         return self._koji_build

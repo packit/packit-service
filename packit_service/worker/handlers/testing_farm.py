@@ -41,13 +41,17 @@ from packit_service.service.urls import (
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.distgit import PermissionOnDistgitForFedoraCI
+from packit_service.worker.checker.distgit import (
+    PackageNeedsELNBuildFromRawhide,
+    PermissionOnDistgitForFedoraCI,
+)
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
     IsCoprBuildDefined,
     IsEventForJob,
     IsEventOk,
     IsEventOkForFedoraCI,
+    IsEventOkForFedoraCIAsRawhideELN,
     IsIdentifierFromCommentMatching,
     IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
@@ -482,6 +486,22 @@ class DownstreamTestingFarmHandler(
         result_details.update(failed)
 
         return TaskResults(success=False, details=result_details)
+
+
+@run_for_comment_as_fedora_ci(command="test")
+@reacts_to_as_fedora_ci(event=pagure.pr.Comment)
+class DownstreamTestingFarmELNHandler(DownstreamTestingFarmHandler):
+    __test__ = False
+    _rawhide_eln_build = True
+    task_name = TaskName.downstream_testing_farm_eln
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (
+            PackageNeedsELNBuildFromRawhide,
+            IsEventOkForFedoraCIAsRawhideELN,
+            PermissionOnDistgitForFedoraCI,
+        )
 
 
 @configured_as(job_type=JobType.tests)
