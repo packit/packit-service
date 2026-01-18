@@ -31,7 +31,6 @@ from packit_service.events.testing_farm import (
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
-    KojiBuildTargetModel,
     PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
@@ -314,6 +313,7 @@ def test_downstream_testing_farm_response(
             target="fedora-rawhide",
             status=None,
             data={"fedora_ci_test": "installability"},
+            koji_builds=[flexmock(target="rawhide")],
         )
         .should_receive("get_project_event_model")
         .and_return(
@@ -347,10 +347,6 @@ def test_downstream_testing_farm_response(
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
-
-    flexmock(KojiBuildTargetModel).should_receive(
-        "get_last_successful_scratch_by_commit_target"
-    ).with_args("0000000000", "rawhide").and_return(flexmock(target="rawhide"))
 
     test_farm_handler.run()
 
