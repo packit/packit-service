@@ -29,6 +29,7 @@ from packit.utils.koji_helper import KojiHelper
 
 import packit_service.models
 import packit_service.service.urls as urls
+from packit_service import utils
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
@@ -2577,6 +2578,8 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         flexmock(grouped_targets=[koji_build]),
     )
 
+    flexmock(utils).should_receive("get_eln_packages").and_return([])
+
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
@@ -3421,6 +3424,8 @@ def _test_downstream_tf_retrigger_common(
     ).and_return(
         TaskResults(success=True, details={}),
     )
+
+    flexmock(utils).should_receive("get_eln_packages").and_return([])
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()

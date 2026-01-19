@@ -28,6 +28,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     ProjectEventModel,
     SRPMBuildModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.handlers.abstract import CeleryTask
@@ -97,6 +98,8 @@ class GetKojiBuild(Protocol):
 class GetKojiBuildFromTaskOrPullRequestMixin(GetKojiBuild, GetKojiTaskEventMixin):
     _koji_build: Optional[KojiBuildTargetModel] = None
     _db_project_event: Optional[ProjectEventModel] = None
+    _rawhide_eln_build: bool = False
+    pipeline_id: Optional[str] = None
 
     @property
     def koji_build(self) -> Optional[KojiBuildTargetModel]:
@@ -105,11 +108,26 @@ class GetKojiBuildFromTaskOrPullRequestMixin(GetKojiBuild, GetKojiTaskEventMixin
                 self._koji_build = KojiBuildTargetModel.get_by_task_id(
                     str(self.koji_task_event.task_id)
                 )
+            elif self.pipeline_id:
+                run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+                    pipeline_id=self.pipeline_id,
+                )
+                if not run_model:
+                    logger.error(f"No test run found for TF pipeline {self.pipeline_id}")
+                    return None
+                if (build_count := len(run_model.koji_builds)) != 1:
+                    logger.error(
+                        f"Expected a single Koji build matching TF pipeline {self.pipeline_id}, "
+                        f"found {build_count} builds"
+                    )
+                    return None
+                self._koji_build = run_model.koji_builds[0]
             else:
                 pull_request = self.project.get_pr(self.data.pr_id)
                 self._koji_build = (
                     KojiBuildTargetModel.get_last_successful_scratch_by_commit_target(
-                        pull_request.head_commit, pull_request.target_branch
+                        pull_request.head_commit,
+                        pull_request.target_branch if not self._rawhide_eln_build else "eln",
                     )
                 )
         return self._koji_build
