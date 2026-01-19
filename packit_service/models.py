@@ -3447,32 +3447,40 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             # Flush to get test_run_group.id before using it
             session.flush()
 
-            # lock the run_model in the DB by using SELECT ... FOR UPDATE
-            # all other workers accessing this run_model will block here
-            # until the context is exited
-            locked_run_model = (
-                session.query(PipelineModel).filter_by(id=run_model.id).with_for_update().first()
+            # Attempt to update the existing run_model if test_run_group_id is NULL
+            # This is an atomic operation at the DB level, preventing race conditions
+            # Only one thread will successfully update (updated_count=1)
+            # The other thread will get updated_count=0 and proceed to clone
+            updated_count = (
+                session.query(PipelineModel)
+                .filter_by(id=run_model.id, test_run_group_id=None)
+                .update({"test_run_group_id": test_run_group.id})
             )
 
-            if not locked_run_model:
-                logger.warning(f"PipelineModel with id={run_model.id} not found in DB.")
-                return test_run_group
+            if updated_count == 0:
+                # If 0 rows were updated, it means another thread already set test_run_group_id
+                # So, clone the run model
+                locked_run_model = (
+                    session.query(PipelineModel)
+                    .filter_by(id=run_model.id)
+                    .with_for_update()
+                    .first()
+                )
+                if not locked_run_model:
+                    logger.warning(f"PipelineModel with id={run_model.id} not found in DB.")
+                    return test_run_group
 
-            # Check test_run_group_id directly to avoid stale relationship cache.
-            # The relationship might not be loaded or might be stale from a different session.
-            if locked_run_model.test_run_group_id:
-                # Clone run model
                 new_run_model = PipelineModel()
+                # Add to session first so relationships can be set properly
+                session.add(new_run_model)
                 new_run_model.project_event = locked_run_model.project_event
                 new_run_model.package_name = locked_run_model.package_name
                 new_run_model.srpm_build = locked_run_model.srpm_build
                 new_run_model.copr_build_group = locked_run_model.copr_build_group
                 new_run_model.koji_build_group = locked_run_model.koji_build_group
                 new_run_model.test_run_group_id = test_run_group.id
-                session.add(new_run_model)
-            else:
-                locked_run_model.test_run_group_id = test_run_group.id
-                session.add(locked_run_model)
+            # else: (updated_count == 1) - the current thread successfully set test_run_group_id
+            # No need to do anything further for the existing run_model as it's already updated.
 
             return test_run_group
 
