@@ -2,8 +2,14 @@
 # SPDX-License-Identifier: MIT
 import pytest
 from flexmock import flexmock
+from packit.config.aliases import Distro
 
-from packit_service.utils import only_once, pr_labels_match_configuration
+from packit_service.utils import (
+    aliases,
+    get_default_tf_mapping,
+    only_once,
+    pr_labels_match_configuration,
+)
 
 
 def test_only_once():
@@ -160,3 +166,27 @@ def test_pr_labels_match(absent, present, pr_labels, should_pass):
         pr_labels_match_configuration(flexmock(labels=pr_labels, id=1), present, absent)
         == should_pass
     )
+
+
+@pytest.mark.parametrize(
+    "internal, target, compose",
+    [
+        (False, "epel-8", "centos-stream-8"),
+        (True, "epel-8", "rhel-8"),
+        (False, "epel-9", "centos-stream-9"),
+        (True, "epel-9", "centos-stream-9"),
+        (False, "epel-10", "centos-stream-10"),
+        (True, "epel-10", "centos-stream-10"),
+        (False, "rhel+epel-10", "centos-stream-10"),
+        (True, "rhel+epel-10", "rhel-10.1-nightly"),
+    ],
+)
+def test_get_default_tf_mapping(internal, target, compose):
+    flexmock(aliases).should_receive("get_aliases").and_return(
+        {
+            "epel-all": [Distro("epel-10.1", "epel10.1"), Distro("epel-10.2", "epel10")],
+            "fedora-all": [],
+        },
+    )
+    mapping = get_default_tf_mapping(internal)
+    assert mapping[target] == compose

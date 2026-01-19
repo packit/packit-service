@@ -16,12 +16,18 @@ from typing import Optional
 import requests
 from cachetools.func import ttl_cache
 from ogr.abstract import PullRequest
-from packit.config import JobConfig, PackageConfig
+from packit.config import JobConfig, PackageConfig, aliases
+from packit.config.aliases import Distro
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
 
 from packit_service import __version__ as ps_version
-from packit_service.constants import ELN_EXTRAS_PACKAGE_LIST, ELN_PACKAGE_LIST
+from packit_service.constants import (
+    DEFAULT_MAPPING_INTERNAL_TF,
+    DEFAULT_MAPPING_TF,
+    ELN_EXTRAS_PACKAGE_LIST,
+    ELN_PACKAGE_LIST,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -419,3 +425,18 @@ def get_eln_packages():
             if download_file(url, tmp.name):
                 packages.extend(Path(tmp.name).read_text().splitlines())
     return packages
+
+
+def get_default_tf_mapping(internal: bool = False) -> dict[str, str]:
+    mapping = DEFAULT_MAPPING_INTERNAL_TF if internal else DEFAULT_MAPPING_TF
+    # map branched minor versions of EL 10+ to corresponding composes
+    for alias in aliases.expand_aliases("epel-all"):
+        if not isinstance(alias, Distro) or "." not in alias.branch:
+            continue
+        version = alias.namever.split("-")[1]
+        majorver = version.split(".")[0]
+        [target] = aliases.get_build_targets(alias.branch)
+        mapping[target.rsplit("-", 1)[0]] = (
+            f"rhel-{version}-nightly" if internal else f"centos-stream-{majorver}"
+        )
+    return mapping

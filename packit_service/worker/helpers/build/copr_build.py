@@ -35,8 +35,6 @@ from packit_service.constants import (
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS,
     DASHBOARD_JOBS_TESTING_FARM_PATH,
-    DEFAULT_MAPPING_INTERNAL_TF,
-    DEFAULT_MAPPING_TF,
     DEFAULT_RETRY_LIMIT_OUTAGE,
     GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR,
     MISSING_PERMISSIONS_TO_BUILD_IN_COPR,
@@ -57,7 +55,7 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.utils import elapsed_seconds
+from packit_service.utils import elapsed_seconds, get_default_tf_mapping
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.monitoring import Pushgateway
@@ -333,12 +331,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if configured_distros:
             distro_arch_list = [(distro, arch) for distro in configured_distros]
         else:
-            mapping = (
-                DEFAULT_MAPPING_INTERNAL_TF
-                if test_job_config.use_internal_tf
-                else DEFAULT_MAPPING_TF
+            # if not explicitly configured, try to get the default compose for this target
+            distro = get_default_tf_mapping(internal=test_job_config.use_internal_tf).get(
+                distro, distro
             )
-            distro = mapping.get(distro, distro)
             distro_arch_list = [(distro, arch)]
 
         return {f"{distro}-{arch}" for (distro, arch) in distro_arch_list}
