@@ -58,6 +58,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     sa_session_transaction,
     sync_release_pr_association_table,
+    tf_copr_association_table,
 )
 
 
@@ -210,6 +211,7 @@ def clean_db():
         session.query(PipelineModel).delete()
         session.query(ProjectEventModel).delete()
 
+        session.query(tf_copr_association_table).delete()
         session.query(TFTTestRunTargetModel).delete()
         session.query(TFTTestRunGroupModel).delete()
         session.query(CoprBuildTargetModel).delete()
