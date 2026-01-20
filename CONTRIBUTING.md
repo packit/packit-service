@@ -344,6 +344,289 @@ project, you should first wait for Copr to [build the RPM] for this commit,
 and then retrigger [the last test image build from the main branch] so that
 the new RPM is installed.
 
+## Style Guide
+
+### License information
+
+All code, that is modules, scripts and other executable files,
+must contain a license header, containing SPDX identifier, with wording exactly matching that in `LICENSE_HEADER.txt`.
+
+This includes all `.yaml` files.
+
+### Regular expressions
+
+Any non-trivial regular expressions must be accompanied by documentation,
+explaining their purpose and function. In cases of very complex regular expressions,
+examples of matching strings should be provided.
+
+Regular expressions used in Python code, should be compiled,
+especially if there are to be used more than once.
+
+Complex regular expressions, should have associated test cases,
+verifying behavior.
+
+### Python code
+
+When not specified otherwise, the code should follow standards laid out in PEP 8.
+
+#### Database
+
+Persistent records, such as results of events must be maintained in a database.
+Database tables are defined as SQLalchemy models in `packit_service.models`.
+
+Non-trivial methods of models must include docstrings describing the operation
+and accurate type hints, especially for the returned value, as incorrect type specified
+can lead to complicated run time issues.
+
+Models may implement their own `__repr__` method.
+
+Example:
+
+```python
+def __repr__(self):
+    return (
+        f"GitProjectModel(name={self.namespace}/{self.repo_name}, "
+        f"project_url='{self.project_url}')"
+    )
+```
+
+When records from database are retrieved, their presence must be verified before their use,
+unless such a check is already performed somewhere else.
+
+Columns that are to serve as foreign keys for other tables must have
+a descriptive name.
+
+##### Database migration scripts
+
+Changes to database tables defined in `packit_service.models` must be accompanied by Alembic migration,
+with a revision script placed in `alembic/versions/` path.
+
+The script can be manually edited to account for edge cases or in case existing data requires migration, [example](https://github.com/packit/packit-service/blob/fabffea6a153b505db50232b808d839b5d60a8e8/alembic/versions/70c369f7ba80_add_explicit_mapping_of_tf_to_copr.py#L310).
+
+Script must have a descriptive name. In cases when the script was manually
+edited, or if it contains operations that are not self-explanatory, additional
+comments should be provided within.
+
+#### Docstrings
+
+With exception of trivial cases, all code must contain accurate and sufficiently
+detailed docstrings, formatted with accordance with the PEP 257 standard and in Google-style.
+
+Special emphasis must be placed on any side effects that the code might have.
+
+##### Examples for Google-style docstrings
+
+Functions, arguments, return values, errors raised:
+
+```python
+def check_subpath(
+    subpath: Path, path: Path, ensure_trailing_slash: bool = False
+) -> str:
+    """Check if 'subpath' is a subpath of 'path'
+
+    Args:
+        subpath: Subpath to be checked.
+        path: Path against which subpath is checked.
+
+    Returns:
+        'subpath', resolved, in case it is a subpath of 'path'.
+
+    Raises:
+        PackitException, if 'subpath' is not a subpath of 'path'.
+    """
+```
+
+Generators:
+
+```python
+def iter_srcs(synced_files: Sequence[SyncFilesItem]) -> Iterator[str]:
+    """Iterate over all the src-s in a list of SyncFilesItem
+
+    Args:
+        synced_files: List of SyncFilesItem.
+
+    Yields:
+        src-s from every SyncFilesItem, one by one.
+    """
+```
+
+Classes:
+
+- Document attributes.
+- If `__init__` args are the same as attributes, don't write a docstring for
+  it.
+- `self` doesn't need to be documented as an arg for methods.
+
+```python
+class SyncFilesItem:
+    """Some files to sync to destination
+
+    Think about this as a wrapper around 'rsync'.
+
+    Attributes:
+        src: List of paths to sync.
+        dest: Destination to sync to.
+        mkpath: Create the destination's path component.
+        delete: Delete extra files from dest dirs.
+        filters: List of rsync filters used for syncing.
+    """
+
+    def __init__(
+        self,
+        src: Sequence[Union[str, Path]],
+        dest: Union[str, Path],
+        mkpath: bool = False,
+        delete: bool = False,
+        filters: Optional[List[str]] = None,
+    ):
+        # pathlib.Path has no support for trailing slashes, but
+
+```
+
+#### Logging
+
+All errors and exceptions should be logged, with sufficient information for
+administrators to begin triage.
+
+Default logger configuration should be used, unless there is a substantial reason
+to make an exception.
+
+Logger must be initialized from `logging` library with:
+
+```python
+logging.getLogger(__name__)
+```
+
+#### Events
+
+Packit service performs operations in reaction to events, such as pull requests.
+Events begin as messages, received by Packit service.
+These messages are parsed and resulting objects passed to an appropriate Handler.
+It is the Handler which eventually performs required operation.
+
+The basic life cycle of an event can be described as:
+
+Message --> Parsed Event --> Task Result
+
+Celery task `process_message` passes event data, type and source to the `process_message` class method of the `SteveJobs` class, where an appropriate parser is resolved and event validity checked.
+
+If the `Event` object created by the parser is valid, the `process` method of `SteveJobs` passes the event data to an appropriate handler.
+
+The handler performs any operations that are implemented for the event, and returns a `TaskResult` object.
+
+In some cases, multiple handlers are defined for a single type of event and are used sequentially to create Celery tasks.
+
+Events are implemented as objects in `packit_service.events` namespace. Different types of events have their own modules, with a name reflecting their origin. For example `packit_service.events.testing_farm`.
+
+Modules of events may consist of a single file, in simpler cases, or in more complex cases, split into different submodules. All events must inherit from the `Event` class of the `packit_service.events` module.
+
+Event classes may implement override of the `get_dict` method from the parent, providing additional fields to the returned structure, while preserving those from the parent method.
+
+Example:
+
+```python
+def get_dict(self, default_dict: Optional[dict] = None) -> dict:
+    result = super().get_dict()
+    result["result"] = result["result"].value
+    result["pr_id"] = self.pr_id
+    return result
+```
+
+All events need to have an associated parser implemented, as a static method of the `Parser` class in the `packit_service.worker.parser` module.
+
+Parsers process dictionaries and must either return a parsed object,
+or `None`, if the dictionary doesn't satisfy conditions specific to the event.
+In cases when parser returns `None`, a warning must be logged.
+
+Additional logging statements should be included to provide information about the event
+being processed by the parser.
+
+Example:
+
+```python
+@staticmethod
+def parse_openscanhub_task_started_event(
+    event,
+) -> Optional[openscanhub.task.Started]:
+    if "openscanhub.task.started" not in event.get("topic", ""):
+        return None
+
+    task_id = event.get("task_id")
+    logger.info(f"OpenScanHub task: {task_id} started.")
+
+    event = openscanhub.task.Started(task_id=task_id)
+    if not event.build:
+        logger.warning(
+            "OpenScanHub task.started is missing association with build. "
+            "Package config can not be resolved without it. "
+            "Skipping the event.",
+        )
+        return None
+    return event
+```
+
+Parser methods of the `Parser` class are referenced both in the `MAPPING` attribute and the `parse_event` method.
+
+#### Handlers
+
+Actions performed by Packit, such as scheduling or reporting test results, have handlers,
+implemented as subclasses of `Handler` in `packit_service.worker.handlers`.
+Handlers are grouped based on what type of action they perform, such as `packit_service.worker.handlers.testing_farm`.
+Each handler must have `run` method defined, returning a `TaskResults` object.
+
+Example:
+
+```python
+def run(self) -> TaskResults:
+    self.packit_api.sync_from_downstream(
+        dist_git_branch=self.dg_branch,
+        upstream_branch=self.project_to_sync.branch,
+        sync_only_specfile=True,
+    )
+    return TaskResults(success=True, details={})
+
+```
+
+##### Handler class decorators
+
+Class decorators defined in `packit_service.worker.handlers.abstract` are used to specify events configuration and other criteria determining which handler should be used.
+
+Decorators add handlers and events into associated global dictionaries from
+`packit_service.worker.handlers.abstract`, such as `MAP_COMMENT_TO_HANDLER`.
+
+These maps are used by `SteveJobs` to resolve handlers for events.
+
+For example:
+
+- `configured_as`: a job type
+- `reacts_to`: an event
+- `reacts_to_as_fedora_ci`: an event as Fedora CI
+- `run_for_comment`: command in comment
+- `run_for_comment_as_fedora_ci`: command in comment as Fedora CI
+- `run_for_check_rerun`: check prefix
+
+Multiple decorators are often used for a single handler.
+
+##### Handler mixins
+
+Handlers can use mixins, to provide methods required for their purpose, such as `ConfigFromEventMixin`.
+
+#### Tests
+
+New code must be covered by some form of automated tests and should be written
+in a way that is conducive to testing when possible.
+
+Tests that do not require presence of a cluster during execution, that is unit and integration
+tests, must be placed in `tests/unit` or `tests/integration` path.
+
+If a test does require presence of a cluster, it must be placed in the `tests_openshift/database`
+or `tests_openshift/service` path.
+
+Data used for testing must be placed in a `data` directory, for example `tests/data`.
+
+All test cases must have a descriptive name and all non-trivial test cases must
+contain a docstring, explaining their purpose.
+
 ---
 
 Thank you for your interest!
