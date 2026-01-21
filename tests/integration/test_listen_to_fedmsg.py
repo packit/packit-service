@@ -2944,56 +2944,56 @@ def test_koji_build_end_downstream(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/5",
-        check_name="Packit - installability test(s)",
+        check_name="Packit - installability",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/5",
-        check_name="Packit - installability test(s)",
+        check_name="Packit - installability",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/6",
-        check_name="Packit - custom test(s)",
+        check_name="Packit - custom",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/6",
-        check_name="Packit - custom test(s)",
+        check_name="Packit - custom",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/7",
-        check_name="Packit - rpminspect test(s)",
+        check_name="Packit - rpminspect",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/7",
-        check_name="Packit - rpminspect test(s)",
+        check_name="Packit - rpminspect",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/8",
-        check_name="Packit - rpmlint test(s)",
+        check_name="Packit - rpmlint",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/8",
-        check_name="Packit - rpmlint test(s)",
+        check_name="Packit - rpmlint",
         target_branch="rawhide",
     ).once()
 

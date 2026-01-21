@@ -301,7 +301,7 @@ def test_downstream_testing_farm_response(
         state=status_status,
         description=status_message,
         url="some url",
-        check_name="Packit - installability test(s)",
+        check_name="Packit - installability",
         target_branch="rawhide",
     ).once()
 

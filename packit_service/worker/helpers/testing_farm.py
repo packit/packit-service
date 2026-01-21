@@ -1356,7 +1356,7 @@ class DownstreamTestingFarmJobHelper:
 
     @staticmethod
     def get_check_name(test_name: str) -> str:
-        return f"Packit - {test_name} test(s)"
+        return f"Packit - {test_name}"
 
     def report(
         self,
