@@ -185,6 +185,12 @@ class Pushgateway:
             ),
         )
 
+        self.rate_limited_tasks_enqueued = Counter(
+            "rate_limited_tasks_enqueued",
+            "Number of tasks enqueued to the rate-limited queue",
+            registry=self.registry,
+        )
+
     def push(self):
         if not (self.pushgateway_address and self.worker_name):
             logger.debug("Pushgateway address or worker name not defined.")

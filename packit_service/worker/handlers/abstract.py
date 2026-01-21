@@ -499,12 +499,10 @@ class JobHandler(Handler):
             logger.warning("No current task found, skipping rate limit check.")
             return
         try:
-            project = self.project
-        except (OgrException, PackitConfigException) as ex:
+            if not (project := self.project):
+                raise ValueError("There is no project associated with the task")
+        except (ValueError, OgrException, PackitConfigException) as ex:
             logger.warning(f"Failed to get project for rate limit check: {ex}")
-            return
-        if not project:
-            logger.warning("Failed to get project for rate limit check")
             return
         remaining = project.service.get_rate_limit_remaining()
         if remaining and remaining < RATE_LIMIT_THRESHOLD:
@@ -528,13 +526,15 @@ class JobHandler(Handler):
                 f"which is below the threshold of {RATE_LIMIT_THRESHOLD}. "
                 "enqueuing task to the rate-limited queue."
             )
+            # Increment the metric for tasks enqueued to the rate-limited queue
+            self.pushgateway.rate_limited_tasks_enqueued.inc()
             # Use apply_async to reschedule the task to the rate-limited queue
             # retry() isn't working, the chosen queue is the one defined in the task definition,
             # not the one passed to retry()
-            task_name_raw = celery_task.name
-            task_name = (
-                task_name_raw.value if isinstance(task_name_raw, TaskName) else str(task_name_raw)
-            )
+            try:
+                task_name = celery_task.name.value
+            except AttributeError:
+                task_name = str(celery_task.name)
             task_kwargs = celery_task.request.kwargs.copy()
             task_signature = signature(
                 task_name,
