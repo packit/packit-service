@@ -6,6 +6,7 @@ We love you, Steve Jobs.
 """
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from re import match
@@ -19,6 +20,10 @@ from packit.utils import nested_get
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
+    HELP_COMMENT_DESCRIPTION,
+    HELP_COMMENT_EPILOG,
+    HELP_COMMENT_PROG,
+    HELP_COMMENT_PROG_FEDORA_CI,
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
@@ -36,6 +41,8 @@ from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import (
     elapsed_seconds,
     get_packit_commands_from_comment,
+    get_pr_comment_parser,
+    get_pr_comment_parser_fedora_ci,
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
@@ -89,59 +96,109 @@ logger = logging.getLogger(__name__)
 MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, github.check.Rerun]
 
 
-def get_handlers_for_comment(
+@dataclass
+class ParsedComment:
+    command: Optional[str] = None
+    package: Optional[str] = None
+
+
+def parse_comment(
     comment: str,
     packit_comment_command_prefix: str,
-) -> set[type[JobHandler]]:
+) -> ParsedComment:
     """
-    Get handlers for the given command respecting packit_comment_command_prefix.
+    Get arguments from the given comment respecting `packit_comment_command_prefix`.
 
     Args:
         comment: comment we are reacting to
         packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
 
     Returns:
-        Set of handlers that are triggered by a comment.
+        `ParsedComment` storing command and a monorepo package, if specified.
+
+        For example: If the comment is `/packit build --commit 123 --package best-package-ever`,
+        it would return `ParsedComment(command="build", package="best-package-ever")`
+        Other arguments are ignored because they are handled separately by job handlers
     """
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
     if not commands:
+        return ParsedComment()
+
+    if comment.startswith("/packit-ci"):
+        parser = get_pr_comment_parser_fedora_ci(
+            prog=HELP_COMMENT_PROG_FEDORA_CI,
+            description=HELP_COMMENT_DESCRIPTION,
+            epilog=HELP_COMMENT_EPILOG,
+        )
+    else:
+        parser = get_pr_comment_parser(
+            prog=HELP_COMMENT_PROG,
+            description=HELP_COMMENT_DESCRIPTION,
+            epilog=HELP_COMMENT_EPILOG,
+        )
+
+    try:
+        args = parser.parse_args(commands)
+        return ParsedComment(command=args.command, package=args.package)
+    except SystemExit:
+        # tests expect invalid syntax comments be ignored
+        logger.debug(
+            f"Comment {comment} uses unexpected syntax or contains unsupported commands. "
+            "It will be ignored.",
+        )
+        return ParsedComment()
+
+
+def get_handlers_for_command(
+    command: str,
+) -> set[type[JobHandler]]:
+    """
+    Get handlers for the given command.
+
+    Args:
+        command: command to get handler to
+
+    Returns:
+        Set of handlers that are triggered by command.
+    """
+    if not command:
         return set()
 
-    handlers = MAP_COMMENT_TO_HANDLER[commands[0]]
+    handlers = MAP_COMMENT_TO_HANDLER[command]
     if not handlers:
-        logger.debug(f"Command {commands[0]} not supported by packit.")
+        logger.debug(f"Command {command} not supported by packit.")
     return handlers
 
 
-def get_handlers_for_comment_fedora_ci(
-    comment: str,
-    packit_comment_command_prefix: str,
+def get_handlers_for_command_fedora_ci(
+    command: str,
 ) -> set[type[FedoraCIJobHandler]]:
     """
-    Get handlers for the given Fedora CI command respecting packit_comment_command_prefix.
+    Get handlers for the given command.
 
     Args:
-        comment: comment we are reacting to
-        packit_comment_command_prefix: `/packit-ci` for prod or `/packit-ci-stg` for stg
+        command: command to get handler to
 
     Returns:
-        Set of handlers that are triggered by a comment.
+        Set of handlers for Fecora CI that are triggered by command.
     """
+    if not command:
+        return set()
+
+    handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[command]
+    if not handlers:
+        logger.debug(f"Command {command} not supported by packit.")
+    return handlers
+
+
+def replace_packit_comment_command_prefix(
+    packit_comment_command_prefix: str,
+) -> str:
     # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
     # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
     if packit_comment_command_prefix.endswith("-stg"):
-        packit_comment_command_prefix = "/packit-ci-stg"
-    else:
-        packit_comment_command_prefix = "/packit-ci"
-
-    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
-    if not commands:
-        return set()
-
-    handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[commands[0]]
-    if not handlers:
-        logger.debug(f"Command {commands[0]} not supported by packit.")
-    return handlers
+        return "/packit-ci-stg"
+    return "/packit-ci"
 
 
 def get_handlers_for_check_rerun(check_name_job: str) -> set[type[JobHandler]]:
@@ -477,30 +534,32 @@ class SteveJobs:
         Returns:
             Whether the Packit configuration is present in the repo.
         """
-        if isinstance(self.event, abstract.comment.CommentEvent) and (
-            handlers := get_handlers_for_comment(
+        if isinstance(self.event, abstract.comment.CommentEvent):
+            arguments = parse_comment(
                 self.event.comment,
-                packit_comment_command_prefix=self.service_config.comment_command_prefix,
+                self.service_config.comment_command_prefix,
             )
-        ):
-            # we require packit config file when event is triggered by /packit command
-            # but not when it is triggered through an issue in the issues repository
-            dist_git_package_config = None
-            if (
-                isinstance(self.event, abstract.comment.Issue)
-                # for propose-downstream we want to load the package config
-                # from upstream repo
-                and ProposeDownstreamHandler not in handlers
-                and (dist_git_package_config := self.search_distgit_config_in_issue())
-            ):
-                (
-                    self.event.dist_git_project_url,
-                    self.event._package_config,
-                ) = dist_git_package_config
-                return True
+            command = arguments.command
 
-            if not dist_git_package_config:
-                self.event.fail_when_config_file_missing = True
+            if handlers := get_handlers_for_command(command):
+                # we require packit config file when event is triggered by /packit command
+                # but not when it is triggered through an issue in the issues repository
+                dist_git_package_config = None
+                if (
+                    isinstance(self.event, abstract.comment.Issue)
+                    # for propose-downstream we want to load the package config
+                    # from upstream repo
+                    and ProposeDownstreamHandler not in handlers
+                    and (dist_git_package_config := self.search_distgit_config_in_issue())
+                ):
+                    (
+                        self.event.dist_git_project_url,
+                        self.event._package_config,
+                    ) = dist_git_package_config
+                    return True
+
+                if not dist_git_package_config:
+                    self.event.fail_when_config_file_missing = True
 
         # False happens when service receives events for repos which don't have packit config
         # success=True - it's not an error that people don't have packit.yaml in their repo
@@ -514,12 +573,19 @@ class SteveJobs:
             A list of task results for each task created.
         """
         handlers_triggered_by_job = None
+        # [XXX] if there are ever monorepos in Fedora CI…
+        # monorepo_package = None
 
         if isinstance(self.event, abstract.comment.CommentEvent):
-            handlers_triggered_by_job = get_handlers_for_comment_fedora_ci(
+            arguments = parse_comment(
                 self.event.comment,
-                self.service_config.comment_command_prefix,
+                replace_packit_comment_command_prefix(self.service_config.comment_command_prefix),
             )
+
+            # [XXX] if there are ever monorepos in Fedora CI…
+            # monorepo_package = arguments.package
+            command = arguments.command
+            handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
 
         matching_handlers = {
             handler
@@ -543,6 +609,10 @@ class SteveJobs:
                 event=self.event.get_dict(),
             ):
                 continue
+
+            # [XXX] if there are ever monorepos in Fedora CI…
+            # if monorepo_package and handler_kls.job_config.package == monorepo_package:
+            #     continue
 
             self.report_task_accepted_for_fedora_ci(handler_kls)
 
@@ -578,19 +648,26 @@ class SteveJobs:
         Returns:
             List of the results of each task.
         """
+        monorepo_package = None
         if isinstance(
             self.event,
             abstract.comment.CommentEvent,
-        ) and not get_handlers_for_comment(
-            self.event.comment,
-            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         ):
-            return [
-                TaskResults(
-                    success=True,
-                    details={"msg": "No Packit command found in the comment."},
-                ),
-            ]
+            arguments = parse_comment(
+                self.event.comment,
+                self.service_config.comment_command_prefix,
+            )
+
+            monorepo_package = arguments.package
+            command = arguments.command
+
+            if not get_handlers_for_command(command):
+                return [
+                    TaskResults(
+                        success=True,
+                        details={"msg": "No Packit command found in the comment."},
+                    ),
+                ]
 
         if not self.is_packit_config_present():
             return [
@@ -602,7 +679,7 @@ class SteveJobs:
                 ),
             ]
 
-        handler_classes = self.get_handlers_for_event()
+        handler_classes = self.get_handlers_for_event(monorepo_package)
 
         if not handler_classes:
             logger.debug(
@@ -619,6 +696,7 @@ class SteveJobs:
             # so we don't need to go through the similar process twice.
             job_configs = self.get_config_for_handler_kls(
                 handler_kls=handler_kls,
+                monorepo_package=monorepo_package,
             )
 
             # check allowlist approval for every job to be able to track down which jobs
@@ -853,7 +931,10 @@ class SteveJobs:
 
         return matching_jobs
 
-    def get_jobs_matching_event(self) -> list[JobConfig]:
+    def get_jobs_matching_event(
+        self,
+        monorepo_package: Optional[str] = None,
+    ) -> list[JobConfig]:
         """
         Get list of non-duplicated all jobs that matches with event's trigger.
 
@@ -891,6 +972,13 @@ class SteveJobs:
 
         jobs_matching_trigger.extend(self.check_explicit_matching())
 
+        if monorepo_package:
+            jobs_matching_trigger = [
+                job
+                for job in jobs_matching_trigger
+                if isinstance(job, JobConfigView) and job.package == monorepo_package
+            ]
+
         return jobs_matching_trigger
 
     def get_handlers_for_comment_and_rerun_event(self) -> set[type[JobHandler]]:
@@ -907,10 +995,13 @@ class SteveJobs:
         handlers_triggered_by_job = None
 
         if isinstance(self.event, abstract.comment.CommentEvent):
-            handlers_triggered_by_job = get_handlers_for_comment(
+            arguments = parse_comment(
                 self.event.comment,
                 self.service_config.comment_command_prefix,
             )
+
+            command = arguments.command
+            handlers_triggered_by_job = get_handlers_for_command(command)
 
             if handlers_triggered_by_job and not isinstance(
                 self.event,
@@ -925,7 +1016,10 @@ class SteveJobs:
 
         return handlers_triggered_by_job
 
-    def get_handlers_for_event(self) -> set[type[JobHandler]]:
+    def get_handlers_for_event(
+        self,
+        monorepo_package: Optional[str] = None,
+    ) -> set[type[JobHandler]]:
         """
         Get all handlers that we need to run for the given event.
 
@@ -940,7 +1034,7 @@ class SteveJobs:
             Set of handler instances that we need to run for given event and user configuration.
         """
 
-        jobs_matching_trigger = self.get_jobs_matching_event()
+        jobs_matching_trigger = self.get_jobs_matching_event(monorepo_package)
 
         handlers_triggered_by_job = self.get_handlers_for_comment_and_rerun_event()
 
@@ -993,6 +1087,7 @@ class SteveJobs:
     def get_config_for_handler_kls(
         self,
         handler_kls: type[JobHandler],
+        monorepo_package: Optional[str] = None,
     ) -> list[JobConfig]:
         """
         Get a list of JobConfigs relevant to event and the handler class.
@@ -1014,7 +1109,7 @@ class SteveJobs:
             List of JobConfigs relevant to the given handler and event
             preserving the order in the config.
         """
-        jobs_matching_trigger: list[JobConfig] = self.get_jobs_matching_event()
+        jobs_matching_trigger: list[JobConfig] = self.get_jobs_matching_event(monorepo_package)
 
         matching_jobs: list[JobConfig] = [
             job for job in jobs_matching_trigger if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]
