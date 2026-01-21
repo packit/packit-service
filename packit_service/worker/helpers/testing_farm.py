@@ -7,7 +7,7 @@ import shlex
 from collections.abc import Iterable
 from typing import Any, Callable, Optional, Union
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitConfigException
@@ -1279,6 +1279,7 @@ class DownstreamTestingFarmJobHelper:
         self.celery_task = celery_task
         self._tft_client: Optional[TestingFarmClient] = None
         self._ci_helper: Optional[FedoraCIHelper] = None
+        self._pr: Optional[PullRequest] = None
 
     @property
     def koji_helper(self):
@@ -1353,6 +1354,12 @@ class DownstreamTestingFarmJobHelper:
                 target_branch=self.koji_build.target,
             )
         return self._ci_helper
+
+    @property
+    def pr(self) -> PullRequest:
+        if not self._pr:
+            self._pr = self.project.get_pr(self.metadata.pr_id)
+        return self._pr
 
     @staticmethod
     def get_check_name(test_name: str) -> str:
@@ -1524,9 +1531,7 @@ class DownstreamTestingFarmJobHelper:
         payload = self._get_tf_base_payload(distro, compose)
         payload["test"] = {
             "tmt": {
-                "url": self.project.get_pr(self.metadata.pr_id)
-                .source_project.get_git_urls()
-                .get("git"),
+                "url": self.pr.source_project.get_git_urls().get("git"),
                 "ref": self.metadata.commit_sha,
             },
         }
@@ -1543,6 +1548,7 @@ class DownstreamTestingFarmJobHelper:
         # this has to be specified at the api request level.
         # TODO: Revisit when 0.2 testing-farm API is decided
         os_params = {"os": {"compose": compose}} if compose else {}
+        dist_git_branch = self.pr.target_branch
         return {
             "environments": [
                 {
@@ -1560,6 +1566,7 @@ class DownstreamTestingFarmJobHelper:
                             "arch": "x86_64",
                             "trigger": "commit",
                             "initiator": "fedora-ci",
+                            "dist-git-branch": dist_git_branch,
                         }
                     },
                 },
