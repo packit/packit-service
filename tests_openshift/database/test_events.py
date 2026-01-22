@@ -481,7 +481,7 @@ def test_filter_failed_models_targets_copr(
     assert len(builds_list) == 3
 
     # these targets should be different
-    assert builds_list[0].target != builds_list[2].target
+    assert builds_list[0].target != builds_list[1].target
     # 2 builds with failed status and one with success
     builds_list[0].set_status(BuildStatus.failure)
     builds_list[1].set_status(BuildStatus.failure)
