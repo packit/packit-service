@@ -31,6 +31,23 @@ class StatusReporterGithubStatuses(StatusReporter):
             mapped_state = CommitStatus.pending
         return mapped_state
 
+    @staticmethod
+    def _is_transient_github_error(exception: GithubAPIException) -> bool:
+        """
+        Check if a GitHub API error is transient.
+
+        Transient errors include:
+        - Network errors (without HTTP response code)
+        - Rate limiting errors (429) - usually handled by ogr, rarely reach this code
+        - Server errors (5xx)
+        """
+        if not hasattr(exception, "response_code") or exception.response_code is None:
+            # Network error without HTTP response code - assume transient
+            return True
+
+        code = exception.response_code
+        return code == 429 or (500 <= code < 600)
+
     def set_status(
         self,
         state: BaseCommitStatus,
@@ -58,6 +75,12 @@ class StatusReporterGithubStatuses(StatusReporter):
                 trim=True,
             )
         except GithubAPIException as e:
+            if self._is_transient_github_error(e) and self.reraise_transient_errors:
+                logger.debug(
+                    f"Re-raising transient GitHub API error when setting "
+                    f"status for '{check_name}': {e}."
+                )
+                raise
             self._comment_as_set_status_fallback(e, state, description, check_name, url)
 
 
@@ -137,6 +160,12 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
                 output=create_github_check_run_output(description, summary),
             )
         except GithubAPIException as e:
+            if self._is_transient_github_error(e) and self.reraise_transient_errors:
+                logger.debug(
+                    f"Re-raising transient GitHub API error when setting "
+                    f"status for '{check_name}': {e}."
+                )
+                raise
             logger.debug(
                 f"Failed to set status check, setting status as a fallback: {e!s}",
             )
