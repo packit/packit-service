@@ -2764,6 +2764,7 @@ def test_koji_build_end_downstream(
         },
     }
 
+    flexmock(aliases).should_receive("get_aliases").and_return({"fedora-all": [], "epel-all": []})
     flexmock(aliases).should_receive("get_build_targets").with_args("rawhide").and_return(
         ["fedora-rawhide-x86_64"]
     )

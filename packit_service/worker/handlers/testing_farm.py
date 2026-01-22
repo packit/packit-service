@@ -16,7 +16,6 @@ from packit.config import JobConfig, JobType, aliases
 from packit.config.package_config import PackageConfig
 
 from packit_service.config import ServiceConfig
-from packit_service.constants import DEFAULT_MAPPING_TF
 from packit_service.events import (
     abstract,
     github,
@@ -39,7 +38,7 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
     get_testing_farm_info_url,
 )
-from packit_service.utils import elapsed_seconds
+from packit_service.utils import elapsed_seconds, get_default_tf_mapping
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
     PackageNeedsELNBuildFromRawhide,
@@ -431,7 +430,7 @@ class DownstreamTestingFarmHandler(
         # convert dist-git branch to distro
         [target] = aliases.get_build_targets(self.koji_build.target)
         distro = target.rsplit("-", 1)[0]
-        distro = DEFAULT_MAPPING_TF.get(distro, distro)
+        distro = get_default_tf_mapping(internal=False).get(distro, distro)
 
         runs = []
         for test in fedora_ci_tests:
