@@ -61,11 +61,15 @@ class StatusReporterGitlab(StatusReporter):
             )
         except GitlabAPIException as e:
             logger.debug(f"Failed to set the status: {e}. Response code: {e.response_code}")
-            # Ignoring Gitlab error regarding reporting a status of the same state
+
+            # Special case: Ignore "Cannot transition status" errors
             # https://github.com/packit-service/packit-service/issues/741
-            if e.response_code != 400 or "Cannot transition status" not in str(e):
-                # 403: No permissions to set status, falling back to comment
-                # 404: Commit has not been found, e.g. used target project on GitLab
-                self._comment_as_set_status_fallback(e, state, description, check_name, url)
-            if e.response_code not in {400, 403, 404}:
+            if e.response_code == 400 and "Cannot transition status" in str(e):
+                return
+
+            # Check if error is transient and reraise is enabled
+            if self.is_transient_error(e) and self.reraise_transient_errors:
                 raise
+
+            # Fall back to comment for all other errors
+            self._comment_as_set_status_fallback(e, state, description, check_name, url)

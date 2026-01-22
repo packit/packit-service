@@ -58,6 +58,12 @@ class StatusReporterGithubStatuses(StatusReporter):
                 trim=True,
             )
         except GithubAPIException as e:
+            if self.is_transient_error(e) and self.reraise_transient_errors:
+                logger.debug(
+                    f"Re-raising transient GitHub API error when setting "
+                    f"status for '{check_name}': {e}."
+                )
+                raise
             self._comment_as_set_status_fallback(e, state, description, check_name, url)
 
 
@@ -137,6 +143,12 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
                 output=create_github_check_run_output(description, summary),
             )
         except GithubAPIException as e:
+            if self.is_transient_error(e) and self.reraise_transient_errors:
+                logger.debug(
+                    f"Re-raising transient GitHub API error when setting "
+                    f"status for '{check_name}': {e}."
+                )
+                raise
             logger.debug(
                 f"Failed to set status check, setting status as a fallback: {e!s}",
             )
