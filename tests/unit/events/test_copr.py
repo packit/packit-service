@@ -34,12 +34,12 @@ def copr_models():
     latest_time = datetime.utcnow()
     copr = flexmock(CoprBuildTargetModel).new_instances().mock()
     copr.build_id = "1"
-    copr.build_submitted_time = time
+    copr.submitted_time = time
     copr.target = "target"
 
     another_copr = flexmock(CoprBuildTargetModel).new_instances().mock()
     another_copr.build_id = "2"
-    another_copr.build_submitted_time = latest_time
+    another_copr.submitted_time = latest_time
     another_copr.target = "target"
 
     yield [copr, another_copr]
@@ -143,7 +143,7 @@ def test_parse_copr_build_event_end(copr_build_results_end, copr_build_pr):
 def test_get_most_recent_targets(copr_models, tf_models):
     latest_copr_models = get_most_recent_targets(copr_models)
     assert len(latest_copr_models) == 1
-    assert datetime.utcnow() - latest_copr_models[0].build_submitted_time < timedelta(
+    assert datetime.utcnow() - latest_copr_models[0].submitted_time < timedelta(
         seconds=2,
     )
 

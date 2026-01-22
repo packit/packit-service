@@ -84,7 +84,7 @@ def test_get_logs(client):
     )
     copr_build_mock.build_logs_url = "https://localhost:5000/build/2/foo-1-x86_64/logs"
     copr_build_mock.owner = "packit"
-    copr_build_mock.build_submitted_time = datetime(
+    copr_build_mock.submitted_time = datetime(
         year=2020,
         month=1,
         day=1,

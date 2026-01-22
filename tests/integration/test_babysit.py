@@ -74,7 +74,7 @@ def test_check_copr_build_already_successful():
         [
             flexmock(
                 status=BuildStatus.success,
-                build_submitted_time=datetime.datetime.utcnow(),
+                submitted_time=datetime.datetime.utcnow(),
             ),
         ],
     )
@@ -127,7 +127,7 @@ def test_check_copr_build_updated(
         flexmock(
             build_id="55",
             status=build_status,
-            build_submitted_time=datetime.datetime.utcnow(),
+            submitted_time=datetime.datetime.utcnow(),
             target="the-target",
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
@@ -211,7 +211,7 @@ def test_check_copr_build_waiting_started(add_pull_request_event_with_sha_123456
         flexmock(
             build_id="55",
             status=BuildStatus.waiting_for_srpm,
-            build_submitted_time=datetime.datetime.utcnow(),
+            submitted_time=datetime.datetime.utcnow(),
             target="the-target",
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
@@ -297,7 +297,7 @@ def test_check_copr_build_waiting_srpm_failed(add_pull_request_event_with_sha_12
         flexmock(
             build_id="55",
             status=BuildStatus.waiting_for_srpm,
-            build_submitted_time=datetime.datetime.utcnow(),
+            submitted_time=datetime.datetime.utcnow(),
             target="the-target",
             identifier="the-identifier",
             owner="the-owner",
@@ -405,7 +405,7 @@ def test_check_copr_build_waiting_already_started(
         flexmock(
             build_id="55",
             status=BuildStatus.waiting_for_srpm,
-            build_submitted_time=datetime.datetime.utcnow(),
+            submitted_time=datetime.datetime.utcnow(),
             target="the-target",
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
@@ -526,7 +526,7 @@ def test_check_update_copr_builds_timeout():
     build = flexmock(
         status=BuildStatus.pending,
         build_id="1",
-        build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
+        submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
     )
     build.should_receive("set_status").with_args(BuildStatus.error).once()
 
