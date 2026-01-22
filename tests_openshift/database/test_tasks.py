@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import threading
+from datetime import datetime
 
 import pytest
 from celery.canvas import Signature
@@ -357,6 +358,7 @@ def test_testing_farm_race_condition_concurrent_identifiers(
             handler_instance.data = flexmock(
                 db_project_event=fresh_project_event,
                 commit_sha="4f4403b44107aae0b820f2a940623d3fa54dfcb6",
+                task_accepted_time=datetime.now(),
             )
             handler_instance._project = flexmock(
                 get_web_url=lambda: "https://github.com/test-namespace/test-repo"

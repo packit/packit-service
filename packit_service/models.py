@@ -159,17 +159,6 @@ def optional_timestamp(datetime_object: Optional[datetime]) -> Optional[int]:
     return None if datetime_object is None else int(datetime_object.timestamp())
 
 
-def get_submitted_time_from_model(
-    model: Union["CoprBuildTargetModel", "TFTTestRunTargetModel", "LogDetectiveRunModel"],
-) -> datetime:
-    # TODO: unify `submitted_name` (or better -> create for both models `task_accepted_time`)
-    # to delete this mess plz
-    try:
-        return model.build_submitted_time  # type: ignore[union-attr]
-    except AttributeError:
-        return model.submitted_time  # type: ignore[union-attr]
-
-
 @overload
 def get_most_recent_targets(
     models: Iterable["CoprBuildTargetModel"],
@@ -212,11 +201,10 @@ def get_most_recent_targets(
     """
     most_recent_models: dict = {}
     for model in models:
-        submitted_time_of_current_model = get_submitted_time_from_model(model)
         if (
             most_recent_models.get((model.target, model.identifier)) is None
-            or get_submitted_time_from_model(most_recent_models[(model.target, model.identifier)])
-            < submitted_time_of_current_model
+            or most_recent_models[(model.target, model.identifier)].submitted_time
+            < model.submitted_time
         ):
             most_recent_models[(model.target, model.identifier)] = model
 
@@ -2141,7 +2129,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     task_accepted_time = Column(DateTime)
     # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
     # so it will run when the copr build is initiated, not when the table is made
-    build_submitted_time = Column(DateTime, default=datetime.utcnow)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
 
@@ -2418,9 +2406,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
-        return (
-            f"CoprBuildTargetModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
-        )
+        return f"CoprBuildTargetModel(id={self.id}, submitted_time={self.submitted_time})"
 
     def add_scan(self, task_id: int) -> "OSHScanModel":
         with sa_session_transaction(commit=True) as session:
@@ -3539,6 +3525,8 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     # so it will run when the model is initiated, not when the table is made
     submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
+    # for monitoring: time when we set the status about accepted task
+    task_accepted_time = Column(DateTime)
     tft_test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"), index=True)
 
     copr_builds = relationship(
@@ -3596,9 +3584,26 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         web_url: Optional[str] = None,
         data: Optional[dict] = None,
         identifier: Optional[str] = None,
+        task_accepted_time: Optional[datetime] = None,
         copr_build_targets: Optional[list[CoprBuildTargetModel]] = None,
         koji_build_targets: Optional[list[KojiBuildTargetModel]] = None,
     ) -> "TFTTestRunTargetModel":
+        """Create new instance of TFTTestRunTargetModel and commit the change to the database.
+
+        Args:
+            pipeline_id: identifier of the Testing Farm pipeline
+            status: state of Testing Farm job
+            target: build architecture
+            test_run_group: group of Testing Farm runs
+            web_url: URL of the project
+            data: Additional data about executed tests
+            identifier: identifier from configuration
+            task_accepted_time: time when Testing farm accepted the task
+            copr_build_targets: related copr builds
+            koji_build_targets: related koji builds
+        Returns:
+            'TFTTestRunTargetModel' object
+        """
         with sa_session_transaction(commit=True) as session:
             test_run = cls()
             test_run.pipeline_id = pipeline_id
@@ -3607,6 +3612,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
             test_run.target = target
             test_run.web_url = web_url
             test_run.data = data
+            test_run.task_accepted_time = task_accepted_time
             if copr_build_targets:
                 test_run.copr_builds.extend(copr_build_targets)
             if koji_build_targets:
@@ -4574,6 +4580,8 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     # interface server https://github.com/fedora-copr/logdetective-packit
     analysis_id = Column(String, unique=True, nullable=False)
     build_system = Column(Enum(LogDetectiveBuildSystem))
+    # for monitoring: time when we set the status about accepted task
+    task_accepted_time = Column(DateTime)
 
     # In both cases, we don't need to keep Log Detective analysis
     # for a build that doesn't exist anymore.
@@ -4681,7 +4689,23 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         log_detective_run_group: "LogDetectiveRunGroupModel",
         log_detective_response: Optional[dict] = None,
         identifier: Optional[str] = None,
+        task_accepted_time: Optional[datetime] = None,
     ) -> "LogDetectiveRunModel":
+        """Create new instance of LogDetectiveRunModel and commit the change to the database.
+
+        Args:
+            status: state of Log Detective analysis
+            target_build: identifier of the target build
+            target: build architecture
+            build_system: system providing the build
+            log_detective_analysis_id: unique identifier of Log Detective analysis
+            log_detective_run_group: "LogDetectiveRunGroupModel"
+            log_detective_response: results of Log Detective analysis
+            identifier: identifier from configuration
+            task_accepted_time: time when Log Detective accepted the task
+        Returns:
+            'LogDetectiveRunModel' object
+        """
         with sa_session_transaction(commit=True) as session:
             log_detective_run = cls()
             log_detective_run.status = status
@@ -4690,6 +4714,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             log_detective_run.build_system = build_system
             log_detective_run.analysis_id = log_detective_analysis_id
             log_detective_run.identifier = identifier
+            log_detective_run.task_accepted_time = task_accepted_time
             if log_detective_response:
                 log_detective_run.log_detective_response = log_detective_response
             log_detective_run_group.log_detective_run_targets.append(log_detective_run)

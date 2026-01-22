@@ -494,7 +494,7 @@ def test_filter_failed_models_targets_copr(
 
     assert len(filtered_models) == 2  # we don't do duplicate models here
 
-    most_recent_duplicate = max(builds_list[:2], key=attrgetter("build_submitted_time"))
+    most_recent_duplicate = max(builds_list[:2], key=attrgetter("submitted_time"))
     assert (most_recent_duplicate.target, most_recent_duplicate.identifier) in filtered_models
 
 

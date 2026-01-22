@@ -200,6 +200,7 @@ class TestingFarmHandler(
                     # In _payload() we ask TF to test commit_sha of fork (PR's source).
                     # Store original url. If this proves to work, make it a separate column.
                     data={"base_project_url": self.project.get_web_url()},
+                    task_accepted_time=self.data.task_accepted_time,
                 ),
             )
 
@@ -446,6 +447,7 @@ class DownstreamTestingFarmHandler(
                     # In _payload() we ask TF to test commit_sha of fork (PR's source).
                     # Store original url. If this proves to work, make it a separate column.
                     data={"base_project_url": self.project.get_web_url(), "fedora_ci_test": test},
+                    task_accepted_time=self.data.task_accepted_time,
                 ),
             )
         return group, runs
@@ -589,11 +591,12 @@ class TestingFarmResultsHandler(
             self.pushgateway.test_runs_started.inc()
         else:
             self.pushgateway.test_runs_finished.inc()
-            test_run_time = elapsed_seconds(
-                begin=test_run_model.submitted_time,
-                end=datetime.now(timezone.utc),
-            )
-            self.pushgateway.test_run_finished_time.observe(test_run_time)
+            if test_run_model.task_accepted_time:
+                test_run_time = elapsed_seconds(
+                    begin=test_run_model.task_accepted_time,
+                    end=datetime.now(timezone.utc),
+                )
+                self.pushgateway.test_run_finished_time.observe(test_run_time)
 
         test_run_model.set_web_url(self.log_url)
         url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None

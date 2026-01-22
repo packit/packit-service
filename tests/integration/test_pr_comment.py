@@ -1243,6 +1243,7 @@ def test_pr_test_command_handler_skip_build_option(
         test_run_group=group,
         copr_build_targets=[],
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
+        task_accepted_time=None,
     ).and_return(tft_test_run_model)
     flexmock(tft_test_run_model).should_receive("set_pipeline_id").with_args(
         pipeline_id,
@@ -2288,6 +2289,7 @@ def test_pr_test_command_handler_multiple_builds(
             test_run_group=group,
             copr_build_targets=[build],
             data={"base_project_url": "https://github.com/packit-service/hello-world"},
+            task_accepted_time=None,
         ).and_return(model)
     flexmock(tft_test_run_model_rawhide).should_receive("add_copr_build").with_args(
         additional_copr_build,
