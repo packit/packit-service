@@ -100,9 +100,9 @@ def test_create_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.target == "fedora-42-x86_64"
     assert a_copr_build_for_pr.status == BuildStatus.pending
     # Since datetime.utcnow() will return different results in every time its called,
-    # we will check if a_copr_build has build_submitted_time value that's within the past hour
+    # we will check if a_copr_build has submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
-    assert a_copr_build_for_pr.build_submitted_time > time_last_hour
+    assert a_copr_build_for_pr.submitted_time > time_last_hour
     a_copr_build_for_pr.set_end_time(None)
     assert a_copr_build_for_pr.build_finished_time is None
 
@@ -220,9 +220,9 @@ def test_create_koji_build(clean_before_and_after, a_koji_build_for_pr):
     assert a_koji_build_for_pr.target == "fedora-42-x86_64"
     assert a_koji_build_for_pr.status == "pending"
     # Since datetime.utcnow() will return different results in every time its called,
-    # we will check if a_koji_build has build_submitted_time value that's within the past hour
+    # we will check if a_koji_build has submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
-    assert a_koji_build_for_pr.build_submitted_time > time_last_hour
+    assert a_koji_build_for_pr.submitted_time > time_last_hour
 
 
 def test_get_koji_build(clean_before_and_after, a_koji_build_for_pr):

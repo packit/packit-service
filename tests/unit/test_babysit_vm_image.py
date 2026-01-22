@@ -31,7 +31,7 @@ def test_check_pending_vm_image_builds():
         [
             flexmock(
                 build_id=1,
-                build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(days=1),
+                submitted_time=datetime.datetime.utcnow() - datetime.timedelta(days=1),
             ),
         ],
     )
@@ -48,7 +48,7 @@ def test_check_pending_vm_image_builds_timeout():
         [
             flexmock(
                 build_id=1,
-                build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
+                submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
             )
             .should_receive("set_status")
             .mock(),
