@@ -554,6 +554,7 @@ def test_bodhi_update_build_not_tagged_yet(
     run_model_flexmock = flexmock()
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     group_model = flexmock(
+        id=1,
         grouped_targets=[
             flexmock(
                 target="rawhide",

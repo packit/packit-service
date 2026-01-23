@@ -300,7 +300,7 @@ class TestingFarmHandler(
         if not result["success"]:
             failed[test_run.target] = result.get("details")
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         logger.debug(f"Test job config: {self.job_config}")
@@ -461,7 +461,7 @@ class DownstreamTestingFarmHandler(
         if not result["success"]:
             failed[test_run.data["fedora_ci_test"]] = result.get("details")
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         failed: dict[str, str] = {}
 
         fedora_ci_tests = self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
@@ -546,7 +546,7 @@ class TestingFarmResultsHandler(
                 self._db_project_event = run_model.get_project_event_model()
         return self._db_project_event
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
 
         test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(
@@ -653,7 +653,7 @@ class DownstreamTestingFarmResultsHandler(
                 self._db_project_event = run_model.get_project_event_model()
         return self._db_project_event
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
 
         test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(

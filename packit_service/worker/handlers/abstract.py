@@ -19,11 +19,18 @@ from typing import Optional
 from celery import Task, signature
 from celery.canvas import Signature
 from ogr.abstract import GitProject
+from ogr.exceptions import OgrException
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.config.common_package_config import Deployment
 from packit.constants import DATETIME_FORMAT
+from packit.exceptions import PackitConfigException
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import (
+    CELERY_TASK_RATE_LIMITED_QUEUE,
+    RATE_LIMIT_THRESHOLD,
+    RATE_LIMITED_QUEUE_EXPIRES_SECONDS,
+)
 from packit_service.events.event import Event
 from packit_service.events.event_data import EventData
 from packit_service.models import (
@@ -41,6 +48,15 @@ from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
+
+
+class RateLimitRequeueException(Exception):
+    """
+    Custom exception used to stop task execution after scheduling a retry
+    to the rate-limited queue. This exception is NOT in autoretry_for,
+    so it won't trigger automatic retries that might use the wrong queue.
+    """
+
 
 MAP_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(set)
 MAP_REQUIRED_JOB_TYPE_TO_HANDLER: dict[JobType, set[type["JobHandler"]]] = defaultdict(
@@ -455,7 +471,89 @@ class JobHandler(Handler):
         )
 
     def run(self) -> TaskResults:
+        self.check_rate_limit_remaining()
+        return self._run()
+
+    def _run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
+
+    def check_rate_limit_remaining(self) -> None:
+        """
+        Check the remaining rate limit towards the service.
+        To be used when running in a task context.
+        If it is low, enqueue the task to the rate-limited queue.
+        """
+        # We need to import celery_app here to avoid circular imports.
+        # pylint: disable=import-outside-toplevel
+        from packit_service.celerizer import celery_app
+
+        # Get the current executing task from the worker context.
+        # This is needed because handlers can be created in different contexts:
+        # - Regular handlers: created in task functions with celery_task=self
+        # - Babysit handlers: created to generate signatures, then executed in new tasks
+        # When check_rate_limit_remaining() is called during execution, we need the
+        # actual task that's currently running, not the one that created the handler.
+        # It may be None in tests, as an example.
+        celery_task = celery_app.current_worker_task
+        if not celery_task:
+            logger.warning("No current task found, skipping rate limit check.")
+            return
+        try:
+            project = self.project
+        except (OgrException, PackitConfigException) as ex:
+            logger.warning(f"Failed to get project for rate limit check: {ex}")
+            return
+        if not project:
+            logger.warning("Failed to get project for rate limit check")
+            return
+        remaining = project.service.get_rate_limit_remaining()
+        if remaining and remaining < RATE_LIMIT_THRESHOLD:
+            # Check if the task is already running from the rate-limited queue
+            # by checking the routing_key from delivery_info
+            current_routing_key = celery_task.request.delivery_info.get("routing_key")
+            logger.debug(f"Current routing_key: {current_routing_key}")
+
+            if current_routing_key == CELERY_TASK_RATE_LIMITED_QUEUE:
+                logger.info(
+                    f"{remaining} requests remaining until rate limit is exceeded, "
+                    f"which is below the threshold of {RATE_LIMIT_THRESHOLD}. "
+                    "but task is already running from rate-limited queue. "
+                    "Moving on with execution."
+                )
+                # Task is already from rate-limited queue, proceed with execution
+                return
+
+            logger.warning(
+                f"{remaining} requests remaining until rate limit is exceeded, "
+                f"which is below the threshold of {RATE_LIMIT_THRESHOLD}. "
+                "enqueuing task to the rate-limited queue."
+            )
+            # Use apply_async to reschedule the task to the rate-limited queue
+            # retry() isn't working, the chosen queue is the one defined in the task definition,
+            # not the one passed to retry()
+            task_name_raw = celery_task.name
+            task_name = (
+                task_name_raw.value if isinstance(task_name_raw, TaskName) else str(task_name_raw)
+            )
+            task_kwargs = celery_task.request.kwargs.copy()
+            task_signature = signature(
+                task_name,
+                kwargs=task_kwargs,
+            )
+            task_signature.apply_async(
+                queue=CELERY_TASK_RATE_LIMITED_QUEUE,
+                expires=RATE_LIMITED_QUEUE_EXPIRES_SECONDS,
+            )
+            # Raise a custom exception to stop execution since we've scheduled a new task
+            # RateLimitRequeueException is NOT in autoretry_for,
+            # so it won't trigger automatic retries
+            raise RateLimitRequeueException(
+                "Task re-enqueued to rate-limited queue due to low rate limit"
+            )
+        logger.info(
+            f"{remaining} requests remaining until rate limit is exceeded, "
+            f"which is above the threshold of {RATE_LIMIT_THRESHOLD}."
+        )
 
 
 class RetriableJobHandler(JobHandler):
@@ -472,9 +570,6 @@ class RetriableJobHandler(JobHandler):
             event=event,
         )
         self.celery_task = CeleryTask(celery_task)
-
-    def run(self) -> TaskResults:
-        raise NotImplementedError("This should have been implemented.")
 
 
 class FedoraCIJobHandler(JobHandler):

@@ -11,6 +11,7 @@ from celery import Task
 from celery._state import get_current_task
 from celery.signals import after_setup_logger
 from ogr import __version__ as ogr_version
+from ogr.exceptions import OgrException
 from packit import __version__ as packit_version
 from packit.exceptions import PackitException
 from sqlalchemy import __version__ as sqlal_version
@@ -169,7 +170,20 @@ def setup_loggers(logger, *args, **kwargs):
 
 
 class TaskWithRetry(Task):
-    autoretry_for = (Exception,)
+    # Only retry on specific exceptions that are likely to be transient:
+    # - PackitException: Packit-specific errors that might be retryable
+    # - OgrException: OGR library errors (API, network, authentication issues)
+    # - ConnectionError: Network connection problems
+    # - TimeoutError: Timeout issues
+    # - OSError: File system/OS errors that might be transient
+    # Note: RateLimitRequeueException is NOT in this list, so it won't trigger autoretry
+    autoretry_for = (
+        PackitException,
+        OgrException,
+        ConnectionError,
+        TimeoutError,
+        OSError,
+    )
     max_retries = int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
     retry_kwargs: ClassVar[dict] = {"max_retries": max_retries}
     retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))

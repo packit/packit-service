@@ -153,6 +153,10 @@ ALLOWLIST_CONSTANTS = {
 }
 
 CELERY_TASK_DEFAULT_QUEUE = "short-running"
+CELERY_TASK_RATE_LIMITED_QUEUE = "rate-limited"
+RATE_LIMIT_THRESHOLD = 200
+# Jobs in rate-limited queue expire after 1 hour
+RATE_LIMITED_QUEUE_EXPIRES_SECONDS = 3600
 
 CELERY_DEFAULT_MAIN_TASK_NAME = "task.steve_jobs.process_message"
 

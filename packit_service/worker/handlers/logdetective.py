@@ -66,7 +66,7 @@ class DownstreamLogDetectiveResultsHandler(
         """Downstream Log Detective analysis results don't need any additional checking."""
         return ()
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         """Submit report about result of Log Detective analysis.
 
         Information about Log Detective run, is retrieved and recorded state compared

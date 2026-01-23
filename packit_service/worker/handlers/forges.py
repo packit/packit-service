@@ -71,7 +71,7 @@ class GithubAppInstallationHandler(
         self.sender_login = self.installation_event.sender_login
         self._project = self.service_config.get_project(url=NOTIFICATION_REPO)
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to install packit on his repository
         Try to allowlist automatically if mapping from github username to FAS account can prove a
@@ -181,7 +181,7 @@ class GithubFasVerificationHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return (IsIssueInNotificationRepoChecker,)
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to verify the FAS account.
         Allowlist automatically if mapping from github username to FAS account can prove a match.

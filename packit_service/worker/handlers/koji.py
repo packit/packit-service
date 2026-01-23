@@ -120,7 +120,7 @@ class KojiBuildHandler(
             PermissionOnKoji,
         )
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         return self.koji_build_helper.run_koji_build()
 
 
@@ -171,7 +171,7 @@ class AbstractKojiTaskReportHandler(
             self._db_project_event = self.build.get_project_event_model()
         return self._db_project_event
 
-    def run(self):
+    def _run(self) -> TaskResults:
         if not self.build:
             msg = f"Koji task {self.koji_task_event.task_id} not found in the database."
             logger.warning(msg)
@@ -184,16 +184,16 @@ class AbstractKojiTaskReportHandler(
 
         self.build.set_build_start_time(
             (
-                datetime.utcfromtimestamp(self.koji_task_event.start_time)
-                if self.koji_task_event.start_time
+                datetime.utcfromtimestamp(float(self.koji_task_event.start_time))
+                if isinstance(self.koji_task_event.start_time, (int, float))
                 else None
             ),
         )
 
         self.build.set_build_finished_time(
             (
-                datetime.utcfromtimestamp(self.koji_task_event.completion_time)
-                if self.koji_task_event.completion_time
+                datetime.utcfromtimestamp(float(self.koji_task_event.completion_time))
+                if isinstance(self.koji_task_event.completion_time, (int, float))
                 else None
             ),
         )
@@ -247,10 +247,12 @@ class AbstractKojiTaskReportHandler(
             self.build.set_web_url(koji_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
+                # Convert dict of logs URLs to a string representation
+                logs_url_str = ", ".join(koji_build_logs.values()) if koji_build_logs else ""
                 self.notify_about_failure_if_configured(
                     packit_dashboard_url=dashboard_url,
                     external_dashboard_url=koji_web_url,
-                    logs_url=koji_build_logs,
+                    logs_url=logs_url_str,
                 )
 
         msg = (
@@ -383,7 +385,7 @@ class KojiBuildReportHandler(
             self._db_project_object = self.build.get_project_event_object()
         return self._db_project_object
 
-    def run(self):
+    def _run(self) -> TaskResults:
         if not self.build:
             msg = (
                 f"Koji build with task ID {self.koji_build_event.task_id} not found in "
@@ -401,7 +403,7 @@ class KojiBuildReportHandler(
         self.build.set_build_start_time(
             (
                 datetime.fromisoformat(self.koji_build_event.start_time)
-                if self.koji_build_event.start_time
+                if isinstance(self.koji_build_event.start_time, str)
                 else None
             ),
         )
@@ -409,7 +411,7 @@ class KojiBuildReportHandler(
         self.build.set_build_finished_time(
             (
                 datetime.fromisoformat(self.koji_build_event.completion_time)
-                if self.koji_build_event.completion_time
+                if isinstance(self.koji_build_event.completion_time, str)
                 else None
             ),
         )
@@ -474,7 +476,7 @@ class KojiBuildTagHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return (SidetagExists,)
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         dg_base_url = getenv("DISTGIT_URL", DISTGIT_INSTANCES["fedpkg"].url)
         sidetag = SidetagHelper.get_sidetag_by_koji_name(self.data.tag_name)
         tagged_packages = sidetag.get_packages()
