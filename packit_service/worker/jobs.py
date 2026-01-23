@@ -749,6 +749,11 @@ class SteveJobs:
                     job_config=job_config,
                     update_feedback_time=lambda t: statuses_check_feedback.append(t),
                 )
+
+                # Set time when the task was accepted
+                if not self.event.task_accepted_time and statuses_check_feedback:
+                    self.event.task_accepted_time = statuses_check_feedback[0]
+
                 if handler_kls in (
                     CoprBuildHandler,
                     TestingFarmHandler,
@@ -1170,9 +1175,6 @@ class SteveJobs:
             logger.error(
                 f"Event {self.event.event_type()} took more than 15s to process.",
             )
-        # set the time when the accepted status was set so that we
-        # can use it later for measurements
-        self.event.task_accepted_time = statuses_check_feedback[0]
 
         response_time = elapsed_seconds(
             begin=self.event.created_at,
