@@ -813,9 +813,11 @@ def babysit_pending_tft_runs() -> None:
 
 @celery_app.task
 def database_maintenance() -> None:
+    backup()
+    # TODO: uncomment once we did the first manual cleanup
+    # delete_old_data()
     discard_old_srpm_build_logs()
     discard_old_package_configs()
-    backup()
 
 
 @celery_app.task

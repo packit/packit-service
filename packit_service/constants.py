@@ -141,6 +141,10 @@ SRPMBUILDS_OUTDATED_AFTER_DAYS = 30
 
 PACKAGE_CONFIGS_OUTDATED_AFTER_DAYS = 1
 
+# Pipelines older than this number of days are considered
+# outdated and can be deleted along with related data.
+PIPELINES_OUTDATED_AFTER_DAYS = 365
+
 ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
     "waiting": "waiting",
