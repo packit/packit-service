@@ -21,12 +21,15 @@ HELP_COMMENT_PROG = "/packit | /packit-stg"
 HELP_COMMENT_PROG_FEDORA_CI = "/packit-ci | /packit-ci-stg"
 HELP_COMMENT_DESCRIPTION = ""
 HELP_COMMENT_EPILOG = (
+    "Note: {note}\n"
     f"Documentation: {DOCS_URL}\n"
     "Contact:\n"
     "     Email:    hello@packit.dev\n"
     "     Matrix:   #packit:fedora.im\n"
     "     Mastodon: @packit@fosstodon.org"
 )
+HELP_NOTE = "If using Fedora CI, refer to `/packit-ci help` instead."
+HELP_NOTE_FEDORA_CI = "If not using Fedora CI, refer to `/packit help` instead."
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
