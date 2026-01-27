@@ -24,6 +24,8 @@ from packit_service.constants import (
     HELP_COMMENT_EPILOG,
     HELP_COMMENT_PROG,
     HELP_COMMENT_PROG_FEDORA_CI,
+    HELP_NOTE,
+    HELP_NOTE_FEDORA_CI,
     PACKIT_HELP_COMMAND,
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
@@ -131,13 +133,13 @@ def parse_comment(
         parser = get_pr_comment_parser_fedora_ci(
             prog=HELP_COMMENT_PROG_FEDORA_CI,
             description=HELP_COMMENT_DESCRIPTION,
-            epilog=HELP_COMMENT_EPILOG,
+            epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
         )
     else:
         parser = get_pr_comment_parser(
             prog=HELP_COMMENT_PROG,
             description=HELP_COMMENT_DESCRIPTION,
-            epilog=HELP_COMMENT_EPILOG,
+            epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
         )
 
     try:
