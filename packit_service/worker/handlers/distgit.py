@@ -816,11 +816,14 @@ class DownstreamKojiScratchBuildHandler(
 
     @property
     def dist_git_branch(self) -> str:
-        return (
+        target_branch = (
             self.project.get_pr(self.data.pr_id).target_branch
             if self.data.event_type in (pagure.pr.Comment.event_type(),)
             else self.data.event_dict.get("target_branch")
         )
+        if target_branch == "main":
+            return "rawhide"
+        return target_branch
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
