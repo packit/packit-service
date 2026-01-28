@@ -3449,7 +3449,7 @@ def test_create_tasks_tf_identifier(
     flexmock(celery).should_receive("group").with_args(
         tasks_created * [None],
     ).and_return(flexmock().should_receive("apply_async").mock())
-    statuses_check_feedback = flexmock()
+    statuses_check_feedback = []
     assert tasks_created == len(
         SteveJobs(event).create_tasks(jobs, handler_kls, statuses_check_feedback),
     )
