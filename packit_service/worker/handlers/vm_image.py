@@ -69,7 +69,7 @@ class VMImageBuildHandler(
             IsCoprBuildForChrootOk,
         )
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         if not self.job_config:
             return TaskResults(
                 success=False,
@@ -133,7 +133,7 @@ class VMImageBuildResultHandler(
     def get_checkers() -> tuple[type[Checker], ...]:
         return ()
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         build_id = self.data.event_dict["build_id"]
         models = VMImageBuildTargetModel.get_all_by_build_id(build_id)
         status = self.data.event_dict["status"]

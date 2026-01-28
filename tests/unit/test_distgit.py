@@ -142,9 +142,11 @@ def test_pull_from_upstream_auth_method():
         {"event_type": "unknown"},
         None,
     )
-    flexmock(GithubService).should_receive("set_auth_method").once()
-    flexmock(AbstractSyncReleaseHandler).should_receive("run").once()
-    flexmock(GithubService).should_receive("reset_auth_method").once()
+    github_service = GithubService(token="token")
+    handler.service_config.services = {github_service}
+    flexmock(github_service).should_receive("set_auth_method").once()
+    flexmock(AbstractSyncReleaseHandler).should_receive("_run").once()
+    flexmock(github_service).should_receive("reset_auth_method").once()
     handler.run()
 
 

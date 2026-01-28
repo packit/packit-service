@@ -195,7 +195,7 @@ class SyncFromDownstream(
         f"{self.project_to_sync.repo_namespace}/{self.project_to_sync.repo_name}"
         return url
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         # rev is a commit
         # we use branch on purpose so we get the latest thing
         # TODO: check if rev is HEAD on {branch}, warn then?
@@ -493,7 +493,7 @@ class AbstractSyncReleaseHandler(
         # no error occurred
         return None
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
@@ -763,11 +763,11 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             comment_to_existing=short_message,
         )
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         with ChoosenGithubAuthMethod(self, AuthMethod.token):
             # allow upstream git_project to be None
             self.packit_api.up._project_required = False
-            return super().run()
+            return super()._run()
 
 
 @run_for_comment_as_fedora_ci(command="scratch-build")
@@ -876,7 +876,7 @@ class DownstreamKojiScratchBuildHandler(
             check_name=self.check_name,
         )
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         try:
             self.packit_api.init_kerberos_ticket()
         except PackitCommandFailedError as ex:
@@ -1095,7 +1095,7 @@ class AbstractDownstreamKojiBuildHandler(
 
         return False
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         try:
             group = self._get_or_create_koji_group_model()
         except PackitException as ex:
@@ -1388,7 +1388,7 @@ class TagIntoSidetagHandler(
             koji_tag_request_group=tag_request_group,
         )
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         comment = self.data.event_dict.get("comment")
         commands = get_packit_commands_from_comment(
             comment,

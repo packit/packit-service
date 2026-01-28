@@ -100,7 +100,7 @@ class BodhiUpdateHandler(
         )
         self._bodhi_update_group_model_id = bodhi_update_group_model_id
 
-    def run(self) -> TaskResults:
+    def _run(self) -> TaskResults:
         try:
             group = self._get_or_create_bodhi_update_group_model()
         except PackitException as ex:

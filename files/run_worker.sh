@@ -29,7 +29,7 @@ if [[ "${CELERY_COMMAND:=worker}" == "beat" ]]; then
 
 elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # define queues to serve
-    : "${QUEUES:=short-running,long-running}"
+    : "${QUEUES:=short-running,long-running,rate-limited}"
     export QUEUES
 
     # Number of concurrent worker threads executing tasks.
