@@ -337,3 +337,7 @@ OPEN_SCAN_HUB_FEATURE_DESCRIPTION = (
     "setting `osh_diff_scan_after_copr_build` to `false`. For more information, "
     f"see [docs]({DOCS_URL}/configuration#osh_diff_scan_after_copr_build)."
 )
+
+
+# Default URL of the logdetective-packit interface server for sending the Log Detective requests.
+LOGDETECTIVE_PACKIT_SERVER_URL = "https://logdetective01.fedorainfracloud.org"

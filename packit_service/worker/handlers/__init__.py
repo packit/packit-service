@@ -30,7 +30,9 @@ from packit_service.worker.handlers.koji import (
     KojiBuildHandler,
     KojiTaskReportHandler,
 )
-from packit_service.worker.handlers.logdetective import DownstreamLogDetectiveResultsHandler
+from packit_service.worker.handlers.logdetective import (
+    DownstreamLogDetectiveResultsHandler,
+)
 from packit_service.worker.handlers.open_scan_hub import (
     CoprOpenScanHubTaskFinishedHandler,
     CoprOpenScanHubTaskStartedHandler,

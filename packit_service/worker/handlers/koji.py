@@ -67,6 +67,7 @@ from packit_service.worker.handlers.mixin import (
 )
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
+from packit_service.worker.helpers.logdetective import LogDetectiveKojiTriggerHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
@@ -156,6 +157,10 @@ class AbstractKojiTaskReportHandler(
     def notify_about_failure_if_configured(
         self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str
     ): ...
+
+    @abstractmethod
+    def trigger_log_detective_if_configured(self):
+        pass
 
     @property
     def build(self) -> Optional[KojiBuildTargetModel]:
@@ -247,6 +252,7 @@ class AbstractKojiTaskReportHandler(
             self.build.set_web_url(koji_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
+                self.trigger_log_detective_if_configured()
                 # Convert dict of logs URLs to a string representation
                 logs_url_str = ", ".join(koji_build_logs.values()) if koji_build_logs else ""
                 self.notify_about_failure_if_configured(
@@ -308,6 +314,11 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
             logs_url=logs_url,
         )
 
+    # NOTE: Currently we focus only on downstream Koji builds.
+    # Perhaps we will also add an (maybe opt-in) LD trigger in upstream Koji builds as well.
+    def trigger_log_detective_if_configured(self):
+        pass
+
 
 @reacts_to_as_fedora_ci(event=koji.result.Task)
 class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJobHandler):
@@ -344,6 +355,23 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
         self, packit_dashboard_url: str, external_dashboard_url: str, logs_url: str
     ):
         pass
+
+    def trigger_log_detective_if_configured(self):
+        """
+        Try triggering Log Detective analysis for a failed downstream Koji build.
+        Since the analysis is not crucial for the build task itself, we only log
+        when the LD trigger failed, and not return a failed TaskResult
+        """
+        if not self.service_config.logdetective_enabled:
+            logger.info("Log Detective disabled in config, skipping.")
+            return
+        logger.info("Triggering Log Detective Helper for a failed Koji build")
+        log_detective_trigger = LogDetectiveKojiTriggerHelper(
+            self.koji_task_event, self.pushgateway, self.service_config.logdetective_url
+        )
+        trigger_success = log_detective_trigger.trigger_log_detective_analysis()
+        if not trigger_success:
+            logger.error("Log Detective was not properly triggered for a failed Koji build")
 
 
 @configured_as(job_type=JobType.koji_build)

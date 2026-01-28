@@ -19,6 +19,7 @@ from yaml import safe_load
 
 from packit_service.constants import (
     CONFIG_FILE_NAME,
+    LOGDETECTIVE_PACKIT_SERVER_URL,
     SANDCASTLE_DEFAULT_PROJECT,
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
@@ -108,6 +109,8 @@ class ServiceConfig(Config):
         appcode: Optional[str] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
         rate_limit_threshold: Optional[int] = None,
+        logdetective_enabled: bool = False,
+        logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
         **kwargs,
     ):
         if "authentication" in kwargs:
@@ -191,6 +194,12 @@ class ServiceConfig(Config):
         # to the rate-limited queue. If 0 disables moving to rate-limited queue.
         self.rate_limit_threshold = rate_limit_threshold
 
+        # Once the interface server instance is up, we will enable it in stg for tests/debug,
+        # and when we are satisfied with it, then prod.
+        self.logdetective_enabled = logdetective_enabled
+        # Default URL of the Log Detective interface server
+        self.logdetective_url = logdetective_url
+
     service_config = None
 
     def __repr__(self):
@@ -220,7 +229,9 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}')"
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
+            f"logdetective_enabled='{self.logdetective_enabled}', "
+            f"logdetective_url='{self.logdetective_url}')"
         )
 
     @classmethod
