@@ -782,6 +782,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         test_run_group=group,
         copr_build_targets=[copr_build_pr],
         data={"base_project_url": "https://github.com/foo/bar"},
+        task_accepted_time=None,
     ).and_return(tft_test_run_model)
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2895,6 +2896,7 @@ def test_koji_build_end_downstream(
             "base_project_url": "https://src.fedoraproject.org/rpms/packit",
             "fedora_ci_test": "installability",
         },
+        task_accepted_time=None,
     ).and_return(tft_test_run_model_installability).once()
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=None,
@@ -2908,6 +2910,7 @@ def test_koji_build_end_downstream(
             "base_project_url": "https://src.fedoraproject.org/rpms/packit",
             "fedora_ci_test": "custom",
         },
+        task_accepted_time=None,
     ).and_return(tft_test_run_model_custom).once()
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=None,
@@ -2921,6 +2924,7 @@ def test_koji_build_end_downstream(
             "base_project_url": "https://src.fedoraproject.org/rpms/packit",
             "fedora_ci_test": "rpminspect",
         },
+        task_accepted_time=None,
     ).and_return(tft_test_run_model_rpminspect).once()
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=None,
@@ -2934,6 +2938,7 @@ def test_koji_build_end_downstream(
             "base_project_url": "https://src.fedoraproject.org/rpms/packit",
             "fedora_ci_test": "rpmlint",
         },
+        task_accepted_time=None,
     ).and_return(tft_test_run_model_rpmlint).once()
 
     # check if packit-service set correct PR statuses

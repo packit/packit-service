@@ -270,7 +270,7 @@ def update_copr_builds(
 
     current_time = datetime.now(timezone.utc)
     for build in builds:
-        elapsed = elapsed_seconds(begin=build.build_submitted_time, end=current_time)
+        elapsed = elapsed_seconds(begin=build.submitted_time, end=current_time)
         if elapsed > DEFAULT_JOB_TIMEOUT:
             logger.info(
                 f"The build {build_id} has been running for "

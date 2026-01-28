@@ -186,6 +186,7 @@ def test_testing_farm_response(
             submitted_time=datetime.now(),
             target="fedora-rawhide-x86_64",
             status=None,
+            task_accepted_time=datetime.now(),
         )
         .should_receive("get_project_event_model")
         .and_return(
