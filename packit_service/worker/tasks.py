@@ -54,6 +54,7 @@ from packit_service.worker.handlers import (
     CoprOpenScanHubTaskFinishedHandler,
     CoprOpenScanHubTaskStartedHandler,
     DownstreamLogDetectiveResultsHandler,
+    DownstreamLogDetectiveTriggerHandler,
     DownstreamTestingFarmELNHandler,
     DownstreamTestingFarmHandler,
     DownstreamTestingFarmResultsHandler,
@@ -789,6 +790,20 @@ def run_openscanhub_task_started_handler(
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.downstream_log_detective_trigger, base=TaskWithRetry)
+def run_downstream_log_detective_trigger_handler(
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+):
+    handler = DownstreamLogDetectiveTriggerHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
