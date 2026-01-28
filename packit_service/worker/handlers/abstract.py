@@ -19,7 +19,7 @@ from typing import Optional
 from celery import Task, signature
 from celery.canvas import Signature
 from ogr.abstract import GitProject
-from ogr.exceptions import OgrException
+from ogr.exceptions import GithubAPIException, OgrException
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.config.common_package_config import Deployment
 from packit.constants import DATETIME_FORMAT
@@ -504,7 +504,29 @@ class JobHandler(Handler):
         except (ValueError, OgrException, PackitConfigException) as ex:
             logger.warning(f"Failed to get project for rate limit check: {ex}")
             return
-        remaining = project.service.get_rate_limit_remaining()
+        try:
+            remaining = project.service.get_rate_limit_remaining()
+        except GithubAPIException:
+            # Handle cases where service.github is None (e.g., GithubApp/Tokman auth)
+            # Try again with repository-specific parameters
+            try:
+                remaining = project.service.get_rate_limit_remaining(
+                    namespace=project.namespace, repo=project.repo
+                )
+            except Exception as fallback_ex:
+                logger.debug(
+                    f"Failed to get rate limit from repository-specific instance "
+                    f"for {project.namespace}/{project.repo}: {fallback_ex}"
+                )
+                return
+        except (AttributeError, TypeError) as ex:
+            # Handle cases where service.github is None and we can't get repo-specific instance
+            # or when get_rate_limit() raises exceptions
+            logger.warning(
+                f"Failed to get rate limit remaining for {project.service}: {ex}. "
+                "Skipping rate limit check."
+            )
+            return
         if remaining and remaining < RATE_LIMIT_THRESHOLD:
             # Check if the task is already running from the rate-limited queue
             # by checking the routing_key from delivery_info
