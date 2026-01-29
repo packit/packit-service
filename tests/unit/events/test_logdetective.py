@@ -135,9 +135,19 @@ def test_parse_logdetective_analysis_result_wrong_build_system(logdetective_anal
             "copr",
         ),
         (
-            "running",
-            BaseCommitStatus.running,
+            "error",
+            BaseCommitStatus.error,
             "copr",
+        ),
+        (
+            "unknown",
+            BaseCommitStatus.error,
+            "copr",
+        ),
+        (
+            "complete",
+            BaseCommitStatus.success,
+            "koji",
         ),
         (
             "error",
