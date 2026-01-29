@@ -66,6 +66,7 @@ from packit_service.worker.handlers.mixin import (
     GetKojiBuildJobHelperMixin,
 )
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.logdetective import LogDetectiveKojiTriggerHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.mixin import (
@@ -74,6 +75,7 @@ from packit_service.worker.mixin import (
 )
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
+
 
 logger = logging.getLogger(__name__)
 
@@ -247,6 +249,16 @@ class AbstractKojiTaskReportHandler(
             self.build.set_web_url(koji_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
+                log_detective_trigger = LogDetectiveKojiTriggerHelper(
+                    self.koji_task_event,
+                    self.pushgateway,
+                    self.service_config.logdetective_url
+                )
+
+                # Should we return unsuccessful Task Resultif LD trigger fails?
+                # It seems that just logging what happened and proceeding anyway is better
+                log_detective_trigger.trigger_log_detective_analysis()
+
                 # Convert dict of logs URLs to a string representation
                 logs_url_str = ", ".join(koji_build_logs.values()) if koji_build_logs else ""
                 self.notify_about_failure_if_configured(

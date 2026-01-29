@@ -220,8 +220,8 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}')"
-            f"logdetective_url='{self.logdetective_url}'"
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
+            f"logdetective_url='{self.logdetective_url}')"
         )
 
     @classmethod
