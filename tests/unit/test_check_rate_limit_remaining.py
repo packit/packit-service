@@ -110,8 +110,10 @@ def test_check_rate_limit_remaining_high_rate_limit(handler, mock_celery_app_wit
 
 def test_check_rate_limit_remaining_low_rate_limit_reschedule(handler, monkeypatch):
     """Test that method reschedules task when rate limit is low"""
-    mock_service = flexmock(get_rate_limit_remaining=lambda: RATE_LIMIT_THRESHOLD - 50)
-    mock_project = flexmock(service=mock_service)
+    mock_service = flexmock(
+        get_rate_limit_remaining=lambda namespace=None, repo=None: RATE_LIMIT_THRESHOLD - 50
+    )
+    mock_project = flexmock(service=mock_service, namespace="test", repo="repo")
     handler._project = mock_project
 
     from packit_service.worker.handlers import abstract

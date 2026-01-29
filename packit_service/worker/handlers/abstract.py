@@ -499,12 +499,24 @@ class JobHandler(Handler):
             logger.warning("No current task found, skipping rate limit check.")
             return
         try:
+            # project could be both upstream and downstream
+            # it depends on the handler
             if not (project := self.project):
                 raise ValueError("There is no project associated with the task")
         except (ValueError, OgrException, PackitConfigException) as ex:
             logger.warning(f"Failed to get project for rate limit check: {ex}")
             return
-        remaining = project.service.get_rate_limit_remaining()
+        try:
+            remaining = project.service.get_rate_limit_remaining(
+                namespace=project.namespace, repo=project.repo
+            )
+        except Exception as ex:
+            # Safely get namespace and repo for logging, in case project is a mock
+            namespace = getattr(project, "namespace", "unknown")
+            repo = getattr(project, "repo", "unknown")
+            instance = f" ({namespace}/{repo})"
+            logger.debug(f"Failed to get rate limit for {project.service}{instance}: {ex}")
+            return
         if remaining and remaining < RATE_LIMIT_THRESHOLD:
             # Check if the task is already running from the rate-limited queue
             # by checking the routing_key from delivery_info
