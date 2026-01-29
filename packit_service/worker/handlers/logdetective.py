@@ -73,6 +73,9 @@ class DownstreamLogDetectiveResultsHandler(
         to the change. If the state matches no further processing occurs.
         Number of started runs is incremented and information about elapsed time recorded
         by Pushgateway. New state of the run is then recorded.
+
+        Log Detective analysis is only treated as finished, if the status field matches
+        one of the select states, with the `LogDetectiveResult.unknown` is treated as an error.
         """
         logger.debug(f"Log Detective run {self.analysis_id} result: {self.status}")
 
@@ -80,6 +83,17 @@ class DownstreamLogDetectiveResultsHandler(
             msg = f"No project set for Log Detective run: {self.analysis_id}"
             logger.error(msg=msg)
             return TaskResults(success=False, details={"msg": msg})
+
+        status = BaseCommitStatus.error
+
+        if self.status == LogDetectiveResult.running:
+            msg = f"Log Detective analysis is still in progress, state: {self.status}"
+            logger.warning(msg)
+            return TaskResults(success=False, details={"msg": msg})
+        if self.status == LogDetectiveResult.complete:
+            status = BaseCommitStatus.success
+        elif self.status == LogDetectiveResult.error or self.status == LogDetectiveResult.unknown:
+            status = BaseCommitStatus.error
 
         log_detective_run_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
             analysis_id=self.analysis_id
@@ -94,22 +108,12 @@ class DownstreamLogDetectiveResultsHandler(
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 
-        status = BaseCommitStatus.error
-        if self.status == LogDetectiveResult.complete:
-            status = BaseCommitStatus.success
-        elif self.status == LogDetectiveResult.running:
-            status = BaseCommitStatus.running
-            self.pushgateway.log_detective_runs_started.inc()
-        elif self.status == LogDetectiveResult.error or self.status == LogDetectiveResult.unknown:
-            status = BaseCommitStatus.error
-
-        if self.status != LogDetectiveResult.running:
-            self.pushgateway.log_detective_runs_finished.inc()
-            log_detective_run_time = elapsed_seconds(
-                begin=log_detective_run_model.submitted_time,
-                end=datetime.now(timezone.utc).replace(tzinfo=None),
-            )
-            self.pushgateway.log_detective_run_finished.observe(log_detective_run_time)
+        self.pushgateway.log_detective_runs_finished.inc()
+        log_detective_run_time = elapsed_seconds(
+            begin=log_detective_run_model.submitted_time,
+            end=datetime.now(timezone.utc).replace(tzinfo=None),
+        )
+        self.pushgateway.log_detective_run_finished.observe(log_detective_run_time)
 
         build: Union[None, CoprBuildTargetModel, KojiBuildTargetModel] = None
 
