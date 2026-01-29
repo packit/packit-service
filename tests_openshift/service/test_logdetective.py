@@ -128,10 +128,12 @@ def test_logdetective_process_message(
     service_config.deployment = Deployment.prod
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
 
+    mock_service = flexmock(instance_url="https://github.com", hostname="github.com")
+    mock_service.should_receive("get_rate_limit_remaining").and_return(10000)
     mock_project = flexmock(
         repo="packit",
         namespace="packit",
-        service=flexmock(instance_url="https://github.com", hostname="github.com"),
+        service=mock_service,
     )
     # Mock retrieving the PR and its target branch
     mock_project.should_receive("get_pr").with_args(123).and_return(flexmock(target_branch="main"))
@@ -280,10 +282,12 @@ def test_logdetective_process_message_error(
     service_config.deployment = Deployment.prod
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
 
+    mock_service = flexmock(instance_url="https://github.com", hostname="github.com")
+    mock_service.should_receive("get_rate_limit_remaining").and_return(10000)
     mock_project = flexmock(
         repo="packit",
         namespace="packit",
-        service=flexmock(instance_url="https://github.com", hostname="github.com"),
+        service=mock_service,
     )
     # Mock retrieving the PR and its target branch
     mock_project.should_receive("get_pr").with_args(123).and_return(flexmock(target_branch="main"))
