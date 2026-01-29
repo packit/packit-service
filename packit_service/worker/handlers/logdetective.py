@@ -88,7 +88,7 @@ class DownstreamLogDetectiveResultsHandler(
 
         if self.status == LogDetectiveResult.running:
             msg = f"Log Detective analysis is still in progress, state: {self.status}"
-            logger.warning(msg)
+            logger.info(msg)
             return TaskResults(success=False, details={"msg": msg})
         if self.status == LogDetectiveResult.complete:
             status = BaseCommitStatus.success
