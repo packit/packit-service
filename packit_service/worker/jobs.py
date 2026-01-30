@@ -271,6 +271,28 @@ class SteveJobs:
         steve.pushgateway.push()
         return result
 
+    def _should_process_as_fedora_ci(self, project_url: str) -> bool:
+        """
+        Determine if project should be processed as Fedora CI based on configuration.
+
+        When fedora_ci_run_by_default=False (opt-in mode):
+            - Only projects in enabled_projects_for_fedora_ci are processed
+        When fedora_ci_run_by_default=True (opt-out mode):
+            - All projects are processed except those in disabled_projects_for_fedora_ci
+
+        Args:
+            project_url: The project URL to check
+
+        Returns:
+            True if the project should be processed as Fedora CI, False otherwise
+        """
+        if self.service_config.fedora_ci_run_by_default:
+            # Opt-out mode: run by default unless explicitly disabled
+            return project_url not in self.service_config.disabled_projects_for_fedora_ci
+
+        # Opt-in mode: only run if explicitly enabled
+        return project_url in self.service_config.enabled_projects_for_fedora_ci
+
     def process(self) -> list[TaskResults]:
         """
         Processes the event object attribute of SteveJobs - runs the checks for
@@ -336,7 +358,7 @@ class SteveJobs:
                 )
                 and self.event.db_project_object
                 and (url := self.event.db_project_object.project.project_url)
-                and url in self.service_config.enabled_projects_for_fedora_ci
+                and self._should_process_as_fedora_ci(url)
             ):
                 # try to process Fedora CI jobs first
                 processing_results = self.process_fedora_ci_jobs()

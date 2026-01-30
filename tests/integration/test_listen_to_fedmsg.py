@@ -2593,6 +2593,8 @@ def test_koji_build_end_downstream(
         flexmock(
             testing_farm_api_url="API URL",
             enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/packit",
+            fedora_ci_run_by_default=False,
+            disabled_projects_for_fedora_ci=set(),
             koji_logs_url="",
             koji_web_url="",
             deployment=Deployment.stg,

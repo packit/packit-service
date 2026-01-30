@@ -99,6 +99,8 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
     service_config = (
         flexmock(
             enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/optee_os",
+            fedora_ci_run_by_default=False,
+            disabled_projects_for_fedora_ci=set(),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
