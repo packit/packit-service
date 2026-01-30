@@ -8,7 +8,6 @@ from flask_restx import Namespace, Resource
 
 from packit_service.models import (
     BodhiUpdateGroupModel,
-    BodhiUpdateTargetModel,
     BuildStatus,
     CoprBuildGroupModel,
     KojiBuildGroupModel,
@@ -16,7 +15,6 @@ from packit_service.models import (
     SRPMBuildModel,
     SyncReleaseModel,
     TFTTestRunGroupModel,
-    TFTTestRunTargetModel,
     VMImageBuildTargetModel,
     optional_timestamp,
 )
@@ -120,17 +118,8 @@ def process_runs(runs):
                         },
                     )
                     if "trigger" not in response_dict:
-                        submitted_time = (
-                            row.submitted_time
-                            if isinstance(
-                                row,
-                                (TFTTestRunTargetModel, BodhiUpdateTargetModel),
-                            )
-                            else row.build_submitted_time
-                        )
-
                         response_dict["time_submitted"] = optional_timestamp(
-                            submitted_time,
+                            row.submitted_time,
                         )
                         response_dict["trigger"] = get_project_info_from_build(row)
 

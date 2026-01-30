@@ -62,7 +62,7 @@ def prepare_openscanhub_db_and_handler(
             build_id="55",
             identifier=None,
             status="success",
-            build_submitted_time=datetime.datetime.utcnow(),
+            submitted_time=datetime.datetime.utcnow(),
             target="the-target",
             owner="the-owner",
             project_name="the-namespace-repo_name-5",
