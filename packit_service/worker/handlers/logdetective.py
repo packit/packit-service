@@ -6,26 +6,18 @@ This file defines classes for job handlers specific for Log Detective
 """
 
 import logging
-import requests
 from datetime import datetime, timezone
 from typing import Optional, Union
 
 from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
 
-from packit_service.constants import KojiTaskState
-from packit_service.events import (
-    logdetective,
-    koji,
-    copr,
-)
+from packit_service.events import logdetective
 from packit_service.models import (
-    BuildStatus,
     CoprBuildTargetModel,
     KojiBuildTargetModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
-    LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
 )
 from packit_service.utils import elapsed_seconds
@@ -36,7 +28,6 @@ from packit_service.worker.handlers.abstract import (
     reacts_to_as_fedora_ci,
 )
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
-from packit_service.worker.helpers.logdetective import
 from packit_service.worker.mixin import ConfigFromEventMixin, PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
