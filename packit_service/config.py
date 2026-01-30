@@ -107,6 +107,8 @@ class ServiceConfig(Config):
         package_config_path_override: Optional[str] = None,
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
+        fedora_ci_run_by_default: bool = False,
+        disabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
         rate_limit_threshold: Optional[int] = None,
         logdetective_enabled: bool = False,
@@ -160,9 +162,19 @@ class ServiceConfig(Config):
             enabled_projects_for_internal_tf or [],
         )
 
+        # When True: run Fedora CI for all projects except those in
+        # disabled_projects_for_fedora_ci (opt-out mode)
+        # When False: run Fedora CI only for projects in
+        # enabled_projects_for_fedora_ci (opt-in mode)
+        self.fedora_ci_run_by_default: bool = fedora_ci_run_by_default
+
         # e.g.:
         #  - https://src.fedoraproject.org/rpms/packit
         self.enabled_projects_for_fedora_ci: set[str] = set(enabled_projects_for_fedora_ci or [])
+
+        # e.g.:
+        #  - https://src.fedoraproject.org/rpms/python-ogr
+        self.disabled_projects_for_fedora_ci: set[str] = set(disabled_projects_for_fedora_ci or [])
 
         self.projects_to_sync = projects_to_sync or []
 
@@ -229,9 +241,11 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
             f"logdetective_enabled='{self.logdetective_enabled}', "
             f"logdetective_url='{self.logdetective_url}')"
+            f"fedora_ci_run_by_default='{self.fedora_ci_run_by_default}', "
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
+            f"disabled_projects_for_fedora_ci='{self.disabled_projects_for_fedora_ci}')"
         )
 
     @classmethod
