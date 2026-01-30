@@ -12,9 +12,7 @@ from typing import Optional, Union
 from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
 
-from packit_service.events import (
-    logdetective,
-)
+from packit_service.events import logdetective
 from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildTargetModel,

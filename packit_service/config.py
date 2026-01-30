@@ -24,6 +24,7 @@ from packit_service.constants import (
     SANDCASTLE_PVC,
     SANDCASTLE_WORK_DIR,
     TESTING_FARM_API_URL,
+    LOGDETECTIVE_PACKIT_SERVER_URL,
 )
 from packit_service.utils import get_user_agent
 
@@ -107,6 +108,7 @@ class ServiceConfig(Config):
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
+        logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
         **kwargs,
     ):
         if "authentication" in kwargs:
@@ -186,6 +188,9 @@ class ServiceConfig(Config):
         # Appcode used in MP+ to differentiate applications
         self.appcode = appcode
 
+        # URL of the Log Detective interface server - WIP: placeholder URL, see constants.py
+        self.logdetective_url = logdetective_url
+
     service_config = None
 
     def __repr__(self):
@@ -215,7 +220,8 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}')"
+            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
+            f"logdetective_url='{self.logdetective_url}')"
         )
 
     @classmethod

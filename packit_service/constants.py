@@ -335,3 +335,8 @@ OPEN_SCAN_HUB_FEATURE_DESCRIPTION = (
     "setting `osh_diff_scan_after_copr_build` to `false`. For more information, "
     f"see [docs]({DOCS_URL}/configuration#osh_diff_scan_after_copr_build)."
 )
+
+
+# TODO: This is a placeholder (should not work) URL for the Log Detective service.
+# Needs to be updated once we know for sure where to send requests.
+LOGDETECTIVE_PACKIT_SERVER_URL = "https://www.logdetective-packit-interface-server.com"
