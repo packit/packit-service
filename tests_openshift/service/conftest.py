@@ -96,6 +96,7 @@ def mock_metrics_counters():
     mock_pushgateway.events_processed = mock_counter
     mock_pushgateway.events_not_handled = mock_counter
     mock_pushgateway.events_pre_check_failed = mock_counter
+    mock_pushgateway.rate_limited_tasks_enqueued = mock_counter
 
     # Inject the mock instance
     flexmock(Pushgateway).new_instances(mock_pushgateway)
