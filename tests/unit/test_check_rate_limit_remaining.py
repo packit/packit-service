@@ -60,9 +60,7 @@ class TestHandler(JobHandler):
 
     @property
     def service_config(self):
-        from packit_service.config import ServiceConfig
-
-        return flexmock(ServiceConfig)
+        return flexmock(rate_limit_threshold=None)
 
     @property
     def project_url(self):

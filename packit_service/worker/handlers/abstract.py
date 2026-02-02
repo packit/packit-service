@@ -517,7 +517,15 @@ class JobHandler(Handler):
             instance = f" ({namespace}/{repo})"
             logger.debug(f"Failed to get rate limit for {project.service}{instance}: {ex}")
             return
-        if remaining and remaining < RATE_LIMIT_THRESHOLD:
+        # Get rate limit threshold from service config, fallback to constant.
+        # Setting rate_limit_threshold to 0 in config disables moving to rate-limited queue.
+        rate_limit_threshold = (
+            self.service_config.rate_limit_threshold
+            if self.service_config.rate_limit_threshold is not None
+            else RATE_LIMIT_THRESHOLD
+        )
+        # Check if rate limit is below threshold and enqueue to rate-limited queue if so.
+        if remaining and rate_limit_threshold and remaining < rate_limit_threshold:
             # Check if the task is already running from the rate-limited queue
             # by checking the routing_key from delivery_info
             current_routing_key = celery_task.request.delivery_info.get("routing_key")
@@ -526,7 +534,7 @@ class JobHandler(Handler):
             if current_routing_key == CELERY_TASK_RATE_LIMITED_QUEUE:
                 logger.info(
                     f"{remaining} requests remaining until rate limit is exceeded, "
-                    f"which is below the threshold of {RATE_LIMIT_THRESHOLD}. "
+                    f"which is below the threshold of {rate_limit_threshold}. "
                     "but task is already running from rate-limited queue. "
                     "Moving on with execution."
                 )
@@ -535,7 +543,7 @@ class JobHandler(Handler):
 
             logger.warning(
                 f"{remaining} requests remaining until rate limit is exceeded, "
-                f"which is below the threshold of {RATE_LIMIT_THRESHOLD}. "
+                f"which is below the threshold of {rate_limit_threshold}. "
                 "enqueuing task to the rate-limited queue."
             )
             # Increment the metric for tasks enqueued to the rate-limited queue
@@ -564,7 +572,7 @@ class JobHandler(Handler):
             )
         logger.info(
             f"{remaining} requests remaining until rate limit is exceeded, "
-            f"which is above the threshold of {RATE_LIMIT_THRESHOLD}."
+            f"which is above the threshold of {rate_limit_threshold}."
         )
 
 

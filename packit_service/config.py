@@ -107,6 +107,7 @@ class ServiceConfig(Config):
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
+        rate_limit_threshold: Optional[int] = None,
         **kwargs,
     ):
         if "authentication" in kwargs:
@@ -185,6 +186,10 @@ class ServiceConfig(Config):
 
         # Appcode used in MP+ to differentiate applications
         self.appcode = appcode
+
+        # Threshold for rate limit remaining requests before enqueuing tasks
+        # to the rate-limited queue. If 0 disables moving to rate-limited queue.
+        self.rate_limit_threshold = rate_limit_threshold
 
     service_config = None
 

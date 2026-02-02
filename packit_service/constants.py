@@ -154,6 +154,8 @@ ALLOWLIST_CONSTANTS = {
 
 CELERY_TASK_DEFAULT_QUEUE = "short-running"
 CELERY_TASK_RATE_LIMITED_QUEUE = "rate-limited"
+# Default threshold for rate limit remaining requests before enqueuing tasks
+# to the rate-limited queue.
 RATE_LIMIT_THRESHOLD = 200
 # Jobs in rate-limited queue expire after 1 hour
 RATE_LIMITED_QUEUE_EXPIRES_SECONDS = 3600
