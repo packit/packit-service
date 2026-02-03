@@ -13,7 +13,6 @@ from packit_service.models import (
     CoprBuildTargetModel,
     TestingFarmResult,
     TFTTestRunTargetModel,
-    get_submitted_time_from_model,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmClient
 from packit_service.worker.parser import Parser
@@ -171,10 +170,10 @@ def test_get_submitted_time_from_model():
     flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
     tf = TFTTestRunTargetModel()
     tf.__class__ = TFTTestRunTargetModel
-    assert date == get_submitted_time_from_model(tf)
+    assert date == tf.submitted_time
 
-    fake_copr = flexmock(build_submitted_time=date)
+    fake_copr = flexmock(submitted_time=date)
     flexmock(CoprBuildTargetModel).new_instances(fake_copr)
     copr = CoprBuildTargetModel()
     copr.__class__ = CoprBuildTargetModel  # to pass in isinstance(model, CoprBuildTargetModel)
-    assert date == get_submitted_time_from_model(copr)
+    assert date == copr.submitted_time

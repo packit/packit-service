@@ -270,7 +270,7 @@ def update_copr_builds(
 
     current_time = datetime.now(timezone.utc)
     for build in builds:
-        elapsed = elapsed_seconds(begin=build.build_submitted_time, end=current_time)
+        elapsed = elapsed_seconds(begin=build.submitted_time, end=current_time)
         if elapsed > DEFAULT_JOB_TIMEOUT:
             logger.info(
                 f"The build {build_id} has been running for "
@@ -607,9 +607,9 @@ def check_pending_vm_image_builds() -> None:
     current_time = datetime.now(timezone.utc)
     for build in pending_vm_image_builds:
         logger.debug(f"Checking status of VM image build {build.build_id}")
-        if build.build_submitted_time:
+        if build.submitted_time:
             elapsed = elapsed_seconds(
-                begin=build.build_submitted_time,
+                begin=build.submitted_time,
                 end=current_time,
             )
             if elapsed > DEFAULT_JOB_TIMEOUT:

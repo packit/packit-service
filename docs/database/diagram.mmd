@@ -58,7 +58,6 @@ erDiagram
         character_varying build_id
         character_varying build_logs_url
         timestamp_without_time_zone build_start_time
-        timestamp_without_time_zone build_submitted_time
         json built_packages
         integer copr_build_group_id FK
         json data
@@ -67,6 +66,7 @@ erDiagram
         character_varying owner
         character_varying project_name
         buildstatus status
+        timestamp_without_time_zone submitted_time
         character_varying target
         timestamp_without_time_zone task_accepted_time
         character_varying web_url
@@ -117,7 +117,6 @@ erDiagram
         json build_logs_urls
         timestamp_without_time_zone build_start_time
         text build_submission_stdout
-        timestamp_without_time_zone build_submitted_time
         json data
         integer id PK
         integer koji_build_group_id FK
@@ -125,6 +124,7 @@ erDiagram
         boolean scratch
         character_varying sidetag
         character_varying status
+        timestamp_without_time_zone submitted_time
         character_varying target
         character_varying task_id
         character_varying web_url
@@ -146,6 +146,26 @@ erDiagram
         character_varying web_url
     }
 
+    log_detective_run {
+        character_varying analysis_id UK
+        logdetectivebuildsystem build_system
+        integer copr_build_target_id FK
+        integer id PK
+        character_varying identifier
+        integer koji_build_target_id FK
+        json log_detective_response
+        integer log_detective_run_group_id FK
+        logdetectiveresult status
+        timestamp_without_time_zone submitted_time
+        character_varying target
+        character_varying target_build
+    }
+
+    log_detective_run_groups {
+        integer id PK
+        timestamp_without_time_zone submitted_time
+    }
+
     pipelines {
         integer bodhi_update_group_id FK
         integer copr_build_group_id FK
@@ -153,6 +173,7 @@ erDiagram
         integer id PK
         integer koji_build_group_id FK
         integer koji_tag_request_group_id FK
+        integer log_detective_run_group_id FK
         character_varying package_name
         integer project_event_id FK
         integer srpm_build_id FK
@@ -172,7 +193,7 @@ erDiagram
         integer event_id
         integer id PK
         json packages_config
-        projecteventtype type
+        projecteventmodeltype type
     }
 
     project_issues {
@@ -228,13 +249,13 @@ erDiagram
     srpm_builds {
         timestamp_without_time_zone build_finished_time
         timestamp_without_time_zone build_start_time
-        timestamp_without_time_zone build_submitted_time
         character_varying copr_build_id
         text copr_web_url
         integer id PK
         text logs
         text logs_url
         buildstatus status
+        timestamp_without_time_zone submitted_time
         text url
     }
 
@@ -303,7 +324,6 @@ erDiagram
         timestamp_without_time_zone build_finished_time
         character_varying build_id
         timestamp_without_time_zone build_start_time
-        timestamp_without_time_zone build_submitted_time
         json data
         integer id PK
         character_varying owner
@@ -311,6 +331,7 @@ erDiagram
         character_varying project_name
         character_varying project_url
         vmimagebuildstatus status
+        timestamp_without_time_zone submitted_time
         character_varying target
         timestamp_without_time_zone task_accepted_time
     }
@@ -321,6 +342,7 @@ erDiagram
     pipelines }o--|| bodhi_update_groups : "bodhi_update_group_id"
     copr_build_targets }o--|| copr_build_groups : "copr_build_group_id"
     pipelines }o--|| copr_build_groups : "copr_build_group_id"
+    log_detective_run }o--|| copr_build_targets : "copr_build_target_id"
     scans }o--|| copr_build_targets : "copr_build_target_id"
     tf_copr_build_association_table }o--|| copr_build_targets : "copr_id"
     git_branches }o--|| git_projects : "project_id"
@@ -333,9 +355,12 @@ erDiagram
     sync_release_pull_request }o--|| git_projects : "project_id"
     koji_build_targets }o--|| koji_build_groups : "koji_build_group_id"
     pipelines }o--|| koji_build_groups : "koji_build_group_id"
+    log_detective_run }o--|| koji_build_targets : "koji_build_target_id"
     tf_koji_build_association_table }o--|| koji_build_targets : "koji_id"
     koji_tag_request_targets }o--|| koji_tag_request_groups : "koji_tag_request_group_id"
     pipelines }o--|| koji_tag_request_groups : "koji_tag_request_group_id"
+    log_detective_run }o--|| log_detective_run_groups : "log_detective_run_group_id"
+    pipelines }o--|| log_detective_run_groups : "log_detective_run_group_id"
     pipelines }o--|| project_events : "project_event_id"
     pipelines }o--|| srpm_builds : "srpm_build_id"
     pipelines }o--|| sync_release_runs : "sync_release_run_id"
