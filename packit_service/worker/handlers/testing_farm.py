@@ -47,6 +47,7 @@ from packit_service.worker.checker.distgit import (
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
     IsCoprBuildDefined,
+    IsDownstreamTest,
     IsEventForJob,
     IsEventOk,
     IsEventOkForFedoraCI,
@@ -54,6 +55,7 @@ from packit_service.worker.checker.testing_farm import (
     IsIdentifierFromCommentMatching,
     IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
+    IsUpstreamTest,
 )
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
@@ -534,7 +536,7 @@ class TestingFarmResultsHandler(
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return (IsEventForJob,)
+        return (IsEventForJob, IsUpstreamTest)
 
     @property
     def db_project_event(self) -> Optional[ProjectEventModel]:
@@ -642,6 +644,10 @@ class DownstreamTestingFarmResultsHandler(
         self.log_url = event.get("log_url")
         self.summary = event.get("summary")
         self.created = event.get("created")
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (IsDownstreamTest,)
 
     @property
     def db_project_event(self) -> Optional[ProjectEventModel]:

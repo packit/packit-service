@@ -48,6 +48,9 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.copr import AbstractCoprBuildReportHandler
 from packit_service.worker.handlers.mixin import GetVMImageBuilderMixin
+from packit_service.worker.handlers.testing_farm import (
+    DownstreamTestingFarmResultsHandler,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.mixin import ConfigFromUrlMixin
 from packit_service.worker.parser import Parser
@@ -141,33 +144,74 @@ def update_testing_farm_run(event: testing_farm.Result, run: TFTTestRunTargetMod
     """
     Updates the state of the Testing Farm run.
     """
-    packages_config = event.get_packages_config()
-    if not packages_config:
-        logger.info(f"No config found for {run.pipeline_id}. Skipping.")
-        return
+    # Check if this is a downstream test (Fedora CI test)
+    is_downstream = run.data and run.data.get("fedora_ci_test")
 
-    job_configs = SteveJobs(event).get_config_for_handler_kls(
-        handler_kls=TestingFarmResultsHandler,
-    )
-
-    event_dict = event.get_dict()
-    signatures = []
-    for job_config in job_configs:
-        package_config = (
-            event.packages_config.get_package_config_for(job_config)
-            if event.packages_config
-            else None
+    if is_downstream:
+        # Handle downstream tests - they don't need package_config/job_config
+        logger.debug(
+            f"Processing downstream test {run.pipeline_id} "
+            f"(fedora_ci_test: {run.data.get('fedora_ci_test')})"
         )
-        handler = TestingFarmResultsHandler(
-            package_config=package_config,
-            job_config=job_config,
-            event=event_dict,
+        downstream_handler = DownstreamTestingFarmResultsHandler(
+            package_config=None,
+            job_config=None,
+            event=event.get_dict(),
         )
-        # check for identifiers equality
-        if handler.pre_check(package_config, job_config, event_dict):
-            signatures.append(handler.get_signature(event=event, job=job_config))
+        event_dict = event.get_dict()
+        # Check if handler should process this test
+        if downstream_handler.pre_check(package_config=None, job_config=None, event=event_dict):
+            signature = celery.signature(
+                downstream_handler.task_name.value,
+                kwargs={
+                    "package_config": None,
+                    "job_config": None,
+                    "event": event_dict,
+                },
+            )
+            celery_run_async(signatures=[signature])
+        else:
+            logger.debug(f"Downstream handler pre_check failed for {run.pipeline_id}, skipping.")
+    else:
+        # Handle upstream tests - they need package_config/job_config from the event
+        logger.debug(f"Processing upstream test {run.pipeline_id}")
+        packages_config = event.get_packages_config()
+        if not packages_config:
+            logger.info(f"No config found for {run.pipeline_id}. Skipping.")
+            return
 
-    celery_run_async(signatures=signatures)
+        job_configs = SteveJobs(event).get_config_for_handler_kls(
+            handler_kls=TestingFarmResultsHandler,
+        )
+
+        event_dict = event.get_dict()
+        signatures = []
+        for job_config in job_configs:
+            package_config = (
+                event.packages_config.get_package_config_for(job_config)
+                if event.packages_config
+                else None
+            )
+            upstream_handler = TestingFarmResultsHandler(
+                package_config=package_config,
+                job_config=job_config,
+                event=event_dict,
+            )
+            # Check if handler should process this test
+            if upstream_handler.pre_check(package_config, job_config, event_dict):
+                signatures.append(upstream_handler.get_signature(event=event, job=job_config))
+            else:
+                logger.debug(
+                    f"Upstream handler pre_check failed for {run.pipeline_id} "
+                    f"(job_config: {job_config.identifier}), skipping."
+                )
+
+        if signatures:
+            celery_run_async(signatures=signatures)
+        else:
+            logger.debug(
+                f"No valid signatures created for upstream test {run.pipeline_id}, skipping."
+            )
 
 
 def check_pending_copr_builds() -> None:

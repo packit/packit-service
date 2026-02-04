@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from typing import Optional
 
 from packit_service.constants import (
     DOCS_TESTING_FARM,
@@ -9,7 +10,8 @@ from packit_service.constants import (
     INTERNAL_TF_TESTS_NOT_ALLOWED,
     KojiTaskState,
 )
-from packit_service.events import gitlab
+from packit_service.events import gitlab, testing_farm
+from packit_service.models import TFTTestRunTargetModel
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
@@ -218,3 +220,87 @@ class IsLabelFromCommentMatching(Checker, GetTestingFarmJobHelperMixin):
             f"!= comment:${self.testing_farm_job_helper.comment_arguments.labels})",
         )
         return False
+
+
+class _TestingFarmTestTypeChecker(Checker):
+    """
+    Base checker for determining test type (upstream vs downstream).
+    Extracts common logic for checking if a test run is upstream or downstream.
+    """
+
+    def _get_test_run_model(self) -> Optional[TFTTestRunTargetModel]:
+        """
+        Get the test run model for the current event.
+
+        Returns:
+            TFTTestRunTargetModel or None if:
+            - Event is not a testing_farm.Result event
+            - pipeline_id is missing
+            - test_run_model doesn't exist yet
+        """
+        # Only check for testing_farm.Result events
+        if self.data.event_type != testing_farm.Result.event_type():
+            return None
+
+        pipeline_id = self.data.event_dict.get("pipeline_id")
+        if not pipeline_id:
+            return None
+
+        return TFTTestRunTargetModel.get_by_pipeline_id(pipeline_id=pipeline_id)
+
+    @staticmethod
+    def _is_downstream_test(test_run_model: TFTTestRunTargetModel) -> bool:
+        """
+        Check if a test run is a downstream/Fedora CI test.
+
+        Args:
+            test_run_model: The test run model to check
+
+        Returns:
+            True if the test is downstream (has fedora_ci_test in data), False otherwise
+        """
+        return bool(test_run_model.data and test_run_model.data.get("fedora_ci_test"))
+
+
+class IsUpstreamTest(_TestingFarmTestTypeChecker):
+    """
+    Check that the test is an upstream test (not a downstream/Fedora CI test).
+    This checker filters out downstream tests from the upstream handler.
+    """
+
+    def pre_check(self) -> bool:
+        test_run_model = self._get_test_run_model()
+        if test_run_model is None:
+            # Can't determine test type - allow it through
+            return True
+
+        if self._is_downstream_test(test_run_model):
+            logger.debug(
+                f"Skipping downstream test (pipeline_id: {test_run_model.pipeline_id}). "
+                "This test is handled by DownstreamTestingFarmResultsHandler.",
+            )
+            return False
+
+        return True
+
+
+class IsDownstreamTest(_TestingFarmTestTypeChecker):
+    """
+    Check that the test is a downstream/Fedora CI test (not an upstream test).
+    This checker filters out upstream tests from the downstream handler.
+    """
+
+    def pre_check(self) -> bool:
+        test_run_model = self._get_test_run_model()
+        if test_run_model is None:
+            # Can't determine test type - allow it through
+            return True
+
+        if not self._is_downstream_test(test_run_model):
+            logger.debug(
+                f"Skipping upstream test (pipeline_id: {test_run_model.pipeline_id}). "
+                "This test is handled by TestingFarmResultsHandler.",
+            )
+            return False
+
+        return True
