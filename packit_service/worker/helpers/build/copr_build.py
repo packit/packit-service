@@ -733,8 +733,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         forge_outage_exc = isinstance(ex, OgrNetworkError)
         forge_internal_error = isinstance(ex, GitForgeInternalError)
 
-        if not self.celery_task.is_last_try() and (
-            possible_copr_outage_exc or forge_outage_exc or forge_internal_error
+        if (
+            not self.celery_task.is_last_try()
+            and (possible_copr_outage_exc or forge_outage_exc or forge_internal_error)
+            and self.celery_task.can_retry_for(ex)
         ):
             what_failed = "Copr" if possible_copr_outage_exc else "Git forge"
             max_retries = None

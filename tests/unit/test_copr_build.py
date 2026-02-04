@@ -67,6 +67,7 @@ from packit_service.worker.reporting import (
     BaseCommitStatus,
     StatusReporterGithubChecks,
 )
+from packit_service.worker.tasks import TaskWithRetry
 from tests.spellbook import DATA_DIR
 
 DEFAULT_TARGETS = [
@@ -360,6 +361,15 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     retry,
     exc,
 ):
+    task_mock = flexmock(
+        request=flexmock(retries=retry_number, kwargs={}),
+        max_retries=DEFAULT_RETRY_LIMIT,
+        autoretry_for=TaskWithRetry.autoretry_for,
+    )
+    task = CeleryTask(task_mock)
+    flexmock(task).should_receive("can_retry_for").with_args(exc).and_return(
+        isinstance(exc, tuple(TaskWithRetry.autoretry_for))
+    )
     helper = build_helper(
         event=github_pr_event,
         db_project_event=flexmock(id=123)
@@ -373,12 +383,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             ),
         )
         .mock(),
-        task=CeleryTask(
-            flexmock(
-                request=flexmock(retries=retry_number, kwargs={}),
-                max_retries=DEFAULT_RETRY_LIMIT,
-            ),
-        ),
+        task=task,
         copr_build_group_id=1 if retry_number > 0 else None,
     )
     helper.job_config.srpm_build_deps = ["make", "findutils"]

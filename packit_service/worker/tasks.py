@@ -7,9 +7,11 @@ from datetime import timedelta
 from os import getenv
 from typing import ClassVar, Optional
 
+from bodhi.client.oidcclient import OIDCClientError
 from celery import Task
 from celery._state import get_current_task
 from celery.signals import after_setup_logger
+from copr.v3 import CoprException
 from ogr import __version__ as ogr_version
 from ogr.exceptions import OgrException
 from packit import __version__ as packit_version
@@ -173,13 +175,19 @@ class TaskWithRetry(Task):
     # Only retry on specific exceptions that are likely to be transient:
     # - PackitException: Packit-specific errors that might be retryable
     # - OgrException: OGR library errors (API, network, authentication issues)
+    #   (includes OgrNetworkError, GitForgeInternalError, etc.)
     # - ConnectionError: Network connection problems
     # - TimeoutError: Timeout issues
     # - OSError: File system/OS errors that might be transient
+    # - CoprException: Copr API request errors
+    #   (includes CoprRequestException, CoprTimeoutException, etc.)
+    # - OIDCClientError: OIDC authentication errors
     # Note: RateLimitRequeueException is NOT in this list, so it won't trigger autoretry
     autoretry_for = (
         PackitException,
+        CoprException,
         OgrException,
+        OIDCClientError,
         ConnectionError,
         TimeoutError,
         OSError,

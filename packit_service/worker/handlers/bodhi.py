@@ -168,7 +168,11 @@ class BodhiUpdateHandler(
             except PackitException as ex:
                 logger.debug(f"Bodhi update failed to be created: {ex}")
 
-                if self.celery_task and not self.celery_task.is_last_try():
+                if (
+                    self.celery_task
+                    and self.celery_task.can_retry_for(ex)
+                    and not self.celery_task.is_last_try()
+                ):
                     kargs = self.celery_task.task.request.kwargs.copy()
                     kargs["bodhi_update_group_model_id"] = group.id
                     for model in group.grouped_targets:
@@ -196,7 +200,11 @@ class BodhiUpdateHandler(
                 target_model.set_data({"error": error})
 
             except Exception as ex:
-                if self.celery_task and not self.celery_task.is_last_try():
+                if (
+                    self.celery_task
+                    and self.celery_task.can_retry_for(ex)
+                    and not self.celery_task.is_last_try()
+                ):
                     target_model.set_status("retry")
                     raise
 

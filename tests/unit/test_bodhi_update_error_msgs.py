@@ -24,6 +24,7 @@ from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
 from packit_service.worker.handlers.mixin import KojiBuildData
+from packit_service.worker.tasks import TaskWithRetry
 
 
 @pytest.fixture(scope="module")
@@ -146,6 +147,9 @@ def test_pull_request_retrigger_bodhi_update_with_koji_data(
     flexmock(BodhiUpdateTargetModel).should_receive(
         "get_all_successful_or_in_progress_by_nvrs",
     ).and_return(set())
+    task_mock = flexmock(
+        autoretry_for=TaskWithRetry.autoretry_for,
+    )
     flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
-    handler = RetriggerBodhiUpdateHandler(package_config, job_config, data, flexmock())
+    handler = RetriggerBodhiUpdateHandler(package_config, job_config, data, task_mock)
     handler.run()
