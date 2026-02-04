@@ -41,7 +41,7 @@ class CoprBuildsList(Resource):
                 "build_id": build.build_id,
                 "status_per_chroot": {},
                 "packit_id_per_chroot": {},
-                "build_submitted_time": optional_timestamp(
+                "submitted_time": optional_timestamp(
                     build_info.submitted_time,
                 ),
                 "web_url": build_info.web_url,
@@ -86,7 +86,7 @@ class CoprBuildItem(Resource):
             "build_id": build.build_id,
             "status": build.status,
             "chroot": build.target,
-            "build_submitted_time": optional_timestamp(build.submitted_time),
+            "submitted_time": optional_timestamp(build.submitted_time),
             "build_start_time": optional_timestamp(build.build_start_time),
             "build_finished_time": optional_timestamp(build.build_finished_time),
             "commit_sha": build.commit_sha,
