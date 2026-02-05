@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from deepdiff import DeepDiff
 from flexmock import flexmock
-from ogr import GithubService, GitlabService, PagureService
+from ogr import ForgejoService, GithubService, GitlabService, PagureService
 from packit.config import JobConfig, JobConfigTriggerType, PackageConfig
 from packit.config.common_package_config import Deployment
 
@@ -43,6 +43,7 @@ def global_service_config():
         GitlabService(token="token"),
         PagureService(instance_url="https://src.fedoraproject.org", token="token"),
         PagureService(instance_url="https://git.stg.centos.org", token="6789"),
+        ForgejoService(instance_url="https://codeberg.org", token="token"),
     }
     service_config.server_name = "localhost"
     service_config.github_requests_log_path = "/path"
