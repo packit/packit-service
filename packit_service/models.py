@@ -2035,24 +2035,140 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return self.copr_build_targets
 
     @classmethod
-    def create(cls, run_model: "PipelineModel") -> "CoprBuildGroupModel":
+    def _clone_pipeline_for_new_build_group(
+        cls,
+        session,
+        run_model_to_clone: "PipelineModel",
+        original_run_model: "PipelineModel",
+        build_group: "CoprBuildGroupModel",
+        package_name: Optional[str],
+    ) -> "PipelineModel":
+        """
+        Clone a pipeline model for a new build group.
+
+        This helper method extracts the common logic for cloning a pipeline when
+        a build group needs to be associated with a new pipeline instance (e.g.,
+        when the original pipeline already has a build group or when a race
+        condition occurs).
+
+        Args:
+            session: The database session
+            run_model_to_clone: The pipeline model to clone from (database state)
+            original_run_model: The original pipeline model (in-memory state)
+            build_group: The build group to associate with the cloned pipeline
+            package_name: The package name for the cloned pipeline. Falls back to:
+                         1. Provided parameter (from handler context) - preferred
+                         2. original_run_model.package_name (in-memory state)
+                         3. run_model_to_clone.package_name (database state)
+
+        Returns:
+            The newly created cloned PipelineModel
+        """
+        clone_package_name = (
+            package_name or original_run_model.package_name or run_model_to_clone.package_name
+        )
+        logger.debug(f"Cloning pipeline {run_model_to_clone.id} for package '{clone_package_name}'")
+
+        new_run_model = PipelineModel.create(
+            project_event=run_model_to_clone.project_event,
+            package_name=clone_package_name,
+        )
+        new_run_model.srpm_build = run_model_to_clone.srpm_build
+        new_run_model.copr_build_group_id = build_group.id
+        session.add(new_run_model)
+        session.flush()
+        return new_run_model
+
+    @classmethod
+    def create(
+        cls, run_model: "PipelineModel", package_name: Optional[str] = None
+    ) -> tuple["CoprBuildGroupModel", "PipelineModel"]:
+        """
+        Create a new CoprBuildGroup and associate it with a pipeline.
+
+        This method handles concurrent builds for multiple packages by using atomic
+        database operations. If multiple workers try to create a build group for the
+        same pipeline simultaneously, only one will succeed in updating the original
+        pipeline, while others will create cloned pipelines for their respective packages.
+
+        Args:
+            run_model: The pipeline model to associate with the build group
+            package_name: The package name for this build. Used when cloning pipelines
+                         for multi-package concurrent builds. Falls back to:
+                         1. Provided parameter (from handler context) - preferred
+                         2. run_model.package_name attribute (in-memory state)
+                         3. db_run_model.package_name (database state)
+
+        Returns:
+            A tuple of (CoprBuildGroupModel, PipelineModel) where PipelineModel is
+            either the original run_model (if successfully updated) or a newly cloned
+            pipeline (if another worker won the race).
+        """
         with sa_session_transaction(commit=True) as session:
             build_group = cls()
             session.add(build_group)
-            if run_model.copr_build_group:
-                # Clone run model
-                new_run_model = PipelineModel.create(
-                    project_event=run_model.project_event,
-                    package_name=run_model.package_name,
-                )
-                new_run_model.srpm_build = run_model.srpm_build
-                new_run_model.copr_build_group = build_group
-                session.add(new_run_model)
-            else:
-                run_model.copr_build_group = build_group
-                session.add(run_model)
+            session.flush()  # Get build_group.id
 
-            return build_group
+            # Check if run_model already has a copr_build_group in the database
+            # Refresh from DB to get current state
+            db_run_model = session.query(PipelineModel).filter_by(id=run_model.id).first()
+            if db_run_model and db_run_model.copr_build_group_id:
+                logger.debug(
+                    f"Pipeline {run_model.id} already has build group "
+                    f"{db_run_model.copr_build_group_id}, cloning for new package"
+                )
+                # Clone run model - use package_name from handler context, not from stale run_model
+                new_run_model = cls._clone_pipeline_for_new_build_group(
+                    session=session,
+                    run_model_to_clone=db_run_model,
+                    original_run_model=run_model,
+                    build_group=build_group,
+                    package_name=package_name,
+                )
+                # Return early with the cloned pipeline
+                return build_group, new_run_model
+            # Try to update atomically
+            updated = (
+                session.query(PipelineModel)
+                .filter_by(id=run_model.id, copr_build_group_id=None)
+                .update({"copr_build_group_id": build_group.id})
+            )
+            if updated == 0:
+                # Another worker already set it, need to clone
+                db_run_model = (
+                    session.query(PipelineModel)
+                    .filter_by(id=run_model.id)
+                    .with_for_update()
+                    .first()
+                )
+                if db_run_model:
+                    logger.debug(
+                        f"Atomic update failed for pipeline {run_model.id} "
+                        f"(another worker won), cloning for new package"
+                    )
+                    new_run_model = cls._clone_pipeline_for_new_build_group(
+                        session=session,
+                        run_model_to_clone=db_run_model,
+                        original_run_model=run_model,
+                        build_group=build_group,
+                        package_name=package_name,
+                    )
+
+            # Return the pipeline model that was actually updated/cloned
+            # Query by build_group.id to get whichever pipeline was associated with it
+            # (either the original run_model if atomic update succeeded, or the cloned pipeline)
+            final_pipeline = (
+                session.query(PipelineModel).filter_by(copr_build_group_id=build_group.id).first()
+            )
+            if not final_pipeline:
+                # This should never happen - log an error and return the original run_model
+                logger.error(
+                    f"Failed to find pipeline for build_group {build_group.id}. "
+                    f"This indicates a critical bug in CoprBuildGroupModel.create()"
+                )
+                return build_group, run_model
+
+            return build_group, final_pipeline
 
     @classmethod
     def get_by_id(cls, group_id: int) -> Optional["CoprBuildGroupModel"]:
@@ -3433,8 +3549,8 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
             # Attempt to update the existing run_model if test_run_group_id is NULL
             # This is an atomic operation at the DB level, preventing race conditions
-            # Only one thread will successfully update (updated_count=1)
-            # The other thread will get updated_count=0 and proceed to clone
+            # Only one worker will successfully update (updated_count=1)
+            # The other worker will get updated_count=0 and proceed to clone
             updated_count = (
                 session.query(PipelineModel)
                 .filter_by(id=run_model.id, test_run_group_id=None)
@@ -3442,7 +3558,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             )
 
             if updated_count == 0:
-                # If 0 rows were updated, it means another thread already set test_run_group_id
+                # If 0 rows were updated, it means another worker already set test_run_group_id
                 # So, clone the run model
                 locked_run_model = (
                     session.query(PipelineModel)
@@ -3463,7 +3579,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 new_run_model.copr_build_group = locked_run_model.copr_build_group
                 new_run_model.koji_build_group = locked_run_model.koji_build_group
                 new_run_model.test_run_group_id = test_run_group.id
-            # else: (updated_count == 1) - the current thread successfully set test_run_group_id
+            # else: (updated_count == 1) - the current worker successfully set test_run_group_id
             # No need to do anything further for the existing run_model as it's already updated.
 
             return test_run_group
