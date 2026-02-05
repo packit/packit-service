@@ -1148,7 +1148,11 @@ class AbstractDownstreamKojiBuildHandler(
                     koji_build_model.set_web_url(web_url)
                     koji_build_model.set_build_submission_stdout(stdout)
             except PackitException as ex:
-                if self.celery_task and not self.celery_task.is_last_try():
+                if (
+                    self.celery_task
+                    and self.celery_task.can_retry_for(ex)
+                    and not self.celery_task.is_last_try()
+                ):
                     kargs = self.celery_task.task.request.kwargs.copy()
                     kargs["koji_group_model_id"] = group.id
                     for model in group.grouped_targets:

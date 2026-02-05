@@ -43,6 +43,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     BodhiTaskWithRetry,
+    TaskWithRetry,
     run_bodhi_update,
     run_bodhi_update_from_sidetag,
     run_koji_build_tag_handler,
@@ -147,6 +148,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         processing_results,
     )
     assert json.dumps(event_dict)
+    run_bodhi_update.autoretry_for = BodhiTaskWithRetry.autoretry_for
     results = run_bodhi_update(
         package_config=package_config,
         event=event_dict,
@@ -252,6 +254,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
+    run_bodhi_update.autoretry_for = BodhiTaskWithRetry.autoretry_for
     with pytest.raises(PackitException):
         run_bodhi_update(
             package_config=package_config,
@@ -372,6 +375,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         celery_task=flexmock(
             request=flexmock(retries=DEFAULT_RETRY_LIMIT),
             max_retries=DEFAULT_RETRY_LIMIT,
+            autoretry_for=TaskWithRetry.autoretry_for,
         ),
     ).run_job()
 
@@ -498,6 +502,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         celery_task=flexmock(
             request=flexmock(retries=BodhiTaskWithRetry.retry_kwargs["max_retries"]),
             max_retries=DEFAULT_RETRY_LIMIT,
+            autoretry_for=TaskWithRetry.autoretry_for,
         ),
     ).run_job()
 
@@ -597,6 +602,9 @@ def test_bodhi_update_build_not_tagged_yet(
     )
     flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
 
+    task_mock = flexmock(
+        autoretry_for=BodhiTaskWithRetry.autoretry_for,
+    )
     flexmock(Task).should_receive("retry").and_raise(Retry).once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
@@ -607,8 +615,10 @@ def test_bodhi_update_build_not_tagged_yet(
     event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
     )
-    celery_task = flexmock(CeleryTask)
-    celery_task.should_receive("is_last_try").and_return(False)
+    task_mock = flexmock(autoretry_for=BodhiTaskWithRetry.autoretry_for)
+    celery_task = CeleryTask(task_mock)
+    flexmock(celery_task).should_receive("is_last_try").and_return(False)
+    run_bodhi_update.autoretry_for = BodhiTaskWithRetry.autoretry_for
     with pytest.raises(Retry):
         run_bodhi_update(
             package_config=package_config,
@@ -624,6 +634,7 @@ def test_bodhi_update_build_not_tagged_yet(
     ).and_return(
         None,
     )  # tagged now
+    run_bodhi_update.autoretry_for = BodhiTaskWithRetry.autoretry_for
     results = run_bodhi_update(
         package_config=package_config,
         event=event_dict,
@@ -664,7 +675,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(group).should_receive("apply_async").times(2)
-    flexmock(Pushgateway).should_receive("push").times(1)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(PackitAPI).should_receive("create_update").times(0)
 
     # Database structure
@@ -803,6 +814,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         processing_results,
     )
     assert json.dumps(event_dict)
+    run_bodhi_update.autoretry_for = BodhiTaskWithRetry.autoretry_for
     results = run_bodhi_update(
         package_config=package_config,
         event=event_dict,
@@ -842,7 +854,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(group).should_receive("apply_async").times(2)
-    flexmock(Pushgateway).should_receive("push").times(1)
+    flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(PackitAPI).should_receive("create_update").times(0)
 
     # Database structure
@@ -957,6 +969,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         processing_results,
     )
     assert json.dumps(event_dict)
+    run_bodhi_update.autoretry_for = BodhiTaskWithRetry.autoretry_for
     results = run_bodhi_update(
         package_config=package_config,
         event=event_dict,
@@ -1200,6 +1213,8 @@ def test_bodhi_update_from_sidetag(
         assert bodhi_update_group == group_model
 
     flexmock(BodhiUpdateTargetModel).should_receive("create").replace_with(_create)
+
+    flexmock(Pushgateway).should_receive("push").and_return()
 
     processing_results = SteveJobs().process_message(koji_build_tagged)
     event_dict, _, job_config, package_config = get_parameters_from_results(

@@ -39,6 +39,19 @@ class CeleryTask:
         """
         return self.task.max_retries
 
+    def can_retry_for(self, exception: Exception) -> bool:
+        """
+        Check if an exception is retryable based on the task's autoretry_for list.
+
+        Args:
+            exception: The exception to check
+
+        Returns:
+            True if the exception type is in the task's autoretry_for list,
+            False otherwise
+        """
+        return isinstance(exception, tuple(self.task.autoretry_for))
+
     def retry(
         self,
         ex: Optional[Exception] = None,

@@ -44,6 +44,7 @@ from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
+    TaskWithRetry,
     run_downstream_koji_build,
     run_sync_from_downstream_handler,
 )
@@ -575,6 +576,7 @@ def test_downstream_koji_build_failure_issue_created():
         celery_task=flexmock(
             request=flexmock(retries=DEFAULT_RETRY_LIMIT),
             max_retries=DEFAULT_RETRY_LIMIT,
+            autoretry_for=TaskWithRetry.autoretry_for,
         ),
     ).run_job()
 
@@ -699,6 +701,7 @@ def test_downstream_koji_build_failure_issue_comment():
         celery_task=flexmock(
             request=flexmock(retries=DEFAULT_RETRY_LIMIT),
             max_retries=DEFAULT_RETRY_LIMIT,
+            autoretry_for=TaskWithRetry.autoretry_for,
         ),
     ).run_job()
 
