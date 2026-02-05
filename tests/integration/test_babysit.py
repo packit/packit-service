@@ -31,11 +31,15 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.testing_farm import (
+    DownstreamTestingFarmResultsHandler,
+)
 from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
     update_copr_builds,
+    update_testing_farm_run,
 )
 from packit_service.worker.tasks import (
     run_copr_build_end_handler,
@@ -770,3 +774,91 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
         ),
     )
     check_pending_testing_farm_runs()
+
+
+def test_update_testing_farm_run_downstream():
+    """
+    Test that update_testing_farm_run correctly handles downstream tests.
+    """
+    pipeline_id = "downstream-pipeline-123"
+
+    event = events.testing_farm.Result(
+        pipeline_id=pipeline_id,
+        result=TestingFarmResult.passed,
+        compose="Fedora-Rawhide",
+        summary="Tests passed",
+        log_url="https://testing-farm.example.com/logs/123",
+        copr_build_id="",
+        copr_chroot="",
+        commit_sha="abc123",
+        project_url="https://src.fedoraproject.org/rpms/test-package",
+        created=datetime.datetime.utcnow(),
+    )
+
+    run = flexmock(
+        pipeline_id=pipeline_id,
+        data={
+            "fedora_ci_test": "rpmlint",
+            "base_project_url": "https://src.fedoraproject.org/rpms/test-package",
+        },
+        get_project_event_object=lambda: None,
+    )
+
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
+        pipeline_id=pipeline_id,
+    ).and_return(run)
+
+    # Mock pre_check on the class (it's a classmethod)
+    flexmock(DownstreamTestingFarmResultsHandler).should_receive("pre_check").and_return(True)
+
+    celery_run_async_called = []
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_called.append(signatures),
+    )
+
+    update_testing_farm_run(event, run)
+
+    # Verify celery_run_async was called
+    assert len(celery_run_async_called) == 1
+
+
+def test_update_testing_farm_run_downstream_pre_check_fails():
+    """
+    Test that update_testing_farm_run doesn't handle downstream test when pre_check fails.
+    """
+    pipeline_id = "downstream-pipeline-456"
+
+    event = events.testing_farm.Result(
+        pipeline_id=pipeline_id,
+        result=TestingFarmResult.passed,
+        compose="Fedora-Rawhide",
+        summary="Tests passed",
+        log_url="https://testing-farm.example.com/logs/456",
+        copr_build_id="",
+        copr_chroot="",
+        commit_sha="def456",
+        project_url="https://src.fedoraproject.org/rpms/test-package",
+        created=datetime.datetime.utcnow(),
+    )
+
+    run = flexmock(
+        pipeline_id=pipeline_id,
+        data={
+            "fedora_ci_test": "rpmlint",
+            "base_project_url": "https://src.fedoraproject.org/rpms/test-package",
+        },
+        get_project_event_object=lambda: None,
+    )
+
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
+        pipeline_id=pipeline_id,
+    ).and_return(run)
+
+    # Mock pre_check on the class to return False (it's a classmethod)
+    flexmock(DownstreamTestingFarmResultsHandler).should_receive("pre_check").and_return(False)
+
+    # Should not call celery_run_async when pre_check fails
+    flexmock(packit_service.worker.helpers.build.babysit).should_receive("celery_run_async").never()
+
+    update_testing_farm_run(event, run)

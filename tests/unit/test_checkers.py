@@ -50,8 +50,10 @@ from packit_service.worker.checker.koji import (
 )
 from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.checker.testing_farm import (
+    IsDownstreamTest,
     IsIdentifierFromCommentMatching,
     IsLabelFromCommentMatching,
+    IsUpstreamTest,
 )
 from packit_service.worker.checker.testing_farm import (
     IsJobConfigTriggerMatching as IsJobConfigTriggerMatchingTF,
@@ -1296,5 +1298,103 @@ def test_run_condition(
         flexmock(GithubProject).should_receive("get_file_content").with_args(
             path="package.spec", ref=git_ref
         ).and_return(spec_file_content)
+
+    assert checker.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "test_run_data, should_pass",
+    (
+        pytest.param(
+            {"fedora_ci_test": "rpmlint"},
+            False,
+            id="Downstream test should be rejected by IsUpstreamTest",
+        ),
+        pytest.param(
+            {},
+            True,
+            id="Upstream test should pass IsUpstreamTest",
+        ),
+        pytest.param(
+            None,
+            True,
+            id="Upstream test (no data) should pass IsUpstreamTest",
+        ),
+    ),
+)
+def test_is_upstream_test(test_run_data, should_pass):
+    """
+    Test that IsUpstreamTest checker correctly filters downstream tests.
+    """
+    from packit_service.events import testing_farm
+    from packit_service.models import TFTTestRunTargetModel
+
+    pipeline_id = "pipeline-123"
+    event = {
+        "event_type": testing_farm.Result.event_type(),
+        "pipeline_id": pipeline_id,
+    }
+
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(type=JobType.tests)
+
+    test_run_model = flexmock(
+        pipeline_id=pipeline_id,
+        data=test_run_data,
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
+        pipeline_id=pipeline_id,
+    ).and_return(test_run_model)
+
+    checker = IsUpstreamTest(package_config, job_config, event)
+
+    assert checker.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "test_run_data, should_pass",
+    (
+        pytest.param(
+            {"fedora_ci_test": "rpmlint"},
+            True,
+            id="Downstream test should pass IsDownstreamTest",
+        ),
+        pytest.param(
+            {},
+            False,
+            id="Upstream test should be rejected by IsDownstreamTest",
+        ),
+        pytest.param(
+            None,
+            False,
+            id="Upstream test (no data) should be rejected by IsDownstreamTest",
+        ),
+    ),
+)
+def test_is_downstream_test(test_run_data, should_pass):
+    """
+    Test that IsDownstreamTest checker correctly filters upstream tests.
+    """
+    from packit_service.events import testing_farm
+    from packit_service.models import TFTTestRunTargetModel
+
+    pipeline_id = "pipeline-123"
+    event = {
+        "event_type": testing_farm.Result.event_type(),
+        "pipeline_id": pipeline_id,
+    }
+
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(type=JobType.tests)
+
+    test_run_model = flexmock(
+        pipeline_id=pipeline_id,
+        data=test_run_data,
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
+        pipeline_id=pipeline_id,
+    ).and_return(test_run_model)
+
+    checker = IsDownstreamTest(package_config, job_config, event)
 
     assert checker.pre_check() == should_pass
