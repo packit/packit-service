@@ -163,6 +163,8 @@ def update_testing_farm_run(event: testing_farm.Result, run: TFTTestRunTargetMod
             job_config=job_config,
             event=event_dict,
         )
+        # TODO: Consider time-based heuristic instead of always False
+        handler.set_status_reporter_reraise_transient_errors(False)
         # check for identifiers equality
         if handler.pre_check(package_config, job_config, event_dict):
             signatures.append(handler.get_signature(event=event, job=job_config))
@@ -443,6 +445,8 @@ def update_copr_build_state(
             job_config=job_config,
             event=event_dict,
         )
+        # TODO: Consider time-based heuristic instead of always False
+        handler.set_status_reporter_reraise_transient_errors(False)
         if handler.pre_check(package_config, job_config, event_dict):
             signatures.append(handler.get_signature(event=event, job=job_config))
 
