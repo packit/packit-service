@@ -85,7 +85,7 @@ def packit_build_752():
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_event,
     )
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     srpm_build.set_logs("asd\nqwe\n")
     srpm_build.set_status("success")
     yield CoprBuildTargetModel.create(
@@ -307,7 +307,7 @@ def test_testing_farm_race_condition_concurrent_identifiers(
     _, run_model = SRPMBuildModel.create_with_new_run(
         project_event_model=project_event,
     )
-    copr_build_group = CoprBuildGroupModel.create(run_model)
+    copr_build_group, _ = CoprBuildGroupModel.create(run_model)
 
     # Create copr build with specific build_id
     # The commit_sha is already set in the project_event we created above
