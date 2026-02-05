@@ -85,6 +85,8 @@ class ServiceConfigSchema(UserConfigSchema):
     appcode = fields.String()
     enabled_projects_for_fedora_ci = fields.List(fields.String())
     rate_limit_threshold = fields.Integer(missing=None)
+    fedora_ci_run_by_default = fields.Bool(missing=False)
+    disabled_projects_for_fedora_ci = fields.List(fields.String())
 
     @post_load
     def make_instance(self, data, **kwargs):

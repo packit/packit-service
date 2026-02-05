@@ -9,6 +9,7 @@ from flexmock import flexmock
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import (
     CommonPackageConfig,
+    Deployment,
     JobConfig,
     JobConfigTriggerType,
     JobType,
@@ -3632,4 +3633,112 @@ def test_unapproved_jobs():
     assert results and len(results) == 3, "we have gotten exactly 3 results"
     assert all(not result["success"] for result in results), (
         "all of them must've failed the permission check"
+    )
+
+
+@pytest.mark.parametrize(
+    "fedora_ci_run_by_default,enabled_projects,disabled_projects,project_url,expected",
+    [
+        # Opt-in mode (fedora_ci_run_by_default=False)
+        (
+            False,
+            {"https://src.fedoraproject.org/rpms/test"},
+            set(),
+            "https://src.fedoraproject.org/rpms/test",
+            True,
+        ),
+        (
+            False,
+            {"https://src.fedoraproject.org/rpms/test"},
+            set(),
+            "https://src.fedoraproject.org/rpms/other",
+            False,
+        ),
+        (False, set(), set(), "https://src.fedoraproject.org/rpms/test", False),
+        (False, None, None, "https://src.fedoraproject.org/rpms/test", False),
+        (
+            False,
+            {
+                "https://src.fedoraproject.org/rpms/test1",
+                "https://src.fedoraproject.org/rpms/test2",
+            },
+            set(),
+            "https://src.fedoraproject.org/rpms/test1",
+            True,
+        ),
+        (
+            False,
+            {
+                "https://src.fedoraproject.org/rpms/test1",
+                "https://src.fedoraproject.org/rpms/test2",
+            },
+            set(),
+            "https://src.fedoraproject.org/rpms/test3",
+            False,
+        ),
+        # Opt-out mode (fedora_ci_run_by_default=True)
+        (
+            True,
+            set(),
+            {"https://src.fedoraproject.org/rpms/test"},
+            "https://src.fedoraproject.org/rpms/test",
+            False,
+        ),
+        (
+            True,
+            set(),
+            {"https://src.fedoraproject.org/rpms/test"},
+            "https://src.fedoraproject.org/rpms/other",
+            True,
+        ),
+        (True, set(), set(), "https://src.fedoraproject.org/rpms/test", True),
+        (True, set(), None, "https://src.fedoraproject.org/rpms/test", True),
+        (
+            True,
+            set(),
+            {
+                "https://src.fedoraproject.org/rpms/test1",
+                "https://src.fedoraproject.org/rpms/test2",
+            },
+            "https://src.fedoraproject.org/rpms/test1",
+            False,
+        ),
+        (
+            True,
+            set(),
+            {
+                "https://src.fedoraproject.org/rpms/test1",
+                "https://src.fedoraproject.org/rpms/test2",
+            },
+            "https://src.fedoraproject.org/rpms/test3",
+            True,
+        ),
+    ],
+)
+def test_should_process_as_fedora_ci(
+    fedora_ci_run_by_default,
+    enabled_projects,
+    disabled_projects,
+    project_url,
+    expected,
+):
+    """Test _should_process_as_fedora_ci method with various configurations."""
+    event = flexmock()
+    jobs = SteveJobs(event)
+
+    service_config = ServiceConfig(
+        deployment=Deployment.stg,
+        fedora_ci_run_by_default=fedora_ci_run_by_default,
+        enabled_projects_for_fedora_ci=enabled_projects,
+        disabled_projects_for_fedora_ci=disabled_projects,
+    )
+    # Mock the cached_property to return our test config
+    flexmock(jobs).should_receive("service_config").and_return(service_config)
+
+    result = jobs._should_process_as_fedora_ci(project_url)
+    assert result == expected, (
+        f"Expected {expected} but got {result} for project_url={project_url}, "
+        f"fedora_ci_run_by_default={fedora_ci_run_by_default}, "
+        f"enabled_projects={enabled_projects}, "
+        f"disabled_projects={disabled_projects}"
     )
