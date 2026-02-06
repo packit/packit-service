@@ -548,6 +548,9 @@ class JobHandler(Handler):
             )
             # Increment the metric for tasks enqueued to the rate-limited queue
             self.pushgateway.rate_limited_tasks_enqueued.inc()
+            # Push metrics immediately since we're about to raise an exception
+            # that will prevent the normal push() call in run_job()
+            self.pushgateway.push()
             # Use apply_async to reschedule the task to the rate-limited queue
             # retry() isn't working, the chosen queue is the one defined in the task definition,
             # not the one passed to retry()
