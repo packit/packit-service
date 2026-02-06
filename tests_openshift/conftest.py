@@ -670,7 +670,7 @@ def different_issue_model(different_issue_project_event_model):
 @pytest.fixture()
 def a_copr_build_for_pr(srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     copr_build_model = CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,
         project_name=SampleValues.project,
@@ -692,7 +692,7 @@ def a_copr_build_for_pr_different_commit(
     srpm_build_model_with_new_run_for_pr_different_commit,
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr_different_commit
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     copr_build_model = CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,
         project_name=SampleValues.project,
@@ -712,7 +712,7 @@ def a_copr_build_for_pr_different_commit(
 @pytest.fixture()
 def a_copr_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
     _, run_model = srpm_build_model_with_new_run_for_branch
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     copr_build_model = CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,
         project_name=SampleValues.project,
@@ -731,7 +731,7 @@ def a_copr_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
 @pytest.fixture()
 def a_copr_build_for_release(srpm_build_model_with_new_run_for_release):
     _, run_model = srpm_build_model_with_new_run_for_release
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     copr_build_model = CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,
         project_name=SampleValues.project,
@@ -750,7 +750,7 @@ def a_copr_build_for_release(srpm_build_model_with_new_run_for_release):
 @pytest.fixture()
 def a_copr_build_waiting_for_srpm(srpm_build_in_copr_model):
     _, run_model = srpm_build_in_copr_model
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     copr_build_model = CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,
         project_name=SampleValues.project,
@@ -772,15 +772,15 @@ def multiple_copr_builds(pr_project_event_model, different_pr_project_event_mode
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
-    group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
+    group_for_pr, _ = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
-    group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
+    group_for_same_pr, _ = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=different_pr_project_event_model,
     )
-    group_for_a_different_pr = CoprBuildGroupModel.create(run_model_for_a_different_pr)
+    group_for_a_different_pr, _ = CoprBuildGroupModel.create(run_model_for_a_different_pr)
 
     yield [
         # Two chroots for one run model
@@ -833,11 +833,11 @@ def too_many_copr_builds(pr_project_event_model, different_pr_project_event_mode
         _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
             project_event_model=pr_project_event_model,
         )
-        group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
+        group_for_pr, _ = CoprBuildGroupModel.create(run_model_for_pr)
         _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
             project_event_model=pr_project_event_model,
         )
-        group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
+        group_for_same_pr, _ = CoprBuildGroupModel.create(run_model_for_same_pr)
         _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
             project_event_model=different_pr_project_event_model,
         )
@@ -895,7 +895,7 @@ def copr_builds_for_filtering(pr_project_event_model):
     _, run_model = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
-    group = CoprBuildGroupModel.create(run_model)
+    group, _ = CoprBuildGroupModel.create(run_model)
     builds_list = []
 
     # Build without build_id - should be filtered out
@@ -988,9 +988,9 @@ def copr_builds_with_different_triggers(
     _, run_model_for_pr = srpm_build_model_with_new_run_for_pr
     _, run_model_for_branch = srpm_build_model_with_new_run_for_branch
     _, run_model_for_release = srpm_build_model_with_new_run_for_release
-    group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
-    group_for_branch = CoprBuildGroupModel.create(run_model_for_branch)
-    group_for_release = CoprBuildGroupModel.create(run_model_for_release)
+    group_for_pr, _ = CoprBuildGroupModel.create(run_model_for_pr)
+    group_for_branch, _ = CoprBuildGroupModel.create(run_model_for_branch)
+    group_for_release, _ = CoprBuildGroupModel.create(run_model_for_release)
 
     yield [
         # pull request trigger
@@ -1195,16 +1195,16 @@ def multiple_new_test_runs(pr_project_event_model, different_pr_project_event_mo
         project_event_model=pr_project_event_model,
     )
     test_group_for_pr = TFTTestRunGroupModel.create(run_model_for_pr, ranch="public")
-    build_group_for_pr = CoprBuildGroupModel.create(run_model_for_pr)
+    build_group_for_pr, _ = CoprBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
     test_group_for_same_pr = TFTTestRunGroupModel.create(run_model_for_same_pr, ranch="public")
-    build_group_for_same_pr = CoprBuildGroupModel.create(run_model_for_same_pr)
+    build_group_for_same_pr, _ = CoprBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=different_pr_project_event_model,
     )
-    build_group_for_a_different_pr = CoprBuildGroupModel.create(
+    build_group_for_a_different_pr, _ = CoprBuildGroupModel.create(
         run_model_for_a_different_pr,
     )
     test_group_for_different_pr = TFTTestRunGroupModel.create(
@@ -2359,7 +2359,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
         project_event_model=pr_project_event_model,
     )
-    build_group = CoprBuildGroupModel.create(run_model_for_pr)
+    build_group, _ = CoprBuildGroupModel.create(run_model_for_pr)
     TFTTestRunGroupModel.create(run_model_for_pr, ranch="public")
 
     for target in (SampleValues.target, SampleValues.different_target):
@@ -2385,7 +2385,7 @@ def few_runs(pr_project_event_model, different_pr_project_event_model):
         project_event_model=different_pr_project_event_model,
     )
     TFTTestRunGroupModel.create(run_model_for_different_pr, ranch="public")
-    build_group = CoprBuildGroupModel.create(run_model_for_different_pr)
+    build_group, _ = CoprBuildGroupModel.create(run_model_for_different_pr)
 
     runs = []
     for target in (SampleValues.target, SampleValues.different_target):

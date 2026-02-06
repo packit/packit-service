@@ -65,7 +65,7 @@ def test_logdetective_process_message(
 
     if build_system == LogDetectiveBuildSystem.copr:
         # The .create() method handles the logic of attaching to the pipeline
-        build_group = CoprBuildGroupModel.create(run_model=pipeline)
+        build_group, _ = CoprBuildGroupModel.create(run_model=pipeline)
 
         build = CoprBuildTargetModel.create(
             build_id=logdetective_analysis_success_event["target_build"],
@@ -218,7 +218,7 @@ def test_logdetective_process_message_error(
     # The .create() method handles the logic of attaching to the pipeline
     if build_system == LogDetectiveBuildSystem.copr:
         # The .create() method handles the logic of attaching to the pipeline
-        build_group = CoprBuildGroupModel.create(run_model=pipeline)
+        build_group, _ = CoprBuildGroupModel.create(run_model=pipeline)
 
         build = CoprBuildTargetModel.create(
             build_id=logdetective_analysis_error_event["target_build"],

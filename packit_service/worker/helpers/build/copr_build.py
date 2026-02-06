@@ -579,7 +579,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 target.set_status(BuildStatus.waiting_for_srpm)
             return group
 
-        group = CoprBuildGroupModel.create(self.run_model)
+        handler_package_name = self.get_package_name()
+        # Fallback to job_config.package if get_package_name() returns None
+        if handler_package_name is None and self.job_config.package:
+            handler_package_name = self.job_config.package
+        group, self.run_model = CoprBuildGroupModel.create(
+            self.run_model, package_name=handler_package_name
+        )
         unprocessed_chroots = []
         for chroot in self.build_targets:
             if chroot not in self.available_chroots:

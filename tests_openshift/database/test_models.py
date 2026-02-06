@@ -427,7 +427,7 @@ def test_copr_get_all_by_ordering_by_id_desc(clean_before_and_after, pr_project_
     Ordering by id DESC ensures we get the latest build (highest id) first.
     """
     _, run_model_1 = SRPMBuildModel.create_with_new_run(project_event_model=pr_project_event_model)
-    group_1 = CoprBuildGroupModel.create(run_model_1)
+    group_1, _ = CoprBuildGroupModel.create(run_model_1)
     build_1 = CoprBuildTargetModel.create(
         build_id="9931733",  # Lower build_id, but created first (lower id)
         project_name=SampleValues.project,
@@ -439,7 +439,7 @@ def test_copr_get_all_by_ordering_by_id_desc(clean_before_and_after, pr_project_
     )
 
     _, run_model_2 = SRPMBuildModel.create_with_new_run(project_event_model=pr_project_event_model)
-    group_2 = CoprBuildGroupModel.create(run_model_2)
+    group_2, _ = CoprBuildGroupModel.create(run_model_2)
     build_2 = CoprBuildTargetModel.create(
         build_id="10020464",  # Higher build_id, created second (higher id)
         project_name=SampleValues.project,
@@ -520,7 +520,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(
         project_event_model=project_event,
     )
-    copr_group = CoprBuildGroupModel.create(run_model_for_copr)
+    copr_group, _ = CoprBuildGroupModel.create(run_model_for_copr)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
@@ -1276,7 +1276,7 @@ def test_create_koji_tag_request(clean_before_and_after, a_koji_tag_request):
 
 def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
-    group = CoprBuildGroupModel.create(run_model=run_model)
+    group, _ = CoprBuildGroupModel.create(run_model=run_model)
 
     for build_id, target, status in (
         ("1", "fedora-rawhide-x86_64", BuildStatus.pending),

@@ -2035,24 +2035,112 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return self.copr_build_targets
 
     @classmethod
-    def create(cls, run_model: "PipelineModel") -> "CoprBuildGroupModel":
+    def create(
+        cls, run_model: "PipelineModel", package_name: Optional[str] = None
+    ) -> tuple["CoprBuildGroupModel", "PipelineModel"]:
+        """
+        Create a new CoprBuildGroup and associate it with a pipeline.
+
+        This method handles concurrent builds for multiple packages by using atomic
+        database operations. If multiple threads try to create a build group for the
+        same pipeline simultaneously, only one will succeed in updating the original
+        pipeline, while others will create cloned pipelines for their respective packages.
+
+        Args:
+            run_model: The pipeline model to associate with the build group
+            package_name: The package name for this build. Used when cloning pipelines
+                         for multi-package concurrent builds. Falls back to:
+                         1. Provided parameter (from handler context) - preferred
+                         2. run_model.package_name attribute (in-memory state)
+                         3. db_run_model.package_name (database state)
+
+        Returns:
+            A tuple of (CoprBuildGroupModel, PipelineModel) where PipelineModel is
+            either the original run_model (if successfully updated) or a newly cloned
+            pipeline (if another thread won the race).
+        """
         with sa_session_transaction(commit=True) as session:
             build_group = cls()
             session.add(build_group)
-            if run_model.copr_build_group:
-                # Clone run model
-                new_run_model = PipelineModel.create(
-                    project_event=run_model.project_event,
-                    package_name=run_model.package_name,
-                )
-                new_run_model.srpm_build = run_model.srpm_build
-                new_run_model.copr_build_group = build_group
-                session.add(new_run_model)
-            else:
-                run_model.copr_build_group = build_group
-                session.add(run_model)
+            session.flush()  # Get build_group.id
 
-            return build_group
+            # Check if run_model already has a copr_build_group in the database
+            # Refresh from DB to get current state
+            db_run_model = session.query(PipelineModel).filter_by(id=run_model.id).first()
+            if db_run_model and db_run_model.copr_build_group_id:
+                # Use package_name parameter if provided (from handler context), otherwise fall back
+                clone_package_name = (
+                    package_name if package_name is not None else run_model.package_name
+                )
+                if clone_package_name is None:
+                    clone_package_name = db_run_model.package_name
+                logger.debug(
+                    f"Pipeline {run_model.id} already has build group "
+                    f"{db_run_model.copr_build_group_id}, "
+                    f"cloning for package '{clone_package_name}'"
+                )
+                # Clone run model - use package_name from handler context, not from stale run_model
+                new_run_model = PipelineModel.create(
+                    project_event=db_run_model.project_event,
+                    package_name=clone_package_name,
+                )
+                new_run_model.srpm_build = db_run_model.srpm_build
+                new_run_model.copr_build_group_id = build_group.id
+                session.add(new_run_model)
+                session.flush()
+                # Return early with the cloned pipeline
+                return build_group, new_run_model
+            # Try to update atomically
+            updated = (
+                session.query(PipelineModel)
+                .filter_by(id=run_model.id, copr_build_group_id=None)
+                .update({"copr_build_group_id": build_group.id})
+            )
+            if updated == 0:
+                # Another thread already set it, need to clone
+                db_run_model = (
+                    session.query(PipelineModel)
+                    .filter_by(id=run_model.id)
+                    .with_for_update()
+                    .first()
+                )
+                if db_run_model:
+                    # Use package_name parameter if provided (from handler context),
+                    # otherwise fall back
+                    clone_package_name = (
+                        package_name if package_name is not None else run_model.package_name
+                    )
+                    if clone_package_name is None:
+                        clone_package_name = db_run_model.package_name
+                    logger.debug(
+                        f"Atomic update failed for pipeline {run_model.id} "
+                        f"(another thread won), "
+                        f"cloning for package '{clone_package_name}'"
+                    )
+                    new_run_model = PipelineModel.create(
+                        project_event=db_run_model.project_event,
+                        package_name=clone_package_name,
+                    )
+                    new_run_model.srpm_build = db_run_model.srpm_build
+                    new_run_model.copr_build_group_id = build_group.id
+                    session.add(new_run_model)
+                    session.flush()
+
+            # Return the pipeline model that was actually updated/cloned
+            # Query by build_group.id to get whichever pipeline was associated with it
+            # (either the original run_model if atomic update succeeded, or the cloned pipeline)
+            final_pipeline = (
+                session.query(PipelineModel).filter_by(copr_build_group_id=build_group.id).first()
+            )
+            if not final_pipeline:
+                # This should never happen - log an error and return the original run_model
+                logger.error(
+                    f"Failed to find pipeline for build_group {build_group.id}. "
+                    f"This indicates a critical bug in CoprBuildGroupModel.create()"
+                )
+                return build_group, run_model
+
+            return build_group, final_pipeline
 
     @classmethod
     def get_by_id(cls, group_id: int) -> Optional["CoprBuildGroupModel"]:
