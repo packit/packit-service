@@ -580,6 +580,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     "arch": arch,
                     "trigger": "commit",
                     "initiator": "packit",
+                    "deployment": self.service_config.deployment.name,
                 },
             },
             "variables": predefined_environment,
@@ -641,6 +642,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                                 "arch": arch,
                                 "trigger": "commit",
                                 "initiator": "packit",
+                                "deployment": self.service_config.deployment.name,
                             },
                         },
                     },
@@ -1647,6 +1649,7 @@ class DownstreamTestingFarmJobHelper:
             "trigger": "commit",
             "initiator": "fedora-ci",
             "dist-git-branch": dist_git_branch,
+            "deployment": self.service_config.deployment.name,
         }
         if dist_git_branch == "rawhide" and distro == "fedora-eln":
             context["variant"] = "eln"
