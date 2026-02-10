@@ -703,6 +703,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                         "arch": "x86_64",
                         "trigger": "commit",
                         "initiator": "packit",
+                        "deployment": "prod",
                     },
                 },
                 "artifacts": [
@@ -2693,6 +2694,7 @@ def test_koji_build_end_downstream(
                             "trigger": "commit",
                             "initiator": "fedora-ci",
                             "dist-git-branch": "rawhide",
+                            "deployment": "stg",
                             **extra_context,
                         },
                     },
@@ -3586,6 +3588,7 @@ def test_pagure_pr_updated(pagure_pr_updated, project_namespace, project_repo):
                             "trigger": "commit",
                             "initiator": "fedora-ci",
                             "dist-git-branch": "rawhide",
+                            "deployment": "stg",
                         },
                     },
                 },

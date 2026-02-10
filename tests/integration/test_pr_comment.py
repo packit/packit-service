@@ -1072,6 +1072,7 @@ def test_pr_test_command_handler_retries(
                         "arch": "x86_64",
                         "trigger": "commit",
                         "initiator": "packit",
+                        "deployment": "prod",
                     },
                 },
                 "variables": {
@@ -1284,6 +1285,7 @@ def test_pr_test_command_handler_skip_build_option(
                         "arch": "x86_64",
                         "trigger": "commit",
                         "initiator": "packit",
+                        "deployment": "prod",
                     },
                 },
                 "variables": {
@@ -2254,6 +2256,7 @@ def test_pr_test_command_handler_multiple_builds(
                         "arch": "x86_64",
                         "trigger": "commit",
                         "initiator": "packit",
+                        "deployment": "prod",
                     },
                 },
                 "variables": {

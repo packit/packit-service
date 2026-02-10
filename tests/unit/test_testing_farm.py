@@ -636,7 +636,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "",  # without internal TF configured
             False,
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -663,7 +663,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "internal-very-secret",  # internal TF configured
             False,  # internal TF disabled in the config
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -690,7 +690,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "internal-very-secret",  # internal TF configured
             True,  # internal TF enabled in the config
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -718,7 +718,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "internal-very-secret",  # internal TF configured
             True,  # internal TF enabled in the config
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -752,7 +752,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "internal-very-secret",  # internal TF configured
             True,  # internal TF enabled in the config
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -780,7 +780,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "internal-very-secret",  # internal TF configured
             True,  # internal TF enabled in the config
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -818,7 +818,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "internal-very-secret",  # internal TF configured
             True,  # internal TF enabled in the config
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -864,7 +864,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "",  # without internal TF configured
             False,
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -895,7 +895,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "",  # without internal TF configured
             False,
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -926,7 +926,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "",  # without internal TF configured
             False,
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -957,7 +957,7 @@ def test_is_compose_matching(compose, composes, result):
             "very-secret",
             "",  # without internal TF configured
             False,
-            "test",
+            Deployment.stg,
             "packit",
             "packit-service",
             "feb41e5",
@@ -1263,7 +1263,7 @@ def test_merge_extra_params():
     service_config = flexmock(
         testing_farm_api_url="API URL",
         testing_farm_secret="secret token",
-        deployment="prod",
+        deployment=Deployment.prod,
         comment_command_prefix="/packit-dev",
     )
     package_config = flexmock()
@@ -1319,7 +1319,7 @@ def test_merge_extra_params_with_install():
 
     service_config = flexmock(
         testing_farm_secret="secret token",
-        deployment="prod",
+        deployment=Deployment.prod,
         comment_command_prefix="/packit-dev",
     )
     package_config = flexmock()
@@ -1458,7 +1458,7 @@ def test_test_repo(
 ):
     tf_api = "https://api.dev.testing-farm.io/v0.1/"
     tf_token = "very-secret"
-    ps_deployment = "test"
+    ps_deployment = Deployment.stg
     repo = "packit"
     source_project_url = "https://github.com/packit/packit"
     git_ref = "master"
