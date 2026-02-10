@@ -87,6 +87,9 @@ class ServiceConfigSchema(UserConfigSchema):
     rate_limit_threshold = fields.Integer(missing=None)
     fedora_ci_run_by_default = fields.Bool(missing=False)
     disabled_projects_for_fedora_ci = fields.List(fields.String())
+    logdetective_enabled = fields.Bool(missing=False, default=False)
+    logdetective_url = fields.String()
+    logdetective_secret = fields.String()
 
     @post_load
     def make_instance(self, data, **kwargs):

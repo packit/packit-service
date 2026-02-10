@@ -67,6 +67,7 @@ def test_logdetective_koji_init_sets_artifacts_correctly(mock_koji_task_failed_e
         mock_koji_task_failed_event,
         flexmock(),
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
 
     assert "build.log" in helper.artifacts
@@ -99,6 +100,7 @@ def test_logdetective_koji_success(mock_koji_task_failed_event, mock_pushgateway
             "pr_id": 42,
         },
         timeout=30,
+        headers={"Authorization": "Bearer secret-123"},
     ).once().and_return(mock_response)
 
     mock_group_run = flexmock()
@@ -126,6 +128,7 @@ def test_logdetective_koji_success(mock_koji_task_failed_event, mock_pushgateway
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
@@ -151,6 +154,7 @@ def test_logdetective_koji_http_error(
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
@@ -172,6 +176,7 @@ def test_logdetective_koji_connection_error(
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
@@ -196,6 +201,7 @@ def test_logdetective_koji_json_decode_error(
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
@@ -217,6 +223,7 @@ def test_logdetective_koji_timeout(
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
@@ -242,6 +249,7 @@ def test_logdetective_koji_missing_id(
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
@@ -267,6 +275,7 @@ def test_logdetective_koji_missing_time(
         mock_koji_task_failed_event,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
+        "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
