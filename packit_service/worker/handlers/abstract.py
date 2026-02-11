@@ -525,7 +525,7 @@ class JobHandler(Handler):
             else RATE_LIMIT_THRESHOLD
         )
         # Check if rate limit is below threshold and enqueue to rate-limited queue if so.
-        if remaining and rate_limit_threshold and remaining < rate_limit_threshold:
+        if remaining is not None and rate_limit_threshold and remaining < rate_limit_threshold:
             # Check if the task is already running from the rate-limited queue
             # by checking the routing_key from delivery_info
             current_routing_key = celery_task.request.delivery_info.get("routing_key")
