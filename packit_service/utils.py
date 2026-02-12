@@ -228,7 +228,11 @@ def get_packit_commands_from_comment(
     return []
 
 
-def _create_base_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
+def _create_base_parser(
+    prog: Optional[str] = None,
+    description: Optional[str] = None,
+    epilog: Optional[str] = None,
+) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=prog,
         description=description,
@@ -239,7 +243,11 @@ def _create_base_parser(prog: str, description: str, epilog: str) -> argparse.Ar
     return parser
 
 
-def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.ArgumentParser:
+def get_pr_comment_parser(
+    prog: Optional[str] = None,
+    description: Optional[str] = None,
+    epilog: Optional[str] = None,
+) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
 
     subparsers = parser.add_subparsers(
@@ -314,7 +322,9 @@ def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.
 
 
 def get_pr_comment_parser_fedora_ci(
-    prog: str, description: str, epilog: str
+    prog: Optional[str] = None,
+    description: Optional[str] = None,
+    epilog: Optional[str] = None,
 ) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
 
