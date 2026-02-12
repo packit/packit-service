@@ -52,6 +52,7 @@ def test_logdetective_koji_build_scratch_downstream(
         logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
         koji_logs_url="https://kojipkgs.fedoraproject.org",
         deployment=Deployment.prod,
+        logdetective_secret="secret-123",
     )
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)

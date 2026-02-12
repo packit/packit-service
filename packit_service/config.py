@@ -113,6 +113,7 @@ class ServiceConfig(Config):
         rate_limit_threshold: Optional[int] = None,
         logdetective_enabled: bool = False,
         logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
+        logdetective_secret: str = "",
         **kwargs,
     ):
         if "authentication" in kwargs:
@@ -211,6 +212,8 @@ class ServiceConfig(Config):
         self.logdetective_enabled = logdetective_enabled
         # Default URL of the Log Detective interface server
         self.logdetective_url = logdetective_url
+        # Token to be used with Log Detective interface server
+        self.logdetective_secret = logdetective_secret
 
     service_config = None
 

@@ -367,7 +367,10 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
             return
         logger.info("Triggering Log Detective Helper for a failed Koji build")
         log_detective_trigger = LogDetectiveKojiTriggerHelper(
-            self.koji_task_event, self.pushgateway, self.service_config.logdetective_url
+            self.koji_task_event,
+            self.pushgateway,
+            self.service_config.logdetective_url,
+            self.service_config.logdetective_secret,
         )
         trigger_success = log_detective_trigger.trigger_log_detective_analysis()
         if not trigger_success:

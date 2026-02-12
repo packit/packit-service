@@ -28,7 +28,13 @@ class LogDetectiveKojiTriggerHelper:
 
     __test__ = False
 
-    def __init__(self, koji_event: koji.result.Task, pushgateway: Pushgateway, url: str):
+    def __init__(
+        self,
+        koji_event: koji.result.Task,
+        pushgateway: Pushgateway,
+        url: str,
+        logdetective_token: str,
+    ):
         self.koji_event = koji_event
         # NOTE: LD analysis currently (Feb 2026) only works for one log file.
         # Specifically "build.log" for Koji ("builder-live.log" for Copr).
@@ -39,6 +45,7 @@ class LogDetectiveKojiTriggerHelper:
         }
         self.url = url
         self.pushgateway = pushgateway
+        self.token = logdetective_token
 
     def trigger_log_detective_analysis(self) -> bool:
         """
@@ -61,7 +68,12 @@ class LogDetectiveKojiTriggerHelper:
         }
 
         try:
-            response = requests.post(endpoint_url, json=request_json, timeout=30)
+            response = requests.post(
+                endpoint_url,
+                json=request_json,
+                timeout=30,
+                headers={"Authorization": f"Bearer {self.token}"},
+            )
             response.raise_for_status()
         except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as e:
             msg = f"Failed to get response from Log Detective: {e}"
