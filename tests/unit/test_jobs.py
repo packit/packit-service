@@ -3713,6 +3713,28 @@ def test_unapproved_jobs():
             "https://src.fedoraproject.org/rpms/test3",
             True,
         ),
+        # Opt-out mode: non-rpms URLs should not be processed
+        (
+            True,
+            set(),
+            set(),
+            "https://src.fedoraproject.org/containers/test",
+            False,
+        ),
+        (
+            True,
+            set(),
+            set(),
+            "https://src.fedoraproject.org/modules/test",
+            False,
+        ),
+        (
+            True,
+            set(),
+            set(),
+            "https://github.com/some/repo",
+            False,
+        ),
     ],
 )
 def test_should_process_as_fedora_ci(
