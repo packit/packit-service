@@ -205,7 +205,7 @@ class BodhiUpdateHandler(
                     and self.celery_task.can_retry_for(ex)
                     and not self.celery_task.is_last_try()
                 ):
-                    target_model.set_status("retry")
+                    target_model.set_status("error")
                     raise
 
                 error = f"Internal error, please contact us: {ex}"
