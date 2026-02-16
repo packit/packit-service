@@ -12,6 +12,7 @@ from typing import Optional
 
 from celery import Task
 from ogr.abstract import GitProject
+from ogr.exceptions import GithubAPIException, GitlabAPIException, PagureAPIException
 from packit.config import JobConfig, JobType, aliases
 from packit.config.package_config import PackageConfig
 
@@ -533,6 +534,11 @@ class TestingFarmResultsHandler(
         self.log_url = event.get("log_url")
         self.summary = event.get("summary")
         self.created = event.get("created")
+        self._status_reporter_reraise_transient_errors = True
+
+    def set_status_reporter_reraise_transient_errors(self, reraise: bool) -> None:
+        """Set whether to re-raise transient GitHub errors or fall back to comments."""
+        self._status_reporter_reraise_transient_errors = reraise
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
@@ -550,6 +556,9 @@ class TestingFarmResultsHandler(
 
     def _run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
+        self.testing_farm_job_helper.status_reporter.reraise_transient_errors = (
+            self._status_reporter_reraise_transient_errors
+        )
 
         test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id,
@@ -587,6 +596,20 @@ class TestingFarmResultsHandler(
             status = BaseCommitStatus.error
             summary = self.summary or "Error ..."
 
+        url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None
+        try:
+            self.testing_farm_job_helper.report_status_to_tests_for_test_target(
+                state=status,
+                description=summary,
+                target=test_run_model.target,
+                url=url if url else self.log_url,
+                links_to_external_services={"Testing Farm": self.log_url},
+            )
+        except (GithubAPIException, GitlabAPIException, PagureAPIException):
+            # Transient error - return early before setting the state
+            return TaskResults(success=False, details={"msg": "Status reporting failed"})
+
+        # Record metrics - only after successful GitHub reporting to avoid double-counting on retry
         if self.result == TestingFarmResult.running:
             self.pushgateway.test_runs_started.inc()
         else:
@@ -598,14 +621,6 @@ class TestingFarmResultsHandler(
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 
         test_run_model.set_web_url(self.log_url)
-        url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None
-        self.testing_farm_job_helper.report_status_to_tests_for_test_target(
-            state=status,
-            description=summary,
-            target=test_run_model.target,
-            url=url if url else self.log_url,
-            links_to_external_services={"Testing Farm": self.log_url},
-        )
         if failure:
             self.testing_farm_job_helper.notify_about_failure_if_configured(
                 packit_dashboard_url=url,

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional, Union
 
 from ogr.abstract import GitProject, PullRequest
+from ogr.exceptions import GithubAPIException, GitlabAPIException, PagureAPIException
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
@@ -29,6 +30,7 @@ class StatusReporter:
         packit_user: str,
         project_event_id: Optional[int] = None,
         pr_id: Optional[int] = None,
+        reraise_transient_errors: bool = False,
     ):
         logger.debug(
             f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}",
@@ -41,6 +43,7 @@ class StatusReporter:
         self.project_event_id: int = project_event_id
         self.pr_id: Optional[int] = pr_id
         self._pull_request_object: Optional[PullRequest] = None
+        self.reraise_transient_errors: bool = reraise_transient_errors
 
     @classmethod
     def get_instance(
@@ -50,6 +53,7 @@ class StatusReporter:
         packit_user: str,
         project_event_id: Optional[int] = None,
         pr_id: Optional[int] = None,
+        reraise_transient_errors: bool = False,
     ) -> "StatusReporter":
         """
         Get the StatusReporter instance.
@@ -67,7 +71,9 @@ class StatusReporter:
             reporter = StatusReporterGitlab
         elif isinstance(project, PagureProject):
             reporter = StatusReporterPagure
-        return reporter(project, commit_sha, packit_user, project_event_id, pr_id)
+        return reporter(
+            project, commit_sha, packit_user, project_event_id, pr_id, reraise_transient_errors
+        )
 
     @property
     def project_with_commit(self) -> GitProject:
@@ -96,6 +102,32 @@ class StatusReporter:
     @staticmethod
     def get_check_run(state: BaseCommitStatus):
         return MAP_TO_CHECK_RUN[state]
+
+    @staticmethod
+    def is_transient_error(
+        exception: Union[GithubAPIException, GitlabAPIException, PagureAPIException],
+    ) -> bool:
+        """
+        Check if an API exception represents a transient error that should be retried.
+
+        Transient errors include:
+        - Network errors (no response_code attribute)
+        - Rate limiting (HTTP 429)
+        - Server errors (HTTP 5xx)
+
+        Args:
+            exception: An API exception from ogr
+
+        Returns:
+            True if the error is transient and should be retried, False otherwise
+        """
+        response_code = getattr(exception, "response_code", None)
+
+        if response_code is None:
+            # Network errors (no response code) are transient
+            return True
+
+        return response_code == 429 or (500 <= response_code < 600)
 
     def set_status(
         self,
