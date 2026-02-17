@@ -59,6 +59,7 @@ from packit_service.models import (
     sa_session_transaction,
     sync_release_pr_association_table,
     tf_copr_association_table,
+    tf_koji_association_table,
 )
 
 
@@ -212,6 +213,7 @@ def clean_db():
         session.query(ProjectEventModel).delete()
 
         session.query(tf_copr_association_table).delete()
+        session.query(tf_koji_association_table).delete()
         session.query(TFTTestRunTargetModel).delete()
         session.query(TFTTestRunGroupModel).delete()
         session.query(CoprBuildTargetModel).delete()
@@ -1170,6 +1172,32 @@ def a_new_test_run_pr(srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr)
         target=SampleValues.target,
         status=TestingFarmResult.new,
         test_run_group=group,
+    )
+
+
+@pytest.fixture()
+def a_new_test_run_with_koji_build(pr_project_event_model):
+    """Test run with an associated Koji build (Fedora CI scenario)."""
+    _, run_model = SRPMBuildModel.create_with_new_run(
+        project_event_model=pr_project_event_model,
+    )
+    test_group = TFTTestRunGroupModel.create(run_model, ranch="public")
+    koji_group = KojiBuildGroupModel.create(run_model)
+    koji_build = KojiBuildTargetModel.create(
+        task_id=SampleValues.build_id,
+        web_url=SampleValues.koji_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        scratch=True,
+        koji_build_group=koji_group,
+    )
+    yield TFTTestRunTargetModel.create(
+        pipeline_id=SampleValues.different_pipeline_id,
+        web_url=SampleValues.testing_farm_url,
+        target=SampleValues.target,
+        status=TestingFarmResult.new,
+        test_run_group=test_group,
+        koji_build_targets=[koji_build],
     )
 
 
