@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, Union
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
-from packit.exceptions import PackitConfigException
+from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import commands, nested_get
 from packit.utils.koji_helper import KojiHelper
 
@@ -1449,7 +1449,8 @@ class DownstreamTestingFarmJobHelper:
         if distro == "fedora-rawhide":
             # profile names are in "fedora-N" format
             # extract current rawhide version number from its candidate tag
-            candidate_tag = self.koji_helper.get_candidate_tag("rawhide")
+            if not (candidate_tag := self.koji_helper.get_candidate_tag("rawhide")):
+                raise PackitException(f"Failed to get test profile for {distro}")
             profile = re.sub(r"f(\d+)(-.*)?", r"fedora-\1", candidate_tag)
         else:
             profile = distro
