@@ -925,8 +925,8 @@ class DownstreamKojiScratchBuildHandler(
             sentry_integration.send_to_sentry(ex)
             self.report(
                 commit_status=BaseCommitStatus.error,
-                description=f"Submit of the build failed: {ex}",
-                url=None,
+                description="Submit of the build failed.",
+                url=get_koji_build_info_url(koji_build.id),
             )
             if isinstance(ex, PackitCommandFailedError):
                 error = f"{ex!s}\n{ex.stderr_output}"
