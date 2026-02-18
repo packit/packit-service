@@ -362,6 +362,33 @@ def test_get_testing_farm_result(client, clean_before_and_after, a_new_test_run_
     assert "release" in response_dict
 
 
+def test_get_testing_farm_result_with_koji_build(
+    client,
+    clean_before_and_after,
+    a_new_test_run_with_koji_build,
+):
+    """Test that koji_build_ids are included in TF result API (Fedora CI scenario)."""
+    response = client.get(
+        url_for(
+            "api.testing-farm_testing_farm_result",
+            id=a_new_test_run_with_koji_build.id,
+        ),
+    )
+    response_dict = response.json
+
+    assert response_dict["pipeline_id"] == a_new_test_run_with_koji_build.pipeline_id
+    assert response_dict["status"] == TestingFarmResult.new
+
+    # Verify koji_build_ids is present and contains the expected build
+    assert "koji_build_ids" in response_dict
+    assert len(response_dict["koji_build_ids"]) == 1
+    assert response_dict["koji_build_ids"][0] == a_new_test_run_with_koji_build.koji_builds[0].id
+
+    # copr_build_ids should be empty for this test run
+    assert "copr_build_ids" in response_dict
+    assert response_dict["copr_build_ids"] == []
+
+
 def test_get_projects_list(client, clean_before_and_after, a_copr_build_for_pr):
     """Test Get Projects"""
     response = client.get(url_for("api.projects_projects_list"))

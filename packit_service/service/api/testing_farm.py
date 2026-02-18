@@ -163,6 +163,7 @@ class TestingFarmResult(Resource):
             "commit_sha": test_run_model.commit_sha,
             "web_url": test_run_model.web_url,
             "copr_build_ids": [build.id for build in test_run_model.copr_builds],
+            "koji_build_ids": [build.id for build in test_run_model.koji_builds],
             "run_ids": sorted(run.id for run in test_run_model.group_of_targets.runs),
             "submitted_time": optional_timestamp(test_run_model.submitted_time),
         }
