@@ -921,6 +921,7 @@ class DownstreamKojiScratchBuildHandler(
                 description="RPM build was submitted ...",
                 url=url,
             )
+            self.pushgateway.fedora_ci_koji_builds_queued.inc()
         except Exception as ex:
             sentry_integration.send_to_sentry(ex)
             self.report(

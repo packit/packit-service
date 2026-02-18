@@ -90,13 +90,24 @@ def mock_metrics_counters():
     # Specific metrics for Log Detective
     mock_pushgateway.log_detective_runs_finished = mock_counter
     mock_pushgateway.log_detective_run_finished = mock_histogram
-    mock_pushgateway.log_detective_runs_started = mock_counter  # Use mock_counter for this too
+    mock_pushgateway.log_detective_runs_started = mock_counter
 
     # General metrics used by SteveJobs
     mock_pushgateway.events_processed = mock_counter
     mock_pushgateway.events_not_handled = mock_counter
     mock_pushgateway.events_pre_check_failed = mock_counter
     mock_pushgateway.rate_limited_tasks_enqueued = mock_counter
+
+    # Fedora CI metrics
+    mock_pushgateway.fedora_ci_koji_builds_queued = mock_counter
+    mock_pushgateway.fedora_ci_koji_builds_started = mock_counter
+    mock_pushgateway.fedora_ci_koji_builds_finished = mock_counter
+    mock_pushgateway.fedora_ci_koji_build_finished_time = mock_histogram
+    mock_pushgateway.fedora_ci_test_runs_queued = mock_counter
+    mock_pushgateway.fedora_ci_test_runs_started = mock_counter
+    mock_pushgateway.fedora_ci_test_runs_finished = mock_counter
+    mock_pushgateway.fedora_ci_test_run_finished_time = mock_histogram
+    mock_pushgateway.fedora_ci_first_initial_status_time = mock_histogram
 
     # Inject the mock instance
     flexmock(Pushgateway).new_instances(mock_pushgateway)
