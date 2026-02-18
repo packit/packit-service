@@ -31,7 +31,7 @@ class SRPMBuildsList(Resource):
                 "srpm_build_id": build.id,
                 "status": build.status,
                 "log_url": get_srpm_build_info_url(build.id),
-                "build_submitted_time": optional_timestamp(build.submitted_time),
+                "submitted_time": optional_timestamp(build.submitted_time),
             }
 
             # It's possible that jobtrigger isn't stored in db
@@ -68,7 +68,7 @@ class SRPMBuildItem(Resource):
 
         build_dict = {
             "status": build.status,
-            "build_submitted_time": optional_timestamp(build.submitted_time),
+            "submitted_time": optional_timestamp(build.submitted_time),
             "build_start_time": optional_timestamp(build.build_start_time),
             "build_finished_time": optional_timestamp(build.build_finished_time),
             "url": build.url,
