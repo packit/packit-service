@@ -249,3 +249,9 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 logger.debug(f"Cancelling Koji task {build.task_id}")
                 koji_helper.cancel_task(int(build.task_id))
             build.set_status(BuildStatus.canceled)
+            self.report_status_to_build_for_chroot(
+                state=BaseCommitStatus.canceled,
+                description="Build was canceled.",
+                url=get_koji_build_info_url(build.id),
+                chroot=build.target,
+            )

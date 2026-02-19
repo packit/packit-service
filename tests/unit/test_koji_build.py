@@ -606,9 +606,9 @@ def test_get_koji_rpm_build_web_url(id_, result):
 
 
 def test_cancel_running_builds():
-    build1 = flexmock(task_id="111")
-    build2 = flexmock(task_id="222")
-    build3 = flexmock(task_id=None)  # no task_id yet
+    build1 = flexmock(task_id="111", id=1, target="f41")
+    build2 = flexmock(task_id="222", id=2, target="f42")
+    build3 = flexmock(task_id=None, id=3, target="rawhide")  # no task_id yet
 
     build1.should_receive("set_status").with_args(BuildStatus.canceled).once()
     build2.should_receive("set_status").with_args(BuildStatus.canceled).once()
@@ -618,6 +618,7 @@ def test_cancel_running_builds():
     flexmock(KojiHelper).should_receive("cancel_task").with_args(222).once()
 
     helper = flexmock(get_running_jobs=lambda: [build1, build2, build3])
+    helper.should_receive("report_status_to_build_for_chroot").times(3)
 
     # Call the real method with our mock as self
     KojiBuildJobHelper.cancel_running_builds(helper)
