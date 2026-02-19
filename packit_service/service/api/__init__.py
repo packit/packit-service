@@ -11,6 +11,7 @@ from packit_service.service.api.healthz import ns as healthz_ns
 from packit_service.service.api.installations import ns as installations_ns
 from packit_service.service.api.koji_builds import koji_builds_ns
 from packit_service.service.api.koji_tag_requests import koji_tag_requests_ns
+from packit_service.service.api.onboarding import ns as onboarding_ns
 from packit_service.service.api.osh_scans import ns as osh_scans_ns
 from packit_service.service.api.projects import ns as projects_ns
 from packit_service.service.api.propose_downstream import ns as propose_downstream_ns
@@ -48,3 +49,4 @@ api.add_namespace(pull_from_upstream_ns)
 api.add_namespace(system_ns)
 api.add_namespace(bodhi_updates_ns)
 api.add_namespace(osh_scans_ns)
+api.add_namespace(onboarding_ns)
