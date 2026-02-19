@@ -91,8 +91,14 @@ def test_logdetective_koji_build_scratch_downstream(
     )
     flexmock(LogDetectiveRunModel).should_receive("create").times(ld_calls)
 
-    pushgateway = flexmock(log_detective_runs_started=flexmock())
+    pushgateway = flexmock(
+        log_detective_runs_started=flexmock(),
+        fedora_ci_koji_builds_started=flexmock(),
+        fedora_ci_koji_builds_finished=flexmock(),
+        fedora_ci_koji_build_finished_time=flexmock(),
+    )
     pushgateway.log_detective_runs_started.should_receive("inc").times(ld_calls).and_return()
+    pushgateway.fedora_ci_koji_builds_finished.should_receive("inc").once().and_return()
     pushgateway.should_receive("push").and_return()
     flexmock(Pushgateway).new_instances(pushgateway)
 

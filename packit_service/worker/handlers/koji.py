@@ -7,7 +7,7 @@ This file defines classes for job handlers specific for Fedmsg events
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from os import getenv
 from typing import Optional
 
@@ -42,6 +42,7 @@ from packit_service.service.urls import (
 from packit_service.utils import (
     dump_job_config,
     dump_package_config,
+    elapsed_seconds,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.koji import (
@@ -162,6 +163,9 @@ class AbstractKojiTaskReportHandler(
     def trigger_log_detective_if_configured(self):
         pass
 
+    @abstractmethod
+    def push_metrics(self) -> None: ...
+
     @property
     def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
@@ -242,6 +246,7 @@ class AbstractKojiTaskReportHandler(
             )
 
         else:
+            self.push_metrics()
             self.build.set_status(new_commit_status.value)
             self.report(description, new_commit_status, dashboard_url, koji_web_url)
             koji_build_logs = self.koji_task_event.get_koji_build_rpm_tasks_logs_urls(
@@ -319,6 +324,9 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
     def trigger_log_detective_if_configured(self):
         pass
 
+    def push_metrics(self) -> None:
+        pass
+
 
 @reacts_to_as_fedora_ci(event=koji.result.Task)
 class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJobHandler):
@@ -375,6 +383,21 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
         trigger_success = log_detective_trigger.trigger_log_detective_analysis()
         if not trigger_success:
             logger.error("Log Detective was not properly triggered for a failed Koji build")
+
+    def push_metrics(self) -> None:
+        """Track Fedora CI Koji build metrics."""
+        state = self.koji_task_event.state
+
+        if state == KojiTaskState.open:
+            self.pushgateway.fedora_ci_koji_builds_started.inc()
+        elif state in (KojiTaskState.closed, KojiTaskState.canceled, KojiTaskState.failed):
+            self.pushgateway.fedora_ci_koji_builds_finished.inc()
+            if self.build.submitted_time:
+                koji_build_time = elapsed_seconds(
+                    begin=self.build.submitted_time,
+                    end=datetime.now(timezone.utc),
+                )
+                self.pushgateway.fedora_ci_koji_build_finished_time.observe(koji_build_time)
 
 
 @configured_as(job_type=JobType.koji_build)

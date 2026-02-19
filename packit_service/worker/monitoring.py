@@ -191,6 +191,80 @@ class Pushgateway:
             registry=self.registry,
         )
 
+        # Fedora CI metrics
+        self.fedora_ci_koji_builds_queued = Counter(
+            "fedora_ci_koji_builds_queued",
+            "Number of Fedora CI Koji scratch builds queued",
+            registry=self.registry,
+        )
+
+        self.fedora_ci_koji_builds_started = Counter(
+            "fedora_ci_koji_builds_started",
+            "Number of Fedora CI Koji scratch builds started",
+            registry=self.registry,
+        )
+
+        self.fedora_ci_koji_builds_finished = Counter(
+            "fedora_ci_koji_builds_finished",
+            "Number of Fedora CI Koji scratch builds finished",
+            registry=self.registry,
+        )
+
+        self.fedora_ci_koji_build_finished_time = Histogram(
+            "fedora_ci_koji_build_finished_time",
+            "Time it takes from submitting Fedora CI Koji scratch build to finished",
+            registry=self.registry,
+            buckets=(
+                1800,
+                3600,
+                3 * 3600,
+                6 * 3600,
+                12 * 3600,
+                24 * 3600,
+                float("inf"),
+            ),
+        )
+
+        self.fedora_ci_test_runs_queued = Counter(
+            "fedora_ci_test_runs_queued",
+            "Number of Fedora CI test runs queued",
+            registry=self.registry,
+        )
+
+        self.fedora_ci_test_runs_started = Counter(
+            "fedora_ci_test_runs_started",
+            "Number of Fedora CI test runs started",
+            registry=self.registry,
+        )
+
+        self.fedora_ci_test_runs_finished = Counter(
+            "fedora_ci_test_runs_finished",
+            "Number of Fedora CI test runs finished",
+            registry=self.registry,
+        )
+
+        self.fedora_ci_test_run_finished_time = Histogram(
+            "fedora_ci_test_run_finished_time",
+            "Time it takes from submitting Fedora CI test run to finished",
+            registry=self.registry,
+            buckets=(
+                1800,
+                3600,
+                3 * 3600,
+                6 * 3600,
+                12 * 3600,
+                24 * 3600,
+                float("inf"),
+            ),
+        )
+
+        self.fedora_ci_first_initial_status_time = Histogram(
+            "fedora_ci_first_initial_status_time",
+            "Time it takes to set the initial status for the first Fedora CI check",
+            registry=self.registry,
+            buckets=(5, 15, 20, 25, 30, 40, 60, float("inf")),
+        )
+
     def push(self):
         if not (self.pushgateway_address and self.worker_name):
             logger.debug("Pushgateway address or worker name not defined.")

@@ -360,6 +360,7 @@ def koji_build_pr_downstream():
         status="some-status",
         group_of_targets=koji_group,
         runs=runs,
+        submitted_time=None,
     )
     koji_build_model._srpm_build_for_mocking = srpm_build
     koji_build_model.get_project_event_object = lambda: pr_model

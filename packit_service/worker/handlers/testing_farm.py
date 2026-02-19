@@ -458,7 +458,7 @@ class DownstreamTestingFarmHandler(
         failed: dict,
     ):
         if self.celery_task.retries == 0:
-            self.pushgateway.test_runs_queued.inc()
+            self.pushgateway.fedora_ci_test_runs_queued.inc()
         result = self.downstream_testing_farm_job_helper.run_testing_farm(test_run)
         if not result["success"]:
             failed[test_run.data["fedora_ci_test"]] = result.get("details")
@@ -697,14 +697,14 @@ class DownstreamTestingFarmResultsHandler(
             summary = self.summary or "Error ..."
 
         if self.result == TestingFarmResult.running:
-            self.pushgateway.test_runs_started.inc()
+            self.pushgateway.fedora_ci_test_runs_started.inc()
         else:
-            self.pushgateway.test_runs_finished.inc()
+            self.pushgateway.fedora_ci_test_runs_finished.inc()
             test_run_time = elapsed_seconds(
                 begin=test_run_model.submitted_time,
                 end=datetime.now(timezone.utc),
             )
-            self.pushgateway.test_run_finished_time.observe(test_run_time)
+            self.pushgateway.fedora_ci_test_run_finished_time.observe(test_run_time)
 
         test_run_model.set_web_url(self.log_url)
         # For Fedora CI, try to link directly to Testing Farm results instead of dashboard

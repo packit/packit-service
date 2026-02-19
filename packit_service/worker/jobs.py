@@ -507,6 +507,7 @@ class SteveJobs:
             target_branch=self.event.pull_request_object.target_branch,
         )
 
+        first_status_reported = False
         for check_name in handler_kls.get_check_names(
             self.service_config, self.event.project, metadata
         ):
@@ -516,6 +517,18 @@ class SteveJobs:
                 url="",
                 check_name=check_name,
             )
+            # Track the time for the first status report
+            if not first_status_reported:
+                first_status_reported = True
+                response_time = elapsed_seconds(
+                    begin=self.event.created_at,
+                    end=datetime.now(),
+                )
+                logger.debug(
+                    "Reporting Fedora CI first initial status "
+                    f"check time: {response_time} seconds.",
+                )
+                self.pushgateway.fedora_ci_first_initial_status_time.observe(response_time)
 
     def search_distgit_config_in_issue(self) -> Optional[tuple[str, PackageConfig]]:
         """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
