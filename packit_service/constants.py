@@ -342,6 +342,69 @@ OPEN_SCAN_HUB_FEATURE_DESCRIPTION = (
 # Default URL of the logdetective-packit interface server for sending the Log Detective requests.
 LOGDETECTIVE_PACKIT_SERVER_URL = "https://logdetective01.fedorainfracloud.org"
 
+DG_ONBOARDING_TITLE = "Add initial Packit configuration"
+DG_ONBOARDING_DESCRIPTION = """
+Hello,
+
+thank you for introducing a new package to Fedora!
+
+Let us present you [Packit](https://packit.dev/), an automation for Fedora releases.
+We are sending a configuration file with a basic setup.
+The automation will be enabled by merging this pull-request into the `rawhide` branch.
+
+If you have any question or concern, ask here or on `#packit:fedora.im` Matrix channel
+and Packit team will help.
+
+If you look at the configuration file, you can see that Packit is configured to do 3 jobs for you:
+* [`pull_from_upstream`](https://packit.dev/docs/configuration/downstream/pull_from_upstream):
+  Create a new set of pull-requests when there is a new upstream release.
+  (The specfile-changes and sources are taken care of. Packit is notified about new release from
+  [Release Monitoring](https://release-monitoring.org/) service. Check if your project is there.)
+* [`koji_build`](https://packit.dev/docs/configuration/downstream/koji_build):
+  Submit a Koji build as reaction to a merged pull request.
+* [`bodhi_update`](https://packit.dev/docs/configuration/downstream/bodhi_update):
+  Create a Bodhi update as a reaction to a succesful Koji build.
+
+These jobs are independent so you can pick just those that are relevant to you.
+For each, you can also configure Fedora/EPEL versions other than Rawhide that the jobs
+should be run for.
+
+You can also further tweak the process. A few handy options are prepared for you
+in the confguration file to uncomment. Rest can be found in
+[the documentation](https://packit.dev/docs/fedora-releases-guide/dist-git-onboarding).
+In case you have a group of dependent packages, you might want to take a look at
+[how to configure multi-package updates]
+(https://packit.dev/docs/fedora-releases-guide/releasing-multiple-packages).
+
+
+Things you still need to be aware of:
+
+* The package maintenance is still your responsibility -- Packit is just a handy tool that can
+  save you some time.
+* When Packit introduces new releases in form of the pull-request, it's your responsibility
+  to check the pull-request including the newly-introduced source. This is the place where human
+  intervention is required.
+* Be aware that there are other packages and packagers and that you might break someone else's work
+  by using Packit in a wrong way. (E.g. be careful about dependent packages since there is
+  no automatic check for these in place.)
+* Check [Fedora updates policy](https://docs.fedoraproject.org/en-US/fesco/Updates_Policy/).
+* Check [Fedora Packaging guidelines](https://docs.fedoraproject.org/en-US/packaging-guidelines/)
+  including the specifics for your package type.
+* Consult the approach with other maintainers of this package and care about the Packit results
+  so you don't introduce spam and extra work for others.
+* Speaking of notifications -- you might want to setup a rule on
+  [Fedora Notifications](https://notifications.fedoraproject.org/) so you won't miss
+  anything important, since `packit` FAS account will be the actor of the jobs.
+
+
+In case you don't want to receive these pull-requests in the future, you can use
+the `--onboard-packit no` option when running `fedpkg request-repo`.
+
+
+I hope you will be happy with the automation!
+*[Packit team](https://packit.dev/#contact)*
+"""
+
 # CI Transition comment for Fedora dist-git PRs
 # TODO: Remove this after March 2026
 # https://github.com/packit/packit-service/issues/3008

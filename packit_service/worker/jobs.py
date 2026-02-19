@@ -40,6 +40,7 @@ from packit_service.events import (
     github,
     koji,
     logdetective,
+    onboarding,
     pagure,
     testing_farm,
 )
@@ -83,6 +84,7 @@ from packit_service.worker.handlers.distgit import (
     RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
 )
+from packit_service.worker.handlers.onboarding import OnboardingRequestHandler
 from packit_service.worker.helpers.build import (
     BaseBuildJobHelper,
     CoprBuildJobHelper,
@@ -358,6 +360,16 @@ class SteveJobs:
                 ).apply_async()
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
+        elif isinstance(self.event, onboarding.Request):
+            if OnboardingRequestHandler.pre_check(
+                package_config=None,
+                job_config=None,
+                event=self.event.get_dict(),
+            ):
+                OnboardingRequestHandler.get_signature(
+                    event=self.event,
+                    job=None,
+                ).apply_async()
         else:
             if (
                 isinstance(

@@ -89,6 +89,7 @@ from packit_service.worker.handlers.koji import (
     KojiBuildTagHandler,
     KojiTaskReportDownstreamHandler,
 )
+from packit_service.worker.handlers.onboarding import OnboardingRequestHandler
 from packit_service.worker.handlers.usage import check_onboarded_projects
 from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
@@ -805,6 +806,20 @@ def run_downstream_log_detective_results_handler(
     job_config: dict,
 ):
     handler = DownstreamLogDetectiveResultsHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.onboarding_request, base=TaskWithRetry)
+def run_onboarding_request_handler(
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+):
+    handler = OnboardingRequestHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
