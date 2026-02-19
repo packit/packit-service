@@ -90,6 +90,7 @@ class ServiceConfigSchema(UserConfigSchema):
     logdetective_enabled = fields.Bool(missing=False, default=False)
     logdetective_url = fields.String()
     logdetective_secret = fields.String()
+    onboarding_secret = fields.String()
 
     @post_load
     def make_instance(self, data, **kwargs):
