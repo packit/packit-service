@@ -2500,6 +2500,15 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         )
         .once()
         .mock()
+        # Mock for CI transition comment
+        .should_receive("get_comments")
+        .and_return([])
+        .once()
+        .mock()
+        .should_receive("comment")
+        .with_args(str)
+        .once()
+        .mock()
     )
     dg_project = (
         flexmock(
@@ -3328,6 +3337,9 @@ def _test_downstream_tf_retrigger_common(
             status=CommitStatus,
             uid=uid,
         )
+    # Mock for CI transition comment
+    pr_object.should_receive("get_comments").and_return([]).once()
+    pr_object.should_receive("comment").with_args(str).once()
 
     dg_project = (
         flexmock(

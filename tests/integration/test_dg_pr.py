@@ -73,6 +73,15 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
         .should_receive("set_flag")
         .with_args(username=check_name, comment=str, url=str, status=CommitStatus, uid=uid)
         .mock()
+        # Mock for CI transition comment
+        .should_receive("get_comments")
+        .and_return([])
+        .once()
+        .mock()
+        .should_receive("comment")
+        .with_args(str)
+        .once()
+        .mock()
     )
     if eln:
         check_name = "Packit - scratch build - rawhide [889f07a]"

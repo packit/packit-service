@@ -14,12 +14,20 @@ from typing import Callable, Optional, Union
 
 import celery
 from ogr.exceptions import GithubAppNotInstalledError
-from packit.config import JobConfig, JobConfigTriggerType, JobConfigView, JobType, PackageConfig
+from packit.config import (
+    Deployment,
+    JobConfig,
+    JobConfigTriggerType,
+    JobConfigView,
+    JobType,
+    PackageConfig,
+)
 from packit.utils import nested_get
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
+    FEDORA_CI_TRANSITION_COMMENT,
     HELP_COMMENT_DESCRIPTION,
     HELP_COMMENT_EPILOG,
     HELP_COMMENT_PROG,
@@ -88,6 +96,8 @@ from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting.enums import DuplicateCheckMode
+from packit_service.worker.reporting.utils import has_identical_comment_in_comments
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -484,6 +494,44 @@ class SteveJobs:
 
         self.push_copr_metrics(handler_kls, number_of_build_targets)
 
+    def _post_fedora_ci_transition_comment(self) -> None:
+        """
+        Post a one-time CI introduction comment on the dist-git PR.
+
+        Only posts if the comment doesn't already exist.
+
+        TODO: Remove this method after March 2026 (end of introduction period).
+        https://github.com/packit/packit-service/issues/3008
+        """
+        # Check if event is a PR-related event (has pr_id and pull_request_object)
+        if not (
+            isinstance(self.event, (pagure.pr.Action, pagure.pr.Comment))
+            and (pr := self.event.pull_request_object)
+        ):
+            return
+
+        try:
+            comments = pr.get_comments()
+
+            # Check if we already posted this comment
+            packit_user = (
+                "packit" if self.service_config.deployment == Deployment.prod else "packit-stg"
+            )
+            if has_identical_comment_in_comments(
+                body=FEDORA_CI_TRANSITION_COMMENT,
+                comments=comments,
+                packit_user=packit_user,
+                mode=DuplicateCheckMode.check_all_comments,
+            ):
+                logger.debug("CI transition comment already exists on PR.")
+                return
+
+            pr.comment(FEDORA_CI_TRANSITION_COMMENT)
+            logger.info(f"Posted CI transition comment on dist-git PR #{self.event.pr_id}")
+        except Exception as ex:
+            # Don't fail the job if we can't post the comment
+            logger.warning(f"Failed to post CI transition comment: {ex}")
+
     def report_task_accepted_for_fedora_ci(self, handler_kls: type[FedoraCIJobHandler]):
         """
         For CI-related dist-git PR comment events report the initial status
@@ -638,6 +686,8 @@ class SteveJobs:
             return []
 
         # TODO: add allowlist checks here
+
+        self._post_fedora_ci_transition_comment()
 
         processing_results: list[TaskResults] = []
 
