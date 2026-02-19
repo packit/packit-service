@@ -114,6 +114,7 @@ class ServiceConfig(Config):
         logdetective_enabled: bool = False,
         logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
         logdetective_secret: str = "",
+        onboarding_secret: str = "",
         **kwargs,
     ):
         if "authentication" in kwargs:
@@ -215,6 +216,9 @@ class ServiceConfig(Config):
         # Token to be used with Log Detective interface server
         self.logdetective_secret = logdetective_secret
 
+        # Secret for dist-git onboarding requests
+        self.onboarding_secret = onboarding_secret
+
     service_config = None
 
     def __repr__(self):
@@ -248,7 +252,8 @@ class ServiceConfig(Config):
             f"logdetective_url='{self.logdetective_url}')"
             f"fedora_ci_run_by_default='{self.fedora_ci_run_by_default}', "
             f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
-            f"disabled_projects_for_fedora_ci='{self.disabled_projects_for_fedora_ci}')"
+            f"disabled_projects_for_fedora_ci='{self.disabled_projects_for_fedora_ci}', "
+            f"onboarding_secret='{hide(self.onboarding_secret)}')"
         )
 
     @classmethod
