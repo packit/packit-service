@@ -2626,6 +2626,34 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                 session.add(run_model)
             return build_group
 
+    @classmethod
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+    ) -> Iterable["KojiBuildTargetModel"]:
+        """Get running Koji builds for a given project object (e.g. a PR or branch).
+
+        Args:
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
+
+        Returns:
+            An iterable over KojiBuildTargetModels in non-final states.
+        """
+        with sa_session_transaction() as session:
+            return (
+                session.query(KojiBuildTargetModel)
+                .join(KojiBuildGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
+                    KojiBuildTargetModel.status.in_(("pending", "queued", "running")),
+                )
+            )
+
 
 class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
     __tablename__ = "bodhi_update_targets"

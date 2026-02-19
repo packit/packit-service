@@ -16,6 +16,7 @@ from packit.config import (
 )
 from packit.exceptions import PackitCommandFailedError
 from packit.upstream import GitUpstream
+from packit.utils.koji_helper import KojiHelper
 
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -602,3 +603,40 @@ def test_get_koji_build_logs_url(id_, result):
 )
 def test_get_koji_rpm_build_web_url(id_, result):
     assert koji.result.Task.get_koji_rpm_build_web_url(rpm_build_task_id=id_) == result
+
+
+def test_cancel_running_builds():
+    build1 = flexmock(task_id="111", id=1, target="f41")
+    build2 = flexmock(task_id="222", id=2, target="f42")
+    build3 = flexmock(task_id=None, id=3, target="rawhide")  # no task_id yet
+
+    build1.should_receive("set_status").with_args(BuildStatus.canceled).once()
+    build2.should_receive("set_status").with_args(BuildStatus.canceled).once()
+    build3.should_receive("set_status").with_args(BuildStatus.canceled).once()
+
+    flexmock(KojiHelper).should_receive("cancel_task").with_args(111).once()
+    flexmock(KojiHelper).should_receive("cancel_task").with_args(222).once()
+
+    helper = flexmock(get_running_jobs=lambda: [build1, build2, build3])
+
+    # Call the real method with our mock as self
+    KojiBuildJobHelper.cancel_running_builds(helper)
+
+
+def test_cancel_running_builds_with_reporting():
+    build1 = flexmock(task_id="111", id=1, target="f41")
+    build2 = flexmock(task_id=None, id=2, target="rawhide")
+
+    build1.should_receive("set_status").with_args(BuildStatus.canceled).once()
+    build2.should_receive("set_status").with_args(BuildStatus.canceled).once()
+
+    flexmock(KojiHelper).should_receive("cancel_task").with_args(111).once()
+
+    helper = flexmock(get_running_jobs=lambda: [build1, build2])
+
+    reported_builds = []
+    KojiBuildJobHelper.cancel_running_builds(
+        helper,
+        report_canceled=lambda build: reported_builds.append(build),
+    )
+    assert reported_builds == [build1, build2]

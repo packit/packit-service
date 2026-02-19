@@ -884,6 +884,15 @@ class DownstreamKojiScratchBuildHandler(
         )
 
     def _run(self) -> TaskResults:
+        if getenv("CANCEL_RUNNING_JOBS"):
+            self.koji_build_helper.cancel_running_builds(
+                report_canceled=lambda build: self.report(
+                    commit_status=BaseCommitStatus.canceled,
+                    description="Build was canceled.",
+                    url=get_koji_build_info_url(build.id),
+                ),
+            )
+
         try:
             self.packit_api.init_kerberos_ticket()
         except PackitCommandFailedError as ex:
@@ -1105,6 +1114,9 @@ class AbstractDownstreamKojiBuildHandler(
         return False
 
     def _run(self) -> TaskResults:
+        if getenv("CANCEL_RUNNING_JOBS"):
+            self.koji_build_helper.cancel_running_builds()
+
         try:
             group = self._get_or_create_koji_group_model()
         except PackitException as ex:
