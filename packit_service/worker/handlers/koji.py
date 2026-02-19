@@ -124,6 +124,9 @@ class KojiBuildHandler(
         )
 
     def _run(self) -> TaskResults:
+        if getenv("CANCEL_RUNNING_JOBS"):
+            self.koji_build_helper.cancel_running_builds()
+
         return self.koji_build_helper.run_koji_build()
 
 
