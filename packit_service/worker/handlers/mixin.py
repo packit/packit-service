@@ -148,7 +148,7 @@ class GetKojiBuildJobHelper(Protocol):
     def koji_build_helper(self) -> KojiBuildJobHelper: ...
 
 
-class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigFromEventMixin):
+class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, Config):
     _koji_build_helper: Optional[KojiBuildJobHelper] = None
     package_config: PackageConfig
     job_config: JobConfig
