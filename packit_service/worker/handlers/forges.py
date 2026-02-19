@@ -7,23 +7,43 @@ TODO: The build and test handlers are independent and should be moved away.
 """
 
 import logging
+from typing import Optional
 
+from packit.api import PackitAPI
 from packit.config import (
     Deployment,
     JobConfig,
 )
 from packit.config.package_config import PackageConfig
 
-from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
+from packit_service.constants import (
+    CONTACTS_URL,
+    DOCS_APPROVAL_URL,
+    HELP_COMMENT_DESCRIPTION,
+    HELP_COMMENT_EPILOG,
+    HELP_COMMENT_PROG,
+    HELP_COMMENT_PROG_FEDORA_CI,
+    HELP_COMMENT_PROG_FEDORA_CI_STG,
+    HELP_COMMENT_PROG_STG,
+    HELP_NOTE,
+    HELP_NOTE_FEDORA_CI,
+    NOTIFICATION_REPO,
+)
 from packit_service.events import (
     github,
+    gitlab,
+    pagure,
 )
 from packit_service.models import (
     AllowlistModel,
     AllowlistStatus,
     GithubInstallationModel,
 )
-from packit_service.utils import get_packit_commands_from_comment
+from packit_service.utils import (
+    get_comment_parser,
+    get_comment_parser_fedora_ci,
+    get_packit_commands_from_comment,
+)
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import IsIssueInNotificationRepoChecker
@@ -35,6 +55,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     GetIssueMixin,
+    GetPullRequestMixin,
     PackitAPIWithDownstreamMixin,
 )
 from packit_service.worker.reporting import create_issue_if_needed
@@ -279,3 +300,77 @@ class GithubFasVerificationHandler(
             self.issue.comment(msg)
 
         return TaskResults(success=True, details={"msg": msg})
+
+
+@reacts_to(event=github.pr.Comment)
+@reacts_to(event=gitlab.mr.Comment)
+@reacts_to(event=pagure.pr.Comment)
+@reacts_to(event=github.issue.Comment)
+@reacts_to(event=gitlab.issue.Comment)
+class GitCommentHelpHandler(
+    JobHandler,
+    GetPullRequestMixin,
+    GetIssueMixin,
+):
+    task_name = TaskName.help
+
+    @property
+    def packit_api(self) -> PackitAPI: ...
+
+    def clean_api(self) -> None: ...
+
+    def __init__(
+        self,
+        package_config: Optional[PackageConfig],
+        job_config: Optional[JobConfig],
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self.sender_login = self.data.actor
+        self.comment = self.data.event_dict.get("comment")
+
+    def run(self) -> TaskResults:
+        if self.comment.startswith("/packit-ci-stg"):  # type: ignore
+            parser = get_comment_parser_fedora_ci(
+                prog=HELP_COMMENT_PROG_FEDORA_CI_STG,
+                description=HELP_COMMENT_DESCRIPTION,
+                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
+            )
+
+        elif self.comment.startswith("/packit-ci"):  # type: ignore
+            parser = get_comment_parser_fedora_ci(
+                prog=HELP_COMMENT_PROG_FEDORA_CI,
+                description=HELP_COMMENT_DESCRIPTION,
+                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
+            )
+
+        elif self.comment.startswith("/packit-stg"):  # type: ignore
+            parser = get_comment_parser(
+                prog=HELP_COMMENT_PROG_STG,
+                description=HELP_COMMENT_DESCRIPTION,
+                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
+            )
+
+        else:
+            parser = get_comment_parser(
+                prog=HELP_COMMENT_PROG,
+                description=HELP_COMMENT_DESCRIPTION,
+                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
+            )
+
+        help_message = parser.format_help()
+
+        if self.data.event_type in (
+            gitlab.mr.Comment.event_type(),
+            github.pr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
+        ):
+            self.pr.comment(body=help_message)
+        else:
+            self.issue.comment(body=help_message)
+
+        return TaskResults(success=True, details={"msg": help_message})
