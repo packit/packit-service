@@ -95,6 +95,7 @@ logger = logging.getLogger(__name__)
 class KojiBuildHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,
+    ConfigFromEventMixin,
     GetKojiBuildJobHelperMixin,
 ):
     task_name = TaskName.upstream_koji_build
