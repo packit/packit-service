@@ -341,3 +341,23 @@ OPEN_SCAN_HUB_FEATURE_DESCRIPTION = (
 
 # Default URL of the logdetective-packit interface server for sending the Log Detective requests.
 LOGDETECTIVE_PACKIT_SERVER_URL = "https://logdetective01.fedorainfracloud.org"
+
+# CI Transition comment for Fedora dist-git PRs
+# TODO: Remove this after March 2026
+# https://github.com/packit/packit-service/issues/3008
+FEDORA_CI_TRANSITION_COMMENT = (
+    "**:information_source: Fedora CI Transition Notice**\n\n"
+    "Packit is now the default CI system for Fedora dist-git. "
+    "For more information, see:\n"
+    "- [Fedora Discussion: Packit as Fedora dist-git CI - Final Phase]"
+    "(https://discussion.fedoraproject.org/t/packit-as-fedora-dist-git-ci-final-phase/180160)\n"
+    "- [Packit Fedora CI Documentation](https://packit.dev/fedora-ci)\n\n"
+    "**Retriggering jobs:**\n"
+    "- Scratch build: `/packit-ci scratch-build`\n"
+    "- Tests: `/packit-ci test`\n\n"
+    "- See more in the "
+    "[retriggering documentation](https://packit.dev/fedora-ci/retriggering).\n\n"
+    "Questions? Reach us at [#packit:fedora.im](https://matrix.to/#/#packit:fedora.im)\n\n"
+    "---\n"
+    "*This notice is posted during the introduction period (until the end of March 2026).*"
+)
