@@ -359,5 +359,5 @@ FEDORA_CI_TRANSITION_COMMENT = (
     "[retriggering documentation](https://packit.dev/fedora-ci/retriggering).\n\n"
     "Questions? Reach us at [#packit:fedora.im](https://matrix.to/#/#packit:fedora.im)\n\n"
     "---\n"
-    "*This notice is posted during the introduction period (until end of March 2026).*"
+    "*This notice is posted during the introduction period (until the end of March 2026).*"
 )
