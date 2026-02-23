@@ -99,7 +99,10 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
     run_for_comment_as_fedora_ci,
 )
-from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
+from packit_service.worker.handlers.mixin import (
+    GetKojiBuildJobHelperMixin,
+    GetProjectToSyncMixin,
+)
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -779,6 +782,7 @@ class DownstreamKojiScratchBuildHandler(
     ConfigFromUrlMixin,
     LocalProjectMixin,
     PackitAPIWithDownstreamMixin,
+    GetKojiBuildJobHelperMixin,
 ):
     """
     This handler can submit a scratch build in Koji from a dist-git (Fedora CI).
@@ -880,6 +884,15 @@ class DownstreamKojiScratchBuildHandler(
         )
 
     def _run(self) -> TaskResults:
+        if getenv("CANCEL_RUNNING_JOBS"):
+            self.koji_build_helper.cancel_running_builds(
+                report_canceled=lambda build: self.report(
+                    commit_status=BaseCommitStatus.canceled,
+                    description="Build was canceled.",
+                    url=get_koji_build_info_url(build.id),
+                ),
+            )
+
         try:
             self.packit_api.init_kerberos_ticket()
         except PackitCommandFailedError as ex:
@@ -989,6 +1002,7 @@ class DownstreamKojiELNScratchBuildHandler(DownstreamKojiScratchBuildHandler):
 class AbstractDownstreamKojiBuildHandler(
     abc.ABC,
     RetriableJobHandler,
+    GetKojiBuildJobHelperMixin,
 ):
     """
     This handler can submit a build in Koji from a dist-git.
@@ -1100,6 +1114,9 @@ class AbstractDownstreamKojiBuildHandler(
         return False
 
     def _run(self) -> TaskResults:
+        if getenv("CANCEL_RUNNING_JOBS"):
+            self.koji_build_helper.cancel_running_builds()
+
         try:
             group = self._get_or_create_koji_group_model()
         except PackitException as ex:

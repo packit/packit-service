@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from collections.abc import Iterable
-from typing import Any, Optional
+from collections.abc import Callable, Iterable
+from typing import Optional
 
 from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_all_koji_targets, get_koji_targets
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCommandFailedError
+from packit.utils.koji_helper import KojiHelper
 
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -227,6 +228,33 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
         return get_koji_task_id_and_url_from_stdout(out)
 
-    # [TODO] Switch from ‹Any› to the correct type when implementing
-    def get_running_jobs(self) -> Iterable[Any]:
-        raise NotImplementedError("See https://github.com/packit/packit/issues/2535")
+    def get_running_jobs(self) -> Iterable[KojiBuildTargetModel]:
+        return KojiBuildGroupModel.get_running(
+            project_event_type=self.db_project_event.type,
+            event_id=self.db_project_event.event_id,
+        )
+
+    def cancel_running_builds(
+        self,
+        report_canceled: Optional[Callable[[KojiBuildTargetModel], None]] = None,
+    ) -> None:
+        """Cancel running Koji builds for the current project object
+        (e.g. a PR or branch).
+
+        Args:
+            report_canceled: Optional callback to report the cancellation
+                to the forge. Called with each canceled build model.
+        """
+        running_builds = list(self.get_running_jobs())
+        if not running_builds:
+            logger.info("No running Koji builds to cancel.")
+            return
+
+        koji_helper = KojiHelper()
+        for build in running_builds:
+            if build.task_id is not None:
+                logger.debug(f"Cancelling Koji task {build.task_id}")
+                koji_helper.cancel_task(int(build.task_id))
+            build.set_status(BuildStatus.canceled)
+            if report_canceled:
+                report_canceled(build)

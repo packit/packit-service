@@ -95,6 +95,7 @@ logger = logging.getLogger(__name__)
 class KojiBuildHandler(
     JobHandler,
     PackitAPIWithDownstreamMixin,
+    ConfigFromEventMixin,
     GetKojiBuildJobHelperMixin,
 ):
     task_name = TaskName.upstream_koji_build
@@ -123,6 +124,18 @@ class KojiBuildHandler(
         )
 
     def _run(self) -> TaskResults:
+        if getenv("CANCEL_RUNNING_JOBS"):
+            self.koji_build_helper.cancel_running_builds(
+                report_canceled=(
+                    lambda build: self.koji_build_helper.report_status_to_build_for_chroot(
+                        state=BaseCommitStatus.canceled,
+                        description="Build was canceled.",
+                        url=get_koji_build_info_url(build.id),
+                        chroot=build.target,
+                    )
+                )
+            )
+
         return self.koji_build_helper.run_koji_build()
 
 
