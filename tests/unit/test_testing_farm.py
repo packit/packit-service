@@ -2344,3 +2344,24 @@ def test_parse_comment_arguments(
     assert helper.comment_arguments.identifier == expected_identifier
     assert helper.comment_arguments.labels == expected_labels
     assert helper.comment_arguments.envs == expected_envs
+
+
+def test_testing_farm_handler_default_reraise_flag():
+    """Verify TestingFarmResultsHandler defaults to reraise_transient_errors=True."""
+    handler = TFResultsHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={},
+    )
+    assert handler._status_reporter_reraise_transient_errors is True
+
+
+def test_testing_farm_handler_set_reraise_flag():
+    """Test set_status_reporter_reraise_transient_errors() method."""
+    handler = TFResultsHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={},
+    )
+    handler.set_status_reporter_reraise_transient_errors(False)
+    assert handler._status_reporter_reraise_transient_errors is False

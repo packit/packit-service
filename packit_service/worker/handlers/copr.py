@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from celery import Task, signature
+from ogr.exceptions import GithubAPIException, GitlabAPIException, PagureAPIException
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import (
@@ -160,6 +161,11 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             BuildNotAlreadyStarted,
         )
 
+    def set_status_reporter_reraise_transient_errors(self, reraise: bool) -> None:
+        """Set whether to re-raise transient GitHub errors or fall back to comments."""
+        # CoprBuildStartHandler doesn't use status reporting with transient error handling,
+        # but needs this method for babysit compatibility
+
     def set_start_time(self):
         start_time = (
             datetime.utcfromtimestamp(self.copr_event.timestamp)
@@ -240,6 +246,23 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     task_name = TaskName.copr_build_end
 
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self._status_reporter_reraise_transient_errors = True
+
+    def set_status_reporter_reraise_transient_errors(self, reraise: bool) -> None:
+        """Set whether to re-raise transient GitHub errors or fall back to comments."""
+        self._status_reporter_reraise_transient_errors = reraise
+
     def set_srpm_url(self) -> None:
         # TODO how to do better
         srpm_build = (
@@ -306,6 +329,9 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             f"chroot={self.copr_event.chroot} "
             f"at {run_start_time.isoformat()}"
         )
+        self.copr_build_helper.status_reporter.reraise_transient_errors = (
+            self._status_reporter_reraise_transient_errors
+        )
         if not self.build:
             # TODO: how could this happen?
             model = "SRPMBuildDB" if self.copr_event.chroot == COPR_SRPM_CHROOT else "CoprBuildDB"
@@ -330,28 +356,32 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         if self.copr_event.chroot == COPR_SRPM_CHROOT:
             return self.handle_srpm_end()
 
-        self.pushgateway.copr_builds_finished.inc()
-
-        # if the build is needed only for test, it doesn't have the task_accepted_time
-        if self.build.task_accepted_time:
-            copr_build_time = elapsed_seconds(
-                begin=self.build.task_accepted_time,
-                end=datetime.now(timezone.utc),
-            )
-            self.pushgateway.copr_build_finished_time.observe(copr_build_time)
-
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.copr_event.status != COPR_API_SUCC_STATE:
             failed_msg = "RPMs failed to be built."
             packit_dashboard_url = get_copr_build_info_url(self.build.id)
             # if SRPM build failed it has been reported already so skip reporting
             if self.build.get_srpm_build().status != BuildStatus.failure:
-                self.copr_build_helper.report_status_to_all_for_chroot(
-                    state=BaseCommitStatus.failure,
-                    description=failed_msg,
-                    url=packit_dashboard_url,
-                    chroot=self.copr_event.chroot,
-                )
+                try:
+                    self.copr_build_helper.report_status_to_all_for_chroot(
+                        state=BaseCommitStatus.failure,
+                        description=failed_msg,
+                        url=packit_dashboard_url,
+                        chroot=self.copr_event.chroot,
+                    )
+                except (GithubAPIException, GitlabAPIException, PagureAPIException):
+                    # Transient error - return early before setting the state
+                    return TaskResults(success=False, details={"msg": "Status reporting failed"})
+
+                # Only execute the following if GitHub reporting succeeded
+                self.pushgateway.copr_builds_finished.inc()
+                if self.build.task_accepted_time:
+                    copr_build_time = elapsed_seconds(
+                        begin=self.build.task_accepted_time,
+                        end=datetime.now(timezone.utc),
+                    )
+                    self.pushgateway.copr_build_finished_time.observe(copr_build_time)
+
                 self.measure_time_after_reporting()
                 self.copr_build_helper.notify_about_failure_if_configured(
                     packit_dashboard_url=packit_dashboard_url,
@@ -362,9 +392,22 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             report_long_runtime("Copr build failed end", 120, run_start_time)
             return TaskResults(success=False, details={"msg": failed_msg})
 
-        self.report_successful_build()
-        self.measure_time_after_reporting()
+        try:
+            self.report_successful_build()
+        except (GithubAPIException, GitlabAPIException, PagureAPIException):
+            # Transient error - return early before setting the state
+            return TaskResults(success=False, details={"msg": "Status reporting failed"})
 
+        # Only execute the following if GitHub reporting succeeded
+        self.pushgateway.copr_builds_finished.inc()
+        if self.build.task_accepted_time:
+            copr_build_time = elapsed_seconds(
+                begin=self.build.task_accepted_time,
+                end=datetime.now(timezone.utc),
+            )
+            self.pushgateway.copr_build_finished_time.observe(copr_build_time)
+
+        self.measure_time_after_reporting()
         self.set_built_packages()
         self.build.set_status(BuildStatus.success)
         self.handle_testing_farm()
@@ -432,11 +475,16 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         if self.copr_event.status != COPR_API_SUCC_STATE:
             failed_msg = "SRPM build failed, check the logs for details."
-            self.copr_build_helper.report_status_to_all(
-                state=BaseCommitStatus.failure,
-                description=failed_msg,
-                url=url,
-            )
+            try:
+                self.copr_build_helper.report_status_to_all(
+                    state=BaseCommitStatus.failure,
+                    description=failed_msg,
+                    url=url,
+                )
+            except (GithubAPIException, GitlabAPIException, PagureAPIException):
+                # Transient error - return early before setting the state
+                return TaskResults(success=False, details={"msg": "Status reporting failed"})
+
             self.copr_build_helper.notify_about_failure_if_configured(
                 packit_dashboard_url=url,
                 external_dashboard_url=self.build.copr_web_url,
@@ -449,6 +497,22 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             )
             return TaskResults(success=False, details={"msg": failed_msg})
 
+        report_status = (
+            self.copr_build_helper.report_status_to_all
+            if self.job_config.sync_test_job_statuses_with_builds
+            else self.copr_build_helper.report_status_to_build
+        )
+        try:
+            report_status(
+                state=BaseCommitStatus.running,
+                description="SRPM build succeeded. Waiting for RPM build to start...",
+                url=url,
+            )
+        except (GithubAPIException, GitlabAPIException, PagureAPIException):
+            # Transient error - return early before setting the state
+            return TaskResults(success=False, details={"msg": "Status reporting failed"})
+
+        # Set DB status after successful GitHub reporting
         for build in CoprBuildTargetModel.get_all_by_build_id(
             str(self.copr_event.build_id),
         ):
@@ -456,16 +520,6 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             build.set_status(BuildStatus.pending)
 
         self.build.set_status(BuildStatus.success)
-        report_status = (
-            self.copr_build_helper.report_status_to_all
-            if self.job_config.sync_test_job_statuses_with_builds
-            else self.copr_build_helper.report_status_to_build
-        )
-        report_status(
-            state=BaseCommitStatus.running,
-            description="SRPM build succeeded. Waiting for RPM build to start...",
-            url=url,
-        )
         msg = "SRPM build in Copr has finished."
         logger.debug(msg)
         return TaskResults(success=True, details={"msg": msg})
