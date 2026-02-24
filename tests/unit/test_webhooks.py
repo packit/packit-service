@@ -246,3 +246,45 @@ def test_interested(mock_config, headers, payload, interested):
         headers=headers,
     ):
         assert webhooks.GithubWebhook.interested() == interested
+
+
+@pytest.mark.parametrize(
+    "headers, is_good",
+    [
+        (
+            {
+                "X-Forgejo-Signature": (
+                    "7884c9fc5f880c17920b2066e85aae7b57489505a16aa9b56806a924df78f846"
+                ),
+            },
+            True,
+        ),
+        (
+            {
+                "X-Forgejo-Signature": (
+                    "feedfacecafebeef920b2066e85aae7b57489505a16aa9b56806a924df78f666"
+                ),
+            },
+            False,
+        ),
+        ({}, False),
+    ],
+)
+def test_validate_forgejo_token(mock_config, headers, is_good):
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        flexmock(validate_webhooks=True),
+    )
+    from packit_service.service.api import webhooks
+
+    webhooks.config = mock_config
+
+    with Flask(__name__).test_request_context():
+        payload = {"zen": "Keep it logically awesome."}
+
+        request._cached_data = request.data = dumps(payload).encode()
+        request.headers = headers
+        if not is_good:
+            with pytest.raises(ValidationFailed):
+                webhooks.ForgejoWebhook.validate_token(webhooks.ForgejoWebhook())
+        else:
+            webhooks.ForgejoWebhook.validate_token(webhooks.ForgejoWebhook())
