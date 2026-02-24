@@ -1233,7 +1233,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             update_feedback_time=update_feedback_time,
         )
 
-    def get_running_jobs(self) -> Iterable[tuple["TFTTestRunTargetModel"]]:
+    def get_running_jobs(self) -> Iterable["TFTTestRunTargetModel"]:
         if sha := self.metadata.commit_sha_before:
             yield from TFTTestRunGroupModel.get_running(
                 commit_sha=sha, ranch=self.tft_client.default_ranch
@@ -1247,7 +1247,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             logger.info("No running TF tests to cancel.")
             return
 
-        for (test_run,) in running_tests:
+        for test_run in running_tests:
             self.tft_client.cancel(test_run.pipeline_id)
             test_run.set_status(TestingFarmResult.cancel_requested)
 
