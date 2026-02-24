@@ -41,6 +41,7 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs, get_packit_commands_from_comment
 from packit_service.worker.celery_task import CeleryTask
+from packit_service.worker.handlers.abstract import FedoraCIJobHandler
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.testing_farm_client import TestingFarmClient
@@ -1363,9 +1364,15 @@ class DownstreamTestingFarmJobHelper:
             self._pr = self.project.get_pr(self.metadata.pr_id)
         return self._pr
 
+    def get_check_name(self, test_name: str) -> str:
+        """Return check name based on deployment environment."""
+        return self.get_check_name_from_config(test_name, self.service_config)
+
     @staticmethod
-    def get_check_name(test_name: str) -> str:
-        return f"Packit - {test_name}"
+    def get_check_name_from_config(test_name: str, service_config: ServiceConfig) -> str:
+        """Static version for use in class methods."""
+        prefix = FedoraCIJobHandler.get_check_name_prefix(service_config)
+        return f"{prefix} - {test_name}"
 
     def report(
         self,

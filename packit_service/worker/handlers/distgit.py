@@ -790,7 +790,7 @@ class DownstreamKojiScratchBuildHandler(
     """
 
     task_name = TaskName.downstream_koji_scratch_build
-    check_name = "Packit - scratch build"
+    _check_name = "scratch build"
 
     def __init__(
         self,

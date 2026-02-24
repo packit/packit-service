@@ -560,7 +560,7 @@ class SteveJobs:
         )
 
         first_status_reported = False
-        for check_name in handler_kls.get_check_names(
+        for check_name in handler_kls.get_all_check_names(
             self.service_config, self.event.project, metadata
         ):
             helper.report(

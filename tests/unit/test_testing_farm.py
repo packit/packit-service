@@ -12,6 +12,7 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+from packit.config.common_package_config import Deployment
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
@@ -265,6 +266,7 @@ def test_downstream_testing_farm_response(
     config = flexmock(
         command_handler_work_dir=flexmock(),
         comment_command_prefix="/packit",
+        deployment=Deployment.stg,
     )
     flexmock(DownstreamTFResultsHandler).should_receive("service_config").and_return(config)
     flexmock(TFResultsEvent).should_receive("db_project_object").and_return(None)
@@ -301,7 +303,7 @@ def test_downstream_testing_farm_response(
         state=status_status,
         description=status_message,
         url="some url",
-        check_name="Packit - installability",
+        check_name="Packit-stg - installability",
         target_branch="rawhide",
     ).once()
 
