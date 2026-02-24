@@ -7,6 +7,7 @@ TODO: The build and test handlers are independent and should be moved away.
 """
 
 import logging
+from abc import ABC, abstractmethod
 from typing import Optional
 
 from packit.api import PackitAPI
@@ -302,18 +303,10 @@ class GithubFasVerificationHandler(
         return TaskResults(success=True, details={"msg": msg})
 
 
-@reacts_to(event=github.pr.Comment)
-@reacts_to(event=gitlab.mr.Comment)
-@reacts_to(event=pagure.pr.Comment)
-@reacts_to(event=github.issue.Comment)
-@reacts_to(event=gitlab.issue.Comment)
 class GitCommentHelpHandler(
+    ABC,
     JobHandler,
-    GetPullRequestMixin,
-    GetIssueMixin,
 ):
-    task_name = TaskName.help
-
     @property
     def packit_api(self) -> PackitAPI: ...
 
@@ -332,6 +325,10 @@ class GitCommentHelpHandler(
         )
         self.sender_login = self.data.actor
         self.comment = self.data.event_dict.get("comment")
+
+    @abstractmethod
+    def add_comment(self, body: str) -> None:
+        pass
 
     def run(self) -> TaskResults:
         if self.comment.startswith("/packit-ci-stg"):  # type: ignore
@@ -363,14 +360,25 @@ class GitCommentHelpHandler(
             )
 
         help_message = parser.format_help()
-
-        if self.data.event_type in (
-            gitlab.mr.Comment.event_type(),
-            github.pr.Comment.event_type(),
-            pagure.pr.Comment.event_type(),
-        ):
-            self.pr.comment(body=help_message)
-        else:
-            self.issue.comment(body=help_message)
+        self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})
+
+
+@reacts_to(event=github.pr.Comment)
+@reacts_to(event=gitlab.mr.Comment)
+@reacts_to(event=pagure.pr.Comment)
+class GitPullRequestCommentHelpHandler(GitCommentHelpHandler, GetPullRequestMixin):
+    task_name = TaskName.help_pr
+
+    def add_comment(self, body: str) -> None:
+        self.pr.comment(body=body)
+
+
+@reacts_to(event=github.issue.Comment)
+@reacts_to(event=gitlab.issue.Comment)
+class GitIssueCommentHelpHandler(GitCommentHelpHandler, GetIssueMixin):
+    task_name = TaskName.help_issue
+
+    def add_comment(self, body: str) -> None:
+        self.issue.comment(body=body)

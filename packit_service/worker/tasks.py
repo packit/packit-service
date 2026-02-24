@@ -59,8 +59,9 @@ from packit_service.worker.handlers import (
     DownstreamTestingFarmHandler,
     DownstreamTestingFarmResultsHandler,
     DownstreamTestingFarmTestsNSHandler,
-    GitCommentHelpHandler,
     GithubAppInstallationHandler,
+    GitIssueCommentHelpHandler,
+    GitPullRequestCommentHelpHandler,
     KojiBuildHandler,
     KojiTaskReportHandler,
     ProposeDownstreamHandler,
@@ -320,13 +321,27 @@ def run_github_fas_verification_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.help, base=TaskWithRetry)
-def run_comment_help_handler(
+@celery_app.task(name=TaskName.help_pr, base=TaskWithRetry)
+def run_help_pr_handler(
     event: dict,
     package_config: dict,
     job_config: dict,
 ):
-    handler = GitCommentHelpHandler(
+    handler = GitPullRequestCommentHelpHandler(
+        package_config=None,
+        job_config=None,
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.help_issue, base=TaskWithRetry)
+def run_help_issue_handler(
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+):
+    handler = GitIssueCommentHelpHandler(
         package_config=None,
         job_config=None,
         event=event,

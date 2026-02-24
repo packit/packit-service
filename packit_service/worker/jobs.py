@@ -54,7 +54,6 @@ from packit_service.utils import (
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.handlers import (
     CoprBuildHandler,
-    GitCommentHelpHandler,
     GithubAppInstallationHandler,
     GithubFasVerificationHandler,
     KojiBuildHandler,
@@ -81,6 +80,10 @@ from packit_service.worker.handlers.distgit import (
     PullFromUpstreamHandler,
     RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
+)
+from packit_service.worker.handlers.forges import (
+    GitIssueCommentHelpHandler,
+    GitPullRequestCommentHelpHandler,
 )
 from packit_service.worker.helpers.build import (
     BaseBuildJobHelper,
@@ -361,7 +364,15 @@ class SteveJobs:
             ),
         ) and self.is_help_comment(self.event.comment):
             self.event.comment_object.add_reaction(COMMENT_REACTION)
-            GitCommentHelpHandler.get_signature(
+            handler = (
+                GitPullRequestCommentHelpHandler
+                if isinstance(
+                    self.event,
+                    (github.pr.Comment, gitlab.mr.Comment, pagure.pr.Comment),
+                )
+                else GitIssueCommentHelpHandler
+            )
+            handler.get_signature(
                 event=self.event,
                 job=None,
             ).apply_async()

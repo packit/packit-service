@@ -54,7 +54,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import (
-    run_comment_help_handler,
+    run_help_issue_handler,
     run_issue_comment_retrigger_bodhi_update,
     run_propose_downstream_handler,
     run_retrigger_downstream_koji_build,
@@ -107,7 +107,7 @@ def test_issue_comment_help_handler_github(
 
     issue.should_receive("comment").once()
 
-    results = run_comment_help_handler(
+    results = run_help_issue_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,
