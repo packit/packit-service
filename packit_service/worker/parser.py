@@ -8,6 +8,7 @@ Parser is transforming github JSONs into `events` objects
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import cmp_to_key
 from os import getenv
 from typing import Any, Callable, ClassVar, Optional, Union
 
@@ -15,6 +16,7 @@ from ogr.parsing import RepoUrl, parse_git_repo
 from packit.config import JobConfigTriggerType
 from packit.constants import DISTGIT_INSTANCES
 from packit.utils import nested_get
+from packit.utils.versions import compare_versions
 
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
@@ -1763,7 +1765,11 @@ class Parser:
 
         distgit_project_url = f"{dg_base_url}rpms/{package_name}"
 
-        version = nested_get(event, "trigger", "msg", "project", "version")
+        # get the highest from newly retrieved versions
+        version = max(
+            nested_get(event, "trigger", "msg", "message", "upstream_versions"),
+            key=cmp_to_key(compare_versions),
+        )
 
         bug_id = nested_get(event, "bug", "bug_id")
         anitya_project_id = nested_get(event, "trigger", "msg", "project", "id")
