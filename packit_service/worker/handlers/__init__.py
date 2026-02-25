@@ -41,6 +41,7 @@ from packit_service.worker.handlers.testing_farm import (
     DownstreamTestingFarmELNHandler,
     DownstreamTestingFarmHandler,
     DownstreamTestingFarmResultsHandler,
+    DownstreamTestingFarmTestsNSHandler,
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
@@ -62,6 +63,7 @@ __all__ = [
     KojiTaskReportHandler.__name__,
     DownstreamTestingFarmHandler.__name__,
     DownstreamTestingFarmELNHandler.__name__,
+    DownstreamTestingFarmTestsNSHandler.__name__,
     DownstreamTestingFarmResultsHandler.__name__,
     TestingFarmHandler.__name__,
     TestingFarmResultsHandler.__name__,

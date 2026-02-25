@@ -77,6 +77,7 @@ from packit_service.utils import (
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
     HasIssueCommenterRetriggeringPermissions,
+    IsProjectInRpmsNamespace,
     IsProjectOk,
     IsUpstreamTagMatchingConfig,
     LabelsOnDistgitPR,
@@ -831,7 +832,7 @@ class DownstreamKojiScratchBuildHandler(
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return (PermissionOnDistgitForFedoraCI,)
+        return (IsProjectInRpmsNamespace, PermissionOnDistgitForFedoraCI)
 
     @staticmethod
     def _repo_url_with_git_ref(

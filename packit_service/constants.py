@@ -180,6 +180,8 @@ DEFAULT_MAPPING_INTERNAL_TF = {
     "epel-10": "centos-stream-10",
 }
 
+FEDORA_CI_TESTS_NS_BRANCH = "rawhide"
+
 COMMENT_REACTION = "eyes"
 
 
