@@ -54,6 +54,11 @@ beat_schedule = {
         "schedule": 10800.0,
         "options": {"queue": "long-running", "time_limit": 3600},
     },
+    "push-ogr-namespace-metrics": {
+        "task": "packit_service.worker.tasks.push_ogr_namespace_metrics",
+        "schedule": 300.0,
+        "options": {"queue": "short-running"},
+    },
 }
 
 # http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application

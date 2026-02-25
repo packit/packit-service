@@ -13,6 +13,7 @@ from celery.signals import after_setup_logger
 from copr.v3 import CoprException
 from ogr import __version__ as ogr_version
 from ogr.exceptions import OgrException
+from ogr.metrics import get_metrics_tracker
 from packit import __version__ as packit_version
 from packit.exceptions import PackitException
 from sqlalchemy import __version__ as sqlal_version
@@ -99,6 +100,7 @@ from packit_service.worker.helpers.build.babysit import (
     update_vm_image_build,
 )
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -940,3 +942,37 @@ def get_usage_statistics() -> None:
         logger.debug(f"Getting usage data from datetime_from {day}.")
         get_usage_data(datetime_from=day)
         logger.debug("Got usage data.")
+
+
+@celery_app.task
+def push_ogr_namespace_metrics() -> None:
+    """
+    Collect ogr namespace request metrics and push them to pushgateway.
+
+    This task queries the ogr metrics tracker for request counts per namespace
+    and service type, then updates the Prometheus metrics and pushes them.
+    After pushing, the counters are reset for the next collection period.
+    """
+    logger.debug("Collecting ogr namespace request metrics.")
+
+    try:
+        metrics_tracker = get_metrics_tracker()
+        counts = metrics_tracker.get_all_counts()
+
+        pushgateway = Pushgateway()
+
+        for (service_type, namespace), count in counts.items():
+            pushgateway.ogr_namespace_requests.labels(
+                namespace=namespace,
+                service_type=service_type,
+            ).set(count)
+
+        pushgateway.push()
+
+        metrics_tracker.reset()
+
+        logger.info(
+            f"Pushed ogr namespace metrics: {len(counts)} namespace/service combinations",
+        )
+    except Exception as e:
+        logger.error(f"Failed to push ogr namespace metrics: {e}", exc_info=True)
