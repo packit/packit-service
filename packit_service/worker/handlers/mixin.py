@@ -115,13 +115,15 @@ class GetKojiBuildFromTaskOrPullRequestMixin(GetKojiBuild, GetKojiTaskEventMixin
                 if not run_model:
                     logger.error(f"No test run found for TF pipeline {self.pipeline_id}")
                     return None
-                if (build_count := len(run_model.koji_builds)) != 1:
+                if (build_count := len(run_model.koji_builds)) == 1:
+                    self._koji_build = run_model.koji_builds[0]
+                    return self._koji_build
+                if build_count > 1:
                     logger.error(
-                        f"Expected a single Koji build matching TF pipeline {self.pipeline_id}, "
-                        f"found {build_count} builds"
+                        "Expected a single or no Koji build matching TF pipeline "
+                        f"{self.pipeline_id}, found {build_count} builds"
                     )
-                    return None
-                self._koji_build = run_model.koji_builds[0]
+                return None
             else:
                 pull_request = self.project.get_pr(self.data.pr_id)
                 self._koji_build = (

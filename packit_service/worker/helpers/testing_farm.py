@@ -18,6 +18,7 @@ from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     CONTACTS_URL,
+    FEDORA_CI_TESTS_NS_BRANCH,
     TESTING_FARM_ARTIFACTS_KEY,
     TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES,
     TESTING_FARM_INSTALLABILITY_TEST_REF,
@@ -1269,7 +1270,7 @@ class DownstreamTestingFarmJobHelper:
         service_config: ServiceConfig,
         project: GitProject,
         metadata: EventData,
-        koji_build: KojiBuildTargetModel,
+        koji_build: Optional[KojiBuildTargetModel],
         celery_task: Optional[CeleryTask] = None,
     ):
         self.service_config = service_config
@@ -1351,7 +1352,9 @@ class DownstreamTestingFarmJobHelper:
             self._ci_helper = FedoraCIHelper(
                 project=self.project,
                 metadata=self.metadata,
-                target_branch=self.koji_build.target,
+                target_branch=(
+                    self.koji_build.target if self.koji_build else FEDORA_CI_TESTS_NS_BRANCH
+                ),
             )
         return self._ci_helper
 
@@ -1455,6 +1458,10 @@ class DownstreamTestingFarmJobHelper:
         else:
             profile = distro
 
+        # installability test requires a Koji build
+        # (it should be guaranteed by the `HasEventSuccessfulScratchBuild` checker)
+        assert self.koji_build
+
         return {
             "test": {
                 "tmt": {
@@ -1550,17 +1557,18 @@ class DownstreamTestingFarmJobHelper:
         # TODO: Revisit when 0.2 testing-farm API is decided
         os_params = {"os": {"compose": compose}} if compose else {}
         dist_git_branch = self.pr.target_branch
+        variables = {}
+        artifacts = []
+        if self.koji_build:
+            variables["KOJI_TASK_ID"] = self.koji_build.task_id
+            artifacts.append({"id": self.koji_build.task_id, "type": "fedora-koji-build"})
         return {
             "environments": [
                 {
                     "arch": "x86_64",
                     **os_params,
-                    "variables": {
-                        "KOJI_TASK_ID": self.koji_build.task_id,
-                    },
-                    "artifacts": [
-                        {"id": self.koji_build.task_id, "type": "fedora-koji-build"},
-                    ],
+                    "variables": variables,
+                    "artifacts": artifacts,
                     "tmt": {
                         "context": {
                             "distro": distro,

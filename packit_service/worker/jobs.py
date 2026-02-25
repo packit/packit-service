@@ -300,9 +300,10 @@ class SteveJobs:
         if self.service_config.fedora_ci_run_by_default:
             # Opt-out mode: run by default for Fedora RPMs unless explicitly disabled
             return (
-                project_url.startswith("https://src.fedoraproject.org/rpms")
-                and project_url not in self.service_config.disabled_projects_for_fedora_ci
-            )
+                project_url.startswith(
+                    ("https://src.fedoraproject.org/rpms", "https://src.fedoraproject.org/tests")
+                )
+            ) and project_url not in self.service_config.disabled_projects_for_fedora_ci
 
         # Opt-in mode: only run if explicitly enabled
         return project_url in self.service_config.enabled_projects_for_fedora_ci

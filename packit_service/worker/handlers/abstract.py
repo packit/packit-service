@@ -242,6 +242,7 @@ class TaskName(str, enum.Enum):
     testing_farm_results = "task.run_testing_farm_results_handler"
     downstream_testing_farm = "task.run_downstream_testing_farm_handler"
     downstream_testing_farm_eln = "task.run_downstream_testing_farm_eln_handler"
+    downstream_testing_farm_tests_ns = "task.run_downstream_testing_farm_tests_ns_handler"
     downstream_testing_farm_results = "task.run_downstream_testing_farm_results_handler"
     propose_downstream = "task.run_propose_downstream_handler"
     upstream_koji_build = "task.run_koji_build_handler"

@@ -4,6 +4,7 @@
 import copy
 import json
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -13,6 +14,7 @@ from copr.v3 import Client
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
+from packit.api import PackitAPI
 from packit.config import (
     CommonPackageConfig,
     Deployment,
@@ -23,20 +25,25 @@ from packit.config import (
 )
 from packit.config.requirements import LabelRequirementsConfig, RequirementsConfig
 from packit.copr_helper import CoprHelper
-from packit.local_project import LocalProject
+from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.utils.koji_helper import KojiHelper
 
 import packit_service.service.urls as urls
+from packit_service import utils
 from packit_service.config import ServiceConfig
-from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
+from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
 from packit_service.events import copr, koji
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
     GitBranchModel,
+    KojiBuildGroupModel,
     KojiBuildTargetModel,
+    PipelineModel,
+    ProjectEventModel,
     ProjectEventModelType,
     ProjectReleaseModel,
+    PullRequestModel,
     SidetagModel,
     SRPMBuildModel,
     TestingFarmResult,
@@ -66,8 +73,10 @@ from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 from packit_service.worker.tasks import (
     run_copr_build_end_handler,
     run_copr_build_start_handler,
+    run_downstream_koji_scratch_build_handler,
     run_downstream_koji_scratch_build_report_handler,
     run_downstream_testing_farm_handler,
+    run_downstream_testing_farm_tests_ns_handler,
     run_koji_build_report_handler,
     run_koji_build_tag_handler,
     run_testing_farm_handler,
@@ -134,6 +143,11 @@ def koji_build_scratch_start():
 @pytest.fixture(scope="module")
 def koji_build_scratch_end():
     return json.loads((DATA_DIR / "fedmsg" / "koji_build_scratch_end.json").read_text())
+
+
+@pytest.fixture(scope="module")
+def pagure_pr_updated():
+    return json.loads((DATA_DIR / "fedmsg" / "pagure_pr_updated.json").read_text())
 
 
 @pytest.fixture(scope="module")
@@ -3273,4 +3287,272 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
         event=event_dict,
         job_config=job_config,
     )
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "project_namespace, project_repo",
+    [
+        ("rpms", "packit"),
+        ("tests", "packit"),
+    ],
+)
+def test_pagure_pr_updated(pagure_pr_updated, project_namespace, project_repo):
+    """
+    Tests dist-git PR update scenario. An update of a PR in the `rpms` namespace
+    triggers a Koji scratch build, while an update of a PR in the `tests` namespace
+    triggers the `custom` check in Testing Farm.
+    """
+    pagure_pr_updated["pullrequest"]["branch"] = "rawhide"
+    pagure_pr_updated["pullrequest"]["project"]["namespace"] = project_namespace
+    pagure_pr_updated["pullrequest"]["project"]["name"] = project_repo
+    pagure_pr_updated["pullrequest"]["project"]["full_url"] = pagure_pr_updated["pullrequest"][
+        "repo_from"
+    ]["full_url"] = f"https://src.fedoraproject.org/{project_namespace}/{project_repo}"
+
+    dg_project = flexmock(
+        namespace=project_namespace,
+        repo=project_repo,
+        project_url=f"https://src.fedoraproject.org/{project_namespace}/{project_repo}",
+        is_private=lambda: False,
+        get_web_url=lambda: f"https://src.fedoraproject.org/{project_namespace}/{project_repo}",
+        get_file_content=lambda path, ref: flexmock(),
+        get_pr=lambda _: flexmock(
+            source_project=flexmock(
+                get_git_urls=lambda: {
+                    "git": f"https://src.fedoraproject.org/{project_namespace}/{project_repo}.git"
+                }
+            ),
+            head_commit="abcd",
+            target_branch="rawhide",
+        ),
+    )
+    service_config = (
+        flexmock(
+            testing_farm_api_url="API URL",
+            fedora_ci_run_by_default=True,
+            disabled_projects_for_fedora_ci=set(),
+            koji_logs_url="",
+            koji_web_url="",
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
+            testing_farm_secret="secret token",
+        )
+        .should_receive("get_project")
+        .and_return(dg_project)
+        .mock()
+    )
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        project=dg_project,
+    )
+    db_project_event = (
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="abcd",
+    ).and_return(flexmock())
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=32,
+        namespace=project_namespace,
+        repo_name=project_repo,
+        project_url=f"https://src.fedoraproject.org/{project_namespace}/{project_repo}",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event,
+    )
+
+    pipeline = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(pipeline)
+
+    flexmock(utils).should_receive("get_eln_packages").and_return([])
+
+    koji_build = flexmock(
+        id=123,
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
+        set_data=lambda x: None,
+        set_build_submission_stdout=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_last_successful_scratch_by_commit_target"
+    ).and_return([])
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build]),
+    )
+
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket")
+
+    flexmock(aliases).should_receive("get_aliases").and_return({"fedora-all": [], "epel-all": []})
+    flexmock(aliases).should_receive("get_build_targets").with_args("rawhide").and_return(
+        ["fedora-rawhide-x86_64"]
+    )
+
+    flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
+        "fedora-rawhide",
+    ).and_return("Fedora-Rawhide")
+
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args("rawhide").and_return(
+        "f43-updates-candidate"
+    )
+
+    if project_namespace == "rpms":
+        flexmock(commands).should_receive("run_command_remote").with_args(
+            cmd=[
+                "koji",
+                "build",
+                "--scratch",
+                "--nowait",
+                "rawhide",
+                f"git+https://src.fedoraproject.org/{project_namespace}/{project_repo}.git#"
+                "f2f041328d629719c5ff31a08e800638d5df497f",
+            ],
+            cwd=Path,
+            output=True,
+            print_live=True,
+        ).and_return(flexmock(stdout="some output")).once()
+
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=BaseCommitStatus.running,
+            description="RPM build was submitted ...",
+            url="https://dashboard.localhost/jobs/koji/123",
+            check_name="Packit - scratch build",
+            target_branch="rawhide",
+        ).once()
+    else:
+        payload_custom = {
+            "test": {
+                "tmt": {
+                    "url": f"https://src.fedoraproject.org/{project_namespace}/{project_repo}.git",
+                    "ref": "f2f041328d629719c5ff31a08e800638d5df497f",
+                },
+            },
+            "environments": [
+                {
+                    "arch": "x86_64",
+                    "os": {"compose": "Fedora-Rawhide"},
+                    "variables": {},
+                    "artifacts": [],
+                    "tmt": {
+                        "context": {
+                            "distro": "fedora-rawhide",
+                            "arch": "x86_64",
+                            "trigger": "commit",
+                            "initiator": "fedora-ci",
+                            "dist-git-branch": "rawhide",
+                        },
+                    },
+                },
+            ],
+            "notification": {
+                "webhook": {
+                    "url": "https://stg.packit.dev/api/testing-farm/results",
+                    "token": "secret token",
+                },
+            },
+        }
+
+        pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+        flexmock(TestingFarmClient).should_receive(
+            "send_testing_farm_request",
+        ).with_args(endpoint="requests", method="POST", data=payload_custom).and_return(
+            RequestResponse(
+                status_code=200,
+                ok=True,
+                content=json.dumps({"id": pipeline_id}).encode(),
+                json={"id": pipeline_id},
+            ),
+        ).once()
+
+        tft_test_run_model_custom = (
+            flexmock(
+                id=6,
+                koji_builds=[],
+                status=TestingFarmResult.new,
+                target="fedora-rawhide",
+                data={"fedora_ci_test": "custom"},
+            )
+            .should_receive("set_pipeline_id")
+            .with_args(pipeline_id)
+            .once()
+            .mock()
+        )
+        group = flexmock(
+            grouped_targets=[
+                tft_test_run_model_custom,
+            ]
+        )
+        flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+            pipeline,
+            ranch="public",
+        ).and_return(group)
+        flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+            pipeline_id=None,
+            identifier=None,
+            status=TestingFarmResult.new,
+            target="fedora-rawhide",
+            web_url=None,
+            test_run_group=group,
+            koji_build_targets=[],
+            data={
+                "base_project_url": f"https://src.fedoraproject.org/{project_namespace}/{project_repo}",
+                "fedora_ci_test": "custom",
+            },
+        ).and_return(tft_test_run_model_custom).once()
+
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=BaseCommitStatus.running,
+            description="Submitting the tests ...",
+            url="https://dashboard.localhost/jobs/testing-farm/6",
+            check_name="Packit - custom",
+            target_branch="rawhide",
+        ).once()
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=BaseCommitStatus.running,
+            description="Tests have been submitted ...",
+            url="https://dashboard.localhost/jobs/testing-farm/6",
+            check_name="Packit - custom",
+            target_branch="rawhide",
+        ).once()
+
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+
+    processing_results = SteveJobs().process_message(pagure_pr_updated)
+
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        [processing_results[0]],
+    )
+    assert json.dumps(event_dict)
+
+    if project_namespace == "rpms":
+        results = run_downstream_koji_scratch_build_handler(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+    else:
+        results = run_downstream_testing_farm_tests_ns_handler(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
     assert first_dict_value(results["job"])["success"]

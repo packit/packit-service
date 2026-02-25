@@ -16,6 +16,7 @@ from packit.config import JobConfig, JobType, aliases
 from packit.config.package_config import PackageConfig
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import FEDORA_CI_TESTS_NS_BRANCH
 from packit_service.events import (
     abstract,
     github,
@@ -41,17 +42,19 @@ from packit_service.service.urls import (
 from packit_service.utils import elapsed_seconds, get_default_tf_mapping
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
+    IsProjectInRpmsNamespace,
+    IsProjectInTestsNamespace,
     PackageNeedsELNBuildFromRawhide,
     PermissionOnDistgitForFedoraCI,
 )
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
+    HasEventSuccessfulRawhideELNScratchBuild,
+    HasEventSuccessfulScratchBuild,
     IsCoprBuildDefined,
     IsDownstreamTest,
     IsEventForJob,
     IsEventOk,
-    IsEventOkForFedoraCI,
-    IsEventOkForFedoraCIAsRawhideELN,
     IsIdentifierFromCommentMatching,
     IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
@@ -363,6 +366,8 @@ class DownstreamTestingFarmHandler(
     PackitAPIWithDownstreamMixin,
     GetDownstreamTestingFarmJobHelperMixin,
 ):
+    """Downstream (Fedora CI) TF handler for events from the `rpms` namespace."""
+
     __test__ = False
     task_name = TaskName.downstream_testing_farm
 
@@ -385,9 +390,14 @@ class DownstreamTestingFarmHandler(
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
         return (
-            IsEventOkForFedoraCI,
+            IsProjectInRpmsNamespace,
+            HasEventSuccessfulScratchBuild,
             PermissionOnDistgitForFedoraCI,
         )
+
+    @classmethod
+    def filter_ci_tests(cls, tests: list[str]) -> list[str]:
+        return tests
 
     @classmethod
     def get_check_names(
@@ -395,8 +405,10 @@ class DownstreamTestingFarmHandler(
     ) -> list[str]:
         return [
             DownstreamTestingFarmJobHelper.get_check_name(t)
-            for t in DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
-                service_config, project, metadata
+            for t in cls.filter_ci_tests(
+                DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
+                    service_config, project, metadata
+                )
             )
         ]
 
@@ -421,7 +433,15 @@ class DownstreamTestingFarmHandler(
             target_model = TFTTestRunTargetModel.get_by_id(self._testing_farm_target_id)
             return target_model.group_of_targets, [target_model]
 
-        run_model = self.koji_build.group_of_targets.runs[-1]
+        run_model = (
+            PipelineModel.create(
+                project_event=self.db_project_event,
+                package_name=self.project.repo,
+            )
+            if not self.koji_build
+            else self.koji_build.group_of_targets.runs[-1]
+        )
+
         # Always call create() to handle race conditions properly.
         # The create() method will lock the run_model, check if it already has a test_run_group,
         # and clone the pipeline if needed. This ensures each identifier gets its own pipeline.
@@ -430,7 +450,9 @@ class DownstreamTestingFarmHandler(
         )
 
         # convert dist-git branch to distro
-        [target] = aliases.get_build_targets(self.koji_build.target)
+        [target] = aliases.get_build_targets(
+            self.koji_build.target if self.koji_build else FEDORA_CI_TESTS_NS_BRANCH
+        )
         distro = target.rsplit("-", 1)[0]
         distro = get_default_tf_mapping(internal=False).get(distro, distro)
 
@@ -444,7 +466,7 @@ class DownstreamTestingFarmHandler(
                     target=distro,
                     web_url=None,
                     test_run_group=group,
-                    koji_build_targets=[self.koji_build],
+                    koji_build_targets=[self.koji_build] if self.koji_build else [],
                     # In _payload() we ask TF to test commit_sha of fork (PR's source).
                     # Store original url. If this proves to work, make it a separate column.
                     data={"base_project_url": self.project.get_web_url(), "fedora_ci_test": test},
@@ -466,9 +488,15 @@ class DownstreamTestingFarmHandler(
     def _run(self) -> TaskResults:
         failed: dict[str, str] = {}
 
-        fedora_ci_tests = self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
-            self.service_config, self.project, self.data
+        fedora_ci_tests = self.filter_ci_tests(
+            self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
+                self.service_config, self.project, self.data
+            )
         )
+
+        if not fedora_ci_tests:
+            # nothing to do
+            return TaskResults(success=True, details={})
 
         _, test_runs = self._get_or_create_group(fedora_ci_tests)
         for test_run in test_runs:
@@ -492,6 +520,11 @@ class DownstreamTestingFarmHandler(
 @run_for_comment_as_fedora_ci(command="test")
 @reacts_to_as_fedora_ci(event=pagure.pr.Comment)
 class DownstreamTestingFarmELNHandler(DownstreamTestingFarmHandler):
+    """
+    Downstream (Fedora CI) TF handler for events from the `rpms` namespace.
+    For retriggering tests triggered by an ELN scratch build.
+    """
+
     __test__ = False
     _rawhide_eln_build = True
     task_name = TaskName.downstream_testing_farm_eln
@@ -499,10 +532,32 @@ class DownstreamTestingFarmELNHandler(DownstreamTestingFarmHandler):
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
         return (
+            IsProjectInRpmsNamespace,
             PackageNeedsELNBuildFromRawhide,
-            IsEventOkForFedoraCIAsRawhideELN,
+            HasEventSuccessfulRawhideELNScratchBuild,
             PermissionOnDistgitForFedoraCI,
         )
+
+
+@run_for_comment_as_fedora_ci(command="test")
+@reacts_to_as_fedora_ci(event=pagure.pr.Action)
+@reacts_to_as_fedora_ci(event=pagure.pr.Comment)
+class DownstreamTestingFarmTestsNSHandler(DownstreamTestingFarmHandler):
+    """Downstream (Fedora CI) TF handler for events from the `tests` namespace."""
+
+    __test__ = False
+    task_name = TaskName.downstream_testing_farm_tests_ns
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        return (
+            IsProjectInTestsNamespace,
+            PermissionOnDistgitForFedoraCI,
+        )
+
+    @classmethod
+    def filter_ci_tests(cls, tests: list[str]) -> list[str]:
+        return [t for t in tests if t == "custom"]
 
 
 @configured_as(job_type=JobType.tests)

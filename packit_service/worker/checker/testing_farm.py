@@ -57,7 +57,7 @@ class IsEventOk(
         )
 
 
-class IsEventOkForFedoraCI(
+class HasEventSuccessfulScratchBuild(
     Checker,
     GetKojiBuildFromTaskOrPullRequestMixin,
 ):
@@ -71,7 +71,7 @@ class IsEventOkForFedoraCI(
         return bool(self.koji_task_event and self.koji_task_event.state == KojiTaskState.closed)
 
 
-class IsEventOkForFedoraCIAsRawhideELN(IsEventOkForFedoraCI):
+class HasEventSuccessfulRawhideELNScratchBuild(HasEventSuccessfulScratchBuild):
     _rawhide_eln_build = True
 
 

@@ -183,6 +183,16 @@ class PackageNeedsELNBuildFromRawhide(Checker, GetPagurePullRequestMixin):
         return False
 
 
+class IsProjectInRpmsNamespace(Checker):
+    def pre_check(self) -> bool:
+        return self.project.namespace == "rpms"
+
+
+class IsProjectInTestsNamespace(Checker):
+    def pre_check(self) -> bool:
+        return self.project.namespace == "tests"
+
+
 class HasIssueCommenterRetriggeringPermissions(ActorChecker):
     """To be able to retrigger a koji-build the issue commenter should
     have write permission on the project.
