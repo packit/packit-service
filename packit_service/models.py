@@ -2176,15 +2176,20 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(CoprBuildGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[tuple["CoprBuildTargetModel"]]:
-        """Get list of currently running Copr builds matching the passed
-        arguments.
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+    ) -> Iterable[tuple["CoprBuildTargetModel"]]:
+        """Get list of currently running Copr builds for a given project object
+        (e.g. a PR or branch).
 
         Args:
-            commit_sha: Commit hash that is used for filtering the running jobs.
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
 
         Returns:
-            An iterable over Copr target models that are curently in queue
+            An iterable over Copr target models that are currently in queue
             (running) or waiting for an SRPM.
         """
         q = (
@@ -2193,7 +2198,8 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             .join(PipelineModel)
             .join(ProjectEventModel)
             .filter(
-                ProjectEventModel.commit_sha == commit_sha,
+                ProjectEventModel.type == project_event_type,
+                ProjectEventModel.event_id == event_id,
                 CoprBuildTargetModel.status.in_(
                     (BuildStatus.pending, BuildStatus.waiting_for_srpm)
                 ),
@@ -3622,12 +3628,18 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(TFTTestRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str, ranch: str) -> Iterable[tuple["TFTTestRunTargetModel"]]:
-        """Get list of currently running Testing Farm runs matching the passed
-        arguments.
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+        ranch: str,
+    ) -> Iterable[tuple["TFTTestRunTargetModel"]]:
+        """Get list of currently running Testing Farm runs for a given project
+        object (e.g. a PR or branch).
 
         Args:
-            commit_sha: Commit hash that is used for filtering the running jobs.
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
             ranch: Testing Farm ranch where the tests are supposed to be run.
 
         Returns:
@@ -3641,7 +3653,8 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             .join(PipelineModel)
             .join(ProjectEventModel)
             .filter(
-                ProjectEventModel.commit_sha == commit_sha,
+                ProjectEventModel.type == project_event_type,
+                ProjectEventModel.event_id == event_id,
                 TFTTestRunGroupModel.ranch == ranch,
                 TFTTestRunTargetModel.status.in_(
                     (
@@ -4932,12 +4945,17 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(LogDetectiveRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[tuple[LogDetectiveRunModel]]:
-        """Get list of currently running Log Detective runs matching the passed
-        arguments.
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+    ) -> Iterable[tuple[LogDetectiveRunModel]]:
+        """Get list of currently running Log Detective runs for a given project
+        object (e.g. a PR or branch).
 
         Args:
-            commit_sha: Commit hash that is used for filtering the running jobs.
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
 
         Returns:
             An iterable over Log Detective run models representing Log Detective runs
@@ -4949,7 +4967,8 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             .join(PipelineModel)
             .join(ProjectEventModel)
             .filter(
-                ProjectEventModel.commit_sha == commit_sha,
+                ProjectEventModel.type == project_event_type,
+                ProjectEventModel.event_id == event_id,
                 LogDetectiveRunModel.status == LogDetectiveResult.running,
             )
         )

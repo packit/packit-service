@@ -1274,7 +1274,12 @@ def test_create_koji_tag_request(clean_before_and_after, a_koji_tag_request):
     assert a_koji_tag_request.get_project().project_url == SampleValues.project_url
 
 
-def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
+def test_copr_get_running(
+    clean_before_and_after,
+    pr_model,
+    pr_project_event_model,
+    srpm_build_model_with_new_run_for_pr,
+):
     _, run_model = srpm_build_model_with_new_run_for_pr
     group, _ = CoprBuildGroupModel.create(run_model=run_model)
 
@@ -1294,7 +1299,12 @@ def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_wit
             copr_build_group=group,
         )
 
-    running = list(CoprBuildGroupModel.get_running(commit_sha=SampleValues.commit_sha))
+    running = list(
+        CoprBuildGroupModel.get_running(
+            project_event_type=pr_project_event_model.type,
+            event_id=pr_project_event_model.event_id,
+        )
+    )
     assert running, "There are some running builds present"
     assert len(running) == 3, "There are exactly 3 builds running"
     assert {build.build_id for (build,) in running} == {"1", "2"}, (
@@ -1302,7 +1312,12 @@ def test_copr_get_running(clean_before_and_after, pr_model, srpm_build_model_wit
     )
 
 
-def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr):
+def test_tmt_get_running(
+    clean_before_and_after,
+    pr_model,
+    pr_project_event_model,
+    srpm_build_model_with_new_run_for_pr,
+):
     _, run_model = srpm_build_model_with_new_run_for_pr
     group = TFTTestRunGroupModel.create(run_model, ranch="public")
 
@@ -1320,7 +1335,11 @@ def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with
         )
 
     running = list(
-        TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha, ranch="public")
+        TFTTestRunGroupModel.get_running(
+            project_event_type=pr_project_event_model.type,
+            event_id=pr_project_event_model.event_id,
+            ranch="public",
+        )
     )
     assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running"
@@ -1330,7 +1349,10 @@ def test_tmt_get_running(clean_before_and_after, pr_model, srpm_build_model_with
 
 
 def test_tmt_get_running_different_ranches(
-    clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr
+    clean_before_and_after,
+    pr_model,
+    pr_project_event_model,
+    srpm_build_model_with_new_run_for_pr,
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
 
@@ -1359,7 +1381,11 @@ def test_tmt_get_running_different_ranches(
         )
 
     running = list(
-        TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha, ranch="public")
+        TFTTestRunGroupModel.get_running(
+            project_event_type=pr_project_event_model.type,
+            event_id=pr_project_event_model.event_id,
+            ranch="public",
+        )
     )
     assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running in the public ranch"
@@ -1368,7 +1394,11 @@ def test_tmt_get_running_different_ranches(
     )
 
     running = list(
-        TFTTestRunGroupModel.get_running(commit_sha=SampleValues.commit_sha, ranch="redhat")
+        TFTTestRunGroupModel.get_running(
+            project_event_type=pr_project_event_model.type,
+            event_id=pr_project_event_model.event_id,
+            ranch="redhat",
+        )
     )
     assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running in the redhat ranch"
@@ -1508,7 +1538,9 @@ def test_log_detective_run_group_targets(
     assert group.grouped_targets[0] == run_target
 
 
-def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with_new_run_for_pr):
+def test_log_detective_get_running(
+    clean_before_and_after, pr_project_event_model, srpm_build_model_with_new_run_for_pr
+):
     _, run_model = srpm_build_model_with_new_run_for_pr
     group = LogDetectiveRunGroupModel.create([run_model])
 
@@ -1542,8 +1574,12 @@ def test_log_detective_get_running(clean_before_and_after, srpm_build_model_with
         target="",
     )
 
-    # The fixture uses SampleValues.commit_sha ("80201a74d96c")
-    running = list(LogDetectiveRunGroupModel.get_running(SampleValues.commit_sha))
+    running = list(
+        LogDetectiveRunGroupModel.get_running(
+            project_event_type=pr_project_event_model.type,
+            event_id=pr_project_event_model.event_id,
+        )
+    )
 
     assert running, "There should be running analysis present"
     assert len(running) == 1, "There is exactly 1 analysis running"
