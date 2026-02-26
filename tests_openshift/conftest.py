@@ -843,7 +843,7 @@ def too_many_copr_builds(pr_project_event_model, different_pr_project_event_mode
         _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
             project_event_model=different_pr_project_event_model,
         )
-        group_for_a_different_pr = CoprBuildGroupModel.create(
+        group_for_a_different_pr, _ = CoprBuildGroupModel.create(
             run_model_for_a_different_pr,
         )
 

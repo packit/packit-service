@@ -493,7 +493,7 @@ def test_copr_build_race_condition_concurrent_packages(
     """
     Test that three concurrent copr_build_handler tasks for different packages
     (containers-common-fedora, containers-common-eln, containers-common-centos)
-    with the same commit_sha trigger a race condition when creating CoprBuildGroups.
+    with the same commit_sha do not trigger a race condition when creating CoprBuildGroups.
 
     This test simulates the race condition where multiple handlers try to create
     a CoprBuildGroup for the same pipeline concurrently. The reverted code checks
@@ -604,6 +604,78 @@ def test_copr_build_race_condition_concurrent_packages(
     # Use a barrier to synchronize all three threads to start at exactly the same time
     # This ensures they execute concurrently and increases the chance of a race condition
     barrier = threading.Barrier(3, timeout=30)
+
+    # CRITICAL: Mock SRPMBuildModel.create_with_new_run() to return the shared pipeline
+    # This ensures all threads use the same pipeline, triggering the race condition
+    # when they all try to create a CoprBuildGroup for it concurrently
+
+    def mock_create_with_new_run(*args, **kwargs):
+        # Query fresh objects from this thread's session to avoid SQLAlchemy
+        # "already attached to session" errors. All threads will get objects
+        # representing the same database row (same pipeline_id), which is what
+        # we need to trigger the race condition.
+        #
+        # The race condition happens because:
+        # 1. All threads query the same pipeline (same pipeline_id)
+        # 2. Each thread checks run_model.copr_build_group (in-memory attribute)
+        # 3. All see None (because they're checking their own session's object state)
+        # 4. All try to set run_model.copr_build_group = build_group
+        # 5. Only the last commit wins, causing the race condition
+        #
+        # The issue: CoprBuildGroupModel.create() checks run_model.copr_build_group
+        # before merging the object into its session. If the object is detached,
+        # this triggers a lazy load which fails. We need to ensure the relationship
+        # is accessible without lazy loading. We'll use getattr with a default to
+        # avoid triggering lazy loads, or we can ensure the object is properly merged.
+        #
+        # Actually, the best approach is to query the object fresh in each thread's
+        # session, commit it (so it's persisted), then return it.
+        # When CoprBuildGroupModel.create()
+        # uses it, it will merge it into its own session. But we need to ensure the
+        # relationship check doesn't trigger a lazy load.
+        #
+        # Solution: Query with the relationship already loaded (eager load), then
+        # after commit and expunge, the relationship value is already in the object's
+        # __dict__, so accessing it won't trigger a lazy load.
+        with sa_session_transaction(commit=True) as session:
+            # Query with eager loading to populate all relationships in __dict__
+            # This prevents lazy load errors when the object is detached
+            from sqlalchemy.orm import joinedload
+
+            srpm = session.query(SRPMBuildModel).filter_by(id=shared_srpm_id).first()
+            pipeline = (
+                session.query(PipelineModel)
+                .options(
+                    joinedload(PipelineModel.copr_build_group),
+                    joinedload(PipelineModel.project_event),
+                    joinedload(PipelineModel.srpm_build),
+                )
+                .filter_by(id=shared_pipeline_id)
+                .first()
+            )
+
+            thread_id = threading.current_thread().ident
+            pkg_name = thread_packages.get(thread_id, "unknown")
+            # Update package_name to match this thread's package
+            # (This simulates different packages trying to use the same pipeline)
+            # Note: Since all threads update the same shared pipeline, the last one wins
+            pipeline.package_name = pkg_name
+            session.add(pipeline)
+            session.commit()
+            # Access all relationships to ensure they're loaded into __dict__
+            # This prevents lazy load errors when the object is detached
+            _ = pipeline.copr_build_group
+            _ = pipeline.project_event
+            _ = pipeline.srpm_build
+
+            session.expunge(srpm)
+            session.expunge(pipeline)
+            return srpm, pipeline
+
+    # Applying the mock to the class correctly
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").replace_with(
+        mock_create_with_new_run
+    )
 
     def run_copr_build_handler_for_package(package_name: str):
         """Helper function to run copr_build_handler in a thread"""
@@ -841,78 +913,6 @@ def test_copr_build_race_condition_concurrent_packages(
             flexmock(handler.copr_build_helper).should_receive("srpm_path").and_return(
                 "/tmp/test.srpm"
             )
-
-            # CRITICAL: Mock SRPMBuildModel.create_with_new_run() to return the shared pipeline
-            # This ensures all threads use the same pipeline, triggering the race condition
-            # when they all try to create a CoprBuildGroup for it concurrently
-
-            from packit_service.models import SRPMBuildModel
-
-            def mock_create_with_new_run(cls, *args, **kwargs):
-                # Query fresh objects from this thread's session to avoid SQLAlchemy
-                # "already attached to session" errors. All threads will get objects
-                # representing the same database row (same pipeline_id), which is what
-                # we need to trigger the race condition.
-                #
-                # The race condition happens because:
-                # 1. All threads query the same pipeline (same pipeline_id)
-                # 2. Each thread checks run_model.copr_build_group (in-memory attribute)
-                # 3. All see None (because they're checking their own session's object state)
-                # 4. All try to set run_model.copr_build_group = build_group
-                # 5. Only the last commit wins, causing the race condition
-                #
-                # The issue: CoprBuildGroupModel.create() checks run_model.copr_build_group
-                # before merging the object into its session. If the object is detached,
-                # this triggers a lazy load which fails. We need to ensure the relationship
-                # is accessible without lazy loading. We'll use getattr with a default to
-                # avoid triggering lazy loads, or we can ensure the object is properly merged.
-                #
-                # Actually, the best approach is to query the object fresh in each thread's
-                # session, commit it (so it's persisted), then return it.
-                # When CoprBuildGroupModel.create()
-                # uses it, it will merge it into its own session. But we need to ensure the
-                # relationship check doesn't trigger a lazy load.
-                #
-                # Solution: Query with the relationship already loaded (eager load), then
-                # after commit and expunge, the relationship value is already in the object's
-                # __dict__, so accessing it won't trigger a lazy load.
-                with sa_session_transaction(commit=True) as session:
-                    # Query with eager loading to populate all relationships in __dict__
-                    # This prevents lazy load errors when the object is detached
-                    from sqlalchemy.orm import joinedload
-
-                    shared_srpm = session.query(SRPMBuildModel).filter_by(id=shared_srpm_id).first()
-                    shared_pipeline = (
-                        session.query(PipelineModel)
-                        .options(
-                            joinedload(PipelineModel.copr_build_group),
-                            joinedload(PipelineModel.project_event),
-                            joinedload(PipelineModel.srpm_build),
-                        )
-                        .filter_by(id=shared_pipeline_id)
-                        .first()
-                    )
-                    # Update package_name to match this thread's package
-                    # (This simulates different packages trying to use the same pipeline)
-                    # Note: Since all threads update the same shared pipeline, the last one wins
-                    shared_pipeline.package_name = package_name
-                    session.add(shared_pipeline)
-                    session.commit()
-                    # Access all relationships to ensure they're loaded into __dict__
-                    # This prevents lazy load errors when the object is detached
-                    _ = shared_pipeline.copr_build_group  # Load it now
-                    _ = shared_pipeline.project_event  # Load it now (needed for cloning)
-                    _ = shared_pipeline.srpm_build  # Load it now (needed for cloning)
-                    # Expunge to detach - but the relationship values are in __dict__
-                    session.expunge(shared_srpm)
-                    session.expunge(shared_pipeline)
-                    return shared_srpm, shared_pipeline
-
-            # Patch the classmethod directly (similar to
-            # how CoprClient.create_from_config_file is patched)
-            # create_with_new_run is a classmethod, so wrap it properly
-            # Intentional patching for testing - ignore mypy errors
-            SRPMBuildModel.create_with_new_run = classmethod(mock_create_with_new_run)  # type: ignore
 
             # Mock celery_app.send_task to prevent actual task sending
             from packit_service.celerizer import celery_app
