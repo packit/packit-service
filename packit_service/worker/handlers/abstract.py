@@ -597,10 +597,27 @@ class RetriableJobHandler(JobHandler):
 
 
 class FedoraCIJobHandler(JobHandler):
-    check_name: str = ""
+    _check_name: str = ""
+
+    @staticmethod
+    def get_check_name_prefix(service_config: ServiceConfig) -> str:
+        """Return the prefix for check names based on deployment environment."""
+        return "Packit-stg" if service_config.deployment == Deployment.stg else "Packit"
 
     @classmethod
-    def get_check_names(
+    def get_check_name(cls, service_config: ServiceConfig) -> str:
+        """Return check name based on deployment environment."""
+        prefix = cls.get_check_name_prefix(service_config)
+        return f"{prefix} - {cls._check_name}" if cls._check_name else ""
+
+    @property
+    def check_name(self) -> str:
+        """Return the check name."""
+        return self.get_check_name(self.service_config)
+
+    @classmethod
+    def get_all_check_names(
         cls, service_config: ServiceConfig, project: GitProject, metadata: EventData
     ) -> list[str]:
-        return [cls.check_name] if cls.check_name else []
+        """Return check names."""
+        return [cls.get_check_name(service_config)] if cls.get_check_name(service_config) else []

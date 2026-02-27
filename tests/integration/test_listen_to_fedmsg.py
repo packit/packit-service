@@ -2957,63 +2957,63 @@ def test_koji_build_end_downstream(
         state=BaseCommitStatus.success,
         description="RPM build succeeded.",
         url=url,
-        check_name="Packit - scratch build",
+        check_name="Packit-stg - scratch build",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/5",
-        check_name="Packit - installability",
+        check_name="Packit-stg - installability",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/5",
-        check_name="Packit - installability",
+        check_name="Packit-stg - installability",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/6",
-        check_name="Packit - custom",
+        check_name="Packit-stg - custom",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/6",
-        check_name="Packit - custom",
+        check_name="Packit-stg - custom",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/7",
-        check_name="Packit - rpminspect",
+        check_name="Packit-stg - rpminspect",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/7",
-        check_name="Packit - rpminspect",
+        check_name="Packit-stg - rpminspect",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
         url="https://dashboard.localhost/jobs/testing-farm/8",
-        check_name="Packit - rpmlint",
+        check_name="Packit-stg - rpmlint",
         target_branch="rawhide",
     ).once()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/8",
-        check_name="Packit - rpmlint",
+        check_name="Packit-stg - rpmlint",
         target_branch="rawhide",
     ).once()
 
@@ -3430,7 +3430,7 @@ def test_pagure_pr_updated(pagure_pr_updated, project_namespace, project_repo):
             state=BaseCommitStatus.running,
             description="RPM build was submitted ...",
             url="https://dashboard.localhost/jobs/koji/123",
-            check_name="Packit - scratch build",
+            check_name="Packit-stg - scratch build",
             target_branch="rawhide",
         ).once()
     else:
@@ -3518,14 +3518,14 @@ def test_pagure_pr_updated(pagure_pr_updated, project_namespace, project_repo):
             state=BaseCommitStatus.running,
             description="Submitting the tests ...",
             url="https://dashboard.localhost/jobs/testing-farm/6",
-            check_name="Packit - custom",
+            check_name="Packit-stg - custom",
             target_branch="rawhide",
         ).once()
         flexmock(StatusReporter).should_receive("set_status").with_args(
             state=BaseCommitStatus.running,
             description="Tests have been submitted ...",
             url="https://dashboard.localhost/jobs/testing-farm/6",
-            check_name="Packit - custom",
+            check_name="Packit-stg - custom",
             target_branch="rawhide",
         ).once()
 

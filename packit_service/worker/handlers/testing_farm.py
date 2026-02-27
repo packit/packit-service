@@ -400,11 +400,11 @@ class DownstreamTestingFarmHandler(
         return tests
 
     @classmethod
-    def get_check_names(
+    def get_all_check_names(
         cls, service_config: ServiceConfig, project: GitProject, metadata: EventData
     ) -> list[str]:
         return [
-            DownstreamTestingFarmJobHelper.get_check_name(t)
+            DownstreamTestingFarmJobHelper.get_check_name_from_config(t, service_config)
             for t in cls.filter_ci_tests(
                 DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
                     service_config, project, metadata

@@ -344,7 +344,7 @@ class KojiTaskReportHandler(AbstractKojiTaskReportHandler):
 @reacts_to_as_fedora_ci(event=koji.result.Task)
 class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJobHandler):
     task_name = TaskName.downstream_koji_scratch_build_report
-    check_name = "Packit - scratch build"
+    _check_name = "scratch build"
     _helper: Optional[FedoraCIHelper] = None
 
     @property
