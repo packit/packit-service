@@ -1307,7 +1307,7 @@ def test_copr_get_running(
     )
     assert running, "There are some running builds present"
     assert len(running) == 3, "There are exactly 3 builds running"
-    assert {build.build_id for (build,) in running} == {"1", "2"}, (
+    assert {build.build_id for build in running} == {"1", "2"}, (
         "Exactly ‹1› and ‹2› are in the running state"
     )
 
@@ -1343,7 +1343,7 @@ def test_tmt_get_running(
     )
     assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running"
-    assert {test_run.pipeline_id for (test_run,) in running} == {"cafe", "42"}, (
+    assert {test_run.pipeline_id for test_run in running} == {"cafe", "42"}, (
         "Test runs created by the test are in the running state"
     )
 
@@ -1389,7 +1389,7 @@ def test_tmt_get_running_different_ranches(
     )
     assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running in the public ranch"
-    assert {test_run.pipeline_id for (test_run,) in running} == {"cafe", "42"}, (
+    assert {test_run.pipeline_id for test_run in running} == {"cafe", "42"}, (
         "Test runs created by the test are in the running state"
     )
 
@@ -1402,7 +1402,7 @@ def test_tmt_get_running_different_ranches(
     )
     assert running, "There are some running tests present"
     assert len(running) == 2, "There are exactly 2 tests running in the redhat ranch"
-    assert {test_run.pipeline_id for (test_run,) in running} == {"cafe-internal", "42-internal"}, (
+    assert {test_run.pipeline_id for test_run in running} == {"cafe-internal", "42-internal"}, (
         "Test runs created by the test are in the running state"
     )
 
@@ -1584,8 +1584,7 @@ def test_log_detective_get_running(
     assert running, "There should be running analysis present"
     assert len(running) == 1, "There is exactly 1 analysis running"
 
-    # get_running returns a list of tuples (LogDetectiveRunModel, )
-    run_model = running[0][0]
+    run_model = running[0]
     assert isinstance(run_model, LogDetectiveRunModel)
     assert run_model.analysis_id == "uuid-1"
 
