@@ -28,16 +28,14 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
     FEDORA_CI_TRANSITION_COMMENT,
-    HELP_COMMENT_DESCRIPTION,
-    HELP_COMMENT_EPILOG,
-    HELP_COMMENT_PROG,
-    HELP_COMMENT_PROG_FEDORA_CI,
+    PACKIT_HELP_COMMAND,
     PACKIT_VERIFY_FAS_COMMAND,
     TASK_ACCEPTED,
 )
 from packit_service.events import (
     abstract,
     github,
+    gitlab,
     koji,
     logdetective,
     pagure,
@@ -48,9 +46,9 @@ from packit_service.events.event_data import EventData
 from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import (
     elapsed_seconds,
+    get_comment_parser,
+    get_comment_parser_fedora_ci,
     get_packit_commands_from_comment,
-    get_pr_comment_parser,
-    get_pr_comment_parser_fedora_ci,
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
@@ -82,6 +80,10 @@ from packit_service.worker.handlers.distgit import (
     PullFromUpstreamHandler,
     RetriggerDownstreamKojiBuildHandler,
     TagIntoSidetagHandler,
+)
+from packit_service.worker.handlers.forges import (
+    GitIssueCommentHelpHandler,
+    GitPullRequestCommentHelpHandler,
 )
 from packit_service.worker.helpers.build import (
     BaseBuildJobHelper,
@@ -135,17 +137,9 @@ def parse_comment(
         return ParsedComment()
 
     if comment.startswith("/packit-ci"):
-        parser = get_pr_comment_parser_fedora_ci(
-            prog=HELP_COMMENT_PROG_FEDORA_CI,
-            description=HELP_COMMENT_DESCRIPTION,
-            epilog=HELP_COMMENT_EPILOG,
-        )
+        parser = get_comment_parser_fedora_ci()
     else:
-        parser = get_pr_comment_parser(
-            prog=HELP_COMMENT_PROG,
-            description=HELP_COMMENT_DESCRIPTION,
-            epilog=HELP_COMMENT_EPILOG,
-        )
+        parser = get_comment_parser()
 
     try:
         args = parser.parse_args(commands)
@@ -359,6 +353,29 @@ class SteveJobs:
                 ).apply_async()
             # should we comment about not processing if the comment is not
             # on the issue created by us or not in packit/notifications?
+        elif isinstance(
+            self.event,
+            (
+                github.pr.Comment,
+                gitlab.mr.Comment,
+                pagure.pr.Comment,
+                github.issue.Comment,
+                gitlab.issue.Comment,
+            ),
+        ) and self.is_help_comment(self.event.comment):
+            self.event.comment_object.add_reaction(COMMENT_REACTION)
+            handler = (
+                GitPullRequestCommentHelpHandler
+                if isinstance(
+                    self.event,
+                    (github.pr.Comment, gitlab.mr.Comment, pagure.pr.Comment),
+                )
+                else GitIssueCommentHelpHandler
+            )
+            handler.get_signature(
+                event=self.event,
+                job=None,
+            ).apply_async()
         else:
             if (
                 isinstance(
@@ -1309,6 +1326,45 @@ class SteveJobs:
         )
 
         return bool(command and command[0] == PACKIT_VERIFY_FAS_COMMAND)
+
+    def retrieve_comment_command_prefix(self, comment: str) -> Optional[str]:
+        """
+        Retrieves the Packit prefix used in comment.
+
+        Args:
+            comment: Comment to retrieve prefix from.
+
+        Returns:
+            Packit comment command prefix or None if none is found.
+        """
+        prefixes = ["/packit-ci-stg", "/packit-ci", "/packit-stg", "/packit"]
+
+        for prefix in prefixes:
+            if comment.startswith(prefix):
+                return prefix
+
+        return None
+
+    def is_help_comment(self, comment: str) -> bool:
+        """
+        Checks whether the comment contains Packit help command:
+        `/packit(-stg) | /packit-ci(-stg) help`
+
+        Args:
+            comment: Comment to be checked.
+
+        Returns:
+            `True`, if is help comment, `False` otherwise.
+        """
+        if not (packit_comment_command_prefix := self.retrieve_comment_command_prefix(comment)):
+            return False
+
+        command = get_packit_commands_from_comment(
+            comment,
+            packit_comment_command_prefix,
+        )
+
+        return bool(command and command[0] == PACKIT_HELP_COMMAND)
 
     def report_task_accepted_for_downstream_retrigger_comments(
         self,

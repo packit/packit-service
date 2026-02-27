@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime
 
 import pytest
-from celery.canvas import group
+from celery.canvas import Signature, group
 from flexmock import flexmock
 from ogr.abstract import GitTag, PRStatus
 from ogr.read_only import PullRequestReadOnly
@@ -54,6 +54,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import (
+    run_help_issue_handler,
     run_issue_comment_retrigger_bodhi_update,
     run_propose_downstream_handler,
     run_retrigger_downstream_koji_build,
@@ -65,6 +66,54 @@ def issue_comment_propose_downstream_event(forge):
     return json.loads(
         (DATA_DIR / "webhooks" / forge / "issue_propose_downstream.json").read_text(),
     )
+
+
+@pytest.fixture
+def issue_help_comment_event():
+    return json.loads(
+        (DATA_DIR / "webhooks" / "github" / "issue_comment_help_command.json").read_text(),
+    )
+
+
+def test_issue_comment_help_handler_github(
+    issue_help_comment_event,
+):
+    packit_yaml = "{'specfile_path': 'the-specfile.spec'}"
+
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"],
+        get_releases=list,
+    )
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+
+    issue = flexmock()
+    comment = flexmock()
+
+    flexmock(GithubProject).should_receive("get_issue").and_return(issue)
+    issue.should_receive("get_comment").and_return(comment)
+    comment.should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    processing_results = SteveJobs().process_message(issue_help_comment_event)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert len(processing_results) == 1
+
+    issue.should_receive("comment").once()
+
+    results = run_help_issue_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
 
 
 def mock_release_class(release_class, project_class, **kwargs):

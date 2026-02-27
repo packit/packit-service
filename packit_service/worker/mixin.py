@@ -289,6 +289,22 @@ class GetIssueMixin(GetIssue, ConfigFromEventMixin):
         return self._issue
 
 
+class GetPullRequest(Protocol):
+    @property
+    @abstractmethod
+    def pr(self) -> PullRequest: ...
+
+
+class GetPullRequestMixin(GetPullRequest, ConfigFromEventMixin):
+    _pr: Optional[PullRequest] = None
+
+    @property
+    def pr(self) -> PullRequest:
+        if not self._pr:
+            self._pr = self.project.get_pr(self.data.pr_id)
+        return self._pr
+
+
 class GetBranches(Protocol):
     @property
     @abstractmethod
