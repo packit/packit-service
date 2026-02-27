@@ -1305,13 +1305,18 @@ class Parser:
                 TestingFarmResult.failed: "Installation failed",
             }.get(result, summary)
         else:
-            artifact: dict = nested_get(env, "artifacts", 0, default={})
-            a_type: str = artifact.get("type")
-            if a_type == "fedora-copr-build":
-                copr_build_id = artifact["id"].split(":")[0]
-                copr_chroot = artifact["id"].split(":")[1]
+            artifacts = nested_get(env, "artifacts", default=[])
+            if len(artifacts) > 0:
+                artifact: dict = artifacts[0] or {}
+                a_type: str = artifact.get("type")
+                if a_type == "fedora-copr-build":
+                    copr_build_id = artifact["id"].split(":")[0]
+                    copr_chroot = artifact["id"].split(":")[1]
+                else:
+                    logger.debug(f"{a_type} != fedora-copr-build")
+                    copr_build_id = copr_chroot = ""
             else:
-                logger.debug(f"{a_type} != fedora-copr-build")
+                logger.debug("No artifacts requested")
                 copr_build_id = copr_chroot = ""
 
         if not copr_chroot and tft_test_run:
