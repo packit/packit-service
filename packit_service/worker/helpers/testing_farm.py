@@ -1517,6 +1517,24 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
+    # TODO: this placeholder would no longer be needed if all the other tests
+    #  are defined in it. It requires splitting the check status for each plan
+    #  and restarting individual plans (either from this shared or custom)
+    @implements_fedora_ci_test("shared")
+    def _payload_shared(self, distro: str, compose: str) -> dict:
+        git_repo = "https://forge.fedoraproject.org/ci/shared-tests"
+        git_ref = "main"
+        # The shared plans will define their own provision steps, requiring
+        # compose to be turned off.
+        payload = self._get_tf_base_payload(distro, None)
+        payload["test"] = {
+            "tmt": {
+                "url": git_repo,
+                "ref": git_ref,
+            },
+        }
+        return payload
+
     @staticmethod
     def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
         try:
