@@ -266,6 +266,7 @@ class TaskName(str, enum.Enum):
     tag_into_sidetag = "task.tag_into_sidetag"
     openscanhub_task_finished = "task.openscanhub_task_finished"
     openscanhub_task_started = "task.openscanhub_task_started"
+    onboarding_request = "task.run_onboarding_request_handler"
     downstream_koji_scratch_build = "task.run_downstream_koji_scratch_build_handler"
     downstream_koji_scratch_build_report = "task.run_downstream_koji_scratch_build_report_handler"
     downstream_koji_eln_scratch_build = "task.run_downstream_koji_eln_scratch_build_handler"

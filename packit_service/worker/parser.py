@@ -30,6 +30,7 @@ from packit_service.events import (
     gitlab,
     koji,
     logdetective,
+    onboarding,
     openscanhub,
     pagure,
     testing_farm,
@@ -134,6 +135,7 @@ class Parser:
             koji.result.Task,
             openscanhub.task.Finished,
             openscanhub.task.Started,
+            onboarding.Request,
             pagure.pr.Comment,
             pagure.pr.Flag,
             pagure.pr.Action,
@@ -189,6 +191,7 @@ class Parser:
                 Parser.parse_anitya_version_update_event,
                 Parser.parse_openscanhub_task_finished_event,
                 Parser.parse_openscanhub_task_started_event,
+                Parser.parse_onboarding_request_event,
                 Parser.parse_commit_comment_event,
                 Parser.parse_pagure_pull_request_event,
                 Parser.parse_logdetective_analysis_event,
@@ -1558,6 +1561,23 @@ class Parser:
             version=version,
             release=release,
             owner=owner,
+        )
+
+    @staticmethod
+    def parse_onboarding_request_event(
+        event: dict,
+    ) -> Optional[onboarding.Request]:
+        if event.get("source") != "onboarding" or not event.get("package"):
+            return None
+
+        package: str = event["package"]
+        logger.info(f"dist-git onboarding request event for package {package}")
+
+        open_pr = bool(event.get("open_pr", True))
+
+        return onboarding.Request(
+            package=package,
+            open_pr=open_pr,
         )
 
     @staticmethod
