@@ -277,7 +277,7 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(bind=True, name=TaskName.copr_build, base=TaskWithRetry, queue="long-running")
+@celery_app.task(bind=True, name=TaskName.copr_build, base=TaskWithRetry)
 def run_copr_build_handler(
     self,
     event: dict,
