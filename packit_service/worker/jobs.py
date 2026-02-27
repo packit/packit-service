@@ -550,10 +550,13 @@ class SteveJobs:
 
         metadata = EventData.from_event_dict(self.event.get_dict())
 
+        if (target_branch := self.event.pull_request_object.target_branch) == "main":
+            target_branch = "rawhide"
+
         helper = FedoraCIHelper(
             project=self.event.project,
             metadata=metadata,
-            target_branch=self.event.pull_request_object.target_branch,
+            target_branch=target_branch,
         )
 
         first_status_reported = False
