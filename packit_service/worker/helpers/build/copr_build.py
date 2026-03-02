@@ -1023,7 +1023,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     # it clashes the type checking…
     def get_running_jobs(
         self,
-    ) -> Union[Iterable[tuple["CoprBuildTargetModel"]], Iterable[tuple["TFTTestRunTargetModel"]]]:
+    ) -> Union[Iterable["CoprBuildTargetModel"], Iterable["TFTTestRunTargetModel"]]:
         yield from CoprBuildGroupModel.get_running(
             project_event_type=self.db_project_event.type,
             event_id=self.db_project_event.event_id,
@@ -1037,12 +1037,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         # Cancel unique builds
         unique_builds = {
-            int(build.build_id) for (build,) in running_builds if build.build_id is not None
+            int(build.build_id) for build in running_builds if build.build_id is not None
         }
         for build_id in unique_builds:
             logger.debug("Cancelling Copr build #%s", build_id)
             self.api.copr_helper.cancel_build(build_id)
 
         # Mark them as canceled
-        for (target,) in running_builds:
+        for target in running_builds:
             target.set_status(BuildStatus.canceled)

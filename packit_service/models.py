@@ -42,7 +42,6 @@ from sqlalchemy import (
     func,
     null,
     or_,
-    select,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.ext.declarative import declarative_base
@@ -2180,7 +2179,7 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         cls,
         project_event_type: ProjectEventModelType,
         event_id: int,
-    ) -> Iterable[tuple["CoprBuildTargetModel"]]:
+    ) -> Iterable["CoprBuildTargetModel"]:
         """Get list of currently running Copr builds for a given project object
         (e.g. a PR or branch).
 
@@ -2192,21 +2191,20 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             An iterable over Copr target models that are currently in queue
             (running) or waiting for an SRPM.
         """
-        q = (
-            select(CoprBuildTargetModel)
-            .join(CoprBuildGroupModel)
-            .join(PipelineModel)
-            .join(ProjectEventModel)
-            .filter(
-                ProjectEventModel.type == project_event_type,
-                ProjectEventModel.event_id == event_id,
-                CoprBuildTargetModel.status.in_(
-                    (BuildStatus.pending, BuildStatus.waiting_for_srpm)
-                ),
-            )
-        )
         with sa_session_transaction() as session:
-            return session.execute(q)
+            return (
+                session.query(CoprBuildTargetModel)
+                .join(CoprBuildGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
+                    CoprBuildTargetModel.status.in_(
+                        (BuildStatus.pending, BuildStatus.waiting_for_srpm)
+                    ),
+                )
+            )
 
 
 class BuildStatus(str, enum.Enum):
@@ -3633,7 +3631,7 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         project_event_type: ProjectEventModelType,
         event_id: int,
         ranch: str,
-    ) -> Iterable[tuple["TFTTestRunTargetModel"]]:
+    ) -> Iterable["TFTTestRunTargetModel"]:
         """Get list of currently running Testing Farm runs for a given project
         object (e.g. a PR or branch).
 
@@ -3644,28 +3642,26 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
         Returns:
             An iterable over TFT target models that reprepresent matching TF
-            runs that are _new_ (to be triggered), _queued_ (already submitted
-            to the TF), or _running_.
+            runs that are _queued_ (already submitted to the TF) or _running_.
         """
-        q = (
-            select(TFTTestRunTargetModel)
-            .join(TFTTestRunGroupModel)
-            .join(PipelineModel)
-            .join(ProjectEventModel)
-            .filter(
-                ProjectEventModel.type == project_event_type,
-                ProjectEventModel.event_id == event_id,
-                TFTTestRunGroupModel.ranch == ranch,
-                TFTTestRunTargetModel.status.in_(
-                    (
-                        TestingFarmResult.queued,
-                        TestingFarmResult.running,
-                    )
-                ),
-            )
-        )
         with sa_session_transaction() as session:
-            return session.execute(q)
+            return (
+                session.query(TFTTestRunTargetModel)
+                .join(TFTTestRunGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
+                    TFTTestRunGroupModel.ranch == ranch,
+                    TFTTestRunTargetModel.status.in_(
+                        (
+                            TestingFarmResult.queued,
+                            TestingFarmResult.running,
+                        )
+                    ),
+                )
+            )
 
 
 class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
@@ -4949,7 +4945,7 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         cls,
         project_event_type: ProjectEventModelType,
         event_id: int,
-    ) -> Iterable[tuple[LogDetectiveRunModel]]:
+    ) -> Iterable[LogDetectiveRunModel]:
         """Get list of currently running Log Detective runs for a given project
         object (e.g. a PR or branch).
 
@@ -4961,19 +4957,18 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             An iterable over Log Detective run models representing Log Detective runs
             runs that are running.
         """
-        q = (
-            select(LogDetectiveRunModel)
-            .join(LogDetectiveRunGroupModel)
-            .join(PipelineModel)
-            .join(ProjectEventModel)
-            .filter(
-                ProjectEventModel.type == project_event_type,
-                ProjectEventModel.event_id == event_id,
-                LogDetectiveRunModel.status == LogDetectiveResult.running,
-            )
-        )
         with sa_session_transaction() as session:
-            return session.execute(q)
+            return (
+                session.query(LogDetectiveRunModel)
+                .join(LogDetectiveRunGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
+                    LogDetectiveRunModel.status == LogDetectiveResult.running,
+                )
+            )
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
