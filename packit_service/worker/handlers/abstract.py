@@ -391,7 +391,6 @@ class Handler(PackitAPIProtocol, Config):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        prechecks_to_skip=None,
     ) -> bool:
         """
         Verify that the handler should be used for incoming event with given
@@ -400,12 +399,8 @@ class Handler(PackitAPIProtocol, Config):
         Returns
             bool: False if we have to skip the job execution.
         """
-        prechecks_to_skip = prechecks_to_skip or []
         checks_pass = True
         for checker_cls in cls.get_checkers():
-            if checker_cls in prechecks_to_skip:
-                continue
-
             task_name = getattr(cls, "task_name", None)
             checker = checker_cls(
                 package_config=package_config,

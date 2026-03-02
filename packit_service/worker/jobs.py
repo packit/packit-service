@@ -52,7 +52,6 @@ from packit_service.utils import (
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.checker.distgit import PackageNeedsELNBuildFromRawhide
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -723,7 +722,6 @@ class SteveJobs:
             A list of task results for each task created.
         """
         handlers_triggered_by_job = None
-        prechecks_to_skip = []
         check_target_branch = None
         # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
@@ -744,11 +742,6 @@ class SteveJobs:
                 handlers_triggered_by_job = filter_handlers_based_on_branch_fedora_ci(
                     handlers_triggered_by_job, check_target_branch
                 )
-
-            # skip PackageNeedsELNBuildFromRawhide checker when running jobs only for the eln target
-            # when PR is against the rawhide branch
-            if check_target_branch == "eln":
-                prechecks_to_skip.append(PackageNeedsELNBuildFromRawhide)
 
         matching_handlers = {
             handler
@@ -772,7 +765,6 @@ class SteveJobs:
                 package_config=None,
                 job_config=None,
                 event=self.event.get_dict(),
-                prechecks_to_skip=prechecks_to_skip,
             ):
                 continue
 

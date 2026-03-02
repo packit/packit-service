@@ -3698,6 +3698,11 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
         .should_receive("get_web_url")
         .and_return("URL")
         .mock()
+        .should_receive("get_git_urls")
+        .and_return(
+            {"git": "https://src.fedoraproject.org/rpms/python-teamcity-messages.git"},
+        )
+        .mock()
     )
     service_config = (
         flexmock(
@@ -3779,6 +3784,16 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    flexmock(commands).should_receive("run_command").with_args(
+        [
+            "git",
+            "ls-remote",
+            "https://src.fedoraproject.org/rpms/python-teamcity-messages.git",
+            "eln",
+        ],
+        output=True,
+    ).and_return(flexmock(stdout=""))
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
     event_dict, _, job_config, package_config = get_parameters_from_results(
@@ -3864,6 +3879,11 @@ def test_downstream_build_retrigger_rawhide_pr_eln_package_fedora_ci(
         .should_receive("get_web_url")
         .and_return("URL")
         .mock()
+        .should_receive("get_git_urls")
+        .and_return(
+            {"git": "https://src.fedoraproject.org/rpms/python-teamcity-messages.git"},
+        )
+        .mock()
     )
     service_config = (
         flexmock(
@@ -3915,16 +3935,15 @@ def test_downstream_build_retrigger_rawhide_pr_eln_package_fedora_ci(
     flexmock(PipelineModel).should_receive("create")
 
     flexmock(utils).should_receive("get_eln_packages").and_return(["python-teamcity-messages"])
-    if check_target == "eln":
-        flexmock(commands).should_receive("run_command").with_args(
-            [
-                "git",
-                "ls-remote",
-                "https://src.fedoraproject.org/rpms/python-teamcity-messages.git",
-                "eln",
-            ],
-            output=True,
-        ).and_return(flexmock(stdout=""))
+    flexmock(commands).should_receive("run_command").with_args(
+        [
+            "git",
+            "ls-remote",
+            "https://src.fedoraproject.org/rpms/python-teamcity-messages.git",
+            "eln",
+        ],
+        output=True,
+    ).and_return(flexmock(stdout=""))
 
     koji_build = flexmock(
         id=123,
