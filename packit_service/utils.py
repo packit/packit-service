@@ -339,7 +339,23 @@ def get_comment_parser_fedora_ci(
         choices=["installability", "rpmlint", "rpminspect", "custom"],
         help="Specific type of tests to run",
     )
-    subparsers.add_parser("scratch-build", help="Build package in Koji")
+
+    # TODO: Do we want to support choices other than eln and rawhide?
+    #       Would it make sense?
+    test_parser.add_argument(
+        "check_target_branch",
+        nargs="?",
+        choices=["eln", "rawhide"],
+        help="Branch for which to trigger tests",
+    )
+
+    scratch_build_parser = subparsers.add_parser("scratch-build", help="Build package in Koji")
+    scratch_build_parser.add_argument(
+        "check_target_branch",
+        nargs="?",
+        choices=["eln", "rawhide"],
+        help="Branch for which to trigger Scratch build",
+    )
 
     return parser
 

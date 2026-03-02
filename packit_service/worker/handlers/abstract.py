@@ -70,6 +70,37 @@ MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER_FEDORA_CI: dict[str, set[type["FedoraCIJobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
+MAP_TARGET_BRANCH_TO_HANDLER: dict[type["FedoraCIJobHandler"], str] = defaultdict(str)
+
+
+def corresponds_to_check_target_branch(check_target_branch: str):
+    """
+    [class decorator]
+    Specify which target branch the handler corresponds to.
+
+    Normally, when retriggering jobs for eln packages on a PR against the
+    rawhide branch, jobs would be run for both the rawhide and eln targets.
+    When the check target branch is specified like this,
+
+    /packit-ci test installability rawhide
+
+    then only the handler corresponding to the specified target branch
+    (rawhide in this example) will be run, resulting in jobs being run
+    only for the desired target.
+
+    Example:
+    ```
+    @corresponds_to_check_target_branch(check_target_branch="rawhide")
+    class DownstreamKojiScratchBuildHandler(
+    ```
+    """
+
+    def _add_to_mapping(kls: type["FedoraCIJobHandler"]):
+        MAP_TARGET_BRANCH_TO_HANDLER[kls] = check_target_branch
+        return kls
+
+    return _add_to_mapping
+
 
 def configured_as(job_type: JobType):
     """
@@ -360,6 +391,7 @@ class Handler(PackitAPIProtocol, Config):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        prechecks_to_skip=None,
     ) -> bool:
         """
         Verify that the handler should be used for incoming event with given
@@ -368,8 +400,12 @@ class Handler(PackitAPIProtocol, Config):
         Returns
             bool: False if we have to skip the job execution.
         """
+        prechecks_to_skip = prechecks_to_skip or []
         checks_pass = True
         for checker_cls in cls.get_checkers():
+            if checker_cls in prechecks_to_skip:
+                continue
+
             task_name = getattr(cls, "task_name", None)
             checker = checker_cls(
                 package_config=package_config,

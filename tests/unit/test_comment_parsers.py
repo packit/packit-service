@@ -282,3 +282,31 @@ def test_test_unsupported_comment_fedora_ci(comment_parser_fedora_ci):
 
     with pytest.raises(SystemExit):
         comment_parser_fedora_ci.parse_args(commands)
+
+
+def test_scratch_build_rawhide_branch_comment_fedora_ci(comment_parser_fedora_ci):
+    comment = "/packit-ci scratch-build rawhide"
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
+
+    args = comment_parser_fedora_ci.parse_args(commands)
+    assert args.command == "scratch-build"
+    assert args.check_target_branch == "rawhide"
+
+
+def test_test_rmpinspect_eln_branch_comment_fedora_ci(comment_parser_fedora_ci):
+    comment = "/packit-ci test rpminspect eln"
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
+
+    args = comment_parser_fedora_ci.parse_args(commands)
+    assert args.command == "test"
+    assert args.target == "rpminspect"
+    assert args.check_target_branch == "eln"
+
+
+def test_test_eln_branch_comment_fedora_ci(comment_parser_fedora_ci):
+    comment = "/packit-ci test eln"
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
+
+    # the check_target_branch argument has to be preceeded by the test target argument
+    with pytest.raises(SystemExit):
+        comment_parser_fedora_ci.parse_args(commands)

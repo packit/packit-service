@@ -52,6 +52,7 @@ from packit_service.utils import (
     pr_labels_match_configuration,
 )
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.checker.distgit import PackageNeedsELNBuildFromRawhide
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -66,6 +67,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_COMMENT_TO_HANDLER_FEDORA_CI,
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
+    MAP_TARGET_BRANCH_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI,
     FedoraCIJobHandler,
@@ -112,6 +114,7 @@ MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, 
 class ParsedComment:
     command: Optional[str] = None
     package: Optional[str] = None
+    check_target_branch: Optional[str] = None
 
 
 def parse_comment(
@@ -143,7 +146,12 @@ def parse_comment(
 
     try:
         args = parser.parse_args(commands)
-        return ParsedComment(command=args.command, package=args.package)
+        check_target_branch = (
+            args.check_target_branch if hasattr(args, "check_target_branch") else None
+        )
+        return ParsedComment(
+            command=args.command, package=args.package, check_target_branch=check_target_branch
+        )
     except SystemExit:
         # tests expect invalid syntax comments be ignored
         logger.debug(
@@ -193,6 +201,34 @@ def get_handlers_for_command_fedora_ci(
     if not handlers:
         logger.debug(f"Command {command} not supported by packit.")
     return handlers
+
+
+def filter_handlers_based_on_branch_fedora_ci(
+    handlers: set[type[FedoraCIJobHandler]], check_target_branch: str
+) -> set[type[FedoraCIJobHandler]]:
+    """
+    Filter out handlers based on check target branch specified when retriggering via comment:
+
+    Example:
+    ```
+    /packit-ci test rpmlint eln
+    ```
+
+    In the example above, "eln" is the specified target, meaning all irrelevant handlers
+    are to be filtered out in this function.
+
+    Args:
+        check_target_branch: target branch for which to run jobs
+
+    Returns:
+        Set of handlers for Fecora CI that are relevant to the specified target branch.
+    """
+
+    return {
+        handler
+        for handler in handlers
+        if MAP_TARGET_BRANCH_TO_HANDLER[handler] == check_target_branch
+    }
 
 
 def replace_packit_comment_command_prefix(
@@ -550,7 +586,11 @@ class SteveJobs:
             # Don't fail the job if we can't post the comment
             logger.warning(f"Failed to post CI transition comment: {ex}")
 
-    def report_task_accepted_for_fedora_ci(self, handler_kls: type[FedoraCIJobHandler]):
+    def report_task_accepted_for_fedora_ci(
+        self,
+        handler_kls: type[FedoraCIJobHandler],
+        user_specified_target_branch: Optional[str] = None,
+    ):
         """
         For CI-related dist-git PR comment events report the initial status
         "Task was accepted" to inform user we are working on the request.
@@ -570,10 +610,12 @@ class SteveJobs:
         if (target_branch := self.event.pull_request_object.target_branch) == "main":
             target_branch = "rawhide"
 
+        # target_branch determines the check's title such as:
+        # "Packit - installability - rawhide [beaf90b]"
         helper = FedoraCIHelper(
             project=self.event.project,
             metadata=metadata,
-            target_branch=target_branch,
+            target_branch=user_specified_target_branch or target_branch,
         )
 
         first_status_reported = False
@@ -681,6 +723,8 @@ class SteveJobs:
             A list of task results for each task created.
         """
         handlers_triggered_by_job = None
+        prechecks_to_skip = []
+        check_target_branch = None
         # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
 
@@ -694,6 +738,17 @@ class SteveJobs:
             # monorepo_package = arguments.package
             command = arguments.command
             handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
+
+            if arguments.check_target_branch:
+                check_target_branch = arguments.check_target_branch
+                handlers_triggered_by_job = filter_handlers_based_on_branch_fedora_ci(
+                    handlers_triggered_by_job, check_target_branch
+                )
+
+            # skip PackageNeedsELNBuildFromRawhide checker when running jobs only for the eln target
+            # when PR is against the rawhide branch
+            if check_target_branch == "eln":
+                prechecks_to_skip.append(PackageNeedsELNBuildFromRawhide)
 
         matching_handlers = {
             handler
@@ -717,6 +772,7 @@ class SteveJobs:
                 package_config=None,
                 job_config=None,
                 event=self.event.get_dict(),
+                prechecks_to_skip=prechecks_to_skip,
             ):
                 continue
 
@@ -724,7 +780,7 @@ class SteveJobs:
             # if monorepo_package and handler_kls.job_config.package == monorepo_package:
             #     continue
 
-            self.report_task_accepted_for_fedora_ci(handler_kls)
+            self.report_task_accepted_for_fedora_ci(handler_kls, check_target_branch)
 
             celery_signature = celery.signature(
                 handler_kls.task_name.value,
