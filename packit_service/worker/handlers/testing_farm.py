@@ -67,6 +67,7 @@ from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
     TaskName,
     configured_as,
+    corresponds_to_check_target,
     reacts_to,
     reacts_to_as_fedora_ci,
     run_for_check_rerun,
@@ -360,6 +361,7 @@ class TestingFarmHandler(
 
 
 @run_for_comment_as_fedora_ci(command="test")
+@corresponds_to_check_target(check_target="rawhide")
 @reacts_to_as_fedora_ci(event=koji.result.Task)
 @reacts_to_as_fedora_ci(event=pagure.pr.Comment)
 class DownstreamTestingFarmHandler(
@@ -520,6 +522,7 @@ class DownstreamTestingFarmHandler(
 
 
 @run_for_comment_as_fedora_ci(command="test")
+@corresponds_to_check_target(check_target="eln")
 @reacts_to_as_fedora_ci(event=pagure.pr.Comment)
 class DownstreamTestingFarmELNHandler(DownstreamTestingFarmHandler):
     """
