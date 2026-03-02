@@ -230,7 +230,7 @@ class AbstractKojiTaskReportHandler(
             KojiTaskState.free: BaseCommitStatus.pending,
             KojiTaskState.open: BaseCommitStatus.running,
             KojiTaskState.closed: BaseCommitStatus.success,
-            KojiTaskState.canceled: BaseCommitStatus.error,
+            KojiTaskState.canceled: BaseCommitStatus.canceled,
             KojiTaskState.assigned: None,
             KojiTaskState.failed: BaseCommitStatus.failure,
         }.get(self.koji_task_event.state)
@@ -488,7 +488,7 @@ class KojiBuildReportHandler(
             KojiBuildState.complete: BaseCommitStatus.success,
             KojiBuildState.deleted: BaseCommitStatus.error,
             KojiBuildState.failed: BaseCommitStatus.failure,
-            KojiBuildState.canceled: BaseCommitStatus.error,
+            KojiBuildState.canceled: BaseCommitStatus.canceled,
         }.get(self.koji_build_event.state)
 
         logger.info(f"Build status in DB: {self.build.status}")
