@@ -1305,7 +1305,7 @@ class Parser:
                 TestingFarmResult.failed: "Installation failed",
             }.get(result, summary)
         else:
-            artifacts = nested_get(env, "artifacts", default=[])
+            artifacts = nested_get(env, "artifacts", default=[]) or []
             if len(artifacts) > 0:
                 artifact: dict = artifacts[0] or {}
                 a_type: str = artifact.get("type")
