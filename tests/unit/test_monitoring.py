@@ -6,11 +6,13 @@ import datetime
 import pytest
 from flexmock import flexmock
 
+from packit_service.worker import monitoring
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     TestingFarmHandler,
 )
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 
 
 @pytest.mark.parametrize(
@@ -71,3 +73,17 @@ def test_delayed():
     jobs.pushgateway = pushgateway
 
     jobs.push_statuses_metrics([created_at + datetime.timedelta(seconds=42)])
+
+
+def test_pushgateway_push_error_handled():
+    """Test that exceptions during push_to_gateway are handled gracefully."""
+    flexmock(monitoring).should_receive("push_to_gateway").and_raise(
+        Exception("Pushgateway error")
+    ).once()
+
+    pushgateway = Pushgateway()
+    pushgateway.pushgateway_address = "http://pushgateway"
+    pushgateway.worker_name = "test-worker"
+
+    # Should not raise an exception
+    pushgateway.push()
