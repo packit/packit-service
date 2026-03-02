@@ -271,8 +271,11 @@ class Pushgateway:
             return
 
         logger.info("Pushing the metrics to pushgateway.")
-        push_to_gateway(
-            self.pushgateway_address,
-            job=self.worker_name,
-            registry=self.registry,
-        )
+        try:
+            push_to_gateway(
+                self.pushgateway_address,
+                job=self.worker_name,
+                registry=self.registry,
+            )
+        except Exception as e:
+            logger.error(f"Failed to push metrics to pushgateway: {e}")
