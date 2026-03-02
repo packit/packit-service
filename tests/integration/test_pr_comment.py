@@ -3638,7 +3638,7 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
     "comment, target_branch, uid, check_name, check_target",
     [
         pytest.param(
-            "/packit-ci test installability rawhide",
+            "/packit-ci test installability --target-branch rawhide",
             "rawhide",
             "be4571bd828a699b35ed3102fc7e88f5",
             "Packit-stg - installability - rawhide [beaf90b]",
@@ -3646,7 +3646,7 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
             id="installability - rawhide target branch",
         ),
         pytest.param(
-            "/packit-ci test rpminspect eln",
+            "/packit-ci test rpminspect --target-branch eln",
             "rawhide",
             "bb18abcfd81c6e8f66320513e432b4cd",
             "Packit-stg - rpminspect - eln [beaf90b]",
@@ -3807,7 +3807,7 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
     "comment, target_branch, uid, check_name, check_target",
     [
         pytest.param(
-            "/packit-ci scratch-build rawhide",
+            "/packit-ci scratch-build --target-branch rawhide",
             "rawhide",
             "7f6d17aef35c10b4429b018288140d2e",
             "Packit-stg - scratch build - rawhide [beaf90b]",
@@ -3815,7 +3815,7 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
             id="rawhide target branch",
         ),
         pytest.param(
-            "/packit-ci scratch-build eln",
+            "/packit-ci scratch-build --target-branch eln",
             "rawhide",
             "558fbdb3248ec9d5dc762d3002368f60",
             "Packit-stg - scratch build - eln [beaf90b]",
