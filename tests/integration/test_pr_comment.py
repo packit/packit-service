@@ -3635,21 +3635,38 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
 
 
 @pytest.mark.parametrize(
-    "comment, target_branch, uid, check_name, check_target",
+    "comment, target_branch, checks, test_runs, check_target",
     [
         pytest.param(
             "/packit-ci test installability --target-branch rawhide",
             "rawhide",
-            "be4571bd828a699b35ed3102fc7e88f5",
-            "Packit-stg - installability - rawhide [beaf90b]",
+            {
+                (
+                    "Packit-stg - installability - rawhide [beaf90b]",
+                    "be4571bd828a699b35ed3102fc7e88f5",
+                )
+            },
+            1,
             "rawhide",
             id="installability - rawhide target branch",
         ),
         pytest.param(
             "/packit-ci test rpminspect --target-branch eln",
             "rawhide",
-            "bb18abcfd81c6e8f66320513e432b4cd",
-            "Packit-stg - rpminspect - eln [beaf90b]",
+            {("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd")},
+            1,
+            "eln",
+            id="rpminspect - rawhide branch, eln target",
+        ),
+        pytest.param(
+            "/packit-ci test --target-branch eln",
+            "rawhide",
+            {
+                ("Packit-stg - installability - eln [beaf90b]", "ca546b82b2aeb2fcef8bf12746f0bd06"),
+                ("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd"),
+                ("Packit-stg - rpmlint - eln [beaf90b]", "de24b7b63bf38420bdfea804d3bf56d7"),
+            },
+            3,
             "eln",
             id="rpminspect - rawhide branch, eln target",
         ),
@@ -3659,8 +3676,8 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
     pagure_pr_comment_added,
     comment,
     target_branch,
-    uid,
-    check_name,
+    checks,
+    test_runs,
     check_target,
 ):
     pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = comment
@@ -3668,13 +3685,14 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
 
     pr_object = flexmock(target_branch=target_branch, head_commit="abcdef")
 
-    pr_object.should_receive("set_flag").with_args(
-        username=check_name,
-        comment="The task was accepted.",
-        url=str,
-        status=CommitStatus,
-        uid=uid,
-    )
+    for check_name, uid in checks:
+        pr_object.should_receive("set_flag").with_args(
+            username=check_name,
+            comment="The task was accepted.",
+            url=str,
+            status=CommitStatus,
+            uid=uid,
+        )
 
     dg_project = (
         flexmock(
@@ -3776,7 +3794,9 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
         "get_last_successful_scratch_by_commit_target"
     ).with_args("abcdef", check_target).and_return(koji_build)
 
-    flexmock(DownstreamTestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("run_testing_farm").times(
+        test_runs
+    ).and_return(
         TaskResults(success=True, details={}),
     )
 
