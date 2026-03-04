@@ -145,9 +145,7 @@ def parse_comment(
 
     try:
         args = parser.parse_args(commands)
-        check_target_branch = (
-            args.check_target_branch if hasattr(args, "check_target_branch") else None
-        )
+        check_target_branch = getattr(args, "check_target_branch", None)
         return ParsedComment(
             command=args.command, package=args.package, check_target_branch=check_target_branch
         )
