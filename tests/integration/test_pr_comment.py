@@ -2691,6 +2691,10 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         (123, "koji-web-url")
     ).once()
 
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("get_fedora_ci_tests").and_return(
+        ["installability", "rpmlint", "rpminspect", "custom"]
+    )
+
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
     event_dict, _, job_config, package_config = get_parameters_from_results(
         processing_results,
