@@ -105,6 +105,7 @@ from packit_service.worker.tasks import (
     run_downstream_koji_build,
     run_downstream_koji_scratch_build_handler,
     run_downstream_testing_farm_handler,
+    run_help_pr_handler,
     run_koji_build_handler,
     run_pull_from_upstream_handler,
     run_retrigger_bodhi_update,
@@ -125,6 +126,13 @@ def pr_copr_build_comment_event():
 def pr_build_comment_event():
     return json.loads(
         (DATA_DIR / "webhooks" / "github" / "pr_comment_build.json").read_text(),
+    )
+
+
+@pytest.fixture(scope="module")
+def pr_help_comment_event():
+    return json.loads(
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_help_command.json").read_text(),
     )
 
 
@@ -217,6 +225,80 @@ def one_job_finished_with_msg(results: list[TaskResults], msg: str):
             break
     else:
         raise AssertionError(f"None of the jobs finished with {msg!r}")
+
+
+def test_pr_comment_help_handler_github(
+    pr_help_comment_event,
+):
+    packit_yaml = "{'specfile_path': 'the-specfile.spec'}"
+
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"],
+    )
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+
+    pr = flexmock(head_commit="12345")
+    comment = flexmock()
+
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    pr.should_receive("get_comment").and_return(comment)
+    comment.should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    processing_results = SteveJobs().process_message(pr_help_comment_event)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert len(processing_results) == 1
+
+    flexmock(pr).should_receive("comment").once()
+
+    results = run_help_pr_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_pr_comment_help_handler_pagure(pagure_pr_comment_added):
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit help"
+
+    pr = flexmock(target_branch="the_distgit_branch").should_receive("comment").mock()
+
+    comment = flexmock()
+    pr.should_receive("get_comment").and_return(comment)
+    comment.should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    flexmock(
+        PagureProject,
+        full_repo_name="rpms/jouduv-dort",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/jouduv-dort",
+        default_branch="main",
+        get_pr=lambda id: pr,
+    )
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert len(processing_results) == 1
+
+    results = run_help_pr_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
 
 
 @pytest.mark.parametrize(

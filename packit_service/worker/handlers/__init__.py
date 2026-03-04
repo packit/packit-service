@@ -23,8 +23,11 @@ from packit_service.worker.handlers.distgit import (
     SyncFromDownstream,
 )
 from packit_service.worker.handlers.forges import (
+    GitCommentHelpHandler,
     GithubAppInstallationHandler,
     GithubFasVerificationHandler,
+    GitIssueCommentHelpHandler,
+    GitPullRequestCommentHelpHandler,
 )
 from packit_service.worker.handlers.koji import (
     KojiBuildHandler,
@@ -68,6 +71,9 @@ __all__ = [
     TestingFarmHandler.__name__,
     TestingFarmResultsHandler.__name__,
     GithubFasVerificationHandler.__name__,
+    GitCommentHelpHandler.__name__,
+    GitIssueCommentHelpHandler.__name__,
+    GitPullRequestCommentHelpHandler.__name__,
     VMImageBuildHandler.__name__,
     VMImageBuildResultHandler.__name__,
     CoprOpenScanHubTaskFinishedHandler.__name__,
