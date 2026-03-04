@@ -36,10 +36,13 @@ def comment_parser() -> argparse.ArgumentParser:
 
 @pytest.fixture(scope="module")
 def comment_parser_fedora_ci() -> argparse.ArgumentParser:
+    supported_test_types = ["installability", "rpmlint", "rpminspect", "custom"]
+
     return get_pr_comment_parser_fedora_ci(
         prog=HELP_COMMENT_PROG_FEDORA_CI,
         description=HELP_COMMENT_DESCRIPTION,
         epilog=HELP_COMMENT_EPILOG,
+        supported_test_types=supported_test_types,
     )
 
 

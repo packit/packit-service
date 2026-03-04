@@ -314,7 +314,7 @@ def get_pr_comment_parser(prog: str, description: str, epilog: str) -> argparse.
 
 
 def get_pr_comment_parser_fedora_ci(
-    prog: str, description: str, epilog: str
+    prog: str, description: str, epilog: str, supported_test_types: list[str]
 ) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
 
@@ -326,7 +326,7 @@ def get_pr_comment_parser_fedora_ci(
     test_parser.add_argument(
         "target",
         nargs="?",
-        choices=["installability", "rpmlint", "rpminspect", "custom"],
+        choices=supported_test_types,
         help="Specific type of tests to run",
     )
     subparsers.add_parser("scratch-build", help="Build package in Scratch")
