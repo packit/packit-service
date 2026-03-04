@@ -32,6 +32,7 @@ from packit.utils.koji_helper import KojiHelper
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     CONTACTS_URL,
     DEFAULT_RETRY_BACKOFF,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
@@ -937,6 +938,29 @@ class DownstreamKojiScratchBuildHandler(
             )
             self.pushgateway.fedora_ci_koji_builds_queued.inc()
         except Exception as ex:
+            if (
+                isinstance(ex, PackitCommandFailedError)
+                and self.celery_task
+                and not self.celery_task.is_last_try()
+            ):
+                koji_build.set_status("retry")
+                interval = BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
+                self.report(
+                    commit_status=BaseCommitStatus.pending,
+                    description="Failed to submit the build. The task will be"
+                    f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
+                    url=get_koji_build_info_url(koji_build.id),
+                )
+                kargs = self.celery_task.task.request.kwargs.copy()
+                self.celery_task.retry(delay=interval * 60, kargs=kargs)
+                return TaskResults(
+                    success=True,
+                    details={
+                        "msg": "Task will be retried because of failure"
+                        f" when submitting the build: {ex}",
+                    },
+                )
+
             sentry_integration.send_to_sentry(ex)
             self.report(
                 commit_status=BaseCommitStatus.error,

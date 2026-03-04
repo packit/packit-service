@@ -10,7 +10,7 @@ from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import Deployment, JobConfigTriggerType
-from packit.exceptions import PackitException
+from packit.exceptions import PackitCommandFailedError, PackitException
 from packit.local_project import LocalProjectBuilder
 from packit.utils import commands
 
@@ -230,6 +230,55 @@ def test_downstream_koji_scratch_build_cancel_running(mock_distgit_pr_functional
 
     # The key assertion: cancel_running_builds must be called exactly once
     flexmock(KojiBuildJobHelper).should_receive("cancel_running_builds").once()
+
+    processing_results = SteveJobs().process_message(mock_distgit_pr_functionality)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results[:1],
+    )
+    results = run_downstream_koji_scratch_build_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_downstream_koji_scratch_build_retry_on_submission_failure(
+    mock_distgit_pr_functionality,
+):
+    """Test that DownstreamKojiScratchBuildHandler retries on build submission failure.
+
+    Simulates a Koji CLI failure (e.g. network issue, Koji outage) and verifies
+    the handler sets retry status and schedules a retry via Celery.
+    """
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket")
+    koji_build_target = flexmock(
+        id=123,
+        target="main",
+        status="queued",
+    )
+    koji_build_target.should_receive("set_status").with_args("retry").once()
+    koji_build_target.should_receive("set_task_id")
+    koji_build_target.should_receive("set_web_url")
+    koji_build_target.should_receive("set_build_logs_urls")
+    koji_build_target.should_receive("set_data")
+    koji_build_target.should_receive("set_build_submission_stdout")
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build_target)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build_target]),
+    )
+
+    # Simulate koji CLI failure
+    flexmock(commands).should_receive("run_command_remote").and_raise(
+        PackitCommandFailedError,
+        "Command failed",
+        stdout_output="",
+        stderr_output="koji: AuthError: unable to obtain a session",
+    )
+
+    # Mock the Celery task's retry method to prevent actual retry and verify it's called
+    flexmock(run_downstream_koji_scratch_build_handler).should_receive("retry").once()
 
     processing_results = SteveJobs().process_message(mock_distgit_pr_functionality)
     event_dict, _, job_config, package_config = get_parameters_from_results(
