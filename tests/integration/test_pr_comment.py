@@ -3638,7 +3638,7 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
     "comment, target_branch, checks, test_runs, check_target",
     [
         pytest.param(
-            "/packit-ci test installability --target-branch rawhide",
+            "/packit-ci test installability --target rawhide",
             "rawhide",
             {
                 (
@@ -3648,10 +3648,10 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
             },
             1,
             "rawhide",
-            id="installability - rawhide target branch",
+            id="installability - rawhide branch, rawhide target",
         ),
         pytest.param(
-            "/packit-ci test rpminspect --target-branch eln",
+            "/packit-ci test rpminspect --target eln",
             "rawhide",
             {("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd")},
             1,
@@ -3659,7 +3659,7 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
             id="rpminspect - rawhide branch, eln target",
         ),
         pytest.param(
-            "/packit-ci test --target-branch eln",
+            "/packit-ci test --target eln",
             "rawhide",
             {
                 ("Packit-stg - installability - eln [beaf90b]", "ca546b82b2aeb2fcef8bf12746f0bd06"),
@@ -3842,15 +3842,15 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
     "comment, target_branch, uid, check_name, check_target",
     [
         pytest.param(
-            "/packit-ci scratch-build --target-branch rawhide",
+            "/packit-ci scratch-build --target rawhide",
             "rawhide",
             "7f6d17aef35c10b4429b018288140d2e",
             "Packit-stg - scratch build - rawhide [beaf90b]",
             "rawhide",
-            id="rawhide target branch",
+            id="rawhide branch, rawhide target",
         ),
         pytest.param(
-            "/packit-ci scratch-build --target-branch eln",
+            "/packit-ci scratch-build --target eln",
             "rawhide",
             "558fbdb3248ec9d5dc762d3002368f60",
             "Packit-stg - scratch build - eln [beaf90b]",

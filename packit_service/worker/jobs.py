@@ -113,7 +113,7 @@ MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, 
 class ParsedComment:
     command: Optional[str] = None
     package: Optional[str] = None
-    check_target_branch: Optional[str] = None
+    check_target: Optional[str] = None
 
 
 def parse_comment(
@@ -145,10 +145,8 @@ def parse_comment(
 
     try:
         args = parser.parse_args(commands)
-        check_target_branch = getattr(args, "check_target_branch", None)
-        return ParsedComment(
-            command=args.command, package=args.package, check_target_branch=check_target_branch
-        )
+        check_target = getattr(args, "check_target", None)
+        return ParsedComment(command=args.command, package=args.package, check_target=check_target)
     except SystemExit:
         # tests expect invalid syntax comments be ignored
         logger.debug(
@@ -201,7 +199,7 @@ def get_handlers_for_command_fedora_ci(
 
 
 def filter_handlers_based_on_branch_fedora_ci(
-    handlers: set[type[FedoraCIJobHandler]], check_target_branch: str
+    handlers: set[type[FedoraCIJobHandler]], check_target: str
 ) -> set[type[FedoraCIJobHandler]]:
     """
     Filter out handlers based on check target branch specified when retriggering via comment:
@@ -215,16 +213,14 @@ def filter_handlers_based_on_branch_fedora_ci(
     are to be filtered out in this function.
 
     Args:
-        check_target_branch: target branch for which to run jobs
+        check_target: target branch for which to run jobs
 
     Returns:
         Set of handlers for Fecora CI that are relevant to the specified target branch.
     """
 
     return {
-        handler
-        for handler in handlers
-        if MAP_TARGET_BRANCH_TO_HANDLER[handler] == check_target_branch
+        handler for handler in handlers if MAP_TARGET_BRANCH_TO_HANDLER[handler] == check_target
     }
 
 
@@ -720,10 +716,10 @@ class SteveJobs:
             A list of task results for each task created.
         """
         handlers_triggered_by_job = None
-        check_target_branch = None
+        check_target = None
+
         # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
-
         if isinstance(self.event, abstract.comment.CommentEvent):
             arguments = parse_comment(
                 self.event.comment,
@@ -735,10 +731,10 @@ class SteveJobs:
             command = arguments.command
             handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
 
-            if arguments.check_target_branch:
-                check_target_branch = arguments.check_target_branch
+            if arguments.check_target:
+                check_target = arguments.check_target
                 handlers_triggered_by_job = filter_handlers_based_on_branch_fedora_ci(
-                    handlers_triggered_by_job, check_target_branch
+                    handlers_triggered_by_job, check_target
                 )
 
         matching_handlers = {
@@ -770,7 +766,7 @@ class SteveJobs:
             # if monorepo_package and handler_kls.job_config.package == monorepo_package:
             #     continue
 
-            self.report_task_accepted_for_fedora_ci(handler_kls, check_target_branch)
+            self.report_task_accepted_for_fedora_ci(handler_kls, check_target)
 
             celery_signature = celery.signature(
                 handler_kls.task_name.value,

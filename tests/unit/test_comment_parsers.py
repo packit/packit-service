@@ -246,7 +246,7 @@ def test_test_installability_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.target == "installability"
+    assert args.test_type == "installability"
 
 
 def test_test_rpmlint_comment_fedora_ci(comment_parser_fedora_ci):
@@ -255,7 +255,7 @@ def test_test_rpmlint_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.target == "rpmlint"
+    assert args.test_type == "rpmlint"
 
 
 def test_test_rpminspect_comment_fedora_ci(comment_parser_fedora_ci):
@@ -264,7 +264,7 @@ def test_test_rpminspect_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.target == "rpminspect"
+    assert args.test_type == "rpminspect"
 
 
 def test_test_custom_comment_fedora_ci(comment_parser_fedora_ci):
@@ -273,7 +273,7 @@ def test_test_custom_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.target == "custom"
+    assert args.test_type == "custom"
 
 
 def test_test_unsupported_comment_fedora_ci(comment_parser_fedora_ci):
@@ -285,28 +285,28 @@ def test_test_unsupported_comment_fedora_ci(comment_parser_fedora_ci):
 
 
 def test_scratch_build_rawhide_branch_comment_fedora_ci(comment_parser_fedora_ci):
-    comment = "/packit-ci scratch-build --target-branch rawhide"
+    comment = "/packit-ci scratch-build --target rawhide"
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "scratch-build"
-    assert args.check_target_branch == "rawhide"
+    assert args.check_target == "rawhide"
 
 
 def test_test_rmpinspect_eln_branch_comment_fedora_ci(comment_parser_fedora_ci):
-    comment = "/packit-ci test rpminspect --target-branch eln"
+    comment = "/packit-ci test rpminspect --target eln"
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.target == "rpminspect"
-    assert args.check_target_branch == "eln"
+    assert args.test_type == "rpminspect"
+    assert args.check_target == "eln"
 
 
 def test_test_eln_branch_comment_fedora_ci(comment_parser_fedora_ci):
-    comment = "/packit-ci test --target-branch eln"
+    comment = "/packit-ci test --target eln"
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.check_target_branch == "eln"
+    assert args.check_target == "eln"
