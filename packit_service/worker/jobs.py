@@ -66,7 +66,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_COMMENT_TO_HANDLER_FEDORA_CI,
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
-    MAP_TARGET_BRANCH_TO_HANDLER,
+    MAP_TARGET_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI,
     FedoraCIJobHandler,
@@ -202,7 +202,7 @@ def get_handlers_for_command_fedora_ci(
 
     if check_target:
         handlers = {
-            handler for handler in handlers if MAP_TARGET_BRANCH_TO_HANDLER[handler] == check_target
+            handler for handler in handlers if MAP_TARGET_TO_HANDLER[handler] == check_target
         }
 
     return handlers

@@ -70,33 +70,33 @@ MAP_COMMENT_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER_FEDORA_CI: dict[str, set[type["FedoraCIJobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: dict[str, set[type["JobHandler"]]] = defaultdict(set)
 
-MAP_TARGET_BRANCH_TO_HANDLER: dict[type["FedoraCIJobHandler"], str] = defaultdict(str)
+MAP_TARGET_TO_HANDLER: dict[type["FedoraCIJobHandler"], str] = defaultdict(str)
 
 
-def corresponds_to_check_target_branch(check_target_branch: str):
+def corresponds_to_check_target(check_target: str):
     """
     [class decorator]
-    Specify which target branch the handler corresponds to.
+    Specify which target the handler corresponds to.
 
-    Normally, when retriggering jobs for eln packages on a PR against the
-    rawhide branch, jobs would be run for both the rawhide and eln targets.
-    When the check target branch is specified like this,
+    Normally, when retriggering jobs on ELN rawhide PRs with no
+    existing eln branch, jobs would be run for both the rawhide
+    and eln targets. When the check target is specified like this,
 
     /packit-ci test installability rawhide
 
-    then only the handler corresponding to the specified target branch
+    then only the handler corresponding to the specified target
     (rawhide in this example) will be run, resulting in jobs being run
     only for the desired target.
 
     Example:
     ```
-    @corresponds_to_check_target_branch(check_target_branch="rawhide")
+    @corresponds_to_check_target(check_target="rawhide")
     class DownstreamKojiScratchBuildHandler(
     ```
     """
 
     def _add_to_mapping(kls: type["FedoraCIJobHandler"]):
-        MAP_TARGET_BRANCH_TO_HANDLER[kls] = check_target_branch
+        MAP_TARGET_TO_HANDLER[kls] = check_target
         return kls
 
     return _add_to_mapping
