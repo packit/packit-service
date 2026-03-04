@@ -98,7 +98,10 @@ from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import (
+    DownstreamTestingFarmJobHelper,
+    TestingFarmJobHelper,
+)
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import BaseCommitStatus
@@ -275,7 +278,12 @@ class SteveJobs:
             return ParsedComment()
 
         if comment.startswith("/packit-ci"):
-            parser = get_comment_parser_fedora_ci()
+            supported_test_types = DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
+                self.service_config,
+                self.event.project,
+                EventData.from_event_dict(self.event.get_dict()),
+            )
+            parser = get_comment_parser_fedora_ci(supported_test_types=supported_test_types)
         else:
             parser = get_comment_parser()
 
