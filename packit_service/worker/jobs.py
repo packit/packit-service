@@ -179,12 +179,16 @@ def get_handlers_for_command(
 
 def get_handlers_for_command_fedora_ci(
     command: str,
+    check_target: Optional[str],
 ) -> set[type[FedoraCIJobHandler]]:
     """
-    Get handlers for the given command.
+    Get handlers for the given command. If check_target is specified
+    (for example: eln), then only handlers relevant to this target
+    will be returned.
 
     Args:
         command: command to get handler to
+        check_target: target for which to run jobs
 
     Returns:
         Set of handlers for Fecora CI that are triggered by command.
@@ -195,33 +199,13 @@ def get_handlers_for_command_fedora_ci(
     handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[command]
     if not handlers:
         logger.debug(f"Command {command} not supported by packit.")
+
+    if check_target:
+        handlers = {
+            handler for handler in handlers if MAP_TARGET_BRANCH_TO_HANDLER[handler] == check_target
+        }
+
     return handlers
-
-
-def filter_handlers_based_on_branch_fedora_ci(
-    handlers: set[type[FedoraCIJobHandler]], check_target: str
-) -> set[type[FedoraCIJobHandler]]:
-    """
-    Filter out handlers based on check target branch specified when retriggering via comment:
-
-    Example:
-    ```
-    /packit-ci test rpmlint eln
-    ```
-
-    In the example above, "eln" is the specified target, meaning all irrelevant handlers
-    are to be filtered out in this function.
-
-    Args:
-        check_target: target branch for which to run jobs
-
-    Returns:
-        Set of handlers for Fecora CI that are relevant to the specified target branch.
-    """
-
-    return {
-        handler for handler in handlers if MAP_TARGET_BRANCH_TO_HANDLER[handler] == check_target
-    }
 
 
 def replace_packit_comment_command_prefix(
@@ -729,13 +713,8 @@ class SteveJobs:
             # [XXX] if there are ever monorepos in Fedora CI…
             # monorepo_package = arguments.package
             command = arguments.command
-            handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
-
-            if arguments.check_target:
-                check_target = arguments.check_target
-                handlers_triggered_by_job = filter_handlers_based_on_branch_fedora_ci(
-                    handlers_triggered_by_job, check_target
-                )
+            check_target = getattr(arguments, "check_target", None)
+            handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command, check_target)
 
         matching_handlers = {
             handler
