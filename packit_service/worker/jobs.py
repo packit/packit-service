@@ -66,6 +66,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_COMMENT_TO_HANDLER_FEDORA_CI,
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
+    MAP_TARGET_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER_FEDORA_CI,
     FedoraCIJobHandler,
@@ -112,6 +113,7 @@ MANUAL_OR_RESULT_EVENTS = [abstract.comment.CommentEvent, abstract.base.Result, 
 class ParsedComment:
     command: Optional[str] = None
     package: Optional[str] = None
+    check_target: Optional[str] = None
 
 
 def parse_comment(
@@ -143,7 +145,8 @@ def parse_comment(
 
     try:
         args = parser.parse_args(commands)
-        return ParsedComment(command=args.command, package=args.package)
+        check_target = getattr(args, "check_target", None)
+        return ParsedComment(command=args.command, package=args.package, check_target=check_target)
     except SystemExit:
         # tests expect invalid syntax comments be ignored
         logger.debug(
@@ -176,12 +179,16 @@ def get_handlers_for_command(
 
 def get_handlers_for_command_fedora_ci(
     command: str,
+    check_target: Optional[str],
 ) -> set[type[FedoraCIJobHandler]]:
     """
-    Get handlers for the given command.
+    Get handlers for the given command. If check_target is specified
+    (for example: eln), then only handlers relevant to this target
+    will be returned.
 
     Args:
         command: command to get handler to
+        check_target: target for which to run jobs
 
     Returns:
         Set of handlers for Fecora CI that are triggered by command.
@@ -192,6 +199,12 @@ def get_handlers_for_command_fedora_ci(
     handlers = MAP_COMMENT_TO_HANDLER_FEDORA_CI[command]
     if not handlers:
         logger.debug(f"Command {command} not supported by packit.")
+
+    if check_target:
+        handlers = {
+            handler for handler in handlers if MAP_TARGET_TO_HANDLER[handler] == check_target
+        }
+
     return handlers
 
 
@@ -550,7 +563,11 @@ class SteveJobs:
             # Don't fail the job if we can't post the comment
             logger.warning(f"Failed to post CI transition comment: {ex}")
 
-    def report_task_accepted_for_fedora_ci(self, handler_kls: type[FedoraCIJobHandler]):
+    def report_task_accepted_for_fedora_ci(
+        self,
+        handler_kls: type[FedoraCIJobHandler],
+        user_specified_target_branch: Optional[str] = None,
+    ):
         """
         For CI-related dist-git PR comment events report the initial status
         "Task was accepted" to inform user we are working on the request.
@@ -570,10 +587,12 @@ class SteveJobs:
         if (target_branch := self.event.pull_request_object.target_branch) == "main":
             target_branch = "rawhide"
 
+        # target_branch determines the check's title such as:
+        # "Packit - installability - rawhide [beaf90b]"
         helper = FedoraCIHelper(
             project=self.event.project,
             metadata=metadata,
-            target_branch=target_branch,
+            target_branch=user_specified_target_branch or target_branch,
         )
 
         first_status_reported = False
@@ -681,9 +700,10 @@ class SteveJobs:
             A list of task results for each task created.
         """
         handlers_triggered_by_job = None
+        check_target = None
+
         # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
-
         if isinstance(self.event, abstract.comment.CommentEvent):
             arguments = parse_comment(
                 self.event.comment,
@@ -693,7 +713,8 @@ class SteveJobs:
             # [XXX] if there are ever monorepos in Fedora CI…
             # monorepo_package = arguments.package
             command = arguments.command
-            handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command)
+            check_target = getattr(arguments, "check_target", None)
+            handlers_triggered_by_job = get_handlers_for_command_fedora_ci(command, check_target)
 
         matching_handlers = {
             handler
@@ -724,7 +745,7 @@ class SteveJobs:
             # if monorepo_package and handler_kls.job_config.package == monorepo_package:
             #     continue
 
-            self.report_task_accepted_for_fedora_ci(handler_kls)
+            self.report_task_accepted_for_fedora_ci(handler_kls, check_target)
 
             celery_signature = celery.signature(
                 handler_kls.task_name.value,

@@ -103,7 +103,9 @@ from packit_service.worker.reporting.news import DistgitAnnouncement
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_downstream_koji_build,
+    run_downstream_koji_eln_scratch_build_handler,
     run_downstream_koji_scratch_build_handler,
+    run_downstream_testing_farm_eln_handler,
     run_downstream_testing_farm_handler,
     run_help_pr_handler,
     run_koji_build_handler,
@@ -3630,3 +3632,398 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
         [(uid, check_name)],
         comment,
     )
+
+
+@pytest.mark.parametrize(
+    "comment, target_branch, checks, test_runs, check_target",
+    [
+        pytest.param(
+            "/packit-ci test installability --target rawhide",
+            "rawhide",
+            {
+                (
+                    "Packit-stg - installability - rawhide [beaf90b]",
+                    "be4571bd828a699b35ed3102fc7e88f5",
+                )
+            },
+            1,
+            "rawhide",
+            id="installability - rawhide branch, rawhide target",
+        ),
+        pytest.param(
+            "/packit-ci test rpminspect --target eln",
+            "rawhide",
+            {("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd")},
+            1,
+            "eln",
+            id="rpminspect - rawhide branch, eln target",
+        ),
+        pytest.param(
+            "/packit-ci test --target eln",
+            "rawhide",
+            {
+                ("Packit-stg - installability - eln [beaf90b]", "ca546b82b2aeb2fcef8bf12746f0bd06"),
+                ("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd"),
+                ("Packit-stg - rpmlint - eln [beaf90b]", "de24b7b63bf38420bdfea804d3bf56d7"),
+            },
+            3,
+            "eln",
+            id="rpminspect - rawhide branch, eln target",
+        ),
+    ],
+)
+def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
+    pagure_pr_comment_added,
+    comment,
+    target_branch,
+    checks,
+    test_runs,
+    check_target,
+):
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = comment
+    pagure_pr_comment_added["pullrequest"]["branch"] = target_branch
+
+    pr_object = flexmock(target_branch=target_branch, head_commit="abcdef")
+
+    for check_name, uid in checks:
+        pr_object.should_receive("set_flag").with_args(
+            username=check_name,
+            comment="The task was accepted.",
+            url=str,
+            status=CommitStatus,
+            uid=uid,
+        )
+
+    dg_project = (
+        flexmock(
+            PagureProject(
+                namespace="rpms", repo="python-teamcity-messages", service=flexmock(read_only=False)
+            ),
+            default_branch="main",
+        )
+        .should_receive("is_private")
+        .and_return(False)
+        .mock()
+        .should_receive("get_pr")
+        .and_return(pr_object)
+        .mock()
+        .should_receive("get_files")
+        .and_return([])
+        .mock()
+        .should_receive("get_file_content")
+        .and_raise(FileNotFoundError)
+        .mock()
+        .should_receive("get_web_url")
+        .and_return("URL")
+        .mock()
+        .should_receive("get_git_urls")
+        .and_return(
+            {"git": "https://src.fedoraproject.org/rpms/python-teamcity-messages.git"},
+        )
+        .mock()
+    )
+    service_config = (
+        flexmock(
+            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+            fedora_ci_run_by_default=False,
+            disabled_projects_for_fedora_ci=set(),
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
+            comment_command_prefix="/packit",
+            package_config_path_override=None,
+            testing_farm_api_url="https://api.dev.testing-farm.io/api",
+            testing_farm_secret="secret",
+        )
+        .should_receive("get_project")
+        .and_return(dg_project)
+        .mock()
+    )
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True,
+    )
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
+    )
+    db_project_event = (
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="abcd",
+    ).and_return(flexmock())
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=36,
+        namespace="rpms",
+        repo_name="python-teamcity-messages",
+        project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event,
+    )
+
+    run = flexmock(test_run_group=None)
+    koji_build = flexmock(
+        id=123,
+        target="eln" if check_target == "eln" else "main",
+        status="success",
+        group_of_targets=flexmock(runs=[run]),
+    )
+
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        koji_builds=[koji_build],
+        target=check_target,
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        run, ranch="public"
+    ).and_return(
+        flexmock(grouped_targets=[test_run]),
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive(
+        "get_last_successful_scratch_by_commit_target"
+    ).with_args("abcdef", check_target).and_return(koji_build)
+
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("run_testing_farm").times(
+        test_runs
+    ).and_return(
+        TaskResults(success=True, details={}),
+    )
+
+    flexmock(utils).should_receive("get_eln_packages").and_return(["python-teamcity-messages"])
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    flexmock(commands).should_receive("run_command").with_args(
+        [
+            "git",
+            "ls-remote",
+            "https://src.fedoraproject.org/rpms/python-teamcity-messages.git",
+            "eln",
+        ],
+        output=True,
+    ).and_return(flexmock(stdout=""))
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert json.dumps(event_dict)
+
+    if check_target == "rawhide":
+        results = run_downstream_testing_farm_handler(
+            event=event_dict,
+            package_config=package_config,
+            job_config=job_config,
+        )
+
+    elif check_target == "eln":
+        results = run_downstream_testing_farm_eln_handler(
+            event=event_dict,
+            package_config=package_config,
+            job_config=job_config,
+        )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "comment, target_branch, uid, check_name, check_target",
+    [
+        pytest.param(
+            "/packit-ci scratch-build --target rawhide",
+            "rawhide",
+            "7f6d17aef35c10b4429b018288140d2e",
+            "Packit-stg - scratch build - rawhide [beaf90b]",
+            "rawhide",
+            id="rawhide branch, rawhide target",
+        ),
+        pytest.param(
+            "/packit-ci scratch-build --target eln",
+            "rawhide",
+            "558fbdb3248ec9d5dc762d3002368f60",
+            "Packit-stg - scratch build - eln [beaf90b]",
+            "eln",
+            id="rawhide branch, eln target",
+        ),
+    ],
+)
+def test_downstream_build_retrigger_rawhide_pr_eln_package_fedora_ci(
+    pagure_pr_comment_added,
+    comment,
+    target_branch,
+    uid,
+    check_name,
+    check_target,
+):
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = comment
+    pagure_pr_comment_added["pullrequest"]["branch"] = target_branch
+
+    pr_object = (
+        flexmock(target_branch=target_branch)
+        .should_receive("set_flag")
+        .with_args(username=check_name, comment=str, url=str, status=CommitStatus, uid=uid)
+        .mock()
+    )
+
+    dg_project = (
+        flexmock(
+            PagureProject(
+                namespace="rpms", repo="python-teamcity-messages", service=flexmock(read_only=False)
+            ),
+            default_branch="main",
+        )
+        .should_receive("is_private")
+        .and_return(False)
+        .mock()
+        .should_receive("get_pr")
+        .and_return(pr_object)
+        .mock()
+        .should_receive("get_files")
+        .and_return([])
+        .mock()
+        .should_receive("get_file_content")
+        .and_raise(FileNotFoundError)
+        .mock()
+        .should_receive("get_web_url")
+        .and_return("URL")
+        .mock()
+        .should_receive("get_git_urls")
+        .and_return(
+            {"git": "https://src.fedoraproject.org/rpms/python-teamcity-messages.git"},
+        )
+        .mock()
+    )
+    service_config = (
+        flexmock(
+            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+            fedora_ci_run_by_default=False,
+            disabled_projects_for_fedora_ci=set(),
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            deployment=Deployment.stg,
+            comment_command_prefix="/packit",
+            package_config_path_override=None,
+            testing_farm_api_url="https://api.dev.testing-farm.io/api",
+            testing_farm_secret="secret",
+        )
+        .should_receive("get_project")
+        .and_return(dg_project)
+        .mock()
+    )
+
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True,
+    )
+
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
+    )
+    db_project_event = (
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=9,
+        commit_sha="abcd",
+    ).and_return(flexmock())
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=36,
+        namespace="rpms",
+        repo_name="python-teamcity-messages",
+        project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event,
+    )
+    flexmock(PipelineModel).should_receive("create")
+
+    flexmock(utils).should_receive("get_eln_packages").and_return(["python-teamcity-messages"])
+    flexmock(commands).should_receive("run_command").with_args(
+        [
+            "git",
+            "ls-remote",
+            "https://src.fedoraproject.org/rpms/python-teamcity-messages.git",
+            "eln",
+        ],
+        output=True,
+    ).and_return(flexmock(stdout=""))
+
+    koji_build = flexmock(
+        id=123,
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
+        set_data=lambda x: None,
+        set_build_submission_stdout=lambda x: None,
+    )
+
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build]),
+    )
+
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(commands).should_receive("run_command_remote").with_args(
+        cmd=[
+            "koji",
+            "build",
+            "--scratch",
+            "--nowait",
+            check_target,
+            "git+https://src.fedoraproject.org/rpms/python-teamcity-messages.git#beaf90bcecc51968a46663f8d6f092bfdc92e682",
+        ],
+        cwd=Path,
+        output=True,
+        print_live=True,
+    ).and_return(flexmock(stdout="some output"))
+
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return()
+
+    flexmock(distgit).should_receive("get_koji_task_id_and_url_from_stdout").and_return(
+        (123, "koji-web-url")
+    ).once()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results[:1],
+    )
+    assert json.dumps(event_dict)
+    if check_target == "rawhide":
+        results = run_downstream_koji_scratch_build_handler(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
+        assert first_dict_value(results["job"])["success"]
+
+    elif check_target == "eln":
+        results = run_downstream_koji_eln_scratch_build_handler(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
+        assert first_dict_value(results["job"])["success"]
