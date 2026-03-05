@@ -334,7 +334,7 @@ def get_comment_parser_fedora_ci(
     )
     test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
     test_parser.add_argument(
-        "test_type",
+        "test_identifier",
         nargs="?",
         choices=["installability", "rpmlint", "rpminspect", "custom"],
         help="Specific type of tests to run",

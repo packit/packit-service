@@ -246,7 +246,7 @@ def test_test_installability_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.test_type == "installability"
+    assert args.test_identifier == "installability"
 
 
 def test_test_rpmlint_comment_fedora_ci(comment_parser_fedora_ci):
@@ -255,7 +255,7 @@ def test_test_rpmlint_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.test_type == "rpmlint"
+    assert args.test_identifier == "rpmlint"
 
 
 def test_test_rpminspect_comment_fedora_ci(comment_parser_fedora_ci):
@@ -264,7 +264,7 @@ def test_test_rpminspect_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.test_type == "rpminspect"
+    assert args.test_identifier == "rpminspect"
 
 
 def test_test_custom_comment_fedora_ci(comment_parser_fedora_ci):
@@ -273,7 +273,7 @@ def test_test_custom_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.test_type == "custom"
+    assert args.test_identifier == "custom"
 
 
 def test_test_unsupported_comment_fedora_ci(comment_parser_fedora_ci):
@@ -299,7 +299,7 @@ def test_test_rmpinspect_eln_branch_comment_fedora_ci(comment_parser_fedora_ci):
 
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
-    assert args.test_type == "rpminspect"
+    assert args.test_identifier == "rpminspect"
     assert args.check_target == "eln"
 
 
