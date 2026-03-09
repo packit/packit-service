@@ -359,7 +359,8 @@ class GitCommentHelpHandler(
                 epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
             )
 
-        help_message = parser.format_help()
+        # put message in code block to retain formatting
+        help_message = f"```\n{parser.format_help()}\n```"
         self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})
