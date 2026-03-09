@@ -363,7 +363,9 @@ class SteveJobs:
                 gitlab.issue.Comment,
             ),
         ) and self.is_help_comment(self.event.comment):
-            self.event.comment_object.add_reaction(COMMENT_REACTION)
+            # adding reactions is not supported in Pagure
+            if not isinstance(self.event, pagure.pr.Comment):
+                self.event.comment_object.add_reaction(COMMENT_REACTION)
             handler = (
                 GitPullRequestCommentHelpHandler
                 if isinstance(

@@ -276,7 +276,6 @@ def test_pr_comment_help_handler_pagure(pagure_pr_comment_added):
 
     comment = flexmock()
     pr.should_receive("get_comment").and_return(comment)
-    comment.should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     flexmock(
         PagureProject,
