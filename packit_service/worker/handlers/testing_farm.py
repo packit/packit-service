@@ -56,6 +56,7 @@ from packit_service.worker.checker.testing_farm import (
     IsEventForJob,
     IsEventOk,
     IsIdentifierFromCommentMatching,
+    IsInternalTFEnabled,
     IsJobConfigTriggerMatching,
     IsLabelFromCommentMatching,
     IsUpstreamTest,
@@ -150,6 +151,7 @@ class TestingFarmHandler(
             CanActorRunJob,
             IsIdentifierFromCommentMatching,
             IsLabelFromCommentMatching,
+            IsInternalTFEnabled,
         )
 
     def _get_or_create_group(

@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
 from typing import Optional
 
 from packit_service.constants import (
     DOCS_TESTING_FARM,
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
+    INTERNAL_TF_TEMPORARILY_DISABLED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
     KojiTaskState,
 )
@@ -25,6 +27,28 @@ from packit_service.worker.handlers.mixin import (
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
+
+
+class IsInternalTFEnabled(Checker, GetTestingFarmJobHelperMixin):
+    """Checks if internal Testing Farm is enabled at the service level.
+
+    Internal TF may be temporarily disabled due to service issues.
+    Set DISABLE_INTERNAL_TF=true to disable internal TF and report a message to users.
+
+    By default (env var not set), internal TF is enabled.
+    """
+
+    def pre_check(self) -> bool:
+        internal_tf_disabled = os.getenv("DISABLE_INTERNAL_TF", "false").lower() == "true"
+
+        if self.job_config.use_internal_tf and internal_tf_disabled:
+            self.testing_farm_job_helper.report_status_to_tests(
+                description=INTERNAL_TF_TEMPORARILY_DISABLED[0],
+                state=BaseCommitStatus.neutral,
+                markdown_content=INTERNAL_TF_TEMPORARILY_DISABLED[1],
+            )
+            return False
+        return True
 
 
 class IsJobConfigTriggerMatching(Checker, GetTestingFarmJobHelperMixin):

@@ -252,6 +252,13 @@ INTERNAL_TF_TESTS_NOT_ALLOWED = (
     "via `{packit_comment_command_prefix} test` comment.*",
 )
 
+INTERNAL_TF_TEMPORARILY_DISABLED = (
+    "Testing in internal Testing Farm is temporarily disabled",
+    "Testing in internal Testing Farm via Packit is temporarily disabled due to an internal issue. "
+    "For more details, see pinned messages in #team-packit Slack channel and reach out there for "
+    "any questions.",
+)
+
 INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
     "{actor} can't run tests (and builds) internally",
     "*As a project maintainer, you can trigger the build and test jobs manually "

@@ -1,6 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import os
+
 import pytest
 from flexmock import flexmock
 from ogr import PagureService
@@ -52,6 +54,7 @@ from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.checker.testing_farm import (
     IsDownstreamTest,
     IsIdentifierFromCommentMatching,
+    IsInternalTFEnabled,
     IsLabelFromCommentMatching,
     IsUpstreamTest,
 )
@@ -1396,5 +1399,78 @@ def test_is_downstream_test(test_run_data, should_pass):
     ).and_return(test_run_model)
 
     checker = IsDownstreamTest(package_config, job_config, event)
+
+    assert checker.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "use_internal_tf, env_var_value, should_pass",
+    (
+        pytest.param(
+            True,
+            "false",
+            True,
+            id="Internal TF job, env var set to false - should pass",
+        ),
+        pytest.param(
+            True,
+            "true",
+            False,
+            id="Internal TF job, env var set to true - should be blocked",
+        ),
+        pytest.param(
+            False,
+            "true",
+            True,
+            id="Public TF job, env var set to true - should pass",
+        ),
+    ),
+)
+def test_is_internal_tf_enabled(use_internal_tf, env_var_value, should_pass):
+    """
+    Test that IsInternalTFEnabled checker correctly blocks internal TF jobs
+    when DISABLE_INTERNAL_TF env var is set to true.
+    """
+    flexmock(os).should_receive("getenv").with_args("DISABLE_INTERNAL_TF", "false").and_return(
+        env_var_value
+    )
+
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        use_internal_tf=use_internal_tf,
+    )
+
+    event = {
+        "event_type": github.pr.Action.event_type(),
+    }
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+    )
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_project_object = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        pr_id=1,
+    )
+    flexmock(EventData).should_receive("db_project_event").and_return(
+        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock(),
+    )
+
+    if not should_pass:
+        mock_helper = flexmock()
+        mock_helper.should_receive("report_status_to_tests").once()
+        flexmock(IsInternalTFEnabled).should_receive("testing_farm_job_helper").and_return(
+            mock_helper
+        )
+
+    checker = IsInternalTFEnabled(
+        package_config=package_config,
+        job_config=job_config,
+        event=event,
+    )
 
     assert checker.pre_check() == should_pass
