@@ -174,7 +174,10 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
                     else:
                         try:
                             with Specfile(
-                                content=specfile_content, sourcedir=".", force_parse=True
+                                content=specfile_content,
+                                sourcedir=".",
+                                force_parse=True,
+                                sanitize=True,
                             ) as specfile:
                                 version = specfile.expanded_version
                         except Exception as ex:
