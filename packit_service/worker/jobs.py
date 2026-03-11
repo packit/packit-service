@@ -377,7 +377,19 @@ class SteveJobs:
             handler.get_signature(
                 event=self.event,
                 job=None,
+                package_config_required=False,
             ).apply_async()
+
+            processing_results = [
+                TaskResults.create_from(
+                    success=True,
+                    msg="Job created.",
+                    job_config=None,
+                    event=self.event,
+                    package_config_required=False,
+                ),
+            ]
+
         else:
             if (
                 isinstance(

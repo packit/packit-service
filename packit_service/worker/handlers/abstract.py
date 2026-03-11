@@ -450,7 +450,9 @@ class JobHandler(Handler):
         return job_results
 
     @classmethod
-    def get_signature(cls, event: Event, job: Optional[JobConfig]) -> Signature:
+    def get_signature(
+        cls, event: Event, job: Optional[JobConfig], package_config_required: Optional[bool] = True
+    ) -> Signature:
         """
         Get the signature of a Celery task which will run the handler.
         https://docs.celeryq.dev/en/stable/userguide/canvas.html#signatures
@@ -464,7 +466,7 @@ class JobHandler(Handler):
                 "package_config": dump_package_config(
                     (
                         event.packages_config.get_package_config_for(job)
-                        if event.packages_config
+                        if package_config_required and event.packages_config
                         else None
                     ),
                 ),
