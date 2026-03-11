@@ -34,11 +34,10 @@ class TaskResults(dict):
         msg: str,
         event: Event,
         job_config: JobConfig = None,
-        package_config_required: Optional[bool] = True,
     ):
         package_config = (
             event.packages_config.get_package_config_for(job_config)
-            if event.packages_config and package_config_required
+            if job_config and event.packages_config
             else None
         )
         details = {
