@@ -1363,7 +1363,12 @@ class SteveJobs:
         Returns:
             Packit comment command prefix or None if none is found.
         """
-        prefixes = ["/packit-ci-stg", "/packit-ci", "/packit-stg", "/packit"]
+        prefixes = None
+
+        if self.service_config.comment_command_prefix == "/packit-stg":
+            prefixes = ["/packit-ci-stg", "/packit-stg"]
+        else:
+            prefixes = ["/packit-ci", "/packit"]
 
         for prefix in prefixes:
             if comment.startswith(prefix):
