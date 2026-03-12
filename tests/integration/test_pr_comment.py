@@ -720,7 +720,7 @@ def test_pr_comment_wrong_packit_command_handler(
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
-    pr = flexmock(head_commit="12345")
+    pr = flexmock(head_commit="12345", comment=lambda message: None)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
 
@@ -2068,7 +2068,7 @@ def test_invalid_packit_command_with_config(
     )
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    pr = flexmock(head_commit="12345")
+    pr = flexmock(head_commit="12345", comment=lambda message: None)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
     processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[0]
@@ -2092,7 +2092,7 @@ def test_invalid_packit_command_without_config(
         "/packit 10minutesOfImplementing3HoursOfTesting"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    pr = flexmock(head_commit="12345")
+    pr = flexmock(head_commit="12345", comment=lambda message: None)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(Pushgateway).should_receive("push").times(1).and_return()
 

@@ -5,6 +5,7 @@ from enum import Enum
 
 CONTACTS_URL = "https://packit.dev/#contact"
 DOCS_URL = "https://packit.dev/docs"
+DOCS_URL_FEDORA_CI = "https://packit.dev/fedora-ci"
 DOCS_CONFIGURATION_URL = f"{DOCS_URL}/configuration"
 DOCS_FAQ_URL = f"{DOCS_URL}/faq"
 DOCS_HOW_TO_RETRIGGER_URL = (
@@ -16,6 +17,8 @@ DOCS_VM_IMAGE_BUILD = f"{DOCS_URL}/cli/build/in-image-builder/"
 DOCS_TESTING_FARM = f"{DOCS_URL}/configuration/upstream/tests"
 DOCS_VALIDATE_CONFIG = f"{DOCS_URL}/cli/config/validate"
 DOCS_VALIDATE_HOOKS = "https://packit.dev/posts/pre-commit-hooks#validate-config"
+DOCS_RETRIGGERING_URL = f"{DOCS_URL}/retriggering"
+DOCS_RETRIGGERING_URL_FEDORA_CI = f"{DOCS_URL_FEDORA_CI}/retriggering"
 
 HELP_COMMENT_PROG = "/packit"
 HELP_COMMENT_PROG_STG = "/packit-stg"
