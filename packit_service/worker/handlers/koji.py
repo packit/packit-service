@@ -391,7 +391,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
             self.koji_task_event,
             self.pushgateway,
             self.service_config.logdetective_url,
-            self.service_config.logdetective_secret,
+            self.service_config.logdetective_token,
         )
         trigger_success = log_detective_trigger.trigger_log_detective_analysis()
         if not trigger_success:
