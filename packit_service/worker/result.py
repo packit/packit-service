@@ -37,7 +37,7 @@ class TaskResults(dict):
     ):
         package_config = (
             event.packages_config.get_package_config_for(job_config)
-            if event.packages_config
+            if job_config and event.packages_config
             else None
         )
         details = {

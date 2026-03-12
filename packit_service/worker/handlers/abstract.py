@@ -464,7 +464,7 @@ class JobHandler(Handler):
                 "package_config": dump_package_config(
                     (
                         event.packages_config.get_package_config_for(job)
-                        if event.packages_config
+                        if job and event.packages_config
                         else None
                     ),
                 ),
