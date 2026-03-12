@@ -89,7 +89,7 @@ class ServiceConfigSchema(UserConfigSchema):
     disabled_projects_for_fedora_ci = fields.List(fields.String())
     logdetective_enabled = fields.Bool(missing=False, default=False)
     logdetective_url = fields.String()
-    logdetective_secret = fields.String()
+    logdetective_token = fields.String()
 
     @post_load
     def make_instance(self, data, **kwargs):
