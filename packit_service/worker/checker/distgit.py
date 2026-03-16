@@ -16,6 +16,7 @@ from packit_service.events import (
     koji,
     pagure,
 )
+from packit_service.fedora_ci_config import FedoraCIConfig
 from packit_service.utils import (
     get_packit_commands_from_comment,
     pr_labels_match_configuration,
@@ -167,6 +168,13 @@ class PermissionOnDistgitForFedoraCI(Checker, GetPagurePullRequestMixin):
                 return False
 
         return True
+
+
+class IsProjectEnabledForELN(Checker):
+    """Verify that the project has not opted out of ELN builds and tests"""
+
+    def pre_check(self) -> bool:
+        return FedoraCIConfig.get_config().is_eln_enabled(self.project.get_web_url())
 
 
 class PackageNeedsELNBuildFromRawhide(Checker, GetPagurePullRequestMixin):

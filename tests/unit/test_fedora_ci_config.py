@@ -165,3 +165,78 @@ def test_is_project_enabled(
         f"enabled_projects={enabled_projects}, "
         f"disabled_projects={disabled_projects}"
     )
+
+
+@pytest.mark.parametrize(
+    "disabled, project_url, expected",
+    [
+        pytest.param(
+            set(),
+            "https://src.fedoraproject.org/rpms/pkg",
+            True,
+            id="empty disabled list",
+        ),
+        pytest.param(
+            {"https://src.fedoraproject.org/rpms/other"},
+            "https://src.fedoraproject.org/rpms/pkg",
+            True,
+            id="project not in disabled list",
+        ),
+        pytest.param(
+            {"https://src.fedoraproject.org/rpms/pkg"},
+            "https://src.fedoraproject.org/rpms/pkg",
+            False,
+            id="project in disabled list",
+        ),
+    ],
+)
+def test_is_eln_enabled(disabled, project_url, expected):
+    config = ServiceConfig(
+        deployment=Deployment.stg,
+        disabled_projects_for_eln=disabled,
+    )
+    ci_config = FedoraCIConfig(config)
+    assert ci_config.is_eln_enabled(project_url) == expected
+
+
+@pytest.mark.parametrize(
+    "global_enabled, disabled, project_url, expected",
+    [
+        pytest.param(
+            False,
+            set(),
+            "https://src.fedoraproject.org/rpms/pkg",
+            False,
+            id="globally disabled",
+        ),
+        pytest.param(
+            True,
+            set(),
+            "https://src.fedoraproject.org/rpms/pkg",
+            True,
+            id="globally enabled, empty disabled list",
+        ),
+        pytest.param(
+            True,
+            {"https://src.fedoraproject.org/rpms/pkg"},
+            "https://src.fedoraproject.org/rpms/pkg",
+            False,
+            id="globally enabled, project in disabled list",
+        ),
+        pytest.param(
+            True,
+            {"https://src.fedoraproject.org/rpms/other"},
+            "https://src.fedoraproject.org/rpms/pkg",
+            True,
+            id="globally enabled, project not in disabled list",
+        ),
+    ],
+)
+def test_is_logdetective_enabled(global_enabled, disabled, project_url, expected):
+    config = ServiceConfig(
+        deployment=Deployment.stg,
+        logdetective_enabled=global_enabled,
+        disabled_projects_for_logdetective=disabled,
+    )
+    ci_config = FedoraCIConfig(config)
+    assert ci_config.is_logdetective_enabled(project_url) == expected

@@ -42,6 +42,7 @@ from packit_service.service.urls import (
 from packit_service.utils import elapsed_seconds, get_default_tf_mapping
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
+    IsProjectEnabledForELN,
     IsProjectInRpmsNamespace,
     IsProjectInTestsNamespace,
     PackageNeedsELNBuildFromRawhide,
@@ -538,6 +539,7 @@ class DownstreamTestingFarmELNHandler(DownstreamTestingFarmHandler):
     def get_checkers() -> tuple[type[Checker], ...]:
         return (
             IsProjectInRpmsNamespace,
+            IsProjectEnabledForELN,
             PackageNeedsELNBuildFromRawhide,
             HasEventSuccessfulRawhideELNScratchBuild,
             PermissionOnDistgitForFedoraCI,

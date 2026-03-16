@@ -73,12 +73,16 @@ def mock_distgit_pr_functionality():
         .should_receive("get_git_urls")
         .and_return({"git": "https://src.fedoraproject.org/rpms/optee_os.git"})
         .mock()
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/optee_os")
+        .mock()
     )
     service_config = (
         flexmock(
             enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/optee_os",
             fedora_ci_run_by_default=False,
             disabled_projects_for_fedora_ci=set(),
+            disabled_projects_for_eln=set(),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,

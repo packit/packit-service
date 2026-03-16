@@ -30,6 +30,7 @@ from packit_service.events import (
     gitlab,
     koji,
 )
+from packit_service.fedora_ci_config import FedoraCIConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
@@ -383,8 +384,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
         Since the analysis is not crucial for the build task itself, we only log
         when the LD trigger failed, and not return a failed TaskResult
         """
-        if not self.service_config.logdetective_enabled:
-            logger.info("Log Detective disabled in config, skipping.")
+        if not FedoraCIConfig.get_config().is_logdetective_enabled(self.project.get_web_url()):
             return
         logger.info("Triggering Log Detective Helper for a failed Koji build")
         log_detective_trigger = LogDetectiveKojiTriggerHelper(

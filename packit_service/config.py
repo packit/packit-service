@@ -110,6 +110,8 @@ class ServiceConfig(Config):
         fedora_ci_run_by_default: bool = False,
         disabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
         enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
+        disabled_projects_for_eln: Optional[Union[set[str], list[str]]] = None,
+        disabled_projects_for_logdetective: Optional[Union[set[str], list[str]]] = None,
         rate_limit_threshold: Optional[int] = None,
         logdetective_enabled: bool = False,
         logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
@@ -176,6 +178,10 @@ class ServiceConfig(Config):
         # e.g.:
         #  - https://src.fedoraproject.org/rpms/python-ogr
         self.disabled_projects_for_fedora_ci: set[str] = set(disabled_projects_for_fedora_ci or [])
+        self.disabled_projects_for_eln: set[str] = set(disabled_projects_for_eln or [])
+        self.disabled_projects_for_logdetective: set[str] = set(
+            disabled_projects_for_logdetective or []
+        )
 
         self.projects_to_sync = projects_to_sync or []
 
@@ -245,10 +251,12 @@ class ServiceConfig(Config):
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
             f"logdetective_enabled='{self.logdetective_enabled}', "
-            f"logdetective_url='{self.logdetective_url}')"
+            f"logdetective_url='{self.logdetective_url}', "
             f"fedora_ci_run_by_default='{self.fedora_ci_run_by_default}', "
             f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
-            f"disabled_projects_for_fedora_ci='{self.disabled_projects_for_fedora_ci}')"
+            f"disabled_projects_for_fedora_ci='{self.disabled_projects_for_fedora_ci}', "
+            f"disabled_projects_for_eln='{self.disabled_projects_for_eln}', "
+            f"disabled_projects_for_logdetective='{self.disabled_projects_for_logdetective}')"
         )
 
     @classmethod

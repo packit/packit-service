@@ -56,3 +56,20 @@ class FedoraCIConfig:
         if not enabled:
             logger.info(f"Fedora CI not enabled for project {project_url}.")
         return enabled
+
+    def is_eln_enabled(self, project_url: str) -> bool:
+        """Should ELN builds/tests run for this project?"""
+        if project_url in self._service_config.disabled_projects_for_eln:
+            logger.info(f"ELN disabled for project {project_url}.")
+            return False
+        return True
+
+    def is_logdetective_enabled(self, project_url: str) -> bool:
+        """Should Log Detective analysis run for this project?"""
+        if not self._service_config.logdetective_enabled:
+            logger.info(f"Log Detective globally disabled, skipping for {project_url}.")
+            return False
+        if project_url in self._service_config.disabled_projects_for_logdetective:
+            logger.info(f"Log Detective disabled for project {project_url}.")
+            return False
+        return True
