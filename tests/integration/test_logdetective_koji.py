@@ -10,7 +10,7 @@ import requests
 from flexmock import Mock, flexmock
 from packit.config.common_package_config import Deployment
 
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.constants import LOGDETECTIVE_PACKIT_SERVER_URL
 from packit_service.events import koji
 from packit_service.models import (
@@ -53,11 +53,11 @@ def test_logdetective_koji_build_scratch_downstream(
 
     service_config = flexmock(
         logdetective_enabled=True,
+        fedora_ci=FedoraCISettings(),
         logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
         koji_logs_url="https://kojipkgs.fedoraproject.org",
         deployment=Deployment.prod,
         logdetective_token="secret-123",
-        disabled_projects_for_logdetective=set(),
     )
     service_config.should_receive("get_project").and_return(project)
 
@@ -138,11 +138,13 @@ def test_logdetective_skipped_when_project_disabled(
 
     service_config = flexmock(
         logdetective_enabled=True,
+        fedora_ci=FedoraCISettings(
+            disabled_projects_for_logdetective={"https://src.fedoraproject.org/rpms/packit"},
+        ),
         logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
         koji_logs_url="https://kojipkgs.fedoraproject.org",
         deployment=Deployment.prod,
         logdetective_token="secret-123",
-        disabled_projects_for_logdetective={"https://src.fedoraproject.org/rpms/packit"},
     )
     service_config.should_receive("get_project").and_return(project)
 

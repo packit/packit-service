@@ -23,7 +23,7 @@ from packit.config.commands import TestCommandConfig
 from packit.config.requirements import LabelRequirementsConfig, RequirementsConfig
 from packit.copr_helper import CoprHelper
 
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.events import (
     anitya,
     copr,
@@ -1517,7 +1517,7 @@ def test_is_project_enabled_for_eln(disabled_projects, project_url, should_pass)
 
     service_config = ServiceConfig(
         deployment=Deployment.stg,
-        disabled_projects_for_eln=disabled_projects,
+        fedora_ci=FedoraCISettings(disabled_projects_for_eln=disabled_projects),
     )
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
 

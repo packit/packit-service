@@ -1028,8 +1028,8 @@ class DownstreamKojiELNScratchBuildHandler(DownstreamKojiScratchBuildHandler):
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
         return (
-            PermissionOnDistgitForFedoraCI,
             IsProjectEnabledForELN,
+            PermissionOnDistgitForFedoraCI,
             PackageNeedsELNBuildFromRawhide,
         )
 

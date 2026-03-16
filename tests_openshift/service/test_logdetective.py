@@ -119,9 +119,7 @@ def test_logdetective_process_message(
     Session().commit()
 
     service_config = ServiceConfig().get_service_config()
-    service_config.enabled_projects_for_fedora_ci = {
-        logdetective_analysis_success_event["project_url"]
-    }
+    service_config.fedora_ci.enabled_projects = {logdetective_analysis_success_event["project_url"]}
 
     # Set deployment to prod to disable guppy memory profiling logic
     # which causes UnboundLocalError when guppy is missing.
@@ -273,9 +271,7 @@ def test_logdetective_process_message_error(
     Session().commit()
 
     service_config = ServiceConfig().get_service_config()
-    service_config.enabled_projects_for_fedora_ci = {
-        logdetective_analysis_error_event["project_url"]
-    }
+    service_config.fedora_ci.enabled_projects = {logdetective_analysis_error_event["project_url"]}
 
     # Set deployment to prod to disable guppy memory profiling logic
     # which causes UnboundLocalError when guppy is missing.

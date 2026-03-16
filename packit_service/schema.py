@@ -7,7 +7,7 @@ from marshmallow import Schema, ValidationError, fields, post_load
 from packit.config.common_package_config import Deployment
 from packit.schema import UserConfigSchema
 
-from packit_service.config import MRTarget, ProjectToSync, ServiceConfig
+from packit_service.config import FedoraCISettings, MRTarget, ProjectToSync, ServiceConfig
 
 
 class DeploymentField(fields.Field):
@@ -60,6 +60,19 @@ class MRTargetSchema(Schema):
         return MRTarget(**data)
 
 
+class FedoraCISettingsSchema(Schema):
+    """Schema for the nested fedora_ci configuration block."""
+
+    enabled_projects = fields.List(fields.String())
+    disabled_projects = fields.List(fields.String())
+    disabled_projects_for_eln = fields.List(fields.String())
+    disabled_projects_for_logdetective = fields.List(fields.String())
+
+    @post_load
+    def make_instance(self, data, **_):
+        return FedoraCISettings(**{k: set(v) for k, v in data.items()})
+
+
 class ServiceConfigSchema(UserConfigSchema):
     deployment = DeploymentField(required=True)
     webhook_secret = fields.String()
@@ -83,12 +96,9 @@ class ServiceConfigSchema(UserConfigSchema):
     package_config_path_override = fields.String()
     command_handler_storage_class = fields.String(missing="gp2")
     appcode = fields.String()
-    enabled_projects_for_fedora_ci = fields.List(fields.String())
+    fedora_ci = fields.Nested(FedoraCISettingsSchema, missing=None)
     rate_limit_threshold = fields.Integer(missing=None)
     fedora_ci_run_by_default = fields.Bool(missing=False)
-    disabled_projects_for_fedora_ci = fields.List(fields.String())
-    disabled_projects_for_eln = fields.List(fields.String())
-    disabled_projects_for_logdetective = fields.List(fields.String())
     logdetective_enabled = fields.Bool(missing=False, default=False)
     logdetective_url = fields.String()
     logdetective_token = fields.String()

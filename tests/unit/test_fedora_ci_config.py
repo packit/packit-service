@@ -4,8 +4,9 @@
 import pytest
 from packit.config.common_package_config import Deployment
 
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.fedora_ci_config import FedoraCIConfig
+from packit_service.schema import ServiceConfigSchema
 
 
 @pytest.mark.parametrize(
@@ -35,14 +36,6 @@ from packit_service.fedora_ci_config import FedoraCIConfig
             "https://src.fedoraproject.org/rpms/test",
             False,
             id="opt-in: no project opted in",
-        ),
-        pytest.param(
-            False,
-            None,
-            None,
-            "https://src.fedoraproject.org/rpms/test",
-            False,
-            id="opt-in: None treated as empty",
         ),
         pytest.param(
             False,
@@ -89,15 +82,7 @@ from packit_service.fedora_ci_config import FedoraCIConfig
             set(),
             "https://src.fedoraproject.org/rpms/test",
             True,
-            id="opt-out: no project disabled - empty set",
-        ),
-        pytest.param(
-            True,
-            set(),
-            None,
-            "https://src.fedoraproject.org/rpms/test",
-            True,
-            id="opt-out: no project disabled - None",
+            id="opt-out: no project disabled",
         ),
         pytest.param(
             True,
@@ -154,8 +139,10 @@ def test_is_project_enabled(
     config = ServiceConfig(
         deployment=Deployment.stg,
         fedora_ci_run_by_default=fedora_ci_run_by_default,
-        enabled_projects_for_fedora_ci=enabled_projects,
-        disabled_projects_for_fedora_ci=disabled_projects,
+        fedora_ci=FedoraCISettings(
+            enabled_projects=enabled_projects,
+            disabled_projects=disabled_projects,
+        ),
     )
     ci_config = FedoraCIConfig(config)
     result = ci_config.is_project_enabled(project_url)
@@ -193,7 +180,7 @@ def test_is_project_enabled(
 def test_is_eln_enabled(disabled, project_url, expected):
     config = ServiceConfig(
         deployment=Deployment.stg,
-        disabled_projects_for_eln=disabled,
+        fedora_ci=FedoraCISettings(disabled_projects_for_eln=disabled),
     )
     ci_config = FedoraCIConfig(config)
     assert ci_config.is_eln_enabled(project_url) == expected
@@ -236,7 +223,17 @@ def test_is_logdetective_enabled(global_enabled, disabled, project_url, expected
     config = ServiceConfig(
         deployment=Deployment.stg,
         logdetective_enabled=global_enabled,
-        disabled_projects_for_logdetective=disabled,
+        fedora_ci=FedoraCISettings(disabled_projects_for_logdetective=disabled),
     )
     ci_config = FedoraCIConfig(config)
     assert ci_config.is_logdetective_enabled(project_url) == expected
+
+
+def test_fedora_ci_settings_default_when_missing_from_yaml():
+    """When fedora_ci key is absent in YAML, ServiceConfig gets a default empty FedoraCISettings."""
+    config = ServiceConfigSchema().load({"deployment": "stg"})
+    assert isinstance(config.fedora_ci, FedoraCISettings)
+    assert config.fedora_ci.enabled_projects == set()
+    assert config.fedora_ci.disabled_projects == set()
+    assert config.fedora_ci.disabled_projects_for_eln == set()
+    assert config.fedora_ci.disabled_projects_for_logdetective == set()

@@ -15,7 +15,7 @@ from packit.local_project import LocalProjectBuilder
 from packit.utils import commands
 
 from packit_service import utils
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
     KojiBuildGroupModel,
@@ -110,10 +110,10 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
     )
     service_config = (
         flexmock(
-            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/optee_os",
             fedora_ci_run_by_default=False,
-            disabled_projects_for_fedora_ci=set(),
-            disabled_projects_for_eln=set(),
+            fedora_ci=FedoraCISettings(
+                enabled_projects={"https://src.fedoraproject.org/rpms/optee_os"},
+            ),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,

@@ -3,6 +3,7 @@
 
 import logging
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
 
@@ -29,6 +30,16 @@ from packit_service.constants import (
 from packit_service.utils import get_user_agent
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class FedoraCISettings:
+    """Data holder for per-project Fedora CI configuration from packit-service.yaml."""
+
+    enabled_projects: set[str] = field(default_factory=set)
+    disabled_projects: set[str] = field(default_factory=set)
+    disabled_projects_for_eln: set[str] = field(default_factory=set)
+    disabled_projects_for_logdetective: set[str] = field(default_factory=set)
 
 
 class ProjectToSync(NamedTuple):
@@ -107,11 +118,8 @@ class ServiceConfig(Config):
         package_config_path_override: Optional[str] = None,
         command_handler_storage_class: Optional[str] = None,
         appcode: Optional[str] = None,
+        fedora_ci: Optional[FedoraCISettings] = None,
         fedora_ci_run_by_default: bool = False,
-        disabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
-        enabled_projects_for_fedora_ci: Optional[Union[set[str], list[str]]] = None,
-        disabled_projects_for_eln: Optional[Union[set[str], list[str]]] = None,
-        disabled_projects_for_logdetective: Optional[Union[set[str], list[str]]] = None,
         rate_limit_threshold: Optional[int] = None,
         logdetective_enabled: bool = False,
         logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
@@ -165,23 +173,13 @@ class ServiceConfig(Config):
             enabled_projects_for_internal_tf or [],
         )
 
+        self.fedora_ci: FedoraCISettings = fedora_ci or FedoraCISettings()
+
         # When True: run Fedora CI for all projects except those in
-        # disabled_projects_for_fedora_ci (opt-out mode)
+        # fedora_ci.disabled_projects (opt-out mode)
         # When False: run Fedora CI only for projects in
-        # enabled_projects_for_fedora_ci (opt-in mode)
+        # fedora_ci.enabled_projects (opt-in mode)
         self.fedora_ci_run_by_default: bool = fedora_ci_run_by_default
-
-        # e.g.:
-        #  - https://src.fedoraproject.org/rpms/packit
-        self.enabled_projects_for_fedora_ci: set[str] = set(enabled_projects_for_fedora_ci or [])
-
-        # e.g.:
-        #  - https://src.fedoraproject.org/rpms/python-ogr
-        self.disabled_projects_for_fedora_ci: set[str] = set(disabled_projects_for_fedora_ci or [])
-        self.disabled_projects_for_eln: set[str] = set(disabled_projects_for_eln or [])
-        self.disabled_projects_for_logdetective: set[str] = set(
-            disabled_projects_for_logdetective or []
-        )
 
         self.projects_to_sync = projects_to_sync or []
 
@@ -253,10 +251,7 @@ class ServiceConfig(Config):
             f"logdetective_enabled='{self.logdetective_enabled}', "
             f"logdetective_url='{self.logdetective_url}', "
             f"fedora_ci_run_by_default='{self.fedora_ci_run_by_default}', "
-            f"enabled_projects_for_fedora_ci='{self.enabled_projects_for_fedora_ci}', "
-            f"disabled_projects_for_fedora_ci='{self.disabled_projects_for_fedora_ci}', "
-            f"disabled_projects_for_eln='{self.disabled_projects_for_eln}', "
-            f"disabled_projects_for_logdetective='{self.disabled_projects_for_logdetective}')"
+            f"fedora_ci={self.fedora_ci})"
         )
 
     @classmethod
