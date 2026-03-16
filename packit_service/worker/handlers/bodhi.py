@@ -44,6 +44,8 @@ from packit_service.worker.checker.bodhi import (
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
     IsKojiBuildCompleteAndBranchConfiguredCheckSidetag,
     IsKojiBuildOwnerMatchingConfiguration,
+    IsSidetagGroupConfigured,
+    IsSidetagGroupNotConfigured,
 )
 from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers.abstract import (
@@ -60,6 +62,7 @@ from packit_service.worker.handlers.mixin import (
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildDataFromKojiServiceMultipleBranches,
     GetKojiBuildEventMixin,
+    GetSidetagKojiBuildDataFromKojiServiceMixin,
 )
 from packit_service.worker.helpers.sidetag import SidetagHelper
 from packit_service.worker.mixin import (
@@ -422,7 +425,7 @@ class RetriggerBodhiUpdateHandler(
     GetKojiBuildDataFromKojiServiceMixin,
 ):
     """
-    This handler can re-trigger a bodhi update if any successful Koji build.
+    This handler can re-trigger a bodhi update for successful Koji build.
     """
 
     task_name = TaskName.retrigger_bodhi_update
@@ -430,12 +433,13 @@ class RetriggerBodhiUpdateHandler(
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
         """We react only on finished builds (=KojiBuildState.complete)
-        and configured branches.
+        and configured branches, when sidetag_group is NOT configured.
         """
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
         return (
             IsAuthorAPackager,
             HasIssueCommenterRetriggeringPermissions,
+            IsSidetagGroupNotConfigured,
             IsKojiBuildCompleteAndBranchConfiguredCheckService,
             IsRunConditionSatisfied,
         )
@@ -443,6 +447,37 @@ class RetriggerBodhiUpdateHandler(
     def get_trigger_type_description(self) -> str:
         return (
             f"Fedora Bodhi update was re-triggered "
+            f"by comment in dist-git PR with id {self.data.pr_id}."
+        )
+
+
+@configured_as(job_type=JobType.bodhi_update)
+@reacts_to(event=pagure.pr.Comment)
+@run_for_comment(command="create-update")
+class RetriggerBodhiUpdateFromSidetagHandler(
+    BodhiUpdateHandler,
+    GetSidetagKojiBuildDataFromKojiServiceMixin,
+):
+    """
+    This handler can re-trigger a bodhi update for builds in a sidetag.
+    """
+
+    task_name = TaskName.retrigger_bodhi_update_from_sidetag
+
+    @staticmethod
+    def get_checkers() -> tuple[type[Checker], ...]:
+        """We react only when sidetag_group IS configured."""
+        logger.debug("Bodhi update from sidetag will be re-triggered via dist-git PR comment.")
+        return (
+            IsAuthorAPackager,
+            HasIssueCommenterRetriggeringPermissions,
+            IsSidetagGroupConfigured,
+            IsRunConditionSatisfied,
+        )
+
+    def get_trigger_type_description(self) -> str:
+        return (
+            f"Fedora Bodhi update from sidetag was re-triggered "
             f"by comment in dist-git PR with id {self.data.pr_id}."
         )
 

@@ -289,6 +289,7 @@ class TaskName(str, enum.Enum):
     bodhi_update = "task.bodhi_update"
     bodhi_update_from_sidetag = "task.bodhi_update_from_sidetag"
     retrigger_bodhi_update = "task.retrigger_bodhi_update"
+    retrigger_bodhi_update_from_sidetag = "task.retrigger_bodhi_update_from_sidetag"
     issue_comment_retrigger_bodhi_update = "task.issue_comment_retrigger_bodhi_update"
     github_fas_verification = "task.github_fas_verification"
     vm_image_build = "task.run_vm_image_build_handler"

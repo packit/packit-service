@@ -199,3 +199,31 @@ class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
             comment_to_existing=msg,
         )
         return False
+
+
+class IsSidetagGroupNotConfigured(Checker):
+    """Check that sidetag_group is NOT configured.
+    Used to ensure RetriggerBodhiUpdateHandler only runs for non-sidetag updates.
+    """
+
+    def pre_check(self) -> bool:
+        if self.job_config.sidetag_group:
+            logger.debug(
+                "Sidetag group is configured. Use RetriggerBodhiUpdateFromSidetagHandler instead."
+            )
+            return False
+        return True
+
+
+class IsSidetagGroupConfigured(Checker):
+    """Check that sidetag_group IS configured.
+    Used to ensure RetriggerBodhiUpdateFromSidetagHandler only runs for sidetag updates.
+    """
+
+    def pre_check(self) -> bool:
+        if not self.job_config.sidetag_group:
+            logger.debug(
+                "Sidetag group is not configured. Use RetriggerBodhiUpdateHandler instead."
+            )
+            return False
+        return True

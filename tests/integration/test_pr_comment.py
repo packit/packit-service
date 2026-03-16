@@ -43,8 +43,6 @@ from packit_service.constants import (
 )
 from packit_service.events import abstract, pagure
 from packit_service.models import (
-    BodhiUpdateGroupModel,
-    BodhiUpdateTargetModel,
     BuildStatus,
     CoprBuildTargetModel,
     KojiBuildGroupModel,
@@ -77,6 +75,7 @@ from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.bodhi import (
+    RetriggerBodhiUpdateFromSidetagHandler,
     RetriggerBodhiUpdateHandler,
 )
 from packit_service.worker.handlers.distgit import (
@@ -111,6 +110,7 @@ from packit_service.worker.tasks import (
     run_koji_build_handler,
     run_pull_from_upstream_handler,
     run_retrigger_bodhi_update,
+    run_retrigger_bodhi_update_from_sidetag,
     run_tag_into_sidetag_handler,
     run_testing_farm_handler,
 )
@@ -2710,7 +2710,13 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
     assert first_dict_value(results["job"])["success"]
 
 
-def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
+def test_bodhi_update_retrigger_via_dist_git_pr_comment(
+    pagure_pr_comment_added,
+    bodhi_update_db_mocks,
+    bodhi_update_target_mocks,
+    bodhi_update_pagure_project,
+):
+    """Test retrigger bodhi update for builds in candidate tags."""
     pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit create-update"
     project = pagure_pr_comment_added["pullrequest"]["project"]
     project["full_url"] = "https://src.fedoraproject.org/rpms/jouduv-dort"
@@ -2724,108 +2730,31 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         "'downstream_package_name': 'jouduv-dort'}"
     )
 
-    project_event = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-        project=flexmock(project_url=None),
-        id=123,
-    )
-    flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
-        project_event,
-    )
-    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
-        project_event,
-    )
-    run_model_flexmock = flexmock()
-    db_project_object = flexmock(
-        id=12,
-        project_event_model_type=ProjectEventModelType.pull_request,
-        job_config_trigger_type=JobConfigTriggerType.pull_request,
-    )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-        79721403,
-    ).and_return(None)
-    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.pull_request,
-        event_id=12,
-        commit_sha="beaf90bcecc51968a46663f8d6f092bfdc92e682",
-    ).and_return(project_event)
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=36,
-        namespace="rpms",
-        repo_name="jouduv-dort",
-        project_url="https://src.fedoraproject.org/rpms/jouduv-dort",
-    ).and_return(db_project_object)
-    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
-    group_model = flexmock(
-        id=23,
-        grouped_targets=[
-            flexmock(
-                target="the_distgit_branch",
-                koji_nvrs="123",
-                sidetag=None,
-                set_status=lambda x: None,
-                set_data=lambda x: None,
-                set_web_url=lambda x: None,
-                set_alias=lambda x: None,
-                set_update_creation_time=lambda x: None,
-            ),
-        ],
-    )
-    flexmock(BodhiUpdateGroupModel).should_receive("create").and_return(group_model)
-    flexmock(BodhiUpdateTargetModel).should_receive(
-        "get_all_successful_or_in_progress_by_nvrs",
-    ).with_args("123").and_return(set())
-    flexmock(BodhiUpdateTargetModel).should_receive("create").with_args(
-        target="the_distgit_branch",
-        koji_nvrs="123",
-        sidetag=None,
-        status="queued",
-        bodhi_update_group=group_model,
-    ).and_return()
+    # Setup database mocks using fixture
+    bodhi_update_db_mocks("jouduv-dort", "https://src.fedoraproject.org/rpms/jouduv-dort")
 
-    pr_mock = (
-        flexmock(target_branch="the_distgit_branch")
-        .should_receive("comment")
-        .with_args(
-            "The task was accepted. You can check the recent Bodhi update submissions of Packit "
-            "in [Packit dashboard](/jobs/bodhi-updates). "
-            "You can also check the recent Bodhi update activity of `packit` in "
-            "[the Bodhi interface](https://bodhi.fedoraproject.org/users/packit)."
-            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}",
-        )
-        .mock()
+    # Setup bodhi update target mocks using fixture
+    bodhi_update_target_mocks("the_distgit_branch", "123", sidetag=None)
+
+    # Setup pagure project mocks using fixture
+    bodhi_update_pagure_project(
+        "jouduv-dort",
+        "https://src.fedoraproject.org/rpms/jouduv-dort",
+        "the_distgit_branch",
+        packit_yaml,
     )
 
-    pagure_project = flexmock(
-        PagureProject,
-        full_repo_name="rpms/jouduv-dort",
-        get_web_url=lambda: "https://src.fedoraproject.org/rpms/jouduv-dort",
-        default_branch="main",
-        get_pr=lambda id: pr_mock,
-    )
-
+    # Mock Koji candidate build (specific to non-sidetag updates)
     flexmock(KojiHelper).should_receive("get_latest_candidate_build").and_return(
         {"nvr": "123", "build_id": 321, "state": 0, "task_id": 123},
     )
 
-    pagure_project.should_receive("get_files").with_args(
-        ref="main",
-        filter_regex=r".+\.spec$",
-    ).and_return(["jouduv-dort.spec"])
-    pagure_project.should_receive("get_file_content").with_args(
-        path=".packit.yaml",
-        ref="main",
-        headers=dict,
-    ).and_return(packit_yaml)
-    pagure_project.should_receive("get_files").with_args(
-        ref="main",
-        recursive=False,
-    ).and_return(["jouduv-dort.spec", ".packit.yaml"])
-
+    # Handler pre-checks
     flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(True)
+    flexmock(RetriggerBodhiUpdateFromSidetagHandler).should_receive("pre_check").and_return(False)
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(celery_group).should_receive("apply_async").once()
+    flexmock(celery_group).should_receive("apply_async").twice()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="the_distgit_branch",
         update_type="enhancement",
@@ -2837,11 +2766,92 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
-    event_dict, _, job_config, package_config = get_parameters_from_results(
-        processing_results,
-    )
+    event_dict, _, job_config, package_config = get_parameters_from_results(processing_results)
     assert json.dumps(event_dict)
+
     results = run_retrigger_bodhi_update(
+        event=event_dict,
+        package_config=package_config,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_bodhi_update_retrigger_via_dist_git_pr_comment_with_sidetag(
+    pagure_pr_comment_added,
+    bodhi_update_db_mocks,
+    bodhi_update_target_mocks,
+    sidetag_koji_mocks,
+    bodhi_update_pagure_project,
+):
+    """
+    Test retrigger bodhi update from sidetag.
+    This simulates the EPEL 10 side tag scenario from issue #3053.
+    """
+    pagure_pr_comment_added["pullrequest"]["comments"][0]["comment"] = "/packit create-update"
+    project = pagure_pr_comment_added["pullrequest"]["project"]
+    project["full_url"] = "https://src.fedoraproject.org/rpms/packit"
+    project["fullname"] = "rpms/packit"
+    project["name"] = "packit"
+    project["url_path"] = "rpms/packit"
+
+    packit_yaml = (
+        "{'specfile_path': 'packit.spec',"
+        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update', 'sidetag_group': 'epel10-side'}],"
+        "'downstream_package_name': 'packit'}"
+    )
+
+    # Setup database mocks using fixture
+    bodhi_update_db_mocks("packit", "https://src.fedoraproject.org/rpms/packit")
+
+    # Setup sidetag-specific Koji mocks using fixture
+    sidetag_koji_mocks(
+        sidetag_group_name="epel10-side",
+        target="epel10",
+        sidetag_koji_name="epel10-build-side-12345",
+        package_name="packit",
+        nvr="packit-0.100.0-1.el10",
+        build_id=456,
+        task_id=789,
+    )
+
+    # Setup bodhi update target mocks using fixture (with sidetag)
+    bodhi_update_target_mocks(
+        target="epel10",
+        nvr="packit-0.100.0-1.el10",
+        sidetag="epel10-build-side-12345",
+    )
+
+    # Setup pagure project mocks using fixture
+    bodhi_update_pagure_project(
+        "packit",
+        "https://src.fedoraproject.org/rpms/packit",
+        "epel10",
+        packit_yaml,
+    )
+
+    # Handler pre-checks
+    flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(False)
+    flexmock(RetriggerBodhiUpdateFromSidetagHandler).should_receive("pre_check").and_return(True)
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(celery_group).should_receive("apply_async").twice()
+    flexmock(PackitAPI).should_receive("create_update").with_args(
+        dist_git_branch="epel10",
+        update_type="enhancement",
+        koji_builds=["packit-0.100.0-1.el10"],
+        sidetag="epel10-build-side-12345",
+        alias=None,
+    ).once().and_return(("alias", "url"))
+
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, _, job_config, package_config = get_parameters_from_results(processing_results)
+    assert json.dumps(event_dict)
+
+    results = run_retrigger_bodhi_update_from_sidetag(
         event=event_dict,
         package_config=package_config,
         job_config=job_config,
