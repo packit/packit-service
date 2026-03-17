@@ -21,6 +21,7 @@ from packit_service.constants import (
     SANDCASTLE_LOCAL_PROJECT_DIR,
 )
 from packit_service.events.event_data import EventData
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -199,13 +200,36 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
 class GetSyncReleaseTagMixin(PackitAPIWithUpstreamMixin):
     _tag: Optional[str] = None
 
+    def get_version_from_comment(self) -> Optional[str]:
+        """
+        Extract the --version argument from the PR comment if present.
+        The format in the comment should be:
+        /packit pull-from-upstream --version 1.2.3
+        """
+        comment = self.data.event_dict.get("comment")
+        if not comment:
+            return None
+
+        commands = get_packit_commands_from_comment(
+            comment,
+            self.service_config.comment_command_prefix,
+        )
+        args = commands[1:] if len(commands) > 1 else []
+        version_keyword = "--version"
+        if version_keyword not in args:
+            return None
+
+        idx = args.index(version_keyword)
+        return args[idx + 1] if idx < len(args) - 1 else None
+
     @property
     def tag(self) -> Optional[str]:
         self._tag = self.data.tag_name
         if not self._tag and not self.non_git_upstream:
             # there is no tag information when retriggering pull-from-upstream
-            # from dist-git PR
-            self._tag = self.packit_api.up.get_last_tag()
+            # from dist-git PR, use the version from the comment if provided,
+            # otherwise fall back to the last tag
+            self._tag = self.get_version_from_comment() or self.packit_api.up.get_last_tag()
         return self._tag
 
 

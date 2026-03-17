@@ -307,6 +307,10 @@ def get_comment_parser(
         action="store_true",
         help="Use the configuration file from this dist-git pull request",
     )
+    pull_from_upstream_parser.add_argument(
+        "--version",
+        help="Version to use for the pull-from-upstream job",
+    )
 
     subparsers.add_parser(
         "koji-build",

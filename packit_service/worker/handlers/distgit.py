@@ -288,7 +288,9 @@ class AbstractSyncReleaseHandler(
             }
             if not self.packit_api.non_git_upstream:
                 kwargs["tag"] = self.tag
-            elif version := self.data.event_dict.get("version"):
+            elif (version := self.data.event_dict.get("version")) or (
+                version := self.get_version_from_comment()
+            ):
                 kwargs["versions"] = [version]
             # check if there is a Koji build job that should trigger on PR merge
             kwargs["warn_about_koji_build_triggering_bug"] = False
