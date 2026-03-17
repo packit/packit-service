@@ -268,10 +268,12 @@ class SteveJobs:
             return ParsedComment()
 
         if comment.startswith("/packit-ci"):
-            supported_test_types = DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
-                self.service_config,
-                self.event.project,
-                EventData.from_event_dict(self.event.get_dict()),
+            supported_test_types = (
+                DownstreamTestingFarmJobHelper.get_fedora_ci_tests_available_in_context(
+                    self.service_config,
+                    self.event.project,
+                    EventData.from_event_dict(self.event.get_dict()),
+                )
             )
             parser = get_comment_parser_fedora_ci(supported_test_types=supported_test_types)
         else:

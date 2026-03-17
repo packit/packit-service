@@ -1330,6 +1330,30 @@ class DownstreamTestingFarmJobHelper:
             return [commands[1]]
         return all_tests
 
+    @staticmethod
+    def get_fedora_ci_tests_available_in_context(
+        service_config: ServiceConfig, project: GitProject, metadata: EventData
+    ) -> list[str]:
+        """
+        Gets Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator,
+        which are relevant in the context of the given project. If in the "tests" namespace
+        and fmf metadata is defined, then only the `custom` test type is available. If no fmf
+        metadata is defined inside the "tests" namespace, no tests are available.
+
+        Args:
+            service_config: Service config.
+            project: Git project.
+            metadata: Event metadata.
+
+        Returns:
+            List of registered Fedora CI test names available in the context of the project.
+        """
+        return [
+            name
+            for name, (_, skipif) in FEDORA_CI_TESTS.items()
+            if not skipif or not skipif(service_config, project, metadata)
+        ]
+
     @property
     def api_url(self) -> str:
         return (
@@ -1447,7 +1471,12 @@ class DownstreamTestingFarmJobHelper:
             response=response,
         )
 
-    @implements_fedora_ci_test("installability")
+    @implements_fedora_ci_test(
+        "installability",
+        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
+            project
+        ),
+    )
     def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
         git_ref = (
@@ -1494,7 +1523,12 @@ class DownstreamTestingFarmJobHelper:
             },
         }
 
-    @implements_fedora_ci_test("rpminspect")
+    @implements_fedora_ci_test(
+        "rpminspect",
+        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
+            project
+        ),
+    )
     def _payload_rpminspect(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
         git_ref = "master"
@@ -1509,7 +1543,12 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    @implements_fedora_ci_test("rpmlint")
+    @implements_fedora_ci_test(
+        "rpmlint",
+        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
+            project
+        ),
+    )
     def _payload_rpmlint(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/packit/tmt-plans.git"
         git_ref = "main"
@@ -1535,6 +1574,10 @@ class DownstreamTestingFarmJobHelper:
         except FileNotFoundError:
             return False
         return True
+
+    @staticmethod
+    def is_project_in_tests_namespace(project: GitProject) -> bool:
+        return project.namespace == "tests"
 
     @implements_fedora_ci_test(
         "custom",

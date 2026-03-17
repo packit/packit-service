@@ -2603,6 +2603,9 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         .should_receive("get_web_url")
         .and_return("https://src.fedoraproject.org/rpms/python-teamcity-messages")
         .mock()
+        .should_receive("get_file_content")
+        .and_raise(FileNotFoundError)
+        .mock()
     )
     service_config = (
         flexmock(
