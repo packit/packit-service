@@ -27,6 +27,8 @@ from packit.utils import nested_get
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
+    DOCS_RETRIGGERING_URL,
+    DOCS_RETRIGGERING_URL_FEDORA_CI,
     FEDORA_CI_TRANSITION_COMMENT,
     PACKIT_HELP_COMMAND,
     PACKIT_VERIFY_FAS_COMMAND,
@@ -114,46 +116,6 @@ class ParsedComment:
     command: Optional[str] = None
     package: Optional[str] = None
     check_target: Optional[str] = None
-
-
-def parse_comment(
-    comment: str,
-    packit_comment_command_prefix: str,
-) -> ParsedComment:
-    """
-    Get arguments from the given comment respecting `packit_comment_command_prefix`.
-
-    Args:
-        comment: comment we are reacting to
-        packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
-
-    Returns:
-        `ParsedComment` storing command and a monorepo package, if specified.
-
-        For example: If the comment is `/packit build --commit 123 --package best-package-ever`,
-        it would return `ParsedComment(command="build", package="best-package-ever")`
-        Other arguments are ignored because they are handled separately by job handlers
-    """
-    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
-    if not commands:
-        return ParsedComment()
-
-    if comment.startswith("/packit-ci"):
-        parser = get_comment_parser_fedora_ci()
-    else:
-        parser = get_comment_parser()
-
-    try:
-        args = parser.parse_args(commands)
-        check_target = getattr(args, "check_target", None)
-        return ParsedComment(command=args.command, package=args.package, check_target=check_target)
-    except SystemExit:
-        # tests expect invalid syntax comments be ignored
-        logger.debug(
-            f"Comment {comment} uses unexpected syntax or contains unsupported commands. "
-            "It will be ignored.",
-        )
-        return ParsedComment()
 
 
 def get_handlers_for_command(
@@ -287,6 +249,50 @@ class SteveJobs:
 
         steve.pushgateway.push()
         return result
+
+    def parse_comment(
+        self,
+        comment: str,
+        packit_comment_command_prefix: str,
+    ) -> ParsedComment:
+        """
+        Get arguments from the given comment respecting `packit_comment_command_prefix`.
+
+        Args:
+            comment: comment we are reacting to
+            packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
+
+        Returns:
+            `ParsedComment` storing command and a monorepo package, if specified.
+
+            For example: If the comment is `/packit build --commit 123 --package best-package-ever`,
+            it would return `ParsedComment(command="build", package="best-package-ever")`
+            Other arguments are ignored because they are handled separately by job handlers
+        """
+        commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
+        if not commands:
+            return ParsedComment()
+
+        if comment.startswith("/packit-ci"):
+            parser = get_comment_parser_fedora_ci()
+        else:
+            parser = get_comment_parser()
+
+        try:
+            args = parser.parse_args(commands)
+            check_target = getattr(args, "check_target", None)
+            return ParsedComment(
+                command=args.command, package=args.package, check_target=check_target
+            )
+        except SystemExit:
+            # tests expect invalid syntax comments be ignored
+            logger.debug(
+                f"Comment {comment} uses unexpected syntax or contains unsupported commands. "
+                "It will be ignored and the user will be informed via a comment.",
+            )
+            self.report_parsing_error_in_retriggering_comment(comment)
+
+            return ParsedComment()
 
     def _should_process_as_fedora_ci(self, project_url: str) -> bool:
         """
@@ -664,7 +670,7 @@ class SteveJobs:
             Whether the Packit configuration is present in the repo.
         """
         if isinstance(self.event, abstract.comment.CommentEvent):
-            arguments = parse_comment(
+            arguments = self.parse_comment(
                 self.event.comment,
                 self.service_config.comment_command_prefix,
             )
@@ -707,7 +713,7 @@ class SteveJobs:
         # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
         if isinstance(self.event, abstract.comment.CommentEvent):
-            arguments = parse_comment(
+            arguments = self.parse_comment(
                 self.event.comment,
                 replace_packit_comment_command_prefix(self.service_config.comment_command_prefix),
             )
@@ -786,7 +792,7 @@ class SteveJobs:
             self.event,
             abstract.comment.CommentEvent,
         ):
-            arguments = parse_comment(
+            arguments = self.parse_comment(
                 self.event.comment,
                 self.service_config.comment_command_prefix,
             )
@@ -1133,7 +1139,7 @@ class SteveJobs:
         handlers_triggered_by_job = None
 
         if isinstance(self.event, abstract.comment.CommentEvent):
-            arguments = parse_comment(
+            arguments = self.parse_comment(
                 self.event.comment,
                 self.service_config.comment_command_prefix,
             )
@@ -1422,4 +1428,32 @@ class SteveJobs:
         if isinstance(self.event, abstract.comment.PullRequest):
             self.event.pull_request_object.comment(message)
         if isinstance(self.event, abstract.comment.Issue):
+            self.event.issue_object.comment(message)
+
+    def report_parsing_error_in_retriggering_comment(self, comment) -> None:
+        """
+        Leave a comment in response to the user's retriggering comment in case
+        an error occurred when parsing user's PR / issue comment.
+        """
+
+        if comment.startswith("/packit-ci"):
+            comment_command_prefix = replace_packit_comment_command_prefix(
+                self.service_config.comment_command_prefix
+            )
+            message = (
+                "There appears to be a syntax error in the command provided. Please refer "
+                f"to the [Packit Fedora CI documentation]({DOCS_RETRIGGERING_URL_FEDORA_CI}) "
+                f"or use the `{comment_command_prefix} help` command."
+            )
+        else:
+            comment_command_prefix = self.service_config.comment_command_prefix
+            message = (
+                "There appears to be a syntax error in the command provided. Please refer "
+                f"to the [Packit documentation]({DOCS_RETRIGGERING_URL}) "
+                f"or use the `{comment_command_prefix} help` command."
+            )
+
+        if isinstance(self.event, abstract.comment.PullRequest):
+            self.event.pull_request_object.comment(message)
+        elif isinstance(self.event, abstract.comment.Issue):
             self.event.issue_object.comment(message)
