@@ -45,6 +45,11 @@ from packit_service.worker.monitoring import Pushgateway
 logger = logging.getLogger(__name__)
 
 
+def normalize_branch_for_koji(branch: str) -> str:
+    """Normalize branch name for Koji (main -> rawhide)."""
+    return "rawhide" if branch == "main" else branch
+
+
 class GetKojiBuildEvent(Protocol):
     data: EventData
 
@@ -299,10 +304,9 @@ class GetKojiBuildDataFromKojiBuildTagEventMixin(
 
     @property
     def _dist_git_branch(self) -> str:
-        if self.sidetag.dist_git_branch == "main":
-            # Koji doesn't recognize main, only rawhide
-            return "rawhide"
-        return self.sidetag.dist_git_branch
+        if not self.sidetag:
+            raise PackitException("Sidetag not found for build tag event")
+        return normalize_branch_for_koji(self.sidetag.dist_git_branch)
 
     @property
     def _state(self) -> KojiBuildState:
@@ -373,14 +377,72 @@ class GetKojiBuildDataFromKojiServiceMixin(
 ):
     @property
     def _dist_git_branch(self) -> str:
-        if (branch := self.project.get_pr(self.data.pr_id).target_branch) == "main":
-            # Koji doesn't recognize main, only rawhide
-            return "rawhide"
-        return branch
+        branch = self.project.get_pr(self.data.pr_id).target_branch
+        return normalize_branch_for_koji(branch)
 
     @property
     def num_of_branches(self):
         return 1  # just a branch in the event
+
+
+class GetSidetagKojiBuildDataFromKojiServiceMixin(
+    GetKojiBuildDataFromKojiServiceMixin,
+):
+    """
+    Get Koji build data from a sidetag for retrigger scenarios.
+    Used when retriggering bodhi updates from sidetags via PR comments.
+    Inherits _dist_git_branch and num_of_branches from parent.
+    """
+
+    _sidetag: Optional[Sidetag] = None
+    _build: Optional[dict] = None
+    job_config: JobConfig
+
+    @property
+    def sidetag(self) -> Sidetag:
+        if not self._sidetag:
+            self._sidetag = SidetagHelper.get_sidetag(
+                self.job_config.sidetag_group,
+                self._dist_git_branch,
+            )
+        return self._sidetag
+
+    @property
+    def build(self) -> dict:
+        if not self._build:
+            latest_build = max(
+                (
+                    b
+                    for b in self.sidetag.get_builds()
+                    if b.name == self.job_config.downstream_package_name
+                ),
+                default=None,
+            )
+            if not latest_build or not (
+                build_info := self.koji_helper.get_build_info(str(latest_build))
+            ):
+                raise PackitException(
+                    f"No build found for package={self.job_config.downstream_package_name} "
+                    f"in sidetag={self.sidetag.koji_name}",
+                )
+            self._build = build_info
+        return self._build
+
+    @property
+    def _nvr(self) -> str:
+        return self.build["nvr"]
+
+    @property
+    def _build_id(self) -> int:
+        return self.build["build_id"]
+
+    @property
+    def _state(self) -> KojiBuildState:
+        return KojiBuildState.from_number(self.build["state"])
+
+    @property
+    def _task_id(self) -> int:
+        return self.build["task_id"]
 
 
 class GetKojiBuildDataFromKojiServiceMultipleBranches(
