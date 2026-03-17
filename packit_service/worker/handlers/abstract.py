@@ -82,7 +82,7 @@ def corresponds_to_check_target(check_target: str):
     existing eln branch, jobs would be run for both the rawhide
     and eln targets. When the check target is specified like this,
 
-    /packit-ci test installability rawhide
+    /packit-ci test installability --target rawhide
 
     then only the handler corresponding to the specified target
     (rawhide in this example) will be run, resulting in jobs being run
