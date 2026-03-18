@@ -26,12 +26,12 @@ HELP_COMMENT_PROG_FEDORA_CI = "/packit-ci"
 HELP_COMMENT_PROG_FEDORA_CI_STG = "/packit-ci-stg"
 HELP_COMMENT_DESCRIPTION = ""
 HELP_COMMENT_EPILOG = (
-    "Note: {note}\n"
-    f"Documentation: {DOCS_URL}\n"
-    "Contact:\n"
-    "     Email:    hello@packit.dev\n"
-    "     Matrix:   #packit:fedora.im\n"
-    "     Mastodon: @packit@fosstodon.org"
+    "**Please note**: \n - {note}\n\n"
+    "**Contact**:\n"
+    " - *Email*: hello@packit.dev\n"
+    " - *Matrix*: #packit:fedora.im\n"
+    " - *Mastodon*: @packit@fosstodon.org\n\n"
+    f"**Documentation**: \n - {DOCS_URL}"
 )
 HELP_NOTE = (
     "If using Fedora CI, refer to `/packit-ci help` instead. "

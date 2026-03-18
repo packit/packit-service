@@ -335,32 +335,32 @@ class GitCommentHelpHandler(
             parser = get_comment_parser_fedora_ci(
                 prog=HELP_COMMENT_PROG_FEDORA_CI_STG,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI)
 
         elif self.comment.startswith("/packit-ci"):  # type: ignore
             parser = get_comment_parser_fedora_ci(
                 prog=HELP_COMMENT_PROG_FEDORA_CI,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI)
 
         elif self.comment.startswith("/packit-stg"):  # type: ignore
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG_STG,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE)
 
         else:
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE)
 
         # put message in code block to retain formatting
-        help_message = f"```\n{parser.format_help()}\n```"
+        help_message = f"```\n{parser.format_help()}\n```\n{epilog}"
         self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})
