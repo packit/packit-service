@@ -26,6 +26,7 @@ from packit.config import (
 from packit.config.requirements import LabelRequirementsConfig, RequirementsConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject, LocalProjectBuilder
+from packit.utils import commands
 from packit.utils.koji_helper import KojiHelper
 
 import packit_service.service.urls as urls
@@ -65,7 +66,6 @@ from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import (
     TestingFarmClient,
     TestingFarmJobHelper,
-    commands,
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -2676,40 +2676,6 @@ def test_koji_build_end_downstream(
     koji_build_pr_downstream.should_receive("set_status").with_args("success").once()
     koji_build_pr_downstream.should_receive("set_build_logs_urls")
     koji_build_pr_downstream.should_receive("set_web_url")
-
-    installability_repo = "https://github.com/fedora-ci/installability-pipeline.git"
-    installability_hash = "f6cd4a50476d9c8ffa36472c5ab2d2c8aad6cee1"
-
-    flexmock(commands).should_receive("run_command").with_args(
-        ["git", "ls-remote", installability_repo, "HEAD"], output=True
-    ).and_return(flexmock(stdout=f"{installability_hash}\tHEAD"))
-
-    payload_installability = {
-        "test": {
-            "tmt": {
-                "url": installability_repo,
-                "ref": installability_hash,
-            },
-        },
-        "environments": [
-            {
-                "arch": "x86_64",
-                "os": {"compose": compose},
-                "variables": {
-                    "PROFILE_NAME": profile,
-                    "TASK_ID": "1",
-                },
-            },
-        ],
-        "notification": {
-            "webhook": {
-                "url": "https://stg.packit.dev/api/testing-farm/results",
-                "token": "secret token",
-            },
-        },
-    }
-
-    rpminspect_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
     common_payload_no_compose = {
         "environments": [
             {
@@ -2743,6 +2709,20 @@ def test_koji_build_end_downstream(
         },
     }
 
+    installability_repo = "https://github.com/fedora-ci/installability-pipeline.git"
+    payload_installability = {
+        "test": {
+            "tmt": {
+                "url": installability_repo,
+                "ref": "master",
+            },
+        },
+        **common_payload_no_compose,
+    }
+    payload_installability = copy.deepcopy(payload_installability)
+    payload_installability["environments"][0]["os"] = {"compose": compose}
+
+    rpminspect_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
     payload_rpminspect = {
         "test": {
             "tmt": {
@@ -2838,10 +2818,6 @@ def test_koji_build_end_downstream(
     flexmock(TestingFarmClient).should_receive("distro2compose").with_args(
         distro,
     ).and_return(compose)
-
-    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args("rawhide").and_return(
-        "f43-updates-candidate"
-    )
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
     flexmock(TestingFarmClient).should_receive(
