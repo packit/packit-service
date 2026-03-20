@@ -30,7 +30,7 @@ from packit.utils.koji_helper import KojiHelper
 
 import packit_service.service.urls as urls
 from packit_service import utils
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
 from packit_service.events import copr, koji
 from packit_service.models import (
@@ -2606,9 +2606,11 @@ def test_koji_build_end_downstream(
     service_config = (
         flexmock(
             testing_farm_api_url="API URL",
-            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/packit",
             fedora_ci_run_by_default=False,
-            disabled_projects_for_fedora_ci=set(),
+            fedora_ci=FedoraCISettings(
+                enabled_projects={"https://src.fedoraproject.org/rpms/packit"},
+            ),
+            logdetective_enabled=False,
             koji_logs_url="",
             koji_web_url="",
             deployment=Deployment.stg,
@@ -3331,7 +3333,7 @@ def test_pagure_pr_updated(pagure_pr_updated, project_namespace, project_repo):
         flexmock(
             testing_farm_api_url="API URL",
             fedora_ci_run_by_default=True,
-            disabled_projects_for_fedora_ci=set(),
+            fedora_ci=FedoraCISettings(),
             koji_logs_url="",
             koji_web_url="",
             command_handler_work_dir=SANDCASTLE_WORK_DIR,

@@ -10,7 +10,7 @@ import requests
 from flexmock import Mock, flexmock
 from packit.config.common_package_config import Deployment
 
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.constants import LOGDETECTIVE_PACKIT_SERVER_URL
 from packit_service.events import koji
 from packit_service.models import (
@@ -33,6 +33,7 @@ def koji_scratch_build_fixture(build_successful):
         "rpm_build_task_ids": {"x86_64": 123456, "noarch": 123457},
         "start_time": 1767225600,
         "completion_time": 1767225600 + 7200,
+        "project_url": "https://src.fedoraproject.org/rpms/packit",
     }
 
 
@@ -47,13 +48,18 @@ def test_logdetective_koji_build_scratch_downstream(
     This tests the full flow: message => handler => helper => external calls.
     """
 
+    project = flexmock(repo="packit", namespace="rpms")
+    project.should_receive("get_web_url").and_return("https://src.fedoraproject.org/rpms/packit")
+
     service_config = flexmock(
         logdetective_enabled=True,
+        fedora_ci=FedoraCISettings(),
         logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
         koji_logs_url="https://kojipkgs.fedoraproject.org",
         deployment=Deployment.prod,
         logdetective_token="secret-123",
     )
+    service_config.should_receive("get_project").and_return(project)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
 
@@ -107,4 +113,74 @@ def test_logdetective_koji_build_scratch_downstream(
     results = run_downstream_koji_scratch_build_report_handler(
         koji_scratch_build_fixture, None, None
     )
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_logdetective_skipped_when_project_disabled(
+    koji_build_pr_downstream: Mock,
+):
+    """
+    Log Detective is NOT triggered when the project is in disabled_projects_for_logdetective,
+    even though the build failed and logdetective is globally enabled.
+    """
+    failed_build_event = {
+        "task_id": 12345,
+        "state": "FAILED",
+        "old_state": "OPEN",
+        "rpm_build_task_ids": {"x86_64": 123456, "noarch": 123457},
+        "start_time": 1767225600,
+        "completion_time": 1767225600 + 7200,
+        "project_url": "https://src.fedoraproject.org/rpms/packit",
+    }
+
+    project = flexmock(repo="packit", namespace="rpms")
+    project.should_receive("get_web_url").and_return("https://src.fedoraproject.org/rpms/packit")
+
+    service_config = flexmock(
+        logdetective_enabled=True,
+        fedora_ci=FedoraCISettings(
+            disabled_projects_for_logdetective={"https://src.fedoraproject.org/rpms/packit"},
+        ),
+        logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
+        koji_logs_url="https://kojipkgs.fedoraproject.org",
+        deployment=Deployment.prod,
+        logdetective_token="secret-123",
+    )
+    service_config.should_receive("get_project").and_return(project)
+
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+
+    koji_build_pr_downstream.target = "rawhide"
+    flexmock(koji.result.Task).should_receive("get_packages_config").and_return(None)
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
+        koji_build_pr_downstream
+    )
+
+    koji_build_pr_downstream.should_receive("set_build_start_time").once()
+    koji_build_pr_downstream.should_receive("set_build_finished_time").once()
+    koji_build_pr_downstream.should_receive("set_status").with_args("failure").once()
+    koji_build_pr_downstream.should_receive("set_build_logs_urls").once()
+    koji_build_pr_downstream.should_receive("set_web_url").once()
+
+    flexmock(StatusReporter).should_receive("set_status").and_return().once()
+
+    # Log Detective should NOT be called
+    flexmock(requests).should_receive("post").never()
+    flexmock(LogDetectiveRunGroupModel).should_receive("create").never()
+    flexmock(LogDetectiveRunModel).should_receive("create").never()
+
+    pushgateway = flexmock(
+        log_detective_runs_started=flexmock(),
+        fedora_ci_koji_builds_started=flexmock(),
+        fedora_ci_koji_builds_finished=flexmock(),
+        fedora_ci_koji_build_finished_time=flexmock(),
+    )
+    pushgateway.log_detective_runs_started.should_receive("inc").never()
+    pushgateway.fedora_ci_koji_builds_finished.should_receive("inc").once().and_return()
+    pushgateway.should_receive("push").and_return()
+    flexmock(Pushgateway).new_instances(pushgateway)
+
+    koji_build_pr_downstream.should_receive("add_log_detective_run").never()
+
+    results = run_downstream_koji_scratch_build_report_handler(failed_build_event, None, None)
     assert first_dict_value(results["job"])["success"]

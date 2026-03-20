@@ -12,6 +12,7 @@ from ogr.services.pagure import PagureProject
 from packit.actions import ActionName
 from packit.config import (
     CommonPackageConfig,
+    Deployment,
     JobConfig,
     JobConfigTriggerType,
     JobConfigView,
@@ -22,7 +23,7 @@ from packit.config.commands import TestCommandConfig
 from packit.config.requirements import LabelRequirementsConfig, RequirementsConfig
 from packit.copr_helper import CoprHelper
 
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.events import (
     anitya,
     copr,
@@ -40,6 +41,7 @@ from packit_service.worker.checker.copr import (
     IsPackageMatchingJobView,
 )
 from packit_service.worker.checker.distgit import (
+    IsProjectEnabledForELN,
     IsUpstreamTagMatchingConfig,
     LabelsOnDistgitPR,
 )
@@ -1468,6 +1470,58 @@ def test_is_internal_tf_enabled(use_internal_tf, env_var_value, should_pass):
         )
 
     checker = IsInternalTFEnabled(
+        package_config=package_config,
+        job_config=job_config,
+        event=event,
+    )
+
+    assert checker.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "disabled_projects, project_url, should_pass",
+    (
+        pytest.param(
+            set(),
+            "https://src.fedoraproject.org/rpms/pkg",
+            True,
+            id="empty disabled list - should pass",
+        ),
+        pytest.param(
+            {"https://src.fedoraproject.org/rpms/other"},
+            "https://src.fedoraproject.org/rpms/pkg",
+            True,
+            id="project not in disabled list - should pass",
+        ),
+        pytest.param(
+            {"https://src.fedoraproject.org/rpms/pkg"},
+            "https://src.fedoraproject.org/rpms/pkg",
+            False,
+            id="project in disabled list - should be blocked",
+        ),
+    ),
+)
+def test_is_project_enabled_for_eln(disabled_projects, project_url, should_pass):
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+    )
+    event = {
+        "event_type": pagure.pr.Action.event_type(),
+    }
+
+    git_project = flexmock()
+    git_project.should_receive("get_web_url").and_return(project_url)
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    service_config = ServiceConfig(
+        deployment=Deployment.stg,
+        fedora_ci=FedoraCISettings(disabled_projects_for_eln=disabled_projects),
+    )
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+
+    checker = IsProjectEnabledForELN(
         package_config=package_config,
         job_config=job_config,
         event=event,

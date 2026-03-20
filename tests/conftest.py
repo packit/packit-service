@@ -15,6 +15,7 @@ from packit.config.common_package_config import Deployment
 
 from packit_service import events
 from packit_service.config import ServiceConfig
+from packit_service.fedora_ci_config import FedoraCIConfig
 from packit_service.models import (
     BuildStatus,
     ProjectEventModel,
@@ -50,6 +51,13 @@ def global_service_config():
     # So just prod reacts to configs without packit_instances defined.
     service_config.deployment = Deployment.prod
     ServiceConfig.service_config = service_config
+
+
+@pytest.fixture(autouse=True)
+def _reset_fedora_ci_config():
+    """Reset the FedoraCIConfig cached singleton so each test gets
+    a fresh instance based on its own (possibly mocked) ServiceConfig."""
+    FedoraCIConfig._instance = None
 
 
 @pytest.fixture()

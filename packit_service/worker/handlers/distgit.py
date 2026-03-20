@@ -78,6 +78,7 @@ from packit_service.utils import (
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
     HasIssueCommenterRetriggeringPermissions,
+    IsProjectEnabledForELN,
     IsProjectInRpmsNamespace,
     IsProjectOk,
     IsUpstreamTagMatchingConfig,
@@ -1026,7 +1027,11 @@ class DownstreamKojiELNScratchBuildHandler(DownstreamKojiScratchBuildHandler):
 
     @staticmethod
     def get_checkers() -> tuple[type[Checker], ...]:
-        return (PermissionOnDistgitForFedoraCI, PackageNeedsELNBuildFromRawhide)
+        return (
+            IsProjectEnabledForELN,
+            PermissionOnDistgitForFedoraCI,
+            PackageNeedsELNBuildFromRawhide,
+        )
 
 
 class AbstractDownstreamKojiBuildHandler(

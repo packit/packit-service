@@ -30,7 +30,7 @@ from packit.utils.koji_helper import KojiHelper
 import packit_service.models
 import packit_service.service.urls as urls
 from packit_service import utils
-from packit_service.config import ServiceConfig
+from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
     CONTACTS_URL,
@@ -2609,12 +2609,16 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         .should_receive("get_files")
         .and_return([])
         .mock()
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/python-teamcity-messages")
+        .mock()
     )
     service_config = (
         flexmock(
-            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
             fedora_ci_run_by_default=False,
-            disabled_projects_for_fedora_ci=set(),
+            fedora_ci=FedoraCISettings(
+                enabled_projects={"https://src.fedoraproject.org/rpms/python-teamcity-messages"},
+            ),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
@@ -3695,9 +3699,10 @@ def _test_downstream_tf_retrigger_common(
     )
     service_config = (
         flexmock(
-            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
             fedora_ci_run_by_default=False,
-            disabled_projects_for_fedora_ci=set(),
+            fedora_ci=FedoraCISettings(
+                enabled_projects={"https://src.fedoraproject.org/rpms/python-teamcity-messages"},
+            ),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
@@ -3969,9 +3974,10 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
     )
     service_config = (
         flexmock(
-            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
             fedora_ci_run_by_default=False,
-            disabled_projects_for_fedora_ci=set(),
+            fedora_ci=FedoraCISettings(
+                enabled_projects={"https://src.fedoraproject.org/rpms/python-teamcity-messages"},
+            ),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
@@ -4152,9 +4158,10 @@ def test_downstream_build_retrigger_rawhide_pr_eln_package_fedora_ci(
     )
     service_config = (
         flexmock(
-            enabled_projects_for_fedora_ci="https://src.fedoraproject.org/rpms/python-teamcity-messages",
             fedora_ci_run_by_default=False,
-            disabled_projects_for_fedora_ci=set(),
+            fedora_ci=FedoraCISettings(
+                enabled_projects={"https://src.fedoraproject.org/rpms/python-teamcity-messages"},
+            ),
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
