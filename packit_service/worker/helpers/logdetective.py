@@ -10,6 +10,7 @@ import logging
 import requests
 
 from packit_service.events import koji
+from packit_service.events.event_data import EventData
 from packit_service.models import (
     LogDetectiveBuildSystem,
     LogDetectiveResult,
@@ -31,11 +32,13 @@ class LogDetectiveKojiTriggerHelper:
     def __init__(
         self,
         koji_event: koji.result.Task,
+        data: EventData,
         pushgateway: Pushgateway,
         url: str,
         logdetective_token: str,
     ):
         self.koji_event = koji_event
+        self.data = data
         # NOTE: LD analysis currently (Feb 2026) only works for one log file.
         # Specifically "build.log" for Koji ("builder-live.log" for Copr).
         # A multi-log analysis support is planned, in which case this will need to be expanded
@@ -62,9 +65,9 @@ class LogDetectiveKojiTriggerHelper:
             "artifacts": self.artifacts,
             "target_build": str(self.koji_event.task_id),
             "build_system": LogDetectiveBuildSystem.koji.value,
-            "commit_sha": self.koji_event.commit_sha,
-            "project_url": self.koji_event.project_url,
-            "pr_id": self.koji_event.pr_id,
+            "commit_sha": self.data.commit_sha,
+            "project_url": self.data.project_url,
+            "pr_id": self.data.pr_id,
         }
 
         try:
