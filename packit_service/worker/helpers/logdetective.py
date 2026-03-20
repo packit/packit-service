@@ -70,6 +70,8 @@ class LogDetectiveKojiTriggerHelper:
             "pr_id": self.data.pr_id,
         }
 
+        logger.debug(f"Sending Log Detective request to {endpoint_url}: {request_json}")
+
         try:
             response = requests.post(
                 endpoint_url,
