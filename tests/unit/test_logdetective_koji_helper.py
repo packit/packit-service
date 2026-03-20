@@ -41,6 +41,15 @@ def mock_pushgateway_log_detective_no_inc():
 
 
 @pytest.fixture
+def mock_event_data():
+    return flexmock(
+        commit_sha="abc123",
+        project_url="https://github.com/test/repo",
+        pr_id=42,
+    )
+
+
+@pytest.fixture
 def mock_koji_task_failed_event():
     mock_group = flexmock(runs=[flexmock()])
     mock_build_model = flexmock(group_of_targets=mock_group)
@@ -49,9 +58,6 @@ def mock_koji_task_failed_event():
         task_id=12345,
         state=KojiTaskState.failed,
         old_state=KojiTaskState.open,
-        commit_sha="abc123",
-        project_url="https://github.com/test/repo",
-        pr_id=42,
         target="fedora-rawhide-x86_64",
         build_model=mock_build_model,
     )
@@ -62,9 +68,12 @@ def mock_koji_task_failed_event():
     return event
 
 
-def test_logdetective_koji_init_sets_artifacts_correctly(mock_koji_task_failed_event):
+def test_logdetective_koji_init_sets_artifacts_correctly(
+    mock_koji_task_failed_event, mock_event_data
+):
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         flexmock(),
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -77,7 +86,9 @@ def test_logdetective_koji_init_sets_artifacts_correctly(mock_koji_task_failed_e
     )
 
 
-def test_logdetective_koji_success(mock_koji_task_failed_event, mock_pushgateway_log_detective_inc):
+def test_logdetective_koji_success(
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_inc
+):
     mock_response = flexmock(status_code=200)
     mock_response.should_receive("raise_for_status")
     mock_response.should_receive("json").and_return(
@@ -126,6 +137,7 @@ def test_logdetective_koji_success(mock_koji_task_failed_event, mock_pushgateway
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -136,7 +148,7 @@ def test_logdetective_koji_success(mock_koji_task_failed_event, mock_pushgateway
 
 
 def test_logdetective_koji_http_error(
-    mock_koji_task_failed_event, mock_pushgateway_log_detective_no_inc
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
     mock_response = flexmock(status_code=500)
     mock_response.should_receive("raise_for_status")
@@ -152,6 +164,7 @@ def test_logdetective_koji_http_error(
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -162,7 +175,7 @@ def test_logdetective_koji_http_error(
 
 
 def test_logdetective_koji_connection_error(
-    mock_koji_task_failed_event, mock_pushgateway_log_detective_no_inc
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
     mock_response = flexmock()
     mock_response.should_receive("raise_for_status")
@@ -174,6 +187,7 @@ def test_logdetective_koji_connection_error(
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -184,7 +198,7 @@ def test_logdetective_koji_connection_error(
 
 
 def test_logdetective_koji_json_decode_error(
-    mock_koji_task_failed_event, mock_pushgateway_log_detective_no_inc
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
     mock_response = flexmock()
     mock_response.should_receive("raise_for_status")
@@ -199,6 +213,7 @@ def test_logdetective_koji_json_decode_error(
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -209,7 +224,7 @@ def test_logdetective_koji_json_decode_error(
 
 
 def test_logdetective_koji_timeout(
-    mock_koji_task_failed_event, mock_pushgateway_log_detective_no_inc
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
     flexmock(requests).should_receive("post").and_raise(
         requests.exceptions.Timeout("Request timed out")
@@ -221,6 +236,7 @@ def test_logdetective_koji_timeout(
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -231,7 +247,7 @@ def test_logdetective_koji_timeout(
 
 
 def test_logdetective_koji_missing_id(
-    mock_koji_task_failed_event, mock_pushgateway_log_detective_no_inc
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
     mock_response = flexmock(status_code=200)
     mock_response.should_receive("raise_for_status")
@@ -247,6 +263,7 @@ def test_logdetective_koji_missing_id(
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
@@ -257,7 +274,7 @@ def test_logdetective_koji_missing_id(
 
 
 def test_logdetective_koji_missing_time(
-    mock_koji_task_failed_event, mock_pushgateway_log_detective_no_inc
+    mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
     mock_response = flexmock(status_code=200)
     mock_response.should_receive("raise_for_status")
@@ -273,6 +290,7 @@ def test_logdetective_koji_missing_time(
 
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
+        mock_event_data,
         mock_pushgateway_log_detective_no_inc,
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
