@@ -18,3 +18,6 @@ If you'd like to know more about packit, please check:
 
 
 <!-- fix-issue-412: enable controlling packit-service with the command embedded  -->
+
+
+<!-- fix-issue-1668: Provide a /packit help comment command -->
