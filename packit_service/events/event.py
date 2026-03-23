@@ -51,6 +51,7 @@ def use_for_job_config_trigger(trigger_type: JobConfigTriggerType):
 
 class Event(ABC):
     task_accepted_time: Optional[datetime] = None
+    cancel_cutoff_time: Optional[datetime] = None
     actor: Optional[str]
 
     def __init__(self, created_at: Optional[Union[int, float, str]] = None):
@@ -138,6 +139,10 @@ class Event(ABC):
         task_accepted_time = d.get("task_accepted_time")
         d["task_accepted_time"] = (
             int(task_accepted_time.timestamp()) if task_accepted_time else None
+        )
+        cancel_cutoff_time = d.get("cancel_cutoff_time")
+        d["cancel_cutoff_time"] = (
+            int(cancel_cutoff_time.timestamp()) if cancel_cutoff_time else None
         )
         d["project_url"] = d.get("project_url") or (
             self.db_project_object.project.project_url

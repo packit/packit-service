@@ -477,6 +477,16 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         event_dict = self.data.get_dict()
 
+        if (
+            self.build
+            and self.build.group_of_targets.runs
+            and (cutoff := self.build.group_of_targets.runs[0].datetime)
+        ):
+            # use the pipeline datetime of the current build rather than
+            # recomputing via `get_latest_datetime_for_event()`, to avoid
+            # canceling tests triggered by sibling builds from the same batch
+            event_dict["cancel_cutoff_time"] = int(cutoff.timestamp())
+
         for job_config in self.copr_build_helper.job_tests_all:
             if (
                 not job_config.skip_build

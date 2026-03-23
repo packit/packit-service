@@ -229,9 +229,19 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return get_koji_task_id_and_url_from_stdout(out)
 
     def get_running_jobs(self) -> Iterable[KojiBuildTargetModel]:
+        if not self.db_project_event:
+            logger.warning("No db_project_event, cannot query running Koji builds.")
+            return None
+        if not self.metadata.cancel_cutoff_time:
+            logger.warning(
+                "No cancel_cutoff_time, skipping running Koji builds query "
+                "to avoid canceling unrelated jobs."
+            )
+            return None
         return KojiBuildGroupModel.get_running(
             project_event_type=self.db_project_event.type,
             event_id=self.db_project_event.event_id,
+            created_before=self.metadata.cancel_cutoff_time,
         )
 
     def cancel_running_builds(
