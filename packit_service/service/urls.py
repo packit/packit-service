@@ -1,12 +1,14 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+from typing import Union
+
 from packit_service.config import ServiceConfig
 
 DASHBOARD_URL = ServiceConfig().get_service_config().dashboard_url
 
 
-def _get_url_for_dashboard_results(job_type: str, id_: int) -> str:
+def _get_url_for_dashboard_results(job_type: str, id_: Union[int, str]) -> str:
     """
     Generates an URL to the dashboard result page that can be used for setting
     URL in a commit status.
@@ -54,3 +56,7 @@ def get_openscanhub_info_url(id_: int) -> str:
 
 def get_bodhi_update_info_url(id_: int) -> str:
     return _get_url_for_dashboard_results("bodhi", id_)
+
+
+def get_logdetective_info_url(id_: str) -> str:
+    return _get_url_for_dashboard_results("log-detective", id_)

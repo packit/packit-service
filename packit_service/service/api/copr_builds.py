@@ -12,7 +12,11 @@ from packit_service.models import (
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import get_project_info_from_build, response_maker
+from packit_service.service.api.utils import (
+    get_log_detective_runs,
+    get_project_info_from_build,
+    response_maker,
+)
 
 logger = getLogger("packit_service")
 
@@ -97,6 +101,7 @@ class CoprBuildItem(Resource):
             "srpm_build_id": build.get_srpm_build().id,
             "run_ids": sorted(run.id for run in build.group_of_targets.runs),
             "built_packages": build.built_packages,
+            "log_detective_runs": get_log_detective_runs(build=build),
         }
 
         build_dict.update(get_project_info_from_build(build))

@@ -222,7 +222,7 @@ def test_logdetective_run_success(
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=expected_status,
         description=f"Log Detective analysis status: {status_str}",
-        url="https://build.url",
+        url="/jobs/log-detective/123456",
         check_name="Packit - Log Detective analysis",
     ).once()
 
@@ -329,7 +329,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=BaseCommitStatus.success,
         description="Log Detective analysis status: complete",
-        url="",
+        url="/jobs/log-detective/123456",
         check_name="Packit - Log Detective analysis",
     ).once()
 

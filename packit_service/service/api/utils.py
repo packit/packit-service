@@ -14,6 +14,8 @@ from packit_service.models import (
     GitProjectModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
+    LogDetectiveRunGroupModel,
+    LogDetectiveRunModel,
     SRPMBuildModel,
     SyncReleaseModel,
     SyncReleaseTargetModel,
@@ -43,6 +45,8 @@ def get_project_info_from_build(
         SyncReleaseModel,
         BodhiUpdateTargetModel,
         VMImageBuildTargetModel,
+        LogDetectiveRunModel,
+        LogDetectiveRunGroupModel,
     ],
 ) -> dict[str, Any]:
     if not (project := build.get_project()):
@@ -132,3 +136,13 @@ def get_project_info(project: Union[AnityaProjectModel, GitProjectModel]):
     result_dict["non_git_upstream"] = isinstance(project, AnityaProjectModel)
 
     return result_dict
+
+
+def get_log_detective_runs(
+    build: Union[CoprBuildTargetModel, KojiBuildTargetModel],
+) -> list[str]:
+    """Get a list of Log Detective run UUIDs."""
+
+    if build.log_detective_runs:
+        return [run.analysis_id for run in build.log_detective_runs]
+    return []

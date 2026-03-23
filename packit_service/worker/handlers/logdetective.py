@@ -20,6 +20,7 @@ from packit_service.models import (
     LogDetectiveResult,
     LogDetectiveRunModel,
 )
+from packit_service.service.urls import get_logdetective_info_url
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.handlers.abstract import (
@@ -131,7 +132,8 @@ class DownstreamLogDetectiveResultsHandler(
         else:
             self.branch_name = build.get_branch_name()
 
-        url = build.web_url or ""
+        url = get_logdetective_info_url(self.analysis_id)
+
         # LDRunModel.target is "target-arch" for Koji (i.e. rawhide-x86_64),
         # for Copr it would be chroot which also includes arch information
         self._ci_helper = FedoraCIHelper(
