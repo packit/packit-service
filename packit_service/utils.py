@@ -239,6 +239,7 @@ def _create_base_parser(
         description=description,
         epilog=epilog,
         formatter_class=RawTextHelpFormatter,
+        add_help=False,
     )
     parser.add_argument("--package", help="specific package from monorepo to run job for")
     return parser
@@ -253,7 +254,11 @@ def get_comment_parser(
 
     subparsers = parser.add_subparsers(
         dest="command",
-        help="jobs available",
+        help="commands available",
+    )
+    subparsers.add_parser(
+        "help",
+        help="show this help message",
     )
 
     build_parser = subparsers.add_parser(
@@ -335,8 +340,13 @@ def get_comment_parser_fedora_ci(
 
     subparsers = parser.add_subparsers(
         dest="command",
-        help="jobs available",
+        help="commands available",
     )
+    subparsers.add_parser(
+        "help",
+        help="show this help message",
+    )
+
     test_parser = subparsers.add_parser("test", help="run tests in Testing Farm")
     test_parser.add_argument(
         "test_identifier",
