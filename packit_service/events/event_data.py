@@ -40,6 +40,7 @@ class EventData:
         event_dict: Optional[dict],
         issue_id: Optional[int],
         task_accepted_time: Optional[datetime],
+        cancel_cutoff_time: Optional[datetime],
         build_targets_override: Optional[set[tuple[str, str]]],
         tests_targets_override: Optional[set[tuple[str, str]]],
         branches_override: Optional[list[str]],
@@ -58,6 +59,7 @@ class EventData:
         self.event_dict = event_dict
         self.issue_id = issue_id
         self.task_accepted_time = task_accepted_time
+        self.cancel_cutoff_time = cancel_cutoff_time
         self.build_targets_override = (
             set(build_targets_override) if build_targets_override else None
         )
@@ -91,6 +93,9 @@ class EventData:
         time = event.get("task_accepted_time")
         task_accepted_time = datetime.fromtimestamp(time, timezone.utc) if time else None
 
+        cutoff = event.get("cancel_cutoff_time")
+        cancel_cutoff_time = datetime.fromtimestamp(cutoff, timezone.utc) if cutoff else None
+
         build_targets_override = (
             {(target, identifier_) for [target, identifier_] in event.get("build_targets_override")}
             if event.get("build_targets_override")
@@ -118,6 +123,7 @@ class EventData:
             event_dict=event,
             issue_id=issue_id,
             task_accepted_time=task_accepted_time,
+            cancel_cutoff_time=cancel_cutoff_time,
             build_targets_override=build_targets_override,
             tests_targets_override=tests_targets_override,
             branches_override=branches_override,
@@ -138,6 +144,7 @@ class EventData:
         kwargs.pop("event_type", None)
         kwargs.pop("event_id", None)
         kwargs.pop("task_accepted_time", None)
+        kwargs.pop("cancel_cutoff_time", None)
         kwargs.pop("build_targets_override", None)
         kwargs.pop("tests_targets_override", None)
         kwargs.pop("branches_override", None)
@@ -321,6 +328,8 @@ class EventData:
         d["task_accepted_time"] = (
             int(task_accepted_time.timestamp()) if task_accepted_time else None
         )
+        cancel_cutoff_time = d.get("cancel_cutoff_time")
+        d["cancel_cutoff_time"] = cancel_cutoff_time.timestamp() if cancel_cutoff_time else None
         if self.build_targets_override:
             d["build_targets_override"] = list(self.build_targets_override)
         if self.tests_targets_override:

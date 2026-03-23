@@ -5,6 +5,7 @@
 Data layer on top of PSQL using sqlalch
 """
 
+import datetime as dt
 import enum
 import logging
 import re
@@ -1947,6 +1948,25 @@ class PipelineModel(Base):
     def get_project_event_object(self) -> AbstractProjectObjectDbType:
         return self.project_event.get_project_event_object()
 
+    @classmethod
+    def get_latest_datetime_for_event(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+    ) -> Optional[dt.datetime]:
+        """Return the datetime of the most recent pipeline for the given
+        project object (e.g. a PR or branch), or None if no pipelines exist."""
+        with sa_session_transaction() as session:
+            return (
+                session.query(func.max(PipelineModel.datetime))
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
+                )
+                .scalar()
+            )
+
     def __repr__(self):
         return (
             f"PipelineModel(id={self.id}, datetime='{datetime}', "
@@ -2179,30 +2199,43 @@ class CoprBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(CoprBuildGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable["CoprBuildTargetModel"]:
-        """Get list of currently running Copr builds matching the passed
-        arguments.
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+        created_before: Optional[datetime] = None,
+    ) -> Iterable["CoprBuildTargetModel"]:
+        """Get list of currently running Copr builds for a given project object
+        (e.g. a PR or branch).
 
         Args:
-            commit_sha: Commit hash that is used for filtering the running jobs.
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
+            created_before: If set, only return builds whose pipeline was
+                created at or before this datetime (used to avoid cancelling
+                builds from the current trigger batch).
 
         Returns:
-            An iterable over Copr target models that are curently in queue
+            An iterable over Copr target models that are currently in queue
             (running) or waiting for an SRPM.
         """
         with sa_session_transaction() as session:
-            return (
+            q = (
                 session.query(CoprBuildTargetModel)
                 .join(CoprBuildGroupModel)
                 .join(PipelineModel)
                 .join(ProjectEventModel)
                 .filter(
-                    ProjectEventModel.commit_sha == commit_sha,
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
                     CoprBuildTargetModel.status.in_(
                         (BuildStatus.pending, BuildStatus.waiting_for_srpm)
                     ),
                 )
             )
+            if created_before is not None:
+                q = q.filter(PipelineModel.datetime <= created_before)
+            return q
 
 
 class BuildStatus(str, enum.Enum):
@@ -2633,18 +2666,22 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         cls,
         project_event_type: ProjectEventModelType,
         event_id: int,
+        created_before: Optional[datetime] = None,
     ) -> Iterable["KojiBuildTargetModel"]:
         """Get running Koji builds for a given project object (e.g. a PR or branch).
 
         Args:
             project_event_type: Type of the project event (e.g. pull_request).
             event_id: ID of the project object (e.g. PullRequestModel.id).
+            created_before: If set, only return builds whose pipeline was
+                created at or before this datetime (used to avoid cancelling
+                builds from the current trigger batch).
 
         Returns:
             An iterable over KojiBuildTargetModels in non-final states.
         """
         with sa_session_transaction() as session:
-            return (
+            q = (
                 session.query(KojiBuildTargetModel)
                 .join(KojiBuildGroupModel)
                 .join(PipelineModel)
@@ -2655,6 +2692,9 @@ class KojiBuildGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                     KojiBuildTargetModel.status.in_(("pending", "queued", "running")),
                 )
             )
+            if created_before is not None:
+                q = q.filter(PipelineModel.datetime <= created_before)
+            return q
 
 
 class BodhiUpdateTargetModel(GroupAndTargetModelConnector, Base):
@@ -3624,26 +3664,37 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(TFTTestRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str, ranch: str) -> Iterable["TFTTestRunTargetModel"]:
-        """Get list of currently running Testing Farm runs matching the passed
-        arguments.
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+        ranch: str,
+        created_before: Optional[datetime] = None,
+    ) -> Iterable["TFTTestRunTargetModel"]:
+        """Get list of currently running Testing Farm runs for a given project
+        object (e.g. a PR or branch).
 
         Args:
-            commit_sha: Commit hash that is used for filtering the running jobs.
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
             ranch: Testing Farm ranch where the tests are supposed to be run.
+            created_before: If set, only return test runs whose pipeline was
+                created at or before this datetime (used to avoid cancelling
+                tests from the current trigger batch).
 
         Returns:
             An iterable over TFT target models that reprepresent matching TF
             runs that are _queued_ (already submitted to the TF) or _running_.
         """
         with sa_session_transaction() as session:
-            return (
+            q = (
                 session.query(TFTTestRunTargetModel)
                 .join(TFTTestRunGroupModel)
                 .join(PipelineModel)
                 .join(ProjectEventModel)
                 .filter(
-                    ProjectEventModel.commit_sha == commit_sha,
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
                     TFTTestRunGroupModel.ranch == ranch,
                     TFTTestRunTargetModel.status.in_(
                         (
@@ -3653,6 +3704,9 @@ class TFTTestRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
                     ),
                 )
             )
+            if created_before is not None:
+                q = q.filter(PipelineModel.datetime <= created_before)
+            return q
 
 
 class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
@@ -4957,28 +5011,41 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(LogDetectiveRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
-    def get_running(cls, commit_sha: str) -> Iterable[LogDetectiveRunModel]:
-        """Get list of currently running Log Detective runs matching the passed
-        arguments.
+    def get_running(
+        cls,
+        project_event_type: ProjectEventModelType,
+        event_id: int,
+        created_before: Optional[datetime] = None,
+    ) -> Iterable[LogDetectiveRunModel]:
+        """Get list of currently running Log Detective runs for a given project
+        object (e.g. a PR or branch).
 
         Args:
-            commit_sha: Commit hash that is used for filtering the running jobs.
+            project_event_type: Type of the project event (e.g. pull_request).
+            event_id: ID of the project object (e.g. PullRequestModel.id).
+            created_before: If set, only return runs whose pipeline was
+                created at or before this datetime (used to avoid cancelling
+                runs from the current trigger batch).
 
         Returns:
             An iterable over Log Detective run models representing Log Detective runs
             runs that are running.
         """
         with sa_session_transaction() as session:
-            return (
+            q = (
                 session.query(LogDetectiveRunModel)
                 .join(LogDetectiveRunGroupModel)
                 .join(PipelineModel)
                 .join(ProjectEventModel)
                 .filter(
-                    ProjectEventModel.commit_sha == commit_sha,
+                    ProjectEventModel.type == project_event_type,
+                    ProjectEventModel.event_id == event_id,
                     LogDetectiveRunModel.status == LogDetectiveResult.running,
                 )
             )
+            if created_before is not None:
+                q = q.filter(PipelineModel.datetime <= created_before)
+            return q
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))
