@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
+import itertools
 import logging
 import os
 import tempfile
@@ -269,7 +270,7 @@ def get_comment_parser(
     subparsers.add_parser("rebuild-failed", help="Re-build failed builds in Copr")
     subparsers.add_parser(
         "upstream-koji-build",
-        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+        help="Build package(s) in Koji \n(the latest commit of this PR will be targeted, not HEAD)",
     )
 
     test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
@@ -314,7 +315,7 @@ def get_comment_parser(
 
     subparsers.add_parser(
         "koji-build",
-        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+        help="Build package(s) in Koji \n(the latest commit of this PR will be targeted, not HEAD)",
     )
 
     koji_tag_parser = subparsers.add_parser("koji-tag", help="Tag Koji build to the common sidetag")
@@ -470,3 +471,50 @@ def get_default_tf_mapping(internal: bool = False) -> dict[str, str]:
             f"rhel-{version}-nightly" if internal else f"centos-stream-{majorver}"
         )
     return mapping
+
+
+def break_lines_in_text(text: str, sep: str, max_line_length: int):
+    """
+    Break lines inside text into multiple lines based on specified maximum
+    line length. Lines are broken at positions where selected separator
+    instances are located.
+
+    Args:
+        text: Text in which to break lines.
+        sep: Separator at which to break lines.
+        max_line_length: Maximum lenght of a singular line inside text.
+
+    Returns:
+        Text containing lines broken at separators if needed to shorten
+        affected lines.
+    """
+    split_text = []
+
+    for line in text.splitlines():
+        if len(line) > max_line_length:
+            leading_spaces_amount = sum(1 for _ in itertools.takewhile(str.isspace, line))
+            leading_spaces = " " * leading_spaces_amount
+
+            line = line.lstrip()
+            parts = line.split(sep)
+
+            new_lines = []
+            new_line = parts[0]
+
+            max_line_length_without_whitespaces = max_line_length - leading_spaces_amount
+
+            for part in parts[1:]:
+                if (len(new_line) + len(part)) < max_line_length_without_whitespaces:
+                    new_line = sep.join([new_line, part])
+
+                else:
+                    new_lines.append(new_line + sep)
+                    new_line = part
+
+            new_lines.append(new_line)
+            formatted_new_lines = [leading_spaces + line + "\n" for line in new_lines]
+            line = "".join(formatted_new_lines)
+
+        split_text.append(line)
+
+    return "\n".join(split_text)

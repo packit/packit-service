@@ -18,6 +18,7 @@ from packit.config import (
 from packit.config.package_config import PackageConfig
 
 from packit_service.constants import (
+    COMMENT_MAX_LINE_LENGTH,
     CONTACTS_URL,
     DOCS_APPROVAL_URL,
     HELP_COMMENT_DESCRIPTION,
@@ -41,6 +42,7 @@ from packit_service.models import (
     GithubInstallationModel,
 )
 from packit_service.utils import (
+    break_lines_in_text,
     get_comment_parser,
     get_comment_parser_fedora_ci,
     get_packit_commands_from_comment,
@@ -359,8 +361,11 @@ class GitCommentHelpHandler(
             )
             epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE)
 
+        body = break_lines_in_text(
+            parser.format_help(), sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH
+        )
         # put message in code block to retain formatting
-        help_message = f"```\n{parser.format_help()}\n```\n{epilog}"
+        help_message = f"```\n{body}\n```\n{epilog}"
         self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})
