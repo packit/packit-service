@@ -43,7 +43,7 @@ class DownstreamLogDetectiveResultsHandler(
 ):
     __test__ = False
     task_name = TaskName.downstream_log_detective_results
-    check_name = "Log Detective Analysis"
+    _check_name = "Log Detective analysis"
 
     def __init__(self, package_config: PackageConfig, job_config: JobConfig, event: dict):
         super().__init__(package_config, job_config, event)
@@ -132,8 +132,17 @@ class DownstreamLogDetectiveResultsHandler(
             self.branch_name = build.get_branch_name()
 
         url = build.web_url or ""
+        # LDRunModel.target is "target-arch" for Koji (i.e. rawhide-x86_64),
+        # for Copr it would be chroot which also includes arch information
+        self._ci_helper = FedoraCIHelper(
+            project=self.project,
+            metadata=self.data,
+            target_branch=log_detective_run_model.target or self.branch_name,
+        )
         self.report(
-            state=status, description=f"Log Detective analysis status: {self.status.value}", url=url
+            state=status,
+            description=f"Log Detective analysis status: {self.status.value}",
+            url=url,
         )
 
         if self.log_detective_response:
@@ -147,17 +156,12 @@ class DownstreamLogDetectiveResultsHandler(
 
         return TaskResults(success=True, details={})
 
-    def report(
-        self,
-        state: BaseCommitStatus,
-        description: str,
-        url: str,
-    ):
+    def report(self, state: BaseCommitStatus, description: str, url: str):
         self.ci_helper.report(
             state=state,
             description=description,
             url=url,
-            check_name="Log Detective Analysis",
+            check_name=self.check_name,
         )
 
     @property

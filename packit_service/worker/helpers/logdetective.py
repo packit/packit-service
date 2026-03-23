@@ -6,6 +6,7 @@ Helper class for triggering Log Detective from within the koji task handler.
 """
 
 import logging
+from typing import Optional
 
 import requests
 
@@ -25,6 +26,14 @@ logger = logging.getLogger(__name__)
 class LogDetectiveKojiTriggerHelper:
     """
     Trigger Log Detective interface server for an analysis of a failed Downstream Koji build.
+
+    We pass the full downstream build Task (with taskID of the parent) to __init__().
+    This task contains information about architectures, for which the build failed.
+    Arch is then used to look up the subtask ID for the buildArch,
+    where the proper failed build logs can be located.
+    KojiBuildTargetModel refers to the parent task -- there can be multiple
+    Log Detective runs for one BuildTarget (i.e. fedora 44 build can fail
+    for x86_64 and aarch64...).
     """
 
     __test__ = False
@@ -34,23 +43,39 @@ class LogDetectiveKojiTriggerHelper:
         koji_event: koji.result.Task,
         data: EventData,
         pushgateway: Pushgateway,
+        koji_logs_url: str,
         url: str,
         logdetective_token: str,
     ):
         self.koji_event = koji_event
         self.data = data
-        # NOTE: LD analysis currently (Feb 2026) only works for one log file.
-        # Specifically "build.log" for Koji ("builder-live.log" for Copr).
-        # A multi-log analysis support is planned, in which case this will need to be expanded
-        # to include other files, like "mock_output.log", "root.log", etc.
-        self.artifacts = {
-            "build.log": self.koji_event.get_koji_build_logs_url(self.koji_event.task_id),
-        }
+        self.koji_logs_url = koji_logs_url
         self.url = url
         self.pushgateway = pushgateway
         self.token = logdetective_token
+        # run_group created after 1st succcessful trigger, right before creating RunModel
+        self.run_group: Optional[LogDetectiveRunGroupModel] = None
 
-    def trigger_log_detective_analysis(self) -> bool:
+    def trigger_log_detective_analysis(self) -> list[bool]:
+        """
+        Run a trigger over all arches for which we have a failed buildArch task.
+
+        Return a list of booleans signaling if the triggers were successful.
+        """
+
+        trigger_results = []
+        for arch in self.koji_event.rpm_build_failed_arch_list:
+            success = self.trigger_log_detective_analysis_for_arch(arch)
+            logger.info(
+                f"Triggered Log Detective for a failed Koji build ("
+                f"child taskID = {self.koji_event.rpm_build_task_ids[arch]}, "
+                f"arch = {arch}, "
+                f"trigger = {'success' if success else 'fail'})"
+            )
+            trigger_results.append(success)
+        return trigger_results
+
+    def trigger_log_detective_analysis_for_arch(self, arch: str) -> bool:
         """
         Gather relevant data and send a request to LogDetective for the failed Koji build.
         This function assumes that the `self.koji_event` is already in the failed state,
@@ -60,10 +85,18 @@ class LogDetectiveKojiTriggerHelper:
         we just return a boolean signaling whether or not the trigger succeeded.
         """
 
+        build_arch_task_id = self.koji_event.rpm_build_task_ids[arch]
+        artifacts = {
+            "build.log": koji.result.KojiEvent.get_koji_build_logs_url(
+                build_arch_task_id,
+                self.koji_logs_url,
+            )
+        }
+
         endpoint_url = f"{self.url}/analyze"
         request_json = {
-            "artifacts": self.artifacts,
-            "target_build": str(self.koji_event.task_id),
+            "artifacts": artifacts,
+            "target_build": str(build_arch_task_id),
             "build_system": LogDetectiveBuildSystem.koji.value,
             "commit_sha": self.data.commit_sha,
             "project_url": self.data.project_url,
@@ -74,7 +107,7 @@ class LogDetectiveKojiTriggerHelper:
 
         try:
             response = requests.post(
-                endpoint_url,
+                url=endpoint_url,
                 json=request_json,
                 timeout=30,
                 headers={"Authorization": f"Bearer {self.token}"},
@@ -104,22 +137,23 @@ class LogDetectiveKojiTriggerHelper:
 
         build_target = self.koji_event.build_model
 
-        pipelines = build_target.group_of_targets.runs
-        group_run = LogDetectiveRunGroupModel.create(pipelines)
+        if self.run_group is None:
+            self.run_group = LogDetectiveRunGroupModel.create(
+                build_target.group_of_targets.runs  # pipelines
+            )
 
+        # "target" field in LDRunModel refers to:
+        # - "target-arch" for Koji builds (e.g. fc44-aarch64)
+        # - "chroot" for Copr builds (e.g. fedora-rawhide-x86_64)
         LogDetectiveRunModel.create(
             LogDetectiveResult.running,
-            str(self.koji_event.task_id),
-            self.koji_event.target,
+            str(build_arch_task_id),
+            f"{self.koji_event.target}-{arch}",
             LogDetectiveBuildSystem.koji,
             analysis_id,
-            group_run,
+            self.run_group,
         )
 
         build_target.add_log_detective_run(analysis_id)
 
-        logger.info(
-            f"Successfully triggered Log Detective at {analysis_start}"
-            f" for a failed Koji build {self.koji_event.task_id}"
-        )
         return True
