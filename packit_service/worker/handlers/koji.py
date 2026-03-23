@@ -384,7 +384,9 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
         Since the analysis is not crucial for the build task itself, we only log
         when the LD trigger failed, and not return a failed TaskResult
         """
-        if not FedoraCIConfig.get_config().is_logdetective_enabled(self.project.get_web_url()):
+        if not self.project or not FedoraCIConfig.get_config().is_logdetective_enabled(
+            self.project.get_web_url()
+        ):
             return
         logger.info("Triggering Log Detective Helper for a failed Koji build")
         log_detective_trigger = LogDetectiveKojiTriggerHelper(
@@ -406,7 +408,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
             self.pushgateway.fedora_ci_koji_builds_started.inc()
         elif state in (KojiTaskState.closed, KojiTaskState.canceled, KojiTaskState.failed):
             self.pushgateway.fedora_ci_koji_builds_finished.inc()
-            if self.build.submitted_time:
+            if self.build and self.build.submitted_time:
                 koji_build_time = elapsed_seconds(
                     begin=self.build.submitted_time,
                     end=datetime.now(timezone.utc),
