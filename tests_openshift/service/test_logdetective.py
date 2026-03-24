@@ -83,7 +83,7 @@ def test_logdetective_process_message(
             task_id=logdetective_analysis_success_event["target_build"],
             scratch=False,
             web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-            target="fedora-rawhide-x86_64",
+            target="rawhide-x86_64",
             status=BuildStatus.failure,
             koji_build_group=build_group,
         )
@@ -97,7 +97,7 @@ def test_logdetective_process_message(
         build_system=build_system,
         log_detective_analysis_id=logdetective_analysis_success_event["log_detective_analysis_id"],
         log_detective_run_group=ld_group,
-        target="fedora-rawhide-x86_64",
+        target="fedora-rawhide-x86_64" if build_system == "copr" else "rawhide-x86_64",
         identifier=logdetective_analysis_success_event["identifier"],
     )
 
@@ -145,7 +145,7 @@ def test_logdetective_process_message(
         state=BaseCommitStatus.success,
         description="Log Detective analysis status: complete",
         url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-        check_name="Log Detective Analysis",
+        check_name="Packit - Log Detective analysis",
     ).once()
 
     result = process_message.apply(
@@ -297,7 +297,7 @@ def test_logdetective_process_message_error(
         state=BaseCommitStatus.error,
         description="Log Detective analysis status: error",
         url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-        check_name="Log Detective Analysis",
+        check_name="Packit - Log Detective analysis",
     ).once()
 
     result = process_message.apply(

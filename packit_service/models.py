@@ -4699,9 +4699,16 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     status = Column(Enum(LogDetectiveResult), nullable=False)
     # From job configuration
     identifier = Column(String, nullable=True)
+
     # Set from `target_build` field of the message created by logdetective-packit
+    # either copr build ID or koji task ID
     target_build = Column(String)
-    # Target architecture
+
+    # For copr, this is chroot "fedora-VERSION-ARCH", for koji, this is "TARGET-ARCH", where:
+    # - VERSION = rawhide, 44 ...
+    # - TARGET = rawhide, fc44 ... ~ in downstream Koji, this refers to the branch name
+    # - ARCH = x86_64 aarch64 ... (we could possibly also include srpm here)
+    # We use this for human-distinguishable labels of different LD analyses
     target = Column(String)
     log_detective_response = Column(JSON)
     # Derived from `log_detective_analysis_start` field of the event
@@ -4823,7 +4830,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         Args:
             status: state of Log Detective analysis
             target_build: identifier of the target build
-            target: build architecture
+            target: build architecture -- chroot (copr) or target-arch (koji)
             build_system: system providing the build
             log_detective_analysis_id: unique identifier of Log Detective analysis
             log_detective_run_group: "LogDetectiveRunGroupModel"

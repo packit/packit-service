@@ -271,6 +271,9 @@ class AbstractKojiTaskReportHandler(
             self.build.set_web_url(koji_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
+                logger.info(
+                    f"Failed Koji scratch build (parent taskID = {self.koji_task_event.task_id})"
+                )
                 self.trigger_log_detective_if_configured()
                 # Convert dict of logs URLs to a string representation
                 logs_url_str = ", ".join(koji_build_logs.values()) if koji_build_logs else ""
@@ -380,25 +383,38 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
 
     def trigger_log_detective_if_configured(self):
         """
-        Try triggering Log Detective analysis for a failed downstream Koji build.
+        Try triggering Log Detective analysis for all failed downstream Koji buildArch tasks.
         Since the analysis is not crucial for the build task itself, we only log
-        when the LD trigger failed, and not return a failed TaskResult
+        when the LD trigger failed, and not return a failed TaskResult.
         """
         if not self.project or not FedoraCIConfig.get_config().is_logdetective_enabled(
             self.project.get_web_url()
         ):
             return
-        logger.info("Triggering Log Detective Helper for a failed Koji build")
+
+        if not self.koji_task_event.rpm_build_task_ids:
+            logger.error("Koji scratch build failed, but cannot access buildArch subtask IDs")
+            return
+
+        if not self.koji_task_event.rpm_build_failed_arch_list:
+            logger.info(
+                "Koji scratch build failed, but no failed buildArch tasks found. "
+                "Likely an SRPM build failure."
+            )
+            return
+
         log_detective_trigger = LogDetectiveKojiTriggerHelper(
             self.koji_task_event,
             self.data,
             self.pushgateway,
+            self.service_config.koji_logs_url,
             self.service_config.logdetective_url,
             self.service_config.logdetective_token,
         )
-        trigger_success = log_detective_trigger.trigger_log_detective_analysis()
-        if not trigger_success:
-            logger.error("Log Detective was not properly triggered for a failed Koji build")
+        trigger_results = log_detective_trigger.trigger_log_detective_analysis()
+
+        if not all(trigger_results):
+            logger.error("Log Detective was not properly triggered for some failed Koji buildArch")
 
     def push_metrics(self) -> None:
         """Track Fedora CI Koji build metrics."""

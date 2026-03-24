@@ -54,36 +54,57 @@ def mock_koji_task_failed_event():
     mock_group = flexmock(runs=[flexmock()])
     mock_build_model = flexmock(group_of_targets=mock_group)
 
-    event = flexmock(
-        task_id=12345,
+    return flexmock(
+        task_id=12340,
         state=KojiTaskState.failed,
         old_state=KojiTaskState.open,
-        target="fedora-rawhide-x86_64",
+        target="rawhide",
         build_model=mock_build_model,
+        rpm_build_task_ids={"x86_64": 12345},
+        rpm_build_failed_arch_list=["x86_64"],
     )
 
-    event.should_receive("get_koji_build_logs_url").with_args(12345).and_return(
-        "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log"
-    )
-    return event
 
-
-def test_logdetective_koji_init_sets_artifacts_correctly(
-    mock_koji_task_failed_event, mock_event_data
-):
+def test_logdetective_koji_set_payload(mock_koji_task_failed_event, mock_event_data):
+    """
+    Build and send the correct payload, then connection error happens ->
+    check proper handling and logging
+    """
     helper = LogDetectiveKojiTriggerHelper(
         mock_koji_task_failed_event,
         mock_event_data,
         flexmock(),
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
 
-    assert "build.log" in helper.artifacts
-    assert (
-        helper.artifacts["build.log"]
-        == "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log"
+    request_json = {
+        "artifacts": {
+            "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
+        },
+        "target_build": "12345",
+        "build_system": "koji",
+        "commit_sha": "abc123",
+        "project_url": "https://github.com/test/repo",
+        "pr_id": 42,
+    }
+
+    flexmock(requests).should_receive("post").with_args(
+        "https://logdetective01.fedorainfracloud.org/analyze",
+        json=request_json,
+        timeout=30,
+        headers={"Authorization": "Bearer secret-123"},
+    ).once().and_raise(requests.exceptions.ConnectionError)
+
+    flexmock(LogDetectiveRunGroupModel).should_receive("create").never()
+    flexmock(logger).should_receive("info").with_args(
+        "Triggered Log Detective for a failed Koji build "
+        "(child taskID = 12345, arch = x86_64, trigger = fail)"
     )
+
+    trigger_success_list = helper.trigger_log_detective_analysis()
+    assert not all(trigger_success_list)
 
 
 def test_logdetective_koji_success(
@@ -119,7 +140,7 @@ def test_logdetective_koji_success(
     flexmock(LogDetectiveRunModel).should_receive("create").with_args(
         LogDetectiveResult.running,
         "12345",
-        "fedora-rawhide-x86_64",
+        "rawhide-x86_64",
         LogDetectiveBuildSystem.koji,
         "test-uuid-123",
         mock_group_run,
@@ -130,8 +151,9 @@ def test_logdetective_koji_success(
     ).once()
 
     flexmock(logger).should_receive("info").with_args(
-        "Successfully triggered Log Detective at 2026-01-01T12:00:00 for a failed Koji build 12345"
-    ).once()
+        "Triggered Log Detective for a failed Koji build "
+        "(child taskID = 12345, arch = x86_64, trigger = success)"
+    )
     flexmock(logger).should_call("warning").never()
     flexmock(logger).should_call("error").never()
 
@@ -139,12 +161,13 @@ def test_logdetective_koji_success(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
-    trigger_success = helper.trigger_log_detective_analysis()
+    trigger_success_list = helper.trigger_log_detective_analysis()
 
-    assert trigger_success
+    assert all(trigger_success_list)
 
 
 def test_logdetective_koji_http_error(
@@ -166,12 +189,13 @@ def test_logdetective_koji_http_error(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_no_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
-    assert not trigger_success
+    assert not all(trigger_success)
 
 
 def test_logdetective_koji_connection_error(
@@ -189,12 +213,13 @@ def test_logdetective_koji_connection_error(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_no_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
-    assert not trigger_success
+    assert not all(trigger_success)
 
 
 def test_logdetective_koji_json_decode_error(
@@ -215,12 +240,13 @@ def test_logdetective_koji_json_decode_error(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_no_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
-    assert not trigger_success
+    assert not all(trigger_success)
 
 
 def test_logdetective_koji_timeout(
@@ -238,12 +264,13 @@ def test_logdetective_koji_timeout(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_no_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
-    assert not trigger_success
+    assert not all(trigger_success)
 
 
 def test_logdetective_koji_missing_id(
@@ -265,12 +292,13 @@ def test_logdetective_koji_missing_id(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_no_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
-    assert not trigger_success
+    assert not all(trigger_success)
 
 
 def test_logdetective_koji_missing_time(
@@ -292,9 +320,10 @@ def test_logdetective_koji_missing_time(
         mock_koji_task_failed_event,
         mock_event_data,
         mock_pushgateway_log_detective_no_inc,
+        "https://kojipkgs.fedoraproject.org",
         LOGDETECTIVE_PACKIT_SERVER_URL,
         "secret-123",
     )
     trigger_success = helper.trigger_log_detective_analysis()
 
-    assert not trigger_success
+    assert not all(trigger_success)
