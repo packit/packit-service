@@ -18,8 +18,11 @@ from packit.config import (
 from packit.config.package_config import PackageConfig
 
 from packit_service.constants import (
+    COMMENT_MAX_LINE_LENGTH,
     CONTACTS_URL,
     DOCS_APPROVAL_URL,
+    DOCS_URL,
+    DOCS_URL_FEDORA_CI,
     HELP_COMMENT_DESCRIPTION,
     HELP_COMMENT_EPILOG,
     HELP_COMMENT_PROG,
@@ -41,6 +44,7 @@ from packit_service.models import (
     GithubInstallationModel,
 )
 from packit_service.utils import (
+    break_lines_in_text,
     get_comment_parser,
     get_comment_parser_fedora_ci,
     get_packit_commands_from_comment,
@@ -335,32 +339,35 @@ class GitCommentHelpHandler(
             parser = get_comment_parser_fedora_ci(
                 prog=HELP_COMMENT_PROG_FEDORA_CI_STG,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
 
         elif self.comment.startswith("/packit-ci"):  # type: ignore
             parser = get_comment_parser_fedora_ci(
                 prog=HELP_COMMENT_PROG_FEDORA_CI,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
 
         elif self.comment.startswith("/packit-stg"):  # type: ignore
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG_STG,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
 
         else:
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG,
                 description=HELP_COMMENT_DESCRIPTION,
-                epilog=HELP_COMMENT_EPILOG.format(note=HELP_NOTE),
             )
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
 
+        body = break_lines_in_text(
+            parser.format_help(), sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH
+        )
         # put message in code block to retain formatting
-        help_message = f"```\n{parser.format_help()}\n```"
+        help_message = f"```\n{body}\n```\n{epilog}"
         self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})

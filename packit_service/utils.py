@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
+import itertools
 import logging
 import os
 import tempfile
@@ -238,8 +239,9 @@ def _create_base_parser(
         description=description,
         epilog=epilog,
         formatter_class=RawTextHelpFormatter,
+        add_help=False,
     )
-    parser.add_argument("--package", help="Specific package from monorepo to run job for")
+    parser.add_argument("--package", help="specific package from monorepo to run job for")
     return parser
 
 
@@ -252,75 +254,79 @@ def get_comment_parser(
 
     subparsers = parser.add_subparsers(
         dest="command",
-        help="Jobs available",
+        help="commands available",
+    )
+    subparsers.add_parser(
+        "help",
+        help="show this help message",
     )
 
     build_parser = subparsers.add_parser(
         "copr-build",
         aliases=["build"],
-        help="Build package(s) in Copr",
+        help="build package(s) in Copr",
     )
     build_parser.add_argument(
-        "--commit", help="Run Copr build jobs configured with the commit trigger"
+        "--commit", help="run Copr build jobs configured with the commit trigger"
     )
     build_parser.add_argument(
-        "--release", help="Run Copr build jobs configured with the release trigger"
+        "--release", help="run Copr build jobs configured with the release trigger"
     )
-    subparsers.add_parser("rebuild-failed", help="Re-build failed builds in Copr")
+    subparsers.add_parser("rebuild-failed", help="re-build failed builds in Copr")
     subparsers.add_parser(
         "upstream-koji-build",
-        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+        help="build package(s) in Koji \n(the latest commit of this PR will be targeted, not HEAD)",
     )
 
-    test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
+    test_parser = subparsers.add_parser("test", help="run tests in Testing Farm")
     test_parser.add_argument(
         "target",
         nargs="?",
-        help="Reference to a PR in a different repository containing builds to test",
+        help="reference to a PR in a different repository containing builds to test",
     )
-    test_parser.add_argument("--commit", help="Run tests configured with the commit trigger")
-    test_parser.add_argument("--release", help="Run tests configured with the release trigger")
+    test_parser.add_argument("--commit", help="run tests configured with the commit trigger")
+    test_parser.add_argument("--release", help="run tests configured with the release trigger")
     test_parser.add_argument(
-        "--identifier", "--id", "-i", help="Identifier of job for which to run tests"
+        "--identifier", "--id", "-i", help="identifier of job for which to run tests"
     )
     test_parser.add_argument(
         "--labels",
         type=lambda s: s.split(","),
-        help="Comma-separated list of labels identifying tests to run",
+        help="comma-separated list of labels identifying tests to run",
     )
-    test_parser.add_argument("--env", action="append", help="Environment variables")
+    test_parser.add_argument("--env", action="append", help="environment variables")
 
-    subparsers.add_parser("retest-failed", help="Re-run failed tests in Testing Farm")
-    subparsers.add_parser("vm-image-build", help="Trigger VM image build")
-    subparsers.add_parser("propose-downstream", help="Trigger propose-downstream job")
+    subparsers.add_parser("retest-failed", help="re-run failed tests in Testing Farm")
+    subparsers.add_parser("vm-image-build", help="trigger VM image build")
+    subparsers.add_parser("propose-downstream", help="trigger propose-downstream job")
 
     pull_from_upstream_parser = subparsers.add_parser(
-        "pull-from-upstream", help="Trigger pull-from-upstream job"
+        "pull-from-upstream", help="trigger pull-from-upstream job"
     )
     pull_from_upstream_parser.add_argument(
         "--resolve-bug",
         type=lambda s: s.split(","),
-        help="Override the referenced resolved bug set by Packit",
+        help="override the referenced resolved bug set by Packit",
     )
     pull_from_upstream_parser.add_argument(
         "--with-pr-config",
         action="store_true",
-        help="Use the configuration file from this dist-git pull request",
+        help="use the configuration file from this dist-git pull request",
     )
     pull_from_upstream_parser.add_argument(
         "--version",
-        help="Version to use for the pull-from-upstream job",
+        help="version to use for the pull-from-upstream job",
     )
 
     subparsers.add_parser(
         "koji-build",
-        help="Build package(s) in Koji (the latest commit of this PR will be targeted, not HEAD)",
+        help="build package(s) in Koji \n(the latest commit of this PR will be targeted, not HEAD)",
     )
 
-    koji_tag_parser = subparsers.add_parser("koji-tag", help="Tag Koji build to the common sidetag")
-    koji_tag_parser.add_argument("--all-branches", action="store_true", help="Target all branches")
+    koji_tag_parser = subparsers.add_parser("koji-tag", help="tag Koji build to the common sidetag")
+    koji_tag_parser.add_argument("--all-branches", action="store_true", help="target all branches")
 
-    subparsers.add_parser("create-update", help="Trigger Bodhi update job")
+    subparsers.add_parser("create-update", help="trigger Bodhi update job")
 
     return parser
 
@@ -334,14 +340,19 @@ def get_comment_parser_fedora_ci(
 
     subparsers = parser.add_subparsers(
         dest="command",
-        help="Jobs available",
+        help="commands available",
     )
-    test_parser = subparsers.add_parser("test", help="Run tests in Testing Farm")
+    subparsers.add_parser(
+        "help",
+        help="show this help message",
+    )
+
+    test_parser = subparsers.add_parser("test", help="run tests in Testing Farm")
     test_parser.add_argument(
         "test_identifier",
         nargs="?",
         choices=["installability", "rpmlint", "rpminspect", "custom"],
-        help="Specific type of tests to run",
+        help="specific type of tests to run",
     )
 
     test_parser.add_argument(
@@ -349,16 +360,16 @@ def get_comment_parser_fedora_ci(
         dest="check_target",
         nargs="?",
         choices=["eln", "rawhide"],
-        help="Target for which to trigger tests",
+        help="target for which to trigger tests",
     )
 
-    scratch_build_parser = subparsers.add_parser("scratch-build", help="Build package in Koji")
+    scratch_build_parser = subparsers.add_parser("scratch-build", help="build package in Koji")
     scratch_build_parser.add_argument(
         "--target",
         dest="check_target",
         nargs="?",
         choices=["eln", "rawhide"],
-        help="Target for which to trigger a scratch build in Koji",
+        help="target for which to trigger a scratch build in Koji",
     )
 
     return parser
@@ -470,3 +481,50 @@ def get_default_tf_mapping(internal: bool = False) -> dict[str, str]:
             f"rhel-{version}-nightly" if internal else f"centos-stream-{majorver}"
         )
     return mapping
+
+
+def break_lines_in_text(text: str, sep: str, max_line_length: int):
+    """
+    Break lines inside text into multiple lines based on specified maximum
+    line length. Lines are broken at positions where selected separator
+    instances are located.
+
+    Args:
+        text: Text in which to break lines.
+        sep: Separator at which to break lines.
+        max_line_length: Maximum lenght of a singular line inside text.
+
+    Returns:
+        Text containing lines broken at separators if needed to shorten
+        affected lines.
+    """
+    split_text = []
+
+    for line in text.splitlines():
+        if len(line) > max_line_length:
+            leading_spaces_amount = sum(1 for _ in itertools.takewhile(str.isspace, line))
+            leading_spaces = " " * leading_spaces_amount
+
+            line = line.lstrip()
+            parts = line.split(sep)
+
+            new_lines = []
+            new_line = parts[0]
+
+            max_line_length_without_whitespaces = max_line_length - leading_spaces_amount
+
+            for part in parts[1:]:
+                if (len(new_line) + len(part)) < max_line_length_without_whitespaces:
+                    new_line = sep.join([new_line, part])
+
+                else:
+                    new_lines.append(new_line + sep)
+                    new_line = part
+
+            new_lines.append(new_line)
+            formatted_new_lines = [leading_spaces + line + "\n" for line in new_lines]
+            line = "".join(formatted_new_lines)
+
+        split_text.append(line)
+
+    return "\n".join(split_text)

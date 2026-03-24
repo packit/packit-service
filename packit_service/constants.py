@@ -26,12 +26,12 @@ HELP_COMMENT_PROG_FEDORA_CI = "/packit-ci"
 HELP_COMMENT_PROG_FEDORA_CI_STG = "/packit-ci-stg"
 HELP_COMMENT_DESCRIPTION = ""
 HELP_COMMENT_EPILOG = (
-    "Note: {note}\n"
-    f"Documentation: {DOCS_URL}\n"
-    "Contact:\n"
-    "     Email:    hello@packit.dev\n"
-    "     Matrix:   #packit:fedora.im\n"
-    "     Mastodon: @packit@fosstodon.org"
+    "**Please note**: \n - {note}\n\n"
+    "**Contact**:\n"
+    " - *Email*: hello@packit.dev\n"
+    " - *Matrix*: #packit:fedora.im\n"
+    " - *Mastodon*: @packit@fosstodon.org\n\n"
+    "**Documentation**: \n - {docs}"
 )
 HELP_NOTE = (
     "If using Fedora CI, refer to `/packit-ci help` instead. "
@@ -197,6 +197,7 @@ DEFAULT_MAPPING_INTERNAL_TF = {
 FEDORA_CI_TESTS_NS_BRANCH = "rawhide"
 
 COMMENT_REACTION = "eyes"
+COMMENT_MAX_LINE_LENGTH = 85
 
 
 class KojiTaskState(Enum):
