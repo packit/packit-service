@@ -66,7 +66,10 @@ def propose_downstream_model(sync_release_pr_model):
         job_config_trigger_type=JobConfigTriggerType.release,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.release, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(

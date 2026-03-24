@@ -55,7 +55,10 @@ def sync_release_model():
         project=flexmock(AnityaProjectModel),
     )
     anitya_event = (
-        flexmock().should_receive("get_project_event_object").and_return(anitya_db_object).mock()
+        flexmock(type=ProjectEventModelType.anitya_multiple_versions, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(anitya_db_object)
+        .mock()
     )
     flexmock(AnityaMultipleVersionsModel).should_receive("get_or_create").with_args(
         versions=["7.0.3"],
@@ -115,7 +118,10 @@ def sync_release_model_non_git():
         project=AnityaTestProjectModel(),
     )
     project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.release, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -334,7 +340,10 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
         project=flexmock(AnityaProjectModel),
     )
     anitya_event = (
-        flexmock().should_receive("get_project_event_object").and_return(anitya_db_object).mock()
+        flexmock(type=ProjectEventModelType.anitya_multiple_versions, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(anitya_db_object)
+        .mock()
     )
     flexmock(AnityaMultipleVersionsModel).should_receive("get_or_create").with_args(
         versions=["7.0.3"],
@@ -386,7 +395,10 @@ def test_new_hotness_update_non_git_multiple_versions(new_hotness_update):
         project=AnityaTestProjectModel(),
     )
     project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.anitya_multiple_versions, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
