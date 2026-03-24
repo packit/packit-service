@@ -62,7 +62,7 @@ def mock_commit_comment_functionality(request):
         name="main",
     )
     db_project_event = (
-        flexmock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()

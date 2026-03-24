@@ -84,7 +84,7 @@ def test_sync_from_downstream():
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -170,7 +170,7 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -249,13 +249,16 @@ def test_downstream_koji_build(sidetag_group):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -396,13 +399,16 @@ def test_downstream_koji_build_failure_no_issue():
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -502,13 +508,16 @@ def test_downstream_koji_build_failure_issue_created():
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -616,13 +625,16 @@ def test_downstream_koji_build_failure_issue_comment():
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -812,13 +824,16 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",
@@ -950,7 +965,7 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
         type=ProjectEventModelType.branch_push,
         event_id=9,
         commit_sha="abcd",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.branch_push, event_id=9))
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
         namespace="rpms",

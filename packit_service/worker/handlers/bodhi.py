@@ -365,7 +365,7 @@ class CreateBodhiUpdateHandler(
         group = None
         for koji_build_data in self:
             koji_build_target = KojiBuildTargetModel.get_by_task_id(
-                koji_build_data.task_id,
+                task_id=koji_build_data.task_id,
             )
             if koji_build_target:
                 run_model = koji_build_target.group_of_targets.runs[-1]

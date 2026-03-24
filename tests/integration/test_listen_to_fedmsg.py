@@ -3096,6 +3096,7 @@ def test_koji_build_tag(
 
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(celery_group).should_receive("apply_async").once()
+    flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(None)
 
     processing_results = SteveJobs().process_message(koji_build_tagged)
     event_dict, _, job_config, package_config = get_parameters_from_results(
@@ -3355,7 +3356,10 @@ def test_pagure_pr_updated(pagure_pr_updated, project_namespace, project_repo):
         project=dg_project,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
