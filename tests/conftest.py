@@ -18,6 +18,7 @@ from packit_service.config import ServiceConfig
 from packit_service.fedora_ci_config import FedoraCIConfig
 from packit_service.models import (
     BuildStatus,
+    PipelineModel,
     ProjectEventModel,
     ProjectEventModelType,
     PullRequestModel,
@@ -58,6 +59,13 @@ def _reset_fedora_ci_config():
     """Reset the FedoraCIConfig cached singleton so each test gets
     a fresh instance based on its own (possibly mocked) ServiceConfig."""
     FedoraCIConfig._instance = None
+
+
+@pytest.fixture(autouse=True)
+def _mock_pipeline_get_latest_datetime_for_event():
+    """Mock PipelineModel.get_latest_datetime_for_event so tests don't
+    need a real database connection for the cancel-cutoff-time lookup."""
+    flexmock(PipelineModel).should_receive("get_latest_datetime_for_event").and_return(None)
 
 
 @pytest.fixture()
@@ -259,6 +267,7 @@ def copr_build_model(
         srpm_build=srpm_build,
         copr_build_group=copr_group,
         test_run_group=None,
+        datetime=datetime.now(),
     )
     runs.append(run_model)
 
@@ -409,7 +418,7 @@ def add_pull_request_event_with_sha_123456():
         id=123,
     )
     db_project_event = (
-        flexmock(type=ProjectEventModelType.pull_request, commit_sha="123456")
+        flexmock(type=ProjectEventModelType.pull_request, event_id=123, commit_sha="123456")
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
@@ -425,7 +434,7 @@ def add_pull_request_event_with_pr_id_9():
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
@@ -457,7 +466,7 @@ def add_pull_request_event_with_sha_0011223344():
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock(id=123)
+        flexmock(id=123, type=ProjectEventModelType.pull_request, event_id=9)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
