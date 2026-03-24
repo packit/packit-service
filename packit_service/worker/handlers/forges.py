@@ -21,6 +21,8 @@ from packit_service.constants import (
     COMMENT_MAX_LINE_LENGTH,
     CONTACTS_URL,
     DOCS_APPROVAL_URL,
+    DOCS_URL,
+    DOCS_URL_FEDORA_CI,
     HELP_COMMENT_DESCRIPTION,
     HELP_COMMENT_EPILOG,
     HELP_COMMENT_PROG,
@@ -338,28 +340,28 @@ class GitCommentHelpHandler(
                 prog=HELP_COMMENT_PROG_FEDORA_CI_STG,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI)
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
 
         elif self.comment.startswith("/packit-ci"):  # type: ignore
             parser = get_comment_parser_fedora_ci(
                 prog=HELP_COMMENT_PROG_FEDORA_CI,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI)
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
 
         elif self.comment.startswith("/packit-stg"):  # type: ignore
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG_STG,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE)
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
 
         else:
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE)
+            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
 
         body = break_lines_in_text(
             parser.format_help(), sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH

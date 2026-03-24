@@ -31,7 +31,7 @@ HELP_COMMENT_EPILOG = (
     " - *Email*: hello@packit.dev\n"
     " - *Matrix*: #packit:fedora.im\n"
     " - *Mastodon*: @packit@fosstodon.org\n\n"
-    f"**Documentation**: \n - {DOCS_URL}"
+    "**Documentation**: \n - {docs}"
 )
 HELP_NOTE = (
     "If using Fedora CI, refer to `/packit-ci help` instead. "
