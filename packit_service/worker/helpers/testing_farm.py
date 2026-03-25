@@ -1291,7 +1291,10 @@ class DownstreamTestingFarmJobHelper:
 
     @staticmethod
     def get_fedora_ci_tests(
-        service_config: ServiceConfig, project: GitProject, metadata: EventData
+        service_config: ServiceConfig,
+        project: GitProject,
+        metadata: EventData,
+        get_all: Optional[bool] = False,
     ) -> list[str]:
         """
         Gets relevant Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator.
@@ -1312,7 +1315,7 @@ class DownstreamTestingFarmJobHelper:
             for name, (_, skipif) in FEDORA_CI_TESTS.items()
             if not skipif or not skipif(service_config, project, metadata)
         ]
-        if metadata.event_type != pagure.pr.Comment.event_type():
+        if metadata.event_type != pagure.pr.Comment.event_type() or get_all:
             return all_tests
         # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
         # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
@@ -1329,30 +1332,6 @@ class DownstreamTestingFarmJobHelper:
         if len(commands) > 1 and commands[1] in all_tests:
             return [commands[1]]
         return all_tests
-
-    @staticmethod
-    def get_fedora_ci_tests_available_in_context(
-        service_config: ServiceConfig, project: GitProject, metadata: EventData
-    ) -> list[str]:
-        """
-        Gets Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator,
-        which are relevant in the context of the given project. If in the "tests" namespace
-        and fmf metadata is defined, then only the `custom` test type is available. If no fmf
-        metadata is defined inside the "tests" namespace, no tests are available.
-
-        Args:
-            service_config: Service config.
-            project: Git project.
-            metadata: Event metadata.
-
-        Returns:
-            List of registered Fedora CI test names available in the context of the project.
-        """
-        return [
-            name
-            for name, (_, skipif) in FEDORA_CI_TESTS.items()
-            if not skipif or not skipif(service_config, project, metadata)
-        ]
 
     @property
     def api_url(self) -> str:
