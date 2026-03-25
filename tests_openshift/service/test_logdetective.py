@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import re
 from datetime import datetime
 
 import pytest
@@ -144,7 +145,7 @@ def test_logdetective_process_message(
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=BaseCommitStatus.success,
         description="Log Detective analysis status: complete",
-        url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
+        url=re.compile(r"^/jobs/log-detective/\d+$"),
         check_name="Packit - Log Detective analysis",
     ).once()
 
@@ -296,7 +297,7 @@ def test_logdetective_process_message_error(
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=BaseCommitStatus.error,
         description="Log Detective analysis status: error",
-        url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
+        url=re.compile(r"^/jobs/log-detective/\d+$"),
         check_name="Packit - Log Detective analysis",
     ).once()
 

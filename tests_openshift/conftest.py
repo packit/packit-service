@@ -36,6 +36,9 @@ from packit_service.models import (
     KojiBuildTargetModel,
     KojiTagRequestGroupModel,
     KojiTagRequestTargetModel,
+    LogDetectiveBuildSystem,
+    LogDetectiveResult,
+    LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
     OSHScanModel,
     OSHScanStatus,
@@ -181,6 +184,16 @@ class SampleValues:
     scan_results_url = "https://scan-results-url"
     scan_status_success = OSHScanStatus.succeeded
 
+    # Log Detective
+    ld_analysis_id = "bbeea1a5-541e-41a6-ac0b-4343f344fb71"
+    ld_target_build = "123"
+    ld_log_detective_response: ClassVar[dict] = {
+        "explanation": {"logprobs": None, "text": "This is a dummy response from Log Detective"},
+        "response_certainty": 0.0,
+    }
+    ld_chroot = "fedora-42-x86_64"
+    ld_status = LogDetectiveResult.complete
+
 
 @pytest.fixture(scope="session", autouse=True)
 def global_service_config():
@@ -236,6 +249,7 @@ def clean_db():
         session.query(GitProjectModel).delete()
 
         session.query(LogDetectiveRunModel).delete()
+        session.query(LogDetectiveRunGroupModel).delete()
 
 
 @pytest.fixture()
@@ -2657,3 +2671,41 @@ def a_koji_tag_request(branch_project_event_model):
         koji_tag_request_group=group,
     )
     yield koji_tag_request_model
+
+
+@pytest.fixture()
+def a_log_detective_result(branch_project_event_model):
+    group = LogDetectiveRunGroupModel.create(
+        run_models=[PipelineModel.create(project_event=branch_project_event_model)]
+    )
+
+    log_detective_run_model = LogDetectiveRunModel.create(
+        status=SampleValues.ld_status,
+        target_build=SampleValues.ld_target_build,
+        target=SampleValues.ld_chroot,
+        build_system=LogDetectiveBuildSystem.koji,
+        log_detective_analysis_id=SampleValues.ld_analysis_id,
+        log_detective_run_group=group,
+        log_detective_response=SampleValues.ld_log_detective_response,
+    )
+
+    yield log_detective_run_model
+
+
+@pytest.fixture()
+def a_log_detective_group(branch_project_event_model):
+    group = LogDetectiveRunGroupModel.create(
+        run_models=[PipelineModel.create(project_event=branch_project_event_model)]
+    )
+
+    LogDetectiveRunModel.create(
+        status=SampleValues.ld_status,
+        target_build=SampleValues.ld_target_build,
+        target=SampleValues.ld_chroot,
+        build_system=LogDetectiveBuildSystem.koji,
+        log_detective_analysis_id=SampleValues.ld_analysis_id,
+        log_detective_run_group=group,
+        log_detective_response=SampleValues.ld_log_detective_response,
+    )
+
+    yield group

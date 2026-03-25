@@ -18,14 +18,14 @@ logger = logging.getLogger("packit_service")
 ns = Namespace("log-detective", description="Log Detective")
 
 
-@ns.route("/<string:id>")
+@ns.route("/<int:id>")
 @ns.param("id", "Packit id of the Log Detective run")
 class LogDetectiveResult(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, Log Detective run details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "No info about Log Detective run stored in DB")
     def get(self, id):
         """A specific Log Detective run details."""
-        log_detective_run_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(id)
+        log_detective_run_model = LogDetectiveRunModel.get_by_id(int(id))
 
         if not log_detective_run_model:
             return response_maker(
@@ -42,8 +42,7 @@ class LogDetectiveResult(Resource):
             "chroot": log_detective_run_model.target,
             "commit_sha": log_detective_run_model.commit_sha,
             "log_detective_response": log_detective_run_model.log_detective_response,
-            "copr_build_id": log_detective_run_model.copr_build_target_id,
-            "koji_build_id": log_detective_run_model.koji_build_target_id,
+            "target_build": log_detective_run_model.target_build,
             "run_ids": run_ids,
             "submitted_time": optional_timestamp(log_detective_run_model.submitted_time),
         }

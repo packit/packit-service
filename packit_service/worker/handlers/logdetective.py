@@ -132,7 +132,7 @@ class DownstreamLogDetectiveResultsHandler(
         else:
             self.branch_name = build.get_branch_name()
 
-        url = get_logdetective_info_url(self.analysis_id)
+        url = get_logdetective_info_url(log_detective_run_model.id)
 
         # LDRunModel.target is "target-arch" for Koji (i.e. rawhide-x86_64),
         # for Copr it would be chroot which also includes arch information

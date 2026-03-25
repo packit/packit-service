@@ -58,5 +58,5 @@ def get_bodhi_update_info_url(id_: int) -> str:
     return _get_url_for_dashboard_results("bodhi", id_)
 
 
-def get_logdetective_info_url(id_: str) -> str:
+def get_logdetective_info_url(id_: int) -> str:
     return _get_url_for_dashboard_results("log-detective", id_)
