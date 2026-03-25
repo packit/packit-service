@@ -1302,7 +1302,7 @@ class DownstreamTestingFarmJobHelper:
         service_config: ServiceConfig,
         project: GitProject,
         metadata: EventData,
-        get_all: Optional[bool] = False,
+        filter_specific_test: bool = True,
     ) -> list[str]:
         """
         Gets relevant Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator.
@@ -1314,6 +1314,7 @@ class DownstreamTestingFarmJobHelper:
             service_config: Service config.
             project: Git project.
             metadata: Event metadata.
+            filter_specific_test: Whether to filter tests based on the command in user's comment.
 
         Returns:
             List of registered Fedora CI test names.
@@ -1323,7 +1324,7 @@ class DownstreamTestingFarmJobHelper:
             for name, (_, skipif) in FEDORA_CI_TESTS.items()
             if not skipif or not skipif(service_config, project, metadata)
         ]
-        if metadata.event_type != pagure.pr.Comment.event_type() or get_all:
+        if metadata.event_type != pagure.pr.Comment.event_type() or not filter_specific_test:
             return all_tests
         # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
         # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
