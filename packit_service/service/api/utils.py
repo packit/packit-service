@@ -144,5 +144,5 @@ def get_log_detective_runs(
     """Get a list of Log Detective run UUIDs."""
 
     if build.log_detective_runs:
-        return [run.analysis_id for run in build.log_detective_runs]
+        return [run.id for run in build.log_detective_runs]
     return []

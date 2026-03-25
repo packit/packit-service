@@ -1069,6 +1069,8 @@ def test_log_detective_info(
         url_for("api.log-detective_log_detective_result", id=a_log_detective_result.id),
     )
     response_dict = response.json
+
+    assert response_dict["packit_id"] == a_log_detective_result.id
     assert response_dict["analysis_id"] == SampleValues.ld_analysis_id
     assert response_dict["status"] == SampleValues.ld_status
     assert response_dict["chroot"] == SampleValues.ld_chroot
@@ -1085,7 +1087,16 @@ def test_log_detective_group(client, clean_before_and_after, a_log_detective_gro
     )
     response_dict = response.json
 
+    assert response_dict["packit_id"] == a_log_detective_group.id
     assert isinstance(response_dict["submitted_time"], int)
     assert datetime.datetime.fromtimestamp(response_dict["submitted_time"])
     assert len(response_dict["run_ids"]) == 1
     assert len(response_dict["log_detective_target_ids"]) == 1
+
+
+def test_log_detective_list(client, clean_before_and_after, a_log_detective_result):
+    response = client.get(
+        url_for("api.log-detective_log_detective_result_list"),
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
