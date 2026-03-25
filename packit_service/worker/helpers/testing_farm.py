@@ -51,6 +51,21 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
+def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
+    try:
+        project.get_file_content(
+            path=".fmf/version",
+            ref=metadata.commit_sha,
+        )
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def is_project_in_tests_namespace(project: GitProject) -> bool:
+    return project.namespace == "tests"
+
+
 class CommentArguments:
     """
     Parse arguments from trigger comment and provide the attributes to Testing Farm helper.
@@ -667,14 +682,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.custom_fmf:
             return True
 
-        try:
-            self.project.get_file_content(
-                path=f"{self.fmf_path}/.fmf/version",
-                ref=self.metadata.commit_sha,
-            )
-            return True
-        except FileNotFoundError:
-            return False
+        return is_fmf_configured(self.project, self.metadata)
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_tests_for_chroot(
@@ -1452,9 +1460,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "installability",
-        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
-            project
-        ),
+        skipif=lambda _, project, __: is_project_in_tests_namespace(project),
     )
     def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
@@ -1504,9 +1510,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "rpminspect",
-        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
-            project
-        ),
+        skipif=lambda _, project, __: is_project_in_tests_namespace(project),
     )
     def _payload_rpminspect(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
@@ -1524,9 +1528,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "rpmlint",
-        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
-            project
-        ),
+        skipif=lambda _, project, __: is_project_in_tests_namespace(project),
     )
     def _payload_rpmlint(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/packit/tmt-plans.git"
@@ -1543,26 +1545,9 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    @staticmethod
-    def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
-        try:
-            project.get_file_content(
-                path=".fmf/version",
-                ref=metadata.commit_sha,
-            )
-        except FileNotFoundError:
-            return False
-        return True
-
-    @staticmethod
-    def is_project_in_tests_namespace(project: GitProject) -> bool:
-        return project.namespace == "tests"
-
     @implements_fedora_ci_test(
         "custom",
-        skipif=lambda _, project, metadata: not DownstreamTestingFarmJobHelper.is_fmf_configured(
-            project, metadata
-        ),
+        skipif=lambda _, project, metadata: not is_fmf_configured(project, metadata),
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
         payload = self._get_tf_base_payload(distro, compose)
