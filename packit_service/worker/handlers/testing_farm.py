@@ -401,19 +401,13 @@ class DownstreamTestingFarmHandler(
         )
 
     @classmethod
-    def filter_ci_tests(cls, tests: list[str]) -> list[str]:
-        return tests
-
-    @classmethod
     def get_all_check_names(
         cls, service_config: ServiceConfig, project: GitProject, metadata: EventData
     ) -> list[str]:
         return [
             DownstreamTestingFarmJobHelper.get_check_name_from_config(t, service_config)
-            for t in cls.filter_ci_tests(
-                DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
-                    service_config, project, metadata
-                )
+            for t in DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
+                service_config, project, metadata
             )
         ]
 
@@ -493,10 +487,8 @@ class DownstreamTestingFarmHandler(
     def _run(self) -> TaskResults:
         failed: dict[str, str] = {}
 
-        fedora_ci_tests = self.filter_ci_tests(
-            self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
-                self.service_config, self.project, self.data
-            )
+        fedora_ci_tests = self.downstream_testing_farm_job_helper.get_fedora_ci_tests(
+            self.service_config, self.project, self.data
         )
 
         if not fedora_ci_tests:
@@ -561,10 +553,6 @@ class DownstreamTestingFarmTestsNSHandler(DownstreamTestingFarmHandler):
             IsProjectInTestsNamespace,
             PermissionOnDistgitForFedoraCI,
         )
-
-    @classmethod
-    def filter_ci_tests(cls, tests: list[str]) -> list[str]:
-        return [t for t in tests if t == "custom"]
 
 
 @configured_as(job_type=JobType.tests)
