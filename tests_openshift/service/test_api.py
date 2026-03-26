@@ -1,5 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import datetime
+
 import pytest
 from flask import url_for
 from packit.utils import nested_get
@@ -1055,4 +1057,46 @@ def test_koji_tag_requests_list(
     response = client.get(url_for("api.koji-tag-requests_koji_tag_requests_list"))
     response_dict = response.json
 
+    assert len(response_dict) == 1
+
+
+def test_log_detective_info(
+    client,
+    clean_before_and_after,
+    a_log_detective_result,
+):
+    response = client.get(
+        url_for("api.log-detective_log_detective_result", id=a_log_detective_result.id),
+    )
+    response_dict = response.json
+
+    assert response_dict["packit_id"] == a_log_detective_result.id
+    assert response_dict["analysis_id"] == SampleValues.ld_analysis_id
+    assert response_dict["status"] == SampleValues.ld_status
+    assert response_dict["chroot"] == SampleValues.ld_chroot
+    assert response_dict["commit_sha"] == SampleValues.commit_sha
+    assert response_dict["log_detective_response"] == SampleValues.ld_log_detective_response
+    assert response_dict["target_build"] == SampleValues.ld_target_build
+    assert isinstance(response_dict["submitted_time"], int)
+    assert datetime.datetime.fromtimestamp(response_dict["submitted_time"])
+
+
+def test_log_detective_group(client, clean_before_and_after, a_log_detective_group):
+    response = client.get(
+        url_for("api.log-detective_log_detective_group", id=a_log_detective_group.id),
+    )
+    response_dict = response.json
+
+    assert response_dict["packit_id"] == a_log_detective_group.id
+    assert isinstance(response_dict["submitted_time"], int)
+    assert datetime.datetime.fromtimestamp(response_dict["submitted_time"])
+    assert len(response_dict["run_ids"]) == 1
+    assert len(response_dict["log_detective_target_ids"]) == 1
+
+
+def test_log_detective_list(client, clean_before_and_after, a_log_detective_result):
+    response = client.get(
+        url_for("api.log-detective_log_detective_result_list"),
+    )
+    response_dict = response.json
     assert len(response_dict) == 1

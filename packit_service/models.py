@@ -4882,6 +4882,24 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         with sa_session_transaction() as session:
             return session.query(LogDetectiveRunModel).filter_by(analysis_id=analysis_id).first()
 
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["LogDetectiveRunModel"]:
+        with sa_session_transaction() as session:
+            return session.query(LogDetectiveRunModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_range(
+        cls,
+        first: int,
+        last: int,
+    ) -> Iterable["LogDetectiveRunModel"]:
+        with sa_session_transaction() as session:
+            query = session.query(LogDetectiveRunModel).order_by(
+                desc(LogDetectiveRunModel.id),
+            )
+
+            return query.slice(first, last)
+
 
 class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
     __tablename__ = "log_detective_run_groups"

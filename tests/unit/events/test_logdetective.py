@@ -185,6 +185,7 @@ def test_logdetective_run_success(
             copr_build_target_id=999,
             koji_build_target_id=999,
             target="fedora-44-x86_64" if build_system == "copr" else "fc44-x86_64",
+            id=123,
         )
     else:
         run_model = flexmock(
@@ -193,6 +194,7 @@ def test_logdetective_run_success(
             copr_build_target_id=999,
             koji_build_target_id=999,
             target="fedora-44-x86_64" if build_system == "copr" else "fc44-x86_64",
+            id=123,
         )
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").with_args(
         analysis_id="123456"
@@ -222,7 +224,7 @@ def test_logdetective_run_success(
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=expected_status,
         description=f"Log Detective analysis status: {status_str}",
-        url="https://build.url",
+        url="/jobs/log-detective/123",
         check_name="Packit - Log Detective analysis",
     ).once()
 
@@ -265,7 +267,7 @@ def test_logdetective_run_already_processed(handler_and_models):
     handler = handler_and_models
 
     # Simulate DB already having the same status
-    run_model = flexmock(status=LogDetectiveResult.complete)
+    run_model = flexmock(status=LogDetectiveResult.complete, id=123)
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
         run_model
     )
@@ -287,6 +289,7 @@ def test_logdetective_run_build_not_found(handler_and_models):
         status=LogDetectiveResult.running,
         submitted_time=datetime.now(timezone.utc),
         copr_build_target_id=10,
+        id=123,
     )
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
         run_model
@@ -315,6 +318,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
         submitted_time=datetime.now(timezone.utc),
         copr_build_target_id=10,
         target="fedora-rawhide-x86_64",
+        id=123,
     )
     run_model.should_receive("set_status")
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
@@ -329,7 +333,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
     flexmock(FedoraCIHelper).should_receive("report").with_args(
         state=BaseCommitStatus.success,
         description="Log Detective analysis status: complete",
-        url="",
+        url="/jobs/log-detective/123",
         check_name="Packit - Log Detective analysis",
     ).once()
 
