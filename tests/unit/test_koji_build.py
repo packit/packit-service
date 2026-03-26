@@ -576,11 +576,11 @@ def test_koji_build_targets_override(
     [
         (
             45270227,
-            "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log",
+            "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/mock_output.log",
         ),
         (
             45452270,
-            "https://kojipkgs.fedoraproject.org//work/tasks/2270/45452270/build.log",
+            "https://kojipkgs.fedoraproject.org//work/tasks/2270/45452270/mock_output.log",
         ),
     ],
 )

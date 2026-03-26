@@ -77,13 +77,19 @@ class KojiEvent(Result):
     def get_koji_build_logs_url(
         rpm_build_task_id: int,
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
+        log_file: str = "mock_output.log",
     ) -> str:
-        """
-        Constructs the log URL for the given Koji task.
+        """Constructs the log URL for the given Koji task.
         You can redefine the Koji instance using the one defined in the service config.
+
+        Args:
+            rpm_build_task_id: ID of the RPM build task.
+            koji_logs_url: Base URL for Koji logs.
+            log_file: The name of the log file.
         """
         return (
-            f"{koji_logs_url}//work/tasks/{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
+            f"{koji_logs_url}//work/tasks/{rpm_build_task_id % 10000}"
+            f"/{rpm_build_task_id}/{log_file}"
         )
 
     def get_koji_build_rpm_tasks_logs_urls(

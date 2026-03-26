@@ -87,7 +87,7 @@ class LogDetectiveKojiTriggerHelper:
 
         build_arch_task_id = self.koji_event.rpm_build_task_ids[arch]
         artifacts = {
-            "build.log": koji.result.KojiEvent.get_koji_build_logs_url(
+            "mock_output.log": koji.result.KojiEvent.get_koji_build_logs_url(
                 build_arch_task_id,
                 self.koji_logs_url,
             )
