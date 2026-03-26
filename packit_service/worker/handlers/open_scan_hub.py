@@ -148,7 +148,8 @@ class CoprOpenScanHubTaskFinishedHandler(
         return f"{openscanhub_url}/task/{self.event.task_id}/log/added.{file_format}"
 
     def _run(self) -> TaskResults:
-        self.check_scan_and_build()
+        if result := self.check_scan_and_build():
+            return result
         external_links = {"OpenScanHub task": self.event.scan.url}
         if self.event.status == openscanhub.task.Status.success:
             state = BaseCommitStatus.success
@@ -208,7 +209,8 @@ class CoprOpenScanHubTaskStartedHandler(
         self.event: openscanhub.task.Started = self.data.to_event()
 
     def _run(self) -> TaskResults:
-        self.check_scan_and_build()
+        if result := self.check_scan_and_build():
+            return result
 
         state = BaseCommitStatus.running
         description = "Scan in OpenScanHub has started."
