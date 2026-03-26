@@ -81,7 +81,7 @@ def test_logdetective_koji_set_payload(mock_koji_task_failed_event, mock_event_d
 
     request_json = {
         "artifacts": {
-            "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
+            "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
         },
         "target_build": "12345",
         "build_system": "koji",
@@ -123,7 +123,7 @@ def test_logdetective_koji_success(
         f"{LOGDETECTIVE_PACKIT_SERVER_URL}/analyze",
         json={
             "artifacts": {
-                "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log"
+                "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log"
             },
             "target_build": "12345",
             "build_system": LogDetectiveBuildSystem.koji.value,

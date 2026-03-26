@@ -40,7 +40,7 @@ def test_parse_koji_build_scratch_event_end(koji_build_scratch_end, koji_build_p
     assert event_object.state == KojiTaskState.closed
     assert event_object.rpm_build_task_ids == {"noarch": 45270227}
     assert event_object.get_koji_build_rpm_tasks_logs_urls() == {
-        "noarch": "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log",
+        "noarch": "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/mock_output.log",
     }
 
     flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=123).and_return(
