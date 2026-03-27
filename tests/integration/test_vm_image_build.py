@@ -80,7 +80,7 @@ def test_vm_image_build(github_vm_image_build_comment):
         type=ProjectEventModelType.pull_request,
         event_id=1,
         commit_sha="123456",
-    ).and_return(flexmock())
+    ).and_return(flexmock(type=ProjectEventModelType.pull_request, event_id=1))
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,

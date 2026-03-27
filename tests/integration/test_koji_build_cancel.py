@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+from datetime import datetime, timezone
 
 import pytest
 from celery.canvas import Signature, group
@@ -102,7 +103,10 @@ def mock_distgit_pr_functionality():
         project=flexmock(project_url="https://src.fedoraproject.org/rpms/optee_os"),
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -341,7 +345,10 @@ def test_downstream_koji_build_cancel_running(monkeypatch):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.branch_push,
@@ -391,4 +398,121 @@ def test_downstream_koji_build_cancel_running(monkeypatch):
         job_config=job_config,
     )
 
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_downstream_koji_build_cancel_uses_event_based_filtering(monkeypatch):
+    """Test that cancel_running_builds passes event-based parameters to get_running.
+
+    Verifies the end-to-end flow introduced by commit e4cde978:
+    1. SteveJobs.create_tasks() queries PipelineModel.get_latest_datetime_for_event
+       and sets cancel_cutoff_time on the event
+    2. cancel_cutoff_time is serialized into the event dict
+    3. The handler's get_running_jobs() passes project_event_type, event_id,
+       and created_before (not commit_sha) to KojiBuildGroupModel.get_running
+
+    This ensures that cancellation targets only builds from the same event
+    (e.g. the same PR), not builds from other PRs that happen to share a commit SHA.
+    """
+    monkeypatch.setenv("CANCEL_RUNNING_JOBS", "1")
+
+    cutoff_time = datetime(2025, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+
+    # Override the autouse fixture mock — return a specific cutoff time
+    flexmock(PipelineModel).should_receive("get_latest_datetime_for_event").with_args(
+        project_event_type=ProjectEventModelType.branch_push,
+        event_id=9,
+    ).and_return(cutoff_time).once()
+
+    # Pagure project with a koji_build job in .packit.yaml
+    packit_yaml = (
+        "{'specfile_path': 'buildah.spec',"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers':"
+        " ['rhcontainerbot']}],"
+        "'downstream_package_name': 'buildah'}"
+    )
+    pagure_project = flexmock(
+        PagureProject,
+        full_repo_name="rpms/buildah",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
+        default_branch="main",
+    )
+    pagure_project.should_receive("get_files").with_args(
+        ref="main",
+        filter_regex=r".+\.spec$",
+    ).and_return(["buildah.spec"])
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml",
+        ref="main",
+        headers=dict,
+    ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="main",
+        recursive=False,
+    ).and_return(["buildah.spec", ".packit.yaml"])
+
+    # Database models for branch push event
+    db_project_object = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        project_event_model_type=ProjectEventModelType.branch_push,
+    )
+    db_project_event = (
+        flexmock(type=ProjectEventModelType.branch_push, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.branch_push,
+        event_id=9,
+        commit_sha="abcd",
+    ).and_return(flexmock())
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="main",
+        namespace="rpms",
+        repo_name="buildah",
+        project_url="https://src.fedoraproject.org/rpms/buildah",
+    ).and_return(db_project_object)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        db_project_event,
+    )
+
+    # Infrastructure no-ops
+    flexmock(PipelineModel).should_receive("create")
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: None)
+    flexmock(group).should_receive("apply_async")
+    flexmock(Pushgateway).should_receive("push").and_return()
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
+    # Short-circuit _run() right after cancel_running_builds
+    flexmock(DownstreamKojiBuildHandler).should_receive(
+        "_get_or_create_koji_group_model",
+    ).and_raise(PackitException, "mock error")
+
+    # The key assertion: get_running must be called with event-based parameters
+    # (project_event_type + event_id + created_before), not commit_sha
+    flexmock(KojiBuildGroupModel).should_receive("get_running").with_args(
+        project_event_type=ProjectEventModelType.branch_push,
+        event_id=9,
+        created_before=cutoff_time,
+    ).and_return([]).once()
+
+    distgit_commit = json.loads(
+        (DATA_DIR / "fedmsg" / "distgit_commit.json").read_text(),
+    )
+
+    processing_results = SteveJobs().process_message(distgit_commit)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+
+    # Verify that cancel_cutoff_time was serialized into the event dict
+    assert event_dict.get("cancel_cutoff_time") == int(cutoff_time.timestamp())
+
+    results = run_downstream_koji_build(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
     assert first_dict_value(results["job"])["success"]

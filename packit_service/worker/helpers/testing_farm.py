@@ -1234,12 +1234,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def get_running_jobs(self) -> Iterable["TFTTestRunTargetModel"]:
-        if sha := self.metadata.commit_sha_before:
-            yield from TFTTestRunGroupModel.get_running(
-                commit_sha=sha, ranch=self.tft_client.default_ranch
+        if not self.db_project_event:
+            logger.warning("No db_project_event, cannot query running TF runs.")
+            return
+        if not self.metadata.cancel_cutoff_time:
+            logger.warning(
+                "No cancel_cutoff_time, skipping running TF runs query "
+                "to avoid canceling unrelated jobs."
             )
-
-        # [SAFETY] When there's no previous commit hash, yields nothing
+            return
+        yield from TFTTestRunGroupModel.get_running(
+            project_event_type=self.db_project_event.type,
+            event_id=self.db_project_event.event_id,
+            ranch=self.tft_client.default_ranch,
+            created_before=self.metadata.cancel_cutoff_time,
+        )
 
     def cancel_running_tests(self):
         running_tests = list(self.get_running_jobs())

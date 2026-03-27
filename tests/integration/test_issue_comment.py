@@ -263,6 +263,8 @@ def test_issue_comment_propose_downstream_handler(
     )
     db_project_event = (
         flexmock(
+            type=ProjectEventModelType.issue,
+            event_id=123,
             id=123456,
             project_event_model_type=ProjectEventModelType.issue,
         )
@@ -409,7 +411,10 @@ def mock_repository_issue_retriggering():
     )
 
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.issue, event_id=123)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
 
     flexmock(IssueModel).should_receive("get_or_create").and_return(db_project_object)
