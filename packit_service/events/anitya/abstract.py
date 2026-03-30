@@ -43,7 +43,7 @@ class AnityaUpdate(Event):
 
     @property
     @abstractmethod
-    def version(self) -> str: ...
+    def versions(self) -> list[str]: ...
 
     @cached_property
     def project(self) -> Optional[GitProject]:
@@ -63,33 +63,14 @@ class AnityaUpdate(Event):
 
     def _add_release_and_event(self):
         if not self._db_project_object or not self._db_project_event:
-            if not self.project_url:
-                (
-                    self._db_project_object,
-                    self._db_project_event,
-                ) = ProjectEventModel.add_anitya_version_event(
-                    version=self.version,
-                    project_name=self.anitya_project_name,
-                    project_id=self.anitya_project_id,
-                    package=self.package_name,
-                )
-                return
-
-            if not (self.tag_name and self.repo_name and self.repo_namespace and self.project_url):
-                logger.info(
-                    "Not going to create the DB project event, not valid arguments.",
-                )
-                return
-
             (
                 self._db_project_object,
                 self._db_project_event,
-            ) = ProjectEventModel.add_release_event(
-                tag_name=self.tag_name,
-                namespace=self.repo_namespace,
-                repo_name=self.repo_name,
-                project_url=self.project_url,
-                commit_hash=None,
+            ) = ProjectEventModel.add_anitya_multiple_versions_event(
+                versions=self.versions,
+                project_name=self.anitya_project_name,
+                project_id=self.anitya_project_id,
+                package=self.package_name,
             )
 
     @property
@@ -139,22 +120,25 @@ class AnityaUpdate(Event):
         return self.repo_url.repo if self.repo_url else None
 
     @property
-    def tag_name(self):
+    def tag_names(self) -> list[str]:
         if not (self.packages_config and self.packages_config.upstream_tag_template):
-            return self.version
+            return list(self.versions)
 
-        return self.packages_config.upstream_tag_template.format(
-            version=self.version,
-            upstream_package_name=self.packages_config.upstream_package_name,
-        )
+        return [
+            self.packages_config.upstream_tag_template.format(
+                version=version,
+                upstream_package_name=self.packages_config.upstream_package_name,
+            )
+            for version in self.versions
+        ]
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         d = self.__dict__
         d["project_url"] = self.project_url
-        d["tag_name"] = self.tag_name
+        d["tag_names"] = self.tag_names
         d["repo_name"] = self.repo_name
         d["repo_namespace"] = self.repo_namespace
-        d["version"] = self.version
+        d["versions"] = self.versions
         result = super().get_dict(d)
         result.pop("project")
         result.pop("repo_url")

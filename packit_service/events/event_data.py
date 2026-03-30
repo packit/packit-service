@@ -7,7 +7,6 @@ from logging import getLogger
 from typing import Optional
 
 from ogr.abstract import GitProject
-from ogr.parsing import RepoUrl
 
 from packit_service.config import ServiceConfig
 from packit_service.models import (
@@ -32,6 +31,7 @@ class EventData:
         event_id: int,
         project_url: str,
         tag_name: Optional[str],
+        tag_names: Optional[list[str]],
         git_ref: Optional[str],
         pr_id: Optional[int],
         commit_sha: Optional[str],
@@ -49,6 +49,7 @@ class EventData:
         self.event_id = event_id
         self.project_url = project_url
         self.tag_name = tag_name
+        self.tag_names = tag_names
         self.git_ref = git_ref
         self.pr_id = pr_id
         self.commit_sha = commit_sha
@@ -78,6 +79,7 @@ class EventData:
         event_id = event.get("event_id")
         project_url = event.get("project_url")
         tag_name = event.get("tag_name")
+        tag_names = event.get("tag_names")
         git_ref = event.get("git_ref")
         # event has _pr_id as the attribute while pr_id is a getter property
         pr_id = event.get("_pr_id") or event.get("pr_id")
@@ -107,6 +109,7 @@ class EventData:
             event_id=event_id,
             project_url=project_url,
             tag_name=tag_name,
+            tag_names=tag_names,
             git_ref=git_ref,
             pr_id=pr_id,
             commit_sha=commit_sha,
@@ -219,34 +222,14 @@ class EventData:
         elif self.event_type in {
             "anitya.NewHotness",
         }:
-            if not self.project_url:
-                (
-                    self._db_project_object,
-                    self._db_project_event,
-                ) = ProjectEventModel.add_anitya_version_event(
-                    version=self.event_dict.get("version"),
-                    project_name=self.event_dict.get("anitya_project_name"),
-                    project_id=self.event_dict.get("anitya_project_id"),
-                    package=self.event_dict.get("package_name"),
-                )
-                return
-
-            if self.project:
-                namespace = self.project.namespace
-                repo_name = self.project.repo
-            else:
-                repo_url = RepoUrl.parse(self.project_url)
-                namespace = repo_url.namespace
-                repo_name = repo_url.repo
             (
                 self._db_project_object,
                 self._db_project_event,
-            ) = ProjectEventModel.add_release_event(
-                tag_name=self.tag_name,
-                namespace=namespace,
-                repo_name=repo_name,
-                project_url=self.project_url,
-                commit_hash=self.commit_sha,
+            ) = ProjectEventModel.add_anitya_multiple_versions_event(
+                versions=self.event_dict.get("versions"),
+                project_name=self.event_dict.get("anitya_project_name"),
+                project_id=self.event_dict.get("anitya_project_id"),
+                package=self.event_dict.get("package_name"),
             )
         elif self.event_type in {
             "github.issue.Comment",

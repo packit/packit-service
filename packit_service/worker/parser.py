@@ -1770,20 +1770,20 @@ class Parser:
 
         distgit_project_url = f"{dg_base_url}rpms/{package_name}"
 
-        version = nested_get(event, "trigger", "msg", "project", "version")
+        versions = nested_get(event, "trigger", "msg", "message", "upstream_versions")
 
         bug_id = nested_get(event, "bug", "bug_id")
         anitya_project_id = nested_get(event, "trigger", "msg", "project", "id")
         anitya_project_name = nested_get(event, "trigger", "msg", "project", "name")
 
         logger.info(
-            f"New hotness update event for package: {package_name}, version: {version},"
+            f"New hotness update event for package: {package_name}, versions: {versions},"
             f" bug ID: {bug_id}",
         )
 
         return anitya.NewHotness(
             package_name=package_name,
-            version=version,
+            versions=versions,
             distgit_project_url=distgit_project_url,
             bug_id=bug_id,
             anitya_project_id=anitya_project_id,

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 from logging import getLogger
-from typing import Optional
 
 from packit.config import JobConfigTriggerType
 
@@ -21,7 +20,7 @@ class NewHotness(AnityaUpdate):
     def __init__(
         self,
         package_name: str,
-        version: str,
+        versions: list[str],
         distgit_project_url: str,
         bug_id: int,
         anitya_project_id: int,
@@ -33,7 +32,7 @@ class NewHotness(AnityaUpdate):
             anitya_project_id=anitya_project_id,
             anitya_project_name=anitya_project_name,
         )
-        self._version = version
+        self._versions = versions
         self.bug_id = bug_id
 
     @classmethod
@@ -41,14 +40,14 @@ class NewHotness(AnityaUpdate):
         return "anitya.NewHotness"
 
     @property
-    def version(self) -> str:
-        return self._version
+    def versions(self) -> list[str]:
+        return self._versions
 
     @classmethod
     def from_event_dict(cls, event: dict) -> "NewHotness":
         return cls(
             package_name=event.get("package_name"),
-            version=event.get("version"),
+            versions=event.get("versions"),
             distgit_project_url=event.get("distgit_project_url"),
             bug_id=event.get("bug_id"),
             anitya_project_id=event.get("anitya_project_id"),
@@ -82,11 +81,8 @@ class VersionUpdate(AnityaUpdate):
         return "anitya.VersionUpdate"
 
     @property
-    def version(self) -> Optional[str]:
-        # we will decide the version just when syncing release
-        # (for the particular branch etc.),
-        # until that we work with all the new versions
-        return None
+    def versions(self) -> list[str]:
+        return self._versions
 
     def _add_release_and_event(self):
         if not self._db_project_object or not self._db_project_event:
@@ -94,7 +90,7 @@ class VersionUpdate(AnityaUpdate):
                 self._db_project_object,
                 self._db_project_event,
             ) = ProjectEventModel.add_anitya_multiple_versions_event(
-                versions=self._versions,
+                versions=self.versions,
                 project_name=self.anitya_project_name,
                 project_id=self.anitya_project_id,
                 package=self.package_name,

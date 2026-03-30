@@ -64,12 +64,14 @@ def test_create_one_issue_for_pr():
             "f34": "Propose downstream failed for release 056",
             "f35": "Propose downstream failed for release 056",
         },
+        release="056",
     )
     handler._report_errors_for_each_branch(
         {
             "f34": "Propose downstream failed for release 056",
             "f35": "Propose downstream failed for release 056",
         },
+        release="056",
     )
 
 

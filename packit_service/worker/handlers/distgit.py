@@ -57,6 +57,7 @@ from packit_service.models import (
     KojiTagRequestGroupModel,
     KojiTagRequestTargetModel,
     PipelineModel,
+    ProjectEventModel,
     SyncReleaseJobType,
     SyncReleaseModel,
     SyncReleasePullRequestModel,
@@ -263,6 +264,8 @@ class AbstractSyncReleaseHandler(
         self,
         branch: str,
         model: SyncReleaseModel,
+        tag: Optional[str] = None,
+        version: Optional[str] = None,
     ) -> Optional[tuple[PullRequest, dict[str, PullRequest]]]:
         try:
             branch_suffix = f"update-{self.sync_release_job_type.value}"
@@ -287,11 +290,9 @@ class AbstractSyncReleaseHandler(
                     branch,
                 ),
             }
-            if not self.packit_api.non_git_upstream:
-                kwargs["tag"] = self.tag
-            elif (version := self.data.event_dict.get("version")) or (
-                version := self.get_version_from_comment()
-            ):
+            if tag:
+                kwargs["tag"] = tag
+            elif version:
                 kwargs["versions"] = [version]
             downstream_pr, additional_prs = self.packit_api.sync_release(**kwargs)
         except PackitDownloadFailedException as ex:
@@ -340,13 +341,13 @@ class AbstractSyncReleaseHandler(
 
         return downstream_pr, additional_prs
 
-    def _get_or_create_sync_release_run(self) -> SyncReleaseModel:
+    def _get_or_create_sync_release_run(self, project_event_model=None) -> SyncReleaseModel:
         if self._sync_release_run_id is not None:
             return SyncReleaseModel.get_by_id(self._sync_release_run_id)
 
         sync_release_model, _ = SyncReleaseModel.create_with_new_run(
             status=SyncReleaseStatus.running,
-            project_event_model=self.data.db_project_event,
+            project_event_model=project_event_model or self.data.db_project_event,
             job_type=(
                 SyncReleaseJobType.propose_downstream
                 if self.job_config.type == JobType.propose_downstream
@@ -368,6 +369,8 @@ class AbstractSyncReleaseHandler(
         self,
         sync_release_run_model: SyncReleaseModel,
         model: SyncReleaseTargetModel,
+        tag: Optional[str] = None,
+        version: Optional[str] = None,
     ) -> Optional[str]:
         """
         Run sync-release for the single target specified by the given model.
@@ -415,6 +418,8 @@ class AbstractSyncReleaseHandler(
             downstream_pr, additional_prs = self.sync_branch(
                 branch=branch,
                 model=sync_release_run_model,
+                tag=tag,
+                version=version,
             )
             logger.debug("Downstream PR(s) created successfully.")
             model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
@@ -488,18 +493,98 @@ class AbstractSyncReleaseHandler(
         # no error occurred
         return None
 
+    def _get_releases_to_sync(self) -> list[tuple[Optional[str], Optional[str]]]:
+        """Get list of (tag, version) pairs to sync.
+
+        For git upstreams, returns (tag, None) pairs.
+        For non-git upstreams, returns (None, version) pairs.
+        """
+        if not self.packit_api.non_git_upstream:
+            return [(tag, None) for tag in self.tags]
+
+        versions = self.data.event_dict.get("versions") or []
+        if not versions:
+            version = self.get_version_from_comment()
+            if version:
+                versions = [version]
+        if versions:
+            return [(None, version) for version in versions]
+        # non-git upstream with no version info — run without tag/version
+        return [(None, None)]
+
     def _run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
+        all_errors = {}
+
+        try:
+            for tag, version in self._get_releases_to_sync():
+                errors = self._run_for_release(tag=tag, version=version)
+                all_errors.update(errors)
+        except AbortSyncRelease:
+            return TaskResults(
+                success=True,  # do not create a Sentry issue
+                details={"msg": "Not able to download archive. Task will be retried."},
+            )
+        finally:
+            # remove temporary dist-git clone after we're done here - context:
+            # 1. the dist-git repo could be cloned on worker, not sandbox
+            # 2. in such case it's stored in /tmp, not in the mirrored sandbox PV
+            # 3. it's not being cleaned up and it wastes pod's filesystem space
+            shutil.rmtree(self.packit_api.dg.local_project.working_dir)
+
+        if all_errors:
+            return TaskResults(
+                success=False,
+                details={
+                    "msg": f"{self.sync_release_job_type} failed.",
+                    "errors": all_errors,
+                },
+            )
+
+        return TaskResults(success=True, details={})
+
+    def _create_release_event(self, tag: str) -> ProjectEventModel:
+        """Create a ProjectReleaseModel and ProjectEventModel for a specific tag."""
+        _, event = ProjectEventModel.add_release_event(
+            tag_name=tag,
+            namespace=self.data.event_dict.get("repo_namespace"),
+            repo_name=self.data.event_dict.get("repo_name"),
+            project_url=self.data.project_url,
+            commit_hash=self.data.commit_sha,
+        )
+        return event
+
+    def _run_for_release(
+        self,
+        tag: Optional[str] = None,
+        version: Optional[str] = None,
+    ) -> dict[str, str]:
+        """
+        Run the sync-release pipeline for a single tag/version across all branches.
+
+        Returns:
+            Dict of branch → error message for branches that failed.
+        """
         errors = {}
-        sync_release_run_model = self._get_or_create_sync_release_run()
+        release_event = (
+            self._create_release_event(tag)
+            if tag and self.data.event_type == anitya.NewHotness.event_type()
+            else None
+        )
+        sync_release_run_model = self._get_or_create_sync_release_run(release_event)
         branches_to_run = [target.branch for target in sync_release_run_model.sync_release_targets]
-        logger.debug(f"Branches to run {self.job_config.type}: {branches_to_run}")
+        logger.debug(
+            f"Branches to run {self.job_config.type} "
+            f"(tag={tag}, version={version}): {branches_to_run}"
+        )
 
         try:
             for model in sync_release_run_model.sync_release_targets:
-                if error := self.run_for_target(sync_release_run_model, model):
+                if error := self.run_for_target(
+                    sync_release_run_model, model, tag=tag, version=version
+                ):
                     errors[model.branch] = error
         except AbortSyncRelease:
             logger.debug(
@@ -518,16 +603,7 @@ class AbstractSyncReleaseHandler(
                 url="",
             )
 
-            return TaskResults(
-                success=True,  # do not create a Sentry issue
-                details={"msg": "Not able to download archive. Task will be retried."},
-            )
-        finally:
-            # remove temporary dist-git clone after we're done here - context:
-            # 1. the dist-git repo could be cloned on worker, not sandbox
-            # 2. in such case it's stored in /tmp, not in the mirrored sandbox PV
-            # 3. it's not being cleaned up and it wastes pod's filesystem space
-            shutil.rmtree(self.packit_api.dg.local_project.working_dir)
+            raise
 
         models_with_errors = [
             target
@@ -557,20 +633,14 @@ class AbstractSyncReleaseHandler(
                     command="pull-from-upstream",
                 )
 
-            self._report_errors_for_each_branch(body_msg)
+            self._report_errors_for_each_branch(body_msg, release=tag or version)
             sync_release_run_model.set_status(status=SyncReleaseStatus.error)
-            return TaskResults(
-                success=False,
-                details={
-                    "msg": f"{self.sync_release_job_type}  failed.",
-                    "errors": errors,
-                },
-            )
+        else:
+            sync_release_run_model.set_status(status=SyncReleaseStatus.finished)
 
-        sync_release_run_model.set_status(status=SyncReleaseStatus.finished)
-        return TaskResults(success=True, details={})
+        return errors
 
-    def _report_errors_for_each_branch(self, message: str):
+    def _report_errors_for_each_branch(self, message: str, release: Optional[str] = None):
         raise NotImplementedError("Use subclass.")
 
     def get_resolved_bugs(self):
@@ -631,7 +701,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
     def get_checkers() -> tuple[type[Checker], ...]:
         return (IsUpstreamTagMatchingConfig,)
 
-    def _report_errors_for_each_branch(self, message: str) -> None:
+    def _report_errors_for_each_branch(self, message: str, release: Optional[str] = None) -> None:
         if not self.job_config.notifications.failure_issue.create:
             logger.debug("Reporting via issues disabled in config, skipping.")
             return
@@ -651,7 +721,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
 
         create_issue_if_needed(
             project=self.project,
-            title=f"{self.job_name_for_reporting.capitalize()} failed for release {self.tag}",
+            title=f"{self.job_name_for_reporting.capitalize()} failed for release {release}",
             message=body_msg,
             comment_to_existing=body_msg,
         )
@@ -738,7 +808,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         )
         return bugs.split(",")
 
-    def _report_errors_for_each_branch(self, message: str) -> None:
+    def _report_errors_for_each_branch(self, message: str, release: Optional[str] = None) -> None:
         body_msg = (
             f"{message}\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*\n"
         )
@@ -753,7 +823,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         report_in_issue_repository(
             issue_repository=self.job_config.issue_repository,
             service_config=self.service_config,
-            title=f"Pull from upstream failed for release {self.tag}",
+            title=f"Pull from upstream failed for release {release}",
             message=long_message,
             comment_to_existing=short_message,
         )
