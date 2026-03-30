@@ -233,7 +233,6 @@ def test_dist_git_push_release_handle(
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
         fast_forward_merge_branches=set(),
-        warn_about_koji_build_triggering_bug=False,
     ).and_return((pr, {})).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -390,7 +389,6 @@ def test_dist_git_push_release_handle_fast_forward_branches(
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
         fast_forward_merge_branches=set(),
-        warn_about_koji_build_triggering_bug=False,
     ).and_return((pr, {"rawhide": second_pr})).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -538,7 +536,6 @@ def test_dist_git_push_release_handle_multiple_branches(
             pr_description_footer=DistgitAnnouncement.get_announcement(),
             add_new_sources=True,
             fast_forward_merge_branches=set(),
-            warn_about_koji_build_triggering_bug=False,
         ).and_return((pr, {})).once()
 
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -694,7 +691,6 @@ def test_dist_git_push_release_handle_one_failed(
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
                 add_new_sources=True,
                 fast_forward_merge_branches=set(),
-                warn_about_koji_build_triggering_bug=False,
             ).and_return((pr, {})).once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch",
@@ -718,7 +714,6 @@ def test_dist_git_push_release_handle_one_failed(
                 pr_description_footer=DistgitAnnouncement.get_announcement(),
                 add_new_sources=True,
                 fast_forward_merge_branches=set(),
-                warn_about_koji_build_triggering_bug=False,
             ).and_raise(Exception, f"Failed {model.branch}").once()
             flexmock(ProposeDownstreamJobHelper).should_receive(
                 "report_status_for_branch",
@@ -984,7 +979,6 @@ def test_retry_propose_downstream_task(
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
         fast_forward_merge_branches=set(),
-        warn_about_koji_build_triggering_bug=False,
     ).and_raise(
         PackitDownloadFailedException,
         "Failed to download source from example.com",
@@ -1099,7 +1093,6 @@ def test_dont_retry_propose_downstream_task(
         pr_description_footer=DistgitAnnouncement.get_announcement(),
         add_new_sources=True,
         fast_forward_merge_branches=set(),
-        warn_about_koji_build_triggering_bug=False,
     ).and_raise(
         PackitDownloadFailedException,
         "Failed to download source from example.com",
