@@ -1098,5 +1098,17 @@ def test_log_detective_list(client, clean_before_and_after, a_log_detective_resu
     response = client.get(
         url_for("api.log-detective_log_detective_result_list"),
     )
-    response_dict = response.json
-    assert len(response_dict) == 1
+    response_list = response.json
+    assert len(response_list) == 1
+
+    response_dict = response_list[0]
+    assert isinstance(response_dict, dict)
+    assert "pr_id" in response_dict
+    assert "issue_id" in response_dict
+    assert "branch_name" in response_dict
+    assert "release" in response_dict
+    assert "anitya_version" in response_dict
+    assert "project_url" in response_dict
+
+    assert response_dict["project_url"] == SampleValues.project_url
+    assert response_dict["branch_name"] == SampleValues.branch
