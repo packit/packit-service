@@ -10,9 +10,9 @@ from ogr.services.pagure import PagureProject
 
 from packit_service.events.anitya import NewHotness, VersionUpdate
 from packit_service.models import (
+    AnityaMultipleVersionsModel,
     ProjectEventModel,
     ProjectEventModelType,
-    ProjectReleaseModel,
 )
 from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.worker.parser import Parser
@@ -32,46 +32,40 @@ def anitya_version_update():
 
 
 @pytest.mark.parametrize(
-    "upstream_project_url, upstream_tag_template, create_db_trigger, "
-    "tag_name, repo_namespace, repo_name",
+    "upstream_project_url, upstream_tag_template, tag_names, repo_namespace, repo_name",
     [
         (
             "https://github.com/redis-namespace/redis",
             None,
-            True,
-            "7.0.3",
+            ["7.0.3"],
             "redis-namespace",
             "redis",
         ),
         (
             "https://github.com/redis-namespace/redis",
             "no-version-tag",
-            True,
-            "no-version-tag",
+            ["no-version-tag"],
             "redis-namespace",
             "redis",
         ),
         (
             "https://github.com/redis-namespace/redis",
             "v{version}",
-            True,
-            "v7.0.3",
+            ["v7.0.3"],
             "redis-namespace",
             "redis",
         ),
         (
             "https://github.com/redis-namespace",
             None,
-            False,
-            "7.0.3",
+            ["7.0.3"],
             None,
             "redis-namespace",
         ),
         (
             "https://github.com/redis-namespace/another-level/redis",
             None,
-            True,
-            "7.0.3",
+            ["7.0.3"],
             "redis-namespace/another-level",
             "redis",
         ),
@@ -81,8 +75,7 @@ def test_parse_new_hotness_update(
     new_hotness_update,
     upstream_project_url,
     upstream_tag_template,
-    create_db_trigger,
-    tag_name,
+    tag_names,
     repo_namespace,
     repo_name,
 ):
@@ -105,20 +98,23 @@ def test_parse_new_hotness_update(
         ),
     ).once()
 
+    # Event class now always creates AnityaMultipleVersionsModel
+    flexmock(AnityaMultipleVersionsModel).should_receive("get_or_create").with_args(
+        versions=["7.0.3"],
+        project_name="redis",
+        project_id=4181,
+        package="redis",
+    ).and_return(
+        flexmock(
+            project_event_model_type=ProjectEventModelType.anitya_multiple_versions,
+            id="123",
+        ),
+    )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
-        type=ProjectEventModelType.release,
+        type=ProjectEventModelType.anitya_multiple_versions,
         event_id="123",
         commit_sha=None,
     ).and_return(flexmock())
-    flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
-        tag_name=tag_name,
-        namespace=repo_namespace,
-        repo_name=repo_name,
-        project_url=upstream_project_url,
-        commit_hash=None,
-    ).and_return(
-        flexmock(project_event_model_type=ProjectEventModelType.release, id="123"),
-    )
 
     assert isinstance(event_object, NewHotness)
     assert isinstance(event_object.project, PagureProject)
@@ -127,11 +123,9 @@ def test_parse_new_hotness_update(
     assert event_object.repo_namespace == repo_namespace
     assert event_object.repo_name == repo_name
     assert event_object.distgit_project_url == "https://src.fedoraproject.org/rpms/redis"
-    assert event_object.tag_name == tag_name
+    assert event_object.tag_names == tag_names
     assert event_object.packages_config
-
-    if create_db_trigger:
-        assert event_object.db_project_object
+    assert event_object.db_project_object
 
 
 # [NOTE] doesn't exist in CentOS… I've added CentOS entry to the event payload

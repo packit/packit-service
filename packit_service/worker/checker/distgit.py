@@ -272,7 +272,7 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
         valid = True
         msg_to_report = None
         issue_title = (
-            f"Pull from upstream could not be run for update {self.data.event_dict.get('version')}"
+            f"Pull from upstream could not be run for update {self.data.event_dict.get('versions')}"
         )
 
         if self.package_config.upstream_project_url and not (
@@ -286,9 +286,9 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             valid = False
 
         if self.package_config.upstream_project_url and (
-            self.data.event_type in (anitya.NewHotness.event_type(),) and not self.data.tag_name
+            self.data.event_type in (anitya.NewHotness.event_type(),) and not self.data.tag_names
         ):
-            msg_to_report = "We were not able to get the upstream tag name."
+            msg_to_report = "We were not able to get the upstream tag name(s)."
             valid = False
 
         if self.data.event_type in (pagure.pr.Comment.event_type(),):

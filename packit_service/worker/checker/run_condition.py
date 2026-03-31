@@ -5,6 +5,7 @@ import json
 import logging
 import shutil
 import tempfile
+from functools import cmp_to_key
 from pathlib import Path
 from typing import Optional
 
@@ -18,6 +19,7 @@ from packit.command_handler import (
 )
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitCommandFailedError
+from packit.utils.versions import compare_versions
 from specfile import Specfile
 
 from packit_service.events import (
@@ -127,8 +129,18 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
             elif self.data.event_type in (anitya.NewHotness.event_type(),):
                 event = anitya.NewHotness.from_event_dict(self.data.event_dict)
                 project = event.project
-                git_ref = event.tag_name
-                version = event.version
+                # FIXME: for now get the highest version (and tag), in the future the list
+                # of all versions should be presented to users as an environment variable
+                version = (
+                    max(event.versions, key=cmp_to_key(compare_versions))
+                    if event.versions
+                    else None
+                )
+                git_ref = (
+                    max(event.tag_names, key=cmp_to_key(compare_versions))
+                    if event.tag_names
+                    else None
+                )
             elif self.data.event_type in (
                 github.issue.Comment.event_type(),
                 gitlab.issue.Comment.event_type(),

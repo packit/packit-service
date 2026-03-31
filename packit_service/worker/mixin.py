@@ -198,7 +198,7 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
 
 
 class GetSyncReleaseTagMixin(PackitAPIWithUpstreamMixin):
-    _tag: Optional[str] = None
+    _tags: Optional[list[str]] = None
 
     def get_version_from_comment(self) -> Optional[str]:
         """
@@ -223,14 +223,20 @@ class GetSyncReleaseTagMixin(PackitAPIWithUpstreamMixin):
         return args[idx + 1] if idx < len(args) - 1 else None
 
     @property
-    def tag(self) -> Optional[str]:
-        self._tag = self.data.tag_name
-        if not self._tag and not self.non_git_upstream:
-            # there is no tag information when retriggering pull-from-upstream
-            # from dist-git PR, use the version from the comment if provided,
-            # otherwise fall back to the last tag
-            self._tag = self.get_version_from_comment() or self.packit_api.up.get_last_tag()
-        return self._tag
+    def tags(self) -> list[str]:
+        self._tags = self.data.tag_names
+        if not self._tags:
+            if self.data.tag_name:
+                self._tags = [self.data.tag_name]
+            elif not self.non_git_upstream:
+                # there is no tag information when retriggering pull-from-upstream
+                # from dist-git PR, use the version from the comment if provided,
+                # otherwise fall back to the last tag
+                tag = self.get_version_from_comment() or self.packit_api.up.get_last_tag()
+                self._tags = [tag] if tag else []
+            else:
+                self._tags = []
+        return self._tags
 
 
 class LocalProjectMixin(Config):
