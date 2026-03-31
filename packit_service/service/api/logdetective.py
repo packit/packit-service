@@ -109,6 +109,7 @@ class LogDetectiveResultList(Resource):
                 "run_ids": run_ids,
                 "submitted_time": optional_timestamp(log_detective_run_model.submitted_time),
             }
+            log_detective_result_dict.update(get_project_info_from_build(log_detective_run_model))
             result.append(log_detective_result_dict)
 
         resp = response_maker(
