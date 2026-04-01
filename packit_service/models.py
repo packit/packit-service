@@ -404,6 +404,10 @@ class ProjectAndEventsConnector:
         project_event_object = self.get_project_event_object()
         if isinstance(project_event_object, AnityaVersionModel):
             return project_event_object.version
+        if isinstance(project_event_object, AnityaMultipleVersionsModel):
+            return (
+                ";".join(project_event_object.versions) if project_event_object.versions else None
+            )
         return None
 
 
