@@ -404,6 +404,10 @@ class ProjectAndEventsConnector:
         project_event_object = self.get_project_event_object()
         if isinstance(project_event_object, AnityaVersionModel):
             return project_event_object.version
+        if isinstance(project_event_object, AnityaMultipleVersionsModel):
+            return (
+                ";".join(project_event_object.versions) if project_event_object.versions else None
+            )
         return None
 
 
@@ -542,7 +546,7 @@ class AnityaMultipleVersionsModel(BuildsAndTestsConnector, Base):
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["AnityaMultipleVersionsModel"]:
         with sa_session_transaction() as session:
-            return session.query(AnityaVersionModel).filter_by(id=id_).first()
+            return session.query(AnityaMultipleVersionsModel).filter_by(id=id_).first()
 
     def __repr__(self):
         return f"AnityaMultipleVersionsModel(versions={self.versions}, project={self.project})"

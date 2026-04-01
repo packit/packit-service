@@ -791,6 +791,8 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         """
         if self.data.event_type in (anitya.NewHotness.event_type(),):
             bug_id = self.data.event_dict.get("bug_id")
+            if bug_id is None or bug_id < 0:
+                return []
             return [f"rhbz#{bug_id}"]
 
         comment = self.data.event_dict.get("comment")
