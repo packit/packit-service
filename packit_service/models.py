@@ -546,7 +546,7 @@ class AnityaMultipleVersionsModel(BuildsAndTestsConnector, Base):
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["AnityaMultipleVersionsModel"]:
         with sa_session_transaction() as session:
-            return session.query(AnityaVersionModel).filter_by(id=id_).first()
+            return session.query(AnityaMultipleVersionsModel).filter_by(id=id_).first()
 
     def __repr__(self):
         return f"AnityaMultipleVersionsModel(versions={self.versions}, project={self.project})"
