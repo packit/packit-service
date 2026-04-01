@@ -49,7 +49,7 @@ def mock_pr_functionality(request):
         .mock()
     )
     project_event = (
-        flexmock(ProjectEventModel(type=JobConfigTriggerType.pull_request, id=123456))
+        flexmock(ProjectEventModel(type=JobConfigTriggerType.pull_request, id=123456, event_id=123))
         .should_receive("get_project_event_object")
         .and_return(pr_model)
         .mock()
@@ -94,7 +94,7 @@ def mock_push_functionality(request):
         .mock()
     )
     project_event = (
-        flexmock(ProjectEventModel(type=JobConfigTriggerType.commit, id=123456))
+        flexmock(ProjectEventModel(type=JobConfigTriggerType.commit, id=123456, event_id=123))
         .should_receive("get_project_event_object")
         .and_return(branch_model)
         .mock()
@@ -140,7 +140,7 @@ def mock_release_functionality(request):
         .mock()
     )
     project_event = (
-        flexmock(ProjectEventModel(type=JobConfigTriggerType.release, id=123456))
+        flexmock(ProjectEventModel(type=JobConfigTriggerType.release, id=123456, event_id=123))
         .should_receive("get_project_event_object")
         .and_return(release_model)
         .mock()
@@ -175,6 +175,8 @@ def bodhi_update_db_mocks():
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             project=flexmock(project_url=None),
             id=123,
+            type=ProjectEventModelType.pull_request,
+            event_id=12,
         )
         flexmock(AddPullRequestEventToDb).should_receive("db_project_object").and_return(
             project_event,
@@ -189,7 +191,7 @@ def bodhi_update_db_mocks():
             job_config_trigger_type=JobConfigTriggerType.pull_request,
         )
         flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").with_args(
-            79721403,
+            task_id=79721403,
         ).and_return(None)
         flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
             type=ProjectEventModelType.pull_request,

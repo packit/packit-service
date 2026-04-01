@@ -27,6 +27,7 @@ from packit_service.events import (
     testing_farm,
     vm_image,
 )
+from packit_service.models import TFTTestRunTargetModel
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
@@ -3422,6 +3423,8 @@ def test_create_tasks_tf_identifier(
     class Event(event_kls):
         def __init__(self):
             self._db_project_object = None
+            self._db_project_event = None
+            self.pipeline_id = None
 
         @property
         def packages_config(self):
@@ -3443,6 +3446,8 @@ def test_create_tasks_tf_identifier(
         SteveJobs,
         report_task_accepted=lambda handler_kls, job_config, update_feedback_time: None,
     )
+    # Mock DB lookup for testing farm result events
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(None)
     # We are testing the number of tasks, the exact signatures are not important
     flexmock(handler_kls).should_receive("get_signature").and_return(None)
     flexmock(TaskResults, create_from=lambda *args, **kwargs: object())

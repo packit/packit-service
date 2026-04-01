@@ -38,6 +38,7 @@ from packit_service.events import (
 from packit_service.events.event import Event
 from packit_service.events.event_data import EventData
 from packit_service.fedora_ci_config import FedoraCIConfig
+from packit_service.models import PipelineModel
 from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.utils import (
     elapsed_seconds,
@@ -801,6 +802,13 @@ class SteveJobs:
         """
         processing_results: list[TaskResults] = []
         signatures = []
+
+        if self.event.db_project_event:
+            self.event.cancel_cutoff_time = PipelineModel.get_latest_datetime_for_event(
+                project_event_type=self.event.db_project_event.type,
+                event_id=self.event.db_project_event.event_id,
+            )
+
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
             if self.should_task_be_created_for_job_config_and_handler(

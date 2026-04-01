@@ -197,7 +197,7 @@ def mock_pr_comment_functionality(request):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
@@ -524,7 +524,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     project_event = (
-        flexmock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
@@ -1813,7 +1813,7 @@ def test_retest_failed(
         project_event_model_type=ProjectEventModelType.pull_request,
     )
     db_project_event = (
-        flexmock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock()
@@ -2476,7 +2476,10 @@ def test_koji_build_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -2632,7 +2635,10 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -3002,7 +3008,10 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -3172,7 +3181,10 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -3368,7 +3380,10 @@ def _run_pull_from_upstream_with_version(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     run_model = flexmock(PipelineModel)
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
@@ -3518,7 +3533,10 @@ def test_koji_build_tag_via_dist_git_pr_comment(pagure_pr_comment_added, all_bra
         job_config_trigger_type=JobConfigTriggerType.pull_request,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -3712,7 +3730,10 @@ def _test_downstream_tf_retrigger_common(
         project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -3987,7 +4008,10 @@ def test_downstream_testing_farm_retrigger_rawhide_pr_eln_package_fedora_ci(
         project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -4173,7 +4197,10 @@ def test_downstream_build_retrigger_rawhide_pr_eln_package_fedora_ci(
         project=flexmock(project_url="https://src.fedoraproject.org/rpms/python-teamcity-messages"),
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
