@@ -1296,7 +1296,7 @@ class DownstreamTestingFarmJobHelper:
         service_config: ServiceConfig,
         project: GitProject,
         metadata: EventData,
-        filter_specific_test: bool = True,
+        filter_specific_tests: bool = True,
     ) -> list[str]:
         """
         Gets relevant Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator.
@@ -1308,11 +1308,31 @@ class DownstreamTestingFarmJobHelper:
             service_config: Service config.
             project: Git project.
             metadata: Event metadata.
-            filter_specific_test: Whether to filter tests based on the command in user's comment.
+            filter_specific_tests: Whether to filter tests based on the command in user's comment.
 
         Returns:
             List of registered Fedora CI test names.
         """
+
+        def filter_tests(tests):
+            if metadata.event_type != pagure.pr.Comment.event_type():
+                return tests
+            # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
+            # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
+            comment_command_prefix = (
+                "/packit-ci-stg"
+                if service_config.comment_command_prefix.endswith("-stg")
+                else "/packit-ci"
+            )
+            commands = get_packit_commands_from_comment(
+                metadata.event_dict.get("comment"), comment_command_prefix
+            )
+            if not commands:
+                return []
+            if len(commands) > 1 and commands[1] in tests:
+                return [commands[1]]
+            return tests
+
         all_tests = [
             name
             for name, (_, checkers) in FEDORA_CI_TESTS.items()
@@ -1326,22 +1346,9 @@ class DownstreamTestingFarmJobHelper:
                 for checker in checkers
             )
         ]
-        if metadata.event_type != pagure.pr.Comment.event_type() or not filter_specific_test:
-            return all_tests
-        # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
-        # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
-        comment_command_prefix = (
-            "/packit-ci-stg"
-            if service_config.comment_command_prefix.endswith("-stg")
-            else "/packit-ci"
-        )
-        commands = get_packit_commands_from_comment(
-            metadata.event_dict.get("comment"), comment_command_prefix
-        )
-        if not commands:
-            return []
-        if len(commands) > 1 and commands[1] in all_tests:
-            return [commands[1]]
+
+        if filter_specific_tests:
+            return filter_tests(all_tests)
         return all_tests
 
     @property

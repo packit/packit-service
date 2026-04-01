@@ -272,7 +272,7 @@ class SteveJobs:
                 self.service_config,
                 self.event.project,
                 EventData.from_event_dict(self.event.get_dict()),
-                filter_specific_test=False,
+                filter_specific_tests=False,
             )
             parser = get_comment_parser_fedora_ci(supported_test_types=supported_test_types)
         else:
