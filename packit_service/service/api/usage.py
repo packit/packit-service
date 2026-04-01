@@ -70,7 +70,7 @@ class Usage(Resource):
         return response_maker(result)
 
 
-@usage_ns.route("/project/<forge>/<namespace>/<repo_name>")
+@usage_ns.route("/project/<forge>/<path:namespace>/<repo_name>")
 @usage_ns.param("forge", "Git Forge")
 @usage_ns.param("namespace", "Namespace")
 @usage_ns.param("repo_name", "Repo Name")

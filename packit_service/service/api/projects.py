@@ -50,7 +50,7 @@ class ProjectsList(Resource):
         return resp
 
 
-@ns.route("/<forge>/<namespace>/<repo_name>")
+@ns.route("/<forge>/<path:namespace>/<repo_name>")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
@@ -108,7 +108,7 @@ class ProjectsForge(Resource):
         return resp
 
 
-@ns.route("/<forge>/<namespace>")
+@ns.route("/<forge>/<path:namespace>")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 class ProjectsNamespace(Resource):
@@ -144,7 +144,7 @@ class ProjectsNamespace(Resource):
         return resp
 
 
-@ns.route("/<forge>/<namespace>/<repo_name>/prs")
+@ns.route("/<forge>/<path:namespace>/<repo_name>/prs")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
@@ -222,7 +222,7 @@ class ProjectsPRs(Resource):
         return resp
 
 
-@ns.route("/<forge>/<namespace>/<repo_name>/issues")
+@ns.route("/<forge>/<path:namespace>/<repo_name>/issues")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
@@ -256,7 +256,7 @@ class ProjectIssues(Resource):
         return resp
 
 
-@ns.route("/<forge>/<namespace>/<repo_name>/releases")
+@ns.route("/<forge>/<path:namespace>/<repo_name>/releases")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
@@ -293,7 +293,7 @@ class ProjectReleases(Resource):
         return resp
 
 
-@ns.route("/<forge>/<namespace>/<repo_name>/branches")
+@ns.route("/<forge>/<path:namespace>/<repo_name>/branches")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
