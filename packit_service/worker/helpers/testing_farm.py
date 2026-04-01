@@ -41,6 +41,11 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs, get_packit_commands_from_comment
 from packit_service.worker.celery_task import CeleryTask
+from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.testing_farm import (
+    IsFMFConfigMissing,
+    IsProjectInTestsNamespace,
+)
 from packit_service.worker.handlers.abstract import FedoraCIJobHandler
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
@@ -49,21 +54,6 @@ from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
-
-
-def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
-    try:
-        project.get_file_content(
-            path=".fmf/version",
-            ref=metadata.commit_sha,
-        )
-    except FileNotFoundError:
-        return False
-    return True
-
-
-def is_project_in_tests_namespace(project: GitProject) -> bool:
-    return project.namespace == "tests"
 
 
 class CommentArguments:
@@ -682,7 +672,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.custom_fmf:
             return True
 
-        return is_fmf_configured(self.project, self.metadata)
+        return not IsFMFConfigMissing(
+            package_config=None, job_config=None, event=self.metadata.event_dict, task_name=None
+        ).pre_check()
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_tests_for_chroot(
@@ -1263,9 +1255,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 FEDORA_CI_TESTS = {}
 
 
-def implements_fedora_ci_test(test_name: str, skipif: Optional[Callable] = None) -> Callable:
+def implements_fedora_ci_test(
+    test_name: str, checkers: Optional[list[type[Checker]]] = None
+) -> Callable:
     def _update_mapping(function: Callable) -> Callable:
-        FEDORA_CI_TESTS[test_name] = (function, skipif)
+        FEDORA_CI_TESTS[test_name] = (function, checkers)
         return function
 
     return _update_mapping
@@ -1321,8 +1315,16 @@ class DownstreamTestingFarmJobHelper:
         """
         all_tests = [
             name
-            for name, (_, skipif) in FEDORA_CI_TESTS.items()
-            if not skipif or not skipif(service_config, project, metadata)
+            for name, (_, checkers) in FEDORA_CI_TESTS.items()
+            if not any(
+                checker(
+                    package_config=None,
+                    job_config=None,
+                    event=metadata.event_dict,
+                    task_name=None,
+                ).pre_check()
+                for checker in checkers
+            )
         ]
         if metadata.event_type != pagure.pr.Comment.event_type() or not filter_specific_test:
             return all_tests
@@ -1461,7 +1463,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "installability",
-        skipif=lambda _, project, __: is_project_in_tests_namespace(project),
+        checkers=[IsProjectInTestsNamespace],
     )
     def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
@@ -1511,7 +1513,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "rpminspect",
-        skipif=lambda _, project, __: is_project_in_tests_namespace(project),
+        checkers=[IsProjectInTestsNamespace],
     )
     def _payload_rpminspect(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
@@ -1529,7 +1531,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "rpmlint",
-        skipif=lambda _, project, __: is_project_in_tests_namespace(project),
+        checkers=[IsProjectInTestsNamespace],
     )
     def _payload_rpmlint(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/packit/tmt-plans.git"
@@ -1548,7 +1550,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "custom",
-        skipif=lambda _, project, metadata: not is_fmf_configured(project, metadata),
+        checkers=[IsFMFConfigMissing],
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
         payload = self._get_tf_base_payload(distro, compose)
