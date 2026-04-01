@@ -203,7 +203,7 @@ class TaskWithRetry(Task):
 
 class BodhiTaskWithRetry(TaskWithRetry):
     # hardcode for creating bodhi updates to account for the tagging race condition
-    max_retries = 5
+    max_retries = 8
     # also disable jitter for the same reason
     retry_jitter = False
     retry_kwargs: ClassVar[dict] = {

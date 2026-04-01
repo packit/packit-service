@@ -15,6 +15,7 @@ from celery import Task
 from packit.config import Deployment, JobConfig, JobType, PackageConfig
 from packit.exceptions import PackitException
 
+from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     DEFAULT_RETRY_BACKOFF,
@@ -195,6 +196,9 @@ class BodhiUpdateHandler(
                             "msg": f"There was an error: {ex}. Task will be retried.",
                         },
                     )
+
+                # Send to Sentry after all retries are exhausted
+                sentry_integration.send_to_sentry(ex)
 
                 error = str(ex)
                 errors[target_model.target] = get_bodhi_update_info_url(target_model.id)
