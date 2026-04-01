@@ -7,6 +7,7 @@ from datetime import timedelta
 from os import getenv
 from typing import ClassVar, Optional
 
+import redis
 from celery import Task
 from celery._state import get_current_task
 from celery.signals import after_setup_logger
@@ -19,11 +20,12 @@ from sqlalchemy import __version__ as sqlal_version
 from syslog_rfc5424_formatter import RFC5424Formatter
 
 from packit_service import __version__ as ps_version
-from packit_service.celerizer import celery_app
+from packit_service.celerizer import celery_app, get_redis_config
 from packit_service.constants import (
     CELERY_DEFAULT_MAIN_TASK_NAME,
     DEFAULT_RETRY_BACKOFF,
     DEFAULT_RETRY_LIMIT,
+    REDIS_PIDBOX_TTL_SECONDS,
     USAGE_CURRENT_DATE,
     USAGE_DATE_IN_THE_PAST,
     USAGE_DATE_IN_THE_PAST_STR,
@@ -102,6 +104,7 @@ from packit_service.worker.helpers.build.babysit import (
     update_vm_image_build,
 )
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -994,3 +997,81 @@ def get_usage_statistics() -> None:
         logger.debug(f"Getting usage data from datetime_from {day}.")
         get_usage_data(datetime_from=day)
         logger.debug("Got usage data.")
+
+
+@celery_app.task
+def cleanup_orphaned_pidbox_queues() -> None:
+    """
+    Clean up orphaned Celery pidbox reply queues that don't have TTL set.
+
+    Celery workers create pidbox (control) reply queues for control commands
+    (inspect, ping, stats, etc.). These queues should be temporary but can be
+    orphaned when workers crash or restart improperly.
+
+    This task:
+    - Scans for *.reply.celery.pidbox keys
+    - Sets a 1-hour TTL on keys without expiry (TTL = -1)
+    - Counts total keys in database for monitoring
+    - Exports metrics to Prometheus
+
+    Runs periodically via Celery beat to prevent disk/memory leaks.
+    """
+    logger.info("Starting cleanup of orphaned pidbox reply queues")
+
+    pushgateway = Pushgateway()
+
+    try:
+        # Get Redis connection from Celery's broker
+        redis_config = get_redis_config()
+
+        redis_client = redis.Redis(
+            host=redis_config["host"],
+            port=int(redis_config["port"]),
+            db=int(redis_config["db"]),
+            password=redis_config["password"],
+            decode_responses=True,
+        )
+
+        # Scan for pidbox reply queue keys
+        cursor = 0
+        keys_processed = 0
+        keys_with_ttl_set = 0
+        pattern = "*.reply.celery.pidbox"
+
+        while True:
+            cursor, keys = redis_client.scan(
+                cursor=cursor,
+                match=pattern,
+                count=100,
+            )
+
+            for key in keys:
+                keys_processed += 1
+
+                # Set TTL if key exists but has no expiry (TTL = -1)
+                if redis_client.ttl(key) == -1:
+                    redis_client.expire(key, REDIS_PIDBOX_TTL_SECONDS)
+                    keys_with_ttl_set += 1
+                    logger.debug(f"Set TTL on pidbox key: {key}")
+
+            # Break when cursor returns to 0 (full scan complete)
+            if cursor == 0:
+                break
+
+        # Get total number of keys in database for monitoring
+        total_keys = redis_client.dbsize()
+
+        logger.info(
+            f"Pidbox cleanup complete: scanned {keys_processed} pidbox keys, "
+            f"set TTL on {keys_with_ttl_set} orphaned queues. "
+            f"Total keys in DB: {total_keys}"
+        )
+
+        # Export metrics to Prometheus
+        pushgateway.redis_keys_total.set(total_keys)
+        pushgateway.push()
+
+    except redis.RedisError as e:
+        logger.error(f"Redis error during pidbox cleanup: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error during pidbox cleanup: {e}")

@@ -54,6 +54,11 @@ beat_schedule = {
         "schedule": 10800.0,
         "options": {"queue": "long-running", "time_limit": 3600},
     },
+    "cleanup-orphaned-pidbox-queues": {
+        "task": "packit_service.worker.tasks.cleanup_orphaned_pidbox_queues",
+        "schedule": crontab(minute=30, hour=0),  # nightly at 12:30 AM
+        "options": {"queue": "short-running"},
+    },
 }
 
 # http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application
