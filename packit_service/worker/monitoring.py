@@ -4,7 +4,7 @@
 import logging
 import os
 
-from prometheus_client import CollectorRegistry, Counter, Histogram, push_to_gateway
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, push_to_gateway
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +263,14 @@ class Pushgateway:
             "Time it takes to set the initial status for the first Fedora CI check",
             registry=self.registry,
             buckets=(5, 15, 20, 25, 30, 40, 60, float("inf")),
+        )
+
+        # Redis/Valkey health metrics
+        self.redis_keys_total = Gauge(
+            "redis_keys_total",
+            "Total number of keys in Redis/Valkey database. "
+            "If this grows indefinitely, there's a key accumulation/leak issue.",
+            registry=self.registry,
         )
 
     def push(self):
