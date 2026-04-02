@@ -1525,6 +1525,35 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
+    def _get_fedora_ci_payload(self, distro: str, plan: str) -> dict:
+        # TODO: Gradually move the other tests to use the shared-tests repo
+        # TODO: Installability migration is blocked because it needs specific compose
+        #  Maybe we can define a specific context that can expand to the appropriate container image
+        # TODO: Remove the need for specific plan needed here
+        #  https://github.com/packit/packit-service/issues/2915
+        # TODO: `distro` context can eventually be dropped once the tests migrate to using
+        #  `dist-git-branch`
+        git_repo = "https://forge.fedoraproject.org/ci/shared-tests"
+        git_ref = "main" if self.service_config.deployment == Deployment.prod else "stg"
+        # All tests in ci/shared-tests define their own provision hence `compose=None`
+        payload = self._get_tf_base_payload(distro, None)
+        payload["test"] = {
+            "tmt": {
+                "url": git_repo,
+                "ref": git_ref,
+                "name": plan,
+            },
+        }
+        return payload
+
+    @implements_fedora_ci_test("rmdepcheck")
+    def _payload_rmdepcheck(self, distro: str, compose: str) -> dict:
+        return self._get_fedora_ci_payload(distro, "/rmdepcheck")
+
+    @implements_fedora_ci_test("fedora-review")
+    def _payload_fedora_review(self, distro: str, compose: str) -> dict:
+        return self._get_fedora_ci_payload(distro, "/fedora-review")
+
     @staticmethod
     def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
         try:
