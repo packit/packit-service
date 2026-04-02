@@ -42,7 +42,7 @@ class KojiBuildsList(Resource):
                 "task_id": build.task_id,
                 "scratch": build.scratch,
                 "status": build.status,
-                "build_submitted_time": optional_timestamp(build.submitted_time),
+                "submitted_time": optional_timestamp(build.submitted_time),
                 "chroot": build.target,
                 "web_url": build.web_url,
                 # from old data, sometimes build_logs_url is same and sometimes different to web_url
@@ -94,7 +94,7 @@ class KojiBuildItem(Resource):
             "scratch": build.scratch,
             "build_start_time": optional_timestamp(build.build_start_time),
             "build_finished_time": optional_timestamp(build.build_finished_time),
-            "build_submitted_time": optional_timestamp(build.submitted_time),
+            "submitted_time": optional_timestamp(build.submitted_time),
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
