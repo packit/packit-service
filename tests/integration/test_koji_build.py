@@ -91,6 +91,10 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
                 id=1,
                 job_config_trigger_type=JobConfigTriggerType.commit,
             ),
+            get_project_event_model=lambda: flexmock(
+                type=ProjectEventModelType.branch_push,
+                event_id=9,
+            ),
             set_status=lambda x: None,
             set_build_start_time=lambda x: None,
             set_build_finished_time=lambda x: None,
@@ -99,7 +103,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
         .with_args({})
         .and_return()
         .mock(),
-    ).once()  # only when running a handler
+    ).twice()  # once from create_tasks() db_project_event access, once from handler
 
     processing_results = SteveJobs().process_message(koji_build_event)
     # 1*KojiBuildReportHandler
@@ -149,7 +153,10 @@ def test_koji_build_error_msg(distgit_push_packit):
         project_event_model_type=ProjectEventModelType.branch_push,
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.branch_push, event_id=123)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(pagure.push.Commit).should_receive("db_project_object").and_return(
         db_project_object,

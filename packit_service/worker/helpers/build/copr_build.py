@@ -1024,10 +1024,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def get_running_jobs(
         self,
     ) -> Union[Iterable["CoprBuildTargetModel"], Iterable["TFTTestRunTargetModel"]]:
-        if sha := self.metadata.commit_sha_before:
-            yield from CoprBuildGroupModel.get_running(commit_sha=sha)
-
-        # [SAFETY] When there's no previous commit hash, yields nothing
+        if not self.db_project_event:
+            logger.warning("No db_project_event, cannot query running Copr builds.")
+            return
+        if not self.metadata.cancel_cutoff_time:
+            logger.warning(
+                "No cancel_cutoff_time, skipping running Copr builds query "
+                "to avoid canceling unrelated jobs."
+            )
+            return
+        yield from CoprBuildGroupModel.get_running(
+            project_event_type=self.db_project_event.type,
+            event_id=self.db_project_event.event_id,
+            created_before=self.metadata.cancel_cutoff_time,
+        )
 
     def cancel_running_builds(self):
         running_builds = list(self.get_running_jobs())
