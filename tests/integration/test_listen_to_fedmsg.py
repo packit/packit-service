@@ -2743,6 +2743,30 @@ def test_koji_build_end_downstream(
         **common_payload_no_compose,
     }
 
+    shared_tests_repo = "https://forge.fedoraproject.org/ci/shared-tests"
+
+    payload_rmdepcheck = {
+        "test": {
+            "tmt": {
+                "url": shared_tests_repo,
+                "ref": "stg",
+                "name": "/rmdepcheck",
+            },
+        },
+        **common_payload_no_compose,
+    }
+
+    payload_fedora_review = {
+        "test": {
+            "tmt": {
+                "url": shared_tests_repo,
+                "ref": "stg",
+                "name": "/fedora-review",
+            },
+        },
+        **common_payload_no_compose,
+    }
+
     payload_custom = {
         "test": {
             "tmt": {
@@ -2828,6 +2852,26 @@ def test_koji_build_end_downstream(
     ).once()
     flexmock(TestingFarmClient).should_receive(
         "send_testing_farm_request",
+    ).with_args(endpoint="requests", method="POST", data=payload_rmdepcheck).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        ),
+    ).once()
+    flexmock(TestingFarmClient).should_receive(
+        "send_testing_farm_request",
+    ).with_args(endpoint="requests", method="POST", data=payload_fedora_review).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        ),
+    ).once()
+    flexmock(TestingFarmClient).should_receive(
+        "send_testing_farm_request",
     ).with_args(endpoint="requests", method="POST", data=payload_custom).and_return(
         RequestResponse(
             status_code=200,
@@ -2889,12 +2933,40 @@ def test_koji_build_end_downstream(
         .once()
         .mock()
     )
+    tft_test_run_model_rmdepcheck = (
+        flexmock(
+            id=9,
+            koji_builds=[koji_build_pr_downstream],
+            status=TestingFarmResult.new,
+            target="fedora-rawhide",
+            data={"fedora_ci_test": "rmdepcheck"},
+        )
+        .should_receive("set_pipeline_id")
+        .with_args(pipeline_id)
+        .once()
+        .mock()
+    )
+    tft_test_run_model_fedora_review = (
+        flexmock(
+            id=10,
+            koji_builds=[koji_build_pr_downstream],
+            status=TestingFarmResult.new,
+            target="fedora-rawhide",
+            data={"fedora_ci_test": "fedora-review"},
+        )
+        .should_receive("set_pipeline_id")
+        .with_args(pipeline_id)
+        .once()
+        .mock()
+    )
     group = flexmock(
         grouped_targets=[
             tft_test_run_model_installability,
             tft_test_run_model_custom,
             tft_test_run_model_rpminspect,
             tft_test_run_model_rpmlint,
+            tft_test_run_model_rmdepcheck,
+            tft_test_run_model_fedora_review,
         ]
     )
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
@@ -2953,6 +3025,32 @@ def test_koji_build_end_downstream(
             "fedora_ci_test": "rpmlint",
         },
     ).and_return(tft_test_run_model_rpmlint).once()
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+        pipeline_id=None,
+        identifier=None,
+        status=TestingFarmResult.new,
+        target="fedora-rawhide",
+        web_url=None,
+        test_run_group=group,
+        koji_build_targets=[koji_build_pr_downstream],
+        data={
+            "base_project_url": "https://src.fedoraproject.org/rpms/packit",
+            "fedora_ci_test": "rmdepcheck",
+        },
+    ).and_return(tft_test_run_model_rmdepcheck).once()
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+        pipeline_id=None,
+        identifier=None,
+        status=TestingFarmResult.new,
+        target="fedora-rawhide",
+        web_url=None,
+        test_run_group=group,
+        koji_build_targets=[koji_build_pr_downstream],
+        data={
+            "base_project_url": "https://src.fedoraproject.org/rpms/packit",
+            "fedora_ci_test": "fedora-review",
+        },
+    ).and_return(tft_test_run_model_fedora_review).once()
 
     # check if packit-service set correct PR statuses
     flexmock(StatusReporter).should_receive("set_status").with_args(
@@ -3016,6 +3114,34 @@ def test_koji_build_end_downstream(
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/jobs/testing-farm/8",
         check_name="Packit-stg - rpmlint",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        url="https://dashboard.localhost/jobs/testing-farm/9",
+        check_name="Packit-stg - rmdepcheck",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Tests have been submitted ...",
+        url="https://dashboard.localhost/jobs/testing-farm/9",
+        check_name="Packit-stg - rmdepcheck",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        url="https://dashboard.localhost/jobs/testing-farm/10",
+        check_name="Packit-stg - fedora-review",
+        target_branch="rawhide",
+    ).once()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Tests have been submitted ...",
+        url="https://dashboard.localhost/jobs/testing-farm/10",
+        check_name="Packit-stg - fedora-review",
         target_branch="rawhide",
     ).once()
 
