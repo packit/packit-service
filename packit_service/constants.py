@@ -366,3 +366,13 @@ OPEN_SCAN_HUB_FEATURE_DESCRIPTION = (
 
 # Default URL of the logdetective-packit interface server for sending the Log Detective requests.
 LOGDETECTIVE_PACKIT_SERVER_URL = "https://logdetective01.fedorainfracloud.org"
+
+# Redis configuration defaults
+REDIS_DEFAULT_HOST = "redis"
+REDIS_DEFAULT_PORT = "6379"
+REDIS_DEFAULT_DB = "0"
+REDIS_DEFAULT_PASSWORD = ""
+REDIS_DEFAULT_CELERY_BACKEND = "1"
+
+# TTL for orphaned Celery pidbox reply queues (in seconds)
+REDIS_PIDBOX_TTL_SECONDS = 3600  # 1 hour
