@@ -1592,6 +1592,7 @@ class DownstreamTestingFarmJobHelper:
                             "trigger": "commit",
                             "initiator": "fedora-ci",
                             "dist-git-branch": dist_git_branch,
+                            "deployment": self.service_config.deployment.name,
                         }
                     },
                 },
