@@ -5,7 +5,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Optional, Protocol, Union
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Union
 
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitException
@@ -35,12 +35,14 @@ from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.sidetag import Sidetag, SidetagHelper
-from packit_service.worker.helpers.testing_farm import (
-    DownstreamTestingFarmJobHelper,
-    TestingFarmJobHelper,
-)
 from packit_service.worker.mixin import Config, ConfigFromEventMixin, GetBranches
 from packit_service.worker.monitoring import Pushgateway
+
+if TYPE_CHECKING:
+    from packit_service.worker.helpers.testing_farm import (
+        DownstreamTestingFarmJobHelper,
+        TestingFarmJobHelper,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -615,7 +617,7 @@ class GetTestingFarmJobHelper(Protocol):
 
     @property
     @abstractmethod
-    def testing_farm_job_helper(self) -> TestingFarmJobHelper: ...
+    def testing_farm_job_helper(self) -> "TestingFarmJobHelper": ...
 
 
 class GetTestingFarmJobHelperMixin(
@@ -623,11 +625,13 @@ class GetTestingFarmJobHelperMixin(
     GetCoprBuildMixin,
     ConfigFromEventMixin,
 ):
-    _testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
+    _testing_farm_job_helper: Optional["TestingFarmJobHelper"] = None
 
     @property
-    def testing_farm_job_helper(self) -> TestingFarmJobHelper:
+    def testing_farm_job_helper(self) -> "TestingFarmJobHelper":
         if not self._testing_farm_job_helper:
+            from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+
             self._testing_farm_job_helper = TestingFarmJobHelper(
                 service_config=self.service_config,
                 package_config=self.package_config,
@@ -647,7 +651,7 @@ class GetDownstreamTestingFarmJobHelper(Protocol):
 
     @property
     @abstractmethod
-    def downstream_testing_farm_job_helper(self) -> DownstreamTestingFarmJobHelper: ...
+    def downstream_testing_farm_job_helper(self) -> "DownstreamTestingFarmJobHelper": ...
 
 
 class GetDownstreamTestingFarmJobHelperMixin(
@@ -655,11 +659,13 @@ class GetDownstreamTestingFarmJobHelperMixin(
     GetKojiBuildFromTaskOrPullRequestMixin,
     ConfigFromEventMixin,
 ):
-    _downstream_testing_farm_job_helper: Optional[DownstreamTestingFarmJobHelper] = None
+    _downstream_testing_farm_job_helper: Optional["DownstreamTestingFarmJobHelper"] = None
 
     @property
-    def downstream_testing_farm_job_helper(self) -> DownstreamTestingFarmJobHelper:
+    def downstream_testing_farm_job_helper(self) -> "DownstreamTestingFarmJobHelper":
         if not self._downstream_testing_farm_job_helper:
+            from packit_service.worker.helpers.testing_farm import DownstreamTestingFarmJobHelper
+
             self._downstream_testing_farm_job_helper = DownstreamTestingFarmJobHelper(
                 service_config=self.service_config,
                 project=self.project,
