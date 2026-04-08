@@ -3,7 +3,7 @@
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from celery import Task, signature
@@ -477,15 +477,17 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         event_dict = self.data.get_dict()
 
-        if (
-            self.build
-            and self.build.group_of_targets.runs
-            and (cutoff := self.build.group_of_targets.runs[0].datetime)
-        ):
-            # use the pipeline datetime of the current build rather than
-            # recomputing via `get_latest_datetime_for_event()`, to avoid
-            # canceling tests triggered by sibling builds from the same batch
-            event_dict["cancel_cutoff_time"] = cutoff.timestamp()
+        if self.build and self.build.group_of_targets.runs:
+            # find the earliest pipeline datetime in the current build batch;
+            # using a cutoff just before it ensures we only cancel tests from
+            # previous batches, not sibling tests from the same batch that
+            # were submitted on earlier pipelines
+            earliest = min(
+                (run.datetime for run in self.build.group_of_targets.runs if run.datetime),
+                default=None,
+            )
+            if earliest:
+                event_dict["cancel_cutoff_time"] = (earliest - timedelta(seconds=1)).timestamp()
 
         for job_config in self.copr_build_helper.job_tests_all:
             if (
