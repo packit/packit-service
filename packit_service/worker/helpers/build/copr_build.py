@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import Optional, Union
 
-from copr.v3 import CoprAuthException, CoprRequestException
+from copr.v3 import CoprAuthException, CoprNoResultException, CoprRequestException
 from copr.v3.exceptions import CoprTimeoutException
 from ogr.abstract import GitProject
 from ogr.exceptions import GitForgeInternalError, OgrNetworkError
@@ -1051,7 +1051,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         }
         for build_id in unique_builds:
             logger.debug("Cancelling Copr build #%s", build_id)
-            self.api.copr_helper.cancel_build(build_id)
+            try:
+                self.api.copr_helper.cancel_build(build_id)
+                logger.info("Cancelled build #%s", build_id)
+            except CoprNoResultException:
+                # Build doesn't exist in Copr (expired, deleted, or phantom DB entry)
+                # This is fine - nothing to cancel, we'll create a new build anyway
+                logger.warning(
+                    "Build #%s not found in Copr, skipping cancellation "
+                    "(possibly expired or phantom database entry)",
+                    build_id,
+                )
 
         # Mark them as canceled
         for target in running_builds:
