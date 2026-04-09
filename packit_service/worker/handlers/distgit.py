@@ -7,6 +7,7 @@ This file defines classes for job handlers specific for distgit
 
 import abc
 import logging
+import re
 import shutil
 from collections import defaultdict
 from datetime import datetime
@@ -493,6 +494,22 @@ class AbstractSyncReleaseHandler(
         # no error occurred
         return None
 
+    def _filter_tags(self, tags: list[str]) -> list[str]:
+        """Filter the given tags using upstream_tag_include and
+        upstream_tag_exclude from the job config.
+        """
+        if upstream_tag_include := self.job_config.upstream_tag_include:
+            include_re = re.compile(upstream_tag_include)
+            tags = [tag for tag in tags if include_re.match(tag)]
+            logger.debug(f"Filtered tags after matching upstream_tag_include: {tags}")
+
+        if upstream_tag_exclude := self.job_config.upstream_tag_exclude:
+            exclude_re = re.compile(upstream_tag_exclude)
+            tags = [tag for tag in tags if not exclude_re.match(tag)]
+            logger.debug(f"Filtered tags after matching upstream_tag_exclude: {tags}")
+
+        return tags
+
     def _get_releases_to_sync(self) -> list[tuple[Optional[str], Optional[str]]]:
         """Get list of (tag, version) pairs to sync.
 
@@ -500,7 +517,7 @@ class AbstractSyncReleaseHandler(
         For non-git upstreams, returns (None, version) pairs.
         """
         if not self.packit_api.non_git_upstream:
-            return [(tag, None) for tag in self.tags]
+            return [(tag, None) for tag in self._filter_tags(self.tags)]
 
         versions = self.data.event_dict.get("versions") or []
         if not versions:
