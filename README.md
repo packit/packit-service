@@ -15,3 +15,6 @@ If you'd like to know more about packit, please check:
 - Our website: [packit.dev](https://packit.dev/)
 - GitHub project for packit tool: [packit-service/packit](https://github.com/packit/packit)
 - Hacking on packit service: [CONTRIBUTING.md](/CONTRIBUTING.md)
+
+
+<!-- fix-issue-412: enable controlling packit-service with the command embedded  -->
