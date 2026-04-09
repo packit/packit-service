@@ -19,6 +19,7 @@ def mock_config():
         PagureService(instance_url="https://src.fedoraproject.org", token="1234"),
     }
     service_config.github_requests_log_path = "/path"
+    service_config.logdetective_enabled = True
     ServiceConfig.service_config = service_config
 
 

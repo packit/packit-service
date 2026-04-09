@@ -71,6 +71,7 @@ def test_parse_logdetective_analysis_result(
     logdetective_analysis_result,
     log_detective_result_event_creation,
     log_detective_run_model_get_by_identifier,
+    mock_config,
     build_system,
     status,
 ):
@@ -98,6 +99,7 @@ def test_parse_logdetective_analysis_result_error(
     logdetective_analysis_result_error,
     log_detective_result_event_creation,
     log_detective_run_model_get_by_identifier,
+    mock_config,
     build_system,
 ):
     """When analysis returns `error` result, the `log_detective_response`
