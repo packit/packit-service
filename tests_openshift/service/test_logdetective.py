@@ -121,6 +121,7 @@ def test_logdetective_process_message(
 
     service_config = ServiceConfig().get_service_config()
     service_config.fedora_ci.enabled_projects = {logdetective_analysis_success_event["project_url"]}
+    service_config.logdetective_enabled = True
 
     # Set deployment to prod to disable guppy memory profiling logic
     # which causes UnboundLocalError when guppy is missing.
@@ -177,6 +178,44 @@ def test_logdetective_process_message(
     # database stores timestamp as UTC, but without timezone information
     # we need to remove timezone information here, to get a match
     assert run_model_after.submitted_time == expected_time.replace(tzinfo=None)
+
+
+@pytest.mark.parametrize(
+    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
+)
+def test_logdetective_process_message_logdetective_disabled(
+    build_system,
+    clean_before_and_after,
+    logdetective_analysis_success_event,
+    mock_metrics_counters,
+    eager_celery_tasks,
+):
+    """Test that the processing of a Log Detective event
+    via the main Celery task `process_message` does not occur if the integration is disabled.
+    """
+
+    logdetective_analysis_success_event["build_system"] = build_system
+
+    service_config = ServiceConfig().get_service_config()
+    service_config.fedora_ci.enabled_projects = {logdetective_analysis_success_event["project_url"]}
+    service_config.logdetective_enabled = False
+
+    # Set deployment to prod to disable guppy memory profiling logic
+    # which causes UnboundLocalError when guppy is missing.
+    service_config.deployment = Deployment.prod
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
+
+    # Ensure FedoraCIHelper.report is never called when LD is disabled
+    flexmock(FedoraCIHelper).should_receive("report").never()
+
+    result = process_message.apply(
+        args=[logdetective_analysis_success_event],
+        kwargs={"source": "fedora-messaging", "event_type": "logdetective.analysis"},
+        throw=True,
+    )
+    result = result.get()
+    # Parser returns None when LD is disabled, so no handlers run
+    assert result == []
 
 
 @pytest.mark.parametrize(
@@ -273,6 +312,7 @@ def test_logdetective_process_message_error(
 
     service_config = ServiceConfig().get_service_config()
     service_config.fedora_ci.enabled_projects = {logdetective_analysis_error_event["project_url"]}
+    service_config.logdetective_enabled = True
 
     # Set deployment to prod to disable guppy memory profiling logic
     # which causes UnboundLocalError when guppy is missing.

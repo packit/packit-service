@@ -1888,6 +1888,13 @@ class Parser:
         commit_sha = event.get("commit_sha")
         pr_id = event.get("pr_id")
 
+        if not ServiceConfig.get_service_config().logdetective_enabled:
+            logger.info(
+                f"Log Detective analysis event {analysis_id} received "
+                "but Log Detective integration is disabled. Dropping the message."
+            )
+            return None
+
         try:
             log_detective_analysis_start = datetime.fromisoformat(log_detective_analysis_start)
         except (TypeError, ValueError):
