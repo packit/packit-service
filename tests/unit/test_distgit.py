@@ -186,3 +186,66 @@ def test__repo_url_with_git_ref(src, git_ref, expected):
         DownstreamKojiScratchBuildHandler._repo_url_with_git_ref(parse_git_repo(src), git_ref)
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "tags, upstream_tag_include, upstream_tag_exclude, expected",
+    (
+        pytest.param(
+            ["2.1.1", "3.0.0"],
+            None,
+            None,
+            ["2.1.1", "3.0.0"],
+            id="no filters",
+        ),
+        pytest.param(
+            ["2.1.1", "3.0.0"],
+            r"^2\..+",
+            None,
+            ["2.1.1"],
+            id="include only",
+        ),
+        pytest.param(
+            ["2.1.1", "3.0.0"],
+            None,
+            r"^2\..+",
+            ["3.0.0"],
+            id="exclude only",
+        ),
+        pytest.param(
+            ["2.1.1", "2.2.0", "3.0.0"],
+            r"^2\..+",
+            r"^.+\.1\..+",
+            ["2.2.0"],
+            id="include and exclude",
+        ),
+        pytest.param(
+            ["3.0.0"],
+            r"^2\..+",
+            None,
+            [],
+            id="include filters out all",
+        ),
+    ),
+)
+def test_filter_tags(tags, upstream_tag_include, upstream_tag_exclude, expected):
+    flexmock(EventData).should_receive("from_event_dict").and_return(
+        flexmock(
+            event_type="unknown",
+            actor="an actor",
+            event_id=1,
+            project_url="a project url",
+            tag_name=None,
+        ),
+    )
+    handler = PullFromUpstreamHandler(
+        None,
+        flexmock(
+            upstream_project_url="url",
+            upstream_tag_include=upstream_tag_include,
+            upstream_tag_exclude=upstream_tag_exclude,
+        ),
+        {"event_type": "unknown"},
+        None,
+    )
+    assert handler._filter_tags(tags) == expected
