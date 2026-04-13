@@ -1248,6 +1248,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             event_id=self.db_project_event.event_id,
             ranch=self.tft_client.default_ranch,
             created_before=self.metadata.cancel_cutoff_time,
+            has_copr_build=not self.skip_build,
         )
 
     def cancel_running_tests(self):
