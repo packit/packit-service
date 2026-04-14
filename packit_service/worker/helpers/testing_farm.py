@@ -10,8 +10,8 @@ from typing import Any, Callable, Optional, Union
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
-from packit.exceptions import PackitConfigException, PackitException
-from packit.utils import commands, nested_get
+from packit.exceptions import PackitConfigException
+from packit.utils import nested_get
 from packit.utils.koji_helper import KojiHelper
 
 from packit_service.config import Deployment, ServiceConfig
@@ -1460,49 +1460,15 @@ class DownstreamTestingFarmJobHelper:
     @implements_fedora_ci_test("installability")
     def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
-        git_ref = (
-            commands.run_command(["git", "ls-remote", git_repo, "HEAD"], output=True)
-            .stdout.strip()
-            .split()[0]
-        )
-
-        if distro == "fedora-rawhide":
-            # profile names are in "fedora-N" format
-            # extract current rawhide version number from its candidate tag
-            if not (candidate_tag := self.koji_helper.get_candidate_tag("rawhide")):
-                raise PackitException(f"Failed to get test profile for {distro}")
-            profile = re.sub(r"f(\d+)(-.*)?", r"fedora-\1", candidate_tag)
-        else:
-            profile = distro
-
-        # installability test requires a Koji build
-        # (it should be guaranteed by the `HasEventSuccessfulScratchBuild` checker)
-        assert self.koji_build
-
-        return {
-            "test": {
-                "tmt": {
-                    "url": git_repo,
-                    "ref": git_ref,
-                },
-            },
-            "environments": [
-                {
-                    "arch": "x86_64",
-                    "os": {"compose": compose},
-                    "variables": {
-                        "PROFILE_NAME": profile,
-                        "TASK_ID": self.koji_build.task_id,
-                    },
-                },
-            ],
-            "notification": {
-                "webhook": {
-                    "url": f"{self.api_url}/testing-farm/results",
-                    "token": self.service_config.testing_farm_secret,
-                },
+        git_ref = "master"
+        payload = self._get_tf_base_payload(distro, compose)
+        payload["test"] = {
+            "tmt": {
+                "url": git_repo,
+                "ref": git_ref,
             },
         }
+        return payload
 
     @implements_fedora_ci_test("rpminspect")
     def _payload_rpminspect(self, distro: str, compose: str) -> dict:
