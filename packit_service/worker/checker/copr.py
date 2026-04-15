@@ -160,8 +160,9 @@ class AreFilesChanged(Checker, GetCoprBuildJobHelperForIdMixin, ConfigFromEventM
         Get the list of files changed in the current commit or the current pullrequest
         """
         if self.job_config.trigger == JobConfigTriggerType.pull_request:
-            # TODO: check files from ogr https://github.com/packit/ogr/pull/921
-            raise NotImplementedError()
+            pr = self.project.get_pr(self.data.pr_id)
+            for file in pr.changes.files:
+                yield Path(file)
         if self.job_config.trigger == JobConfigTriggerType.commit:
             push_event = self.data.to_event()
             assert isinstance(push_event, PushEvent)
