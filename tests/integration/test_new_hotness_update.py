@@ -15,6 +15,7 @@ from packit.distgit import DistGit
 from packit.local_project import LocalProject, LocalProjectBuilder
 
 import packit_service.worker.checker.distgit
+import packit_service.worker.handlers.distgit
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     AnityaMultipleVersionsModel,
@@ -459,9 +460,17 @@ def test_new_hotness_update_non_git_multiple_versions(new_hotness_update):
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
     lp.working_dir = ""
+    lp.git_project = distgit_project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
     flexmock(Allowlist, check_and_report=True)
+
+    # Mock monitoring metadata to allow processing all versions
+    flexmock(
+        packit_service.worker.handlers.distgit,
+    ).should_receive("get_monitoring_metadata").and_return(
+        flexmock(all_versions=True),
+    )
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
