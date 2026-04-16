@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from os import getenv
-from typing import Any, Callable, ClassVar, Optional, Union
+from typing import Any, Callable, ClassVar, Optional, Union, cast
 
 from ogr.parsing import RepoUrl, parse_git_repo
 from packit.config import JobConfigTriggerType
@@ -68,8 +68,9 @@ class _GitlabCommonData:
     project_url: str
     parsed_url: Optional[RepoUrl]
     ref: str
-    head_commit: dict
+    head_commit: gitlab.push.GitlabCommitInfo
     commit_sha_before: str
+    commits: list[gitlab.push.GitlabCommitInfo]
 
     @property
     def commit_sha(self) -> str:
@@ -426,7 +427,9 @@ class Parser:
         before = event.get("before")
         checkout_sha = event.get("checkout_sha")
         actor = event.get("user_username")
-        commits = event.get("commits", [])
+        commits = [
+            cast(gitlab.push.GitlabCommitInfo, commit) for commit in event.get("commits", [])
+        ]
         number_of_commits = event.get("total_commits_count")
 
         if not Parser.is_gitlab_push_a_create_event(event):
@@ -461,6 +464,7 @@ class Parser:
             ref=ref,
             head_commit=head_commit,
             commit_sha_before=before,
+            commits=commits,
         )
 
     @staticmethod
@@ -521,6 +525,7 @@ class Parser:
             project_url=data.project_url,
             commit_sha=data.commit_sha,
             commit_sha_before=data.commit_sha_before,
+            commits=data.commits,
         )
 
     @staticmethod
@@ -567,6 +572,8 @@ class Parser:
 
         repo_url = nested_get(event, "repository", "html_url")
 
+        commits = [cast(github.push.GithubCommitInfo, commit) for commit in event.get("commits")]
+
         return github.push.Commit(
             repo_namespace=repo_namespace,
             repo_name=repo_name,
@@ -574,6 +581,7 @@ class Parser:
             project_url=repo_url,
             commit_sha=head_commit,
             commit_sha_before=before,
+            commits=commits,
         )
 
     @staticmethod
