@@ -11,7 +11,7 @@ import re
 import shutil
 from collections import defaultdict
 from datetime import datetime
-from functools import partial
+from functools import cmp_to_key, partial
 from os import getenv
 from typing import ClassVar, Optional
 
@@ -29,6 +29,8 @@ from packit.exceptions import (
 )
 from packit.utils import commands
 from packit.utils.koji_helper import KojiHelper
+from packit.utils.release_monitoring import get_monitoring_metadata
+from packit.utils.versions import compare_versions
 
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -525,6 +527,12 @@ class AbstractSyncReleaseHandler(
             if version:
                 versions = [version]
         if versions:
+            if len(versions) > 1:
+                metadata = get_monitoring_metadata(self.packit_api.dg.local_project.git_project)
+                if not metadata or not metadata.all_versions:
+                    # if `all_versions` in `monitoring.toml` is `false` or `Monitoring status`
+                    # is not `Monitoring all`, ignore all versions but the highest
+                    versions = [max(versions, key=cmp_to_key(compare_versions))]
             return [(None, version) for version in versions]
         # non-git upstream with no version info — run without tag/version
         return [(None, None)]
