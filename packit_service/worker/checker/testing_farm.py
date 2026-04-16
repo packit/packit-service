@@ -328,3 +328,31 @@ class IsDownstreamTest(_TestingFarmTestTypeChecker):
             return False
 
         return True
+
+
+class IsFMFConfigMissing(_TestingFarmTestTypeChecker):
+    """
+    Check whether FMF configuration is missing in the given project.
+    """
+
+    def pre_check(self) -> bool:
+        try:
+            commit_sha = self.data.event_dict.get("commit_sha")
+
+            self.project.get_file_content(
+                path=".fmf/version",
+                ref=commit_sha,
+            )
+        except FileNotFoundError:
+            logger.debug("FMF configuration not found in repository.")
+            return True
+        return False
+
+
+class IsProjectInTestsNamespace(_TestingFarmTestTypeChecker):
+    """
+    Check whether the current project is located inside the tests namespace.
+    """
+
+    def pre_check(self) -> bool:
+        return self.project.namespace == "tests"

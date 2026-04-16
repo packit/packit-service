@@ -2606,6 +2606,9 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
         .should_receive("get_web_url")
         .and_return("https://src.fedoraproject.org/rpms/python-teamcity-messages")
         .mock()
+        .should_receive("get_file_content")
+        .and_raise(FileNotFoundError)
+        .mock()
     )
     service_config = (
         flexmock(
@@ -2696,6 +2699,10 @@ def test_downstream_koji_scratch_build_retrigger_via_dist_git_pr_comment(
     flexmock(distgit).should_receive("get_koji_task_id_and_url_from_stdout").and_return(
         (123, "koji-web-url")
     ).once()
+
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("get_fedora_ci_tests").and_return(
+        ["installability", "rpmlint", "rpminspect", "custom"]
+    )
 
     processing_results = SteveJobs().process_message(pagure_pr_comment_added)
     event_dict, _, job_config, package_config = get_parameters_from_results(
