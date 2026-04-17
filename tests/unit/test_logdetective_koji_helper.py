@@ -9,6 +9,7 @@ import pytest
 import requests
 from flexmock import flexmock
 
+import packit_service.worker.helpers.logdetective as logdetective_module
 from packit_service.constants import LOGDETECTIVE_PACKIT_SERVER_URL, KojiTaskState
 from packit_service.models import (
     LogDetectiveBuildSystem,
@@ -81,7 +82,9 @@ def test_logdetective_koji_set_payload(mock_koji_task_failed_event, mock_event_d
 
     request_json = {
         "artifacts": {
+            "root.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/root.log",
             "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
+            "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
         },
         "target_build": "12345",
         "build_system": "koji",
@@ -89,7 +92,7 @@ def test_logdetective_koji_set_payload(mock_koji_task_failed_event, mock_event_d
         "project_url": "https://github.com/test/repo",
         "pr_id": 42,
     }
-
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").with_args(
         "https://logdetective01.fedorainfracloud.org/analyze",
         json=request_json,
@@ -118,12 +121,14 @@ def test_logdetective_koji_success(
             "creation_time": "2026-01-01T12:00:00",
         }
     )
-
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").with_args(
         f"{LOGDETECTIVE_PACKIT_SERVER_URL}/analyze",
         json={
             "artifacts": {
-                "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log"
+                "root.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/root.log",
+                "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
+                "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
             },
             "target_build": "12345",
             "build_system": LogDetectiveBuildSystem.koji.value,
@@ -175,7 +180,7 @@ def test_logdetective_koji_http_error(
 ):
     mock_response = flexmock(status_code=500)
     mock_response.should_receive("raise_for_status")
-
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").and_raise(
         requests.exceptions.HTTPError("500 Server Error")
     )
@@ -203,6 +208,7 @@ def test_logdetective_koji_connection_error(
 ):
     mock_response = flexmock()
     mock_response.should_receive("raise_for_status")
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").and_raise(requests.exceptions.ConnectionError)
 
     flexmock(LogDetectiveRunGroupModel).should_receive("create").never()
@@ -230,7 +236,7 @@ def test_logdetective_koji_json_decode_error(
     mock_response.should_receive("json").and_raise(
         requests.exceptions.JSONDecodeError("Invalid JSON", "", 0)
     )
-
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").and_return(mock_response)
     flexmock(LogDetectiveRunGroupModel).should_receive("create").never()
     flexmock(LogDetectiveRunModel).should_receive("create").never()
@@ -252,6 +258,7 @@ def test_logdetective_koji_json_decode_error(
 def test_logdetective_koji_timeout(
     mock_koji_task_failed_event, mock_event_data, mock_pushgateway_log_detective_no_inc
 ):
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").and_raise(
         requests.exceptions.Timeout("Request timed out")
     )
@@ -283,6 +290,7 @@ def test_logdetective_koji_missing_id(
             "creation_time": "2026-01-01T12:00:00",
         }
     )
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").and_return(mock_response)
     flexmock(logger).should_receive("warning").with_args(
         "Log Detective response is missing log_detective_analysis_id",
@@ -311,6 +319,7 @@ def test_logdetective_koji_missing_time(
             "log_detective_analysis_id": "test-uuid-123",
         }
     )
+    flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
     flexmock(requests).should_receive("post").and_return(mock_response)
     flexmock(logger).should_receive("warning").with_args(
         "Log Detective response is missing creation_time",

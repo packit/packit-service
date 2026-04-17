@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import pytest
+import requests
 from flexmock import flexmock
 from packit.config.aliases import Distro
 
@@ -9,6 +10,7 @@ from packit_service.utils import (
     get_default_tf_mapping,
     only_once,
     pr_labels_match_configuration,
+    verify_artifact,
 )
 
 
@@ -190,3 +192,47 @@ def test_get_default_tf_mapping(internal, target, compose):
     )
     mapping = get_default_tf_mapping(internal)
     assert mapping[target] == compose
+
+
+def test_verify_artifact_valid():
+    url = "https://example.com/valid.txt"
+    mock_response = flexmock(status_code=200, headers={"Content-Type": "text/plain; charset=utf-8"})
+
+    mock_response.should_receive("__enter__").and_return(mock_response)
+    mock_response.should_receive("__exit__").and_return(None)
+
+    flexmock(requests).should_receive("get").once().and_return(mock_response)
+
+    assert verify_artifact(url) is True
+
+
+def test_verify_artifact_404_not_found():
+    url = "https://example.com/missing.txt"
+
+    mock_response = flexmock(status_code=404, headers={})
+    mock_response.should_receive("__enter__").and_return(mock_response)
+    mock_response.should_receive("__exit__").and_return(None)
+
+    flexmock(requests).should_receive("get").once().and_return(mock_response)
+
+    assert verify_artifact(url) is False
+
+
+def test_verify_artifact_wrong_type():
+    url = "https://example.com/api/data.json"
+
+    mock_response = flexmock(status_code=200, headers={"Content-Type": "application/json"})
+    mock_response.should_receive("__enter__").and_return(mock_response)
+    mock_response.should_receive("__exit__").and_return(None)
+
+    flexmock(requests).should_receive("get").once().and_return(mock_response)
+
+    assert verify_artifact(url) is False
+
+
+def test_verify_artifact_network_failure():
+    url = "https://broken-link.com"
+
+    flexmock(requests).should_receive("get").and_raise(requests.exceptions.ConnectionError)
+
+    assert verify_artifact(url) is False
