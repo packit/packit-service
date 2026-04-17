@@ -12,7 +12,8 @@ from io import StringIO
 from logging import StreamHandler
 from pathlib import Path
 from re import search
-from typing import Optional
+from typing import Optional, Union
+from urllib.parse import urlparse
 
 import requests
 from cachetools.func import ttl_cache
@@ -426,6 +427,84 @@ def get_user_agent() -> str:
     return (
         os.getenv("PACKIT_USER_AGENT") or f"packit-service/{ps_version or 'dev'} (hello@packit.dev)"
     )
+
+
+def check_url(url: str) -> bool:
+    """
+    Verify that URL is valid.
+
+    Args:
+        url: URL to be validated
+
+    Returns:
+        True if the URL can be parsed, contains both scheme and netloc
+    """
+
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
+
+def check_content_type(content_type: Union[str, None], url: str) -> bool:
+    """
+    Verify that content_type is text/plain and log failures.
+
+    Args:
+        content_type: Value of Content-Type header field
+        url: URL of the checked artifact
+
+    Returns:
+        True if content type is text/plain
+    """
+    if not content_type:
+        logger.warning("No content-type reported for artifact at %s", url)
+        return False
+
+    if "text/plain" not in content_type.lower():
+        logger.warning("Artifact: %s is not of allowed text/plain type, but %s", url, content_type)
+        return False
+
+    return True
+
+
+def verify_artifact(url: str) -> bool:
+    """
+    Verify that URL points to an text/plain artifact that can be downloaded.
+
+    Checks Content-Type in headers using GET request.
+
+    Args:
+        url: URL of the artifact to be verified
+
+    Returns:
+        True if the artifact satisfies all requirements
+    """
+
+    if not check_url(url=url):
+        logger.warning("Invalid URL for build artifact: %s", url)
+        return False
+    try:
+        with requests.get(
+            url=url,
+            headers={"User-Agent": get_user_agent()},
+            timeout=(10, 30),
+            stream=True,
+            allow_redirects=True,
+        ) as response:
+            if response.status_code != 200:
+                logger.warning(
+                    "Request for artifact: %s failed with: %s", url, response.status_code
+                )
+                return False
+            return check_content_type(response.headers.get("Content-Type"), url)
+
+    except requests.exceptions.RequestException as exc:
+        logger.warning(
+            "Verification of artifact %s failed with error: %s", url, exc, stack_info=True
+        )
+        return False
 
 
 def download_file(url: str, path: Path):

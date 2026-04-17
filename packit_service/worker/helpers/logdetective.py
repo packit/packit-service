@@ -18,6 +18,7 @@ from packit_service.models import (
     LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
 )
+from packit_service.utils import verify_artifact
 from packit_service.worker.monitoring import Pushgateway
 
 logger = logging.getLogger(__name__)
@@ -84,14 +85,30 @@ class LogDetectiveKojiTriggerHelper:
         Instead of returning TaskResults() object, as job handlers do,
         we just return a boolean signaling whether or not the trigger succeeded.
         """
-
+        artifacts = {}
         build_arch_task_id = self.koji_event.rpm_build_task_ids[arch]
-        artifacts = {
-            "mock_output.log": koji.result.KojiEvent.get_koji_build_logs_url(
-                build_arch_task_id,
-                self.koji_logs_url,
+
+        # Following artifacts are the most likely to contain valuable information
+        # Including too many could impact latency and response quality
+        possible_koji_artifacts = [
+            "root.log",
+            "mock_output.log",
+            "build.log",
+        ]
+
+        # Use only artifacts with valid URLs
+        for artifact in possible_koji_artifacts:
+            url = koji.result.KojiEvent.get_koji_build_logs_url(
+                rpm_build_task_id=build_arch_task_id,
+                koji_logs_url=self.koji_logs_url,
+                log_file=artifact,
             )
-        }
+            if verify_artifact(url):
+                artifacts[artifact] = url
+
+        if len(artifacts) == 0:
+            logger.warning("No artifact URLs passed verification")
+            return False
 
         endpoint_url = f"{self.url}/analyze"
         request_json = {
