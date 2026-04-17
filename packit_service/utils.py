@@ -432,6 +432,12 @@ def get_user_agent() -> str:
 def check_url(url: str) -> bool:
     """
     Verify that URL is valid.
+
+    Args:
+        url: URL to be validated
+
+    Returns:
+        True if the URL can be parsed, contains both scheme and netloc
     """
 
     try:
@@ -444,6 +450,13 @@ def check_url(url: str) -> bool:
 def check_content_type(content_type: Union[str, None], url: str) -> bool:
     """
     Verify that content_type is text/plain and log failures.
+
+    Args:
+        content_type: Value of Content-Type header field
+        url: URL of the checked artifact
+
+    Returns:
+        True if content type is text/plain
     """
     if not content_type:
         logger.warning("No content-type reported for artifact at %s", url)
@@ -461,6 +474,12 @@ def verify_artifact(url: str) -> bool:
     Verify that URL points to an text/plain artifact that can be downloaded.
 
     Checks Content-Type in headers using GET request.
+
+    Args:
+        url: URL of the artifact to be verified
+
+    Returns:
+        True if the artifact satisfies all requirements
     """
 
     if not check_url(url=url):
