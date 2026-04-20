@@ -1,6 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import contextlib
+
 import pytest
 from flexmock import flexmock
 from gitlab.exceptions import GitlabError
@@ -806,3 +808,141 @@ def test_update_message_with_configured_failure_comment_message(
         ),
     )
     assert update_message_with_configured_failure_comment_message(comment, job_config) == result
+
+
+@pytest.mark.parametrize(
+    "response_code,is_transient",
+    [
+        (None, True),  # Network error, response_code not set
+        (429, True),  # Rate limiting
+        (500, True),  # Server error
+        (502, True),  # Bad gateway
+        (400, False),  # Bad request
+        (403, False),  # Forbidden
+        (404, False),  # Not found
+    ],
+)
+def test_is_transient_error(response_code, is_transient):
+    """Test classification of API errors as transient across all platforms."""
+    exception = flexmock(response_code=response_code)
+
+    assert StatusReporter.is_transient_error(exception) == is_transient
+
+
+@pytest.mark.parametrize(
+    "reraise_transient_errors,response_code",
+    [
+        (True, 500),  # Transient error, reraise enabled -> should reraise
+        (False, 500),  # Transient error, reraise disabled -> should fallback
+        (True, 403),  # Non-transient error, reraise enabled -> should fallback
+        (False, 403),  # Non-transient error, reraise disabled -> should fallback
+    ],
+)
+def test_github_checks_error_handling(reraise_transient_errors, response_code):
+    """Test error handling in StatusReporterGithubChecks."""
+    project = GithubProject(None, None, None)
+    reporter = StatusReporter.get_instance(
+        project=project,
+        commit_sha="abc123",
+        pr_id=1,
+        project_event_id=1,
+        packit_user="packit",
+        reraise_transient_errors=reraise_transient_errors,
+    )
+
+    exception = flexmock(GithubAPIException(), response_code=response_code)
+
+    flexmock(GithubProject).should_receive("create_check_run").and_raise(
+        exception,
+    ).once()
+
+    is_transient = reporter.is_transient_error(exception)
+
+    if reraise_transient_errors and is_transient:
+        # Should NOT fall back to commit status
+        flexmock(GithubProject).should_receive("set_commit_status").never()
+        # Should re-raise the exception
+        expectation = pytest.raises(GithubAPIException)
+    else:
+        # Should fall back to commit status
+        flexmock(GithubProject).should_receive("set_commit_status").with_args(
+            "abc123",
+            CommitStatus.success,
+            "https://example.com",
+            "Test completed",
+            "packit/test",
+            trim=True,
+        ).once()
+        # Should NOT raise
+        expectation = contextlib.nullcontext()
+
+    with expectation:
+        reporter.set_status(
+            BaseCommitStatus.success,
+            "Test completed",
+            "packit/test",
+            "https://example.com",
+        )
+
+
+@pytest.mark.parametrize(
+    "reporter_class,exception_class",
+    [
+        (StatusReporterGithubStatuses, GithubAPIException),
+        (StatusReporterGitlab, GitlabAPIException),
+    ],
+)
+@pytest.mark.parametrize(
+    "reraise_transient_errors,response_code",
+    [
+        (True, 502),  # Transient error, reraise enabled -> should reraise
+        (False, 500),  # Transient error, reraise disabled -> should fallback
+        (True, 404),  # Non-transient error, reraise enabled -> should fallback
+        (False, 404),  # Non-transient error, reraise disabled -> should fallback
+    ],
+)
+def test_commit_status_error_handling(
+    reporter_class, exception_class, reraise_transient_errors, response_code
+):
+    """Test error handling in commit status reporters (GitHub and GitLab)."""
+    project = flexmock()
+    reporter = flexmock(
+        reporter_class(
+            project=project,
+            commit_sha="abc123",
+            pr_id=1,
+            packit_user="packit",
+            reraise_transient_errors=reraise_transient_errors,
+        )
+    )
+
+    exception = flexmock(exception_class(), response_code=response_code)
+
+    project.should_receive("set_commit_status").and_raise(exception).once()
+
+    is_transient = reporter.is_transient_error(exception)
+
+    if reraise_transient_errors and is_transient:
+        # Should NOT fall back to comment
+        reporter.should_receive("_comment_as_set_status_fallback").never()
+        # Should re-raise the exception
+        expectation = pytest.raises(exception_class)
+    else:
+        # When commit_sha is present, it uses commit_comment
+        reporter.should_receive("_comment_as_set_status_fallback").with_args(
+            exception,
+            BaseCommitStatus.success,
+            "Build completed",
+            "packit/build",
+            "https://example.com",
+        ).once()
+        # Should NOT raise
+        expectation = contextlib.nullcontext()
+
+    with expectation:
+        reporter.set_status(
+            BaseCommitStatus.success,
+            "Build completed",
+            "packit/build",
+            "https://example.com",
+        )

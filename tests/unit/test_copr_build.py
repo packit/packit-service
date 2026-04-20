@@ -57,6 +57,7 @@ from packit_service.models import (
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
 from packit_service.worker.handlers import CoprBuildHandler
+from packit_service.worker.handlers.copr import CoprBuildEndHandler
 from packit_service.worker.helpers.build.copr_build import (
     BaseBuildJobHelper,
     CoprBuildJobHelper,
@@ -1039,3 +1040,26 @@ def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
         )
         == should_pass
     )
+
+
+def test_copr_build_end_handler_default_reraise_flag():
+    """Verify CoprBuildEndHandler defaults to reraise_transient_errors=True."""
+
+    handler = CoprBuildEndHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={"build_id": 123, "chroot": "fedora-rawhide-x86_64"},
+    )
+    assert handler._status_reporter_reraise_transient_errors is True
+
+
+def test_copr_build_end_handler_set_reraise_flag():
+    """Test set_status_reporter_reraise_transient_errors() method."""
+
+    handler = CoprBuildEndHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={"build_id": 123, "chroot": "fedora-rawhide-x86_64"},
+    )
+    handler.set_status_reporter_reraise_transient_errors(False)
+    assert handler._status_reporter_reraise_transient_errors is False

@@ -185,6 +185,7 @@ class BaseJobHelper:
                 packit_user=self.service_config.get_github_account_name(),
                 project_event_id=(self.db_project_event.id if self.db_project_event else None),
                 pr_id=self.metadata.pr_id,
+                reraise_transient_errors=False,
             )
         return self._status_reporter
 
