@@ -241,15 +241,13 @@ def _create_base_parser(
     description: str | None = None,
     epilog: str | None = None,
 ) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    return argparse.ArgumentParser(
         prog=prog,
         description=description,
         epilog=epilog,
         formatter_class=RawTextHelpFormatter,
         add_help=False,
     )
-    parser.add_argument("--package", help="specific package from monorepo to run job for")
-    return parser
 
 
 def get_comment_parser(
@@ -258,6 +256,7 @@ def get_comment_parser(
     epilog: str | None = None,
 ) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
+    parser.add_argument("--package", help="specific package from monorepo to run job for")
 
     subparsers = parser.add_subparsers(
         dest="command",

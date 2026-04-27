@@ -273,9 +273,8 @@ class SteveJobs:
         try:
             args = parser.parse_args(commands)
             check_target = getattr(args, "check_target", None)
-            return ParsedComment(
-                command=args.command, package=args.package, check_target=check_target
-            )
+            package = getattr(args, "package", None)
+            return ParsedComment(command=args.command, package=package, check_target=check_target)
         except SystemExit:
             # tests expect invalid syntax comments be ignored
             logger.debug(
