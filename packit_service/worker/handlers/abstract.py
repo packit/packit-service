@@ -21,7 +21,6 @@ from celery.canvas import Signature
 from ogr.abstract import GitProject
 from ogr.exceptions import OgrException
 from packit.config import JobConfig, JobType, PackageConfig
-from packit.config.common_package_config import Deployment
 from packit.constants import DATETIME_FORMAT
 from packit.exceptions import PackitConfigException
 
@@ -37,7 +36,11 @@ from packit_service.models import (
     AbstractProjectObjectDbType,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
-from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.utils import (
+    dump_job_config,
+    dump_package_config,
+    get_check_name_prefix,
+)
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.mixin import (
@@ -626,7 +629,7 @@ class FedoraCIJobHandler(JobHandler):
     @staticmethod
     def get_check_name_prefix(service_config: ServiceConfig) -> str:
         """Return the prefix for check names based on deployment environment."""
-        return "Packit-stg" if service_config.deployment == Deployment.stg else "Packit"
+        return get_check_name_prefix(service_config)
 
     @classmethod
     def get_check_name(cls, service_config: ServiceConfig) -> str:

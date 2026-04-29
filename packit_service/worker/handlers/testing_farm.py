@@ -80,13 +80,15 @@ from packit_service.worker.handlers.abstract import (
 )
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
-    GetDownstreamTestingFarmJobHelperMixin,
     GetGithubCommentEventMixin,
-    GetTestingFarmJobHelperMixin,
 )
 from packit_service.worker.helpers.testing_farm import (
     DownstreamTestingFarmJobHelper,
     TestingFarmJobHelper,
+)
+from packit_service.worker.helpers.testing_farm_mixin import (
+    GetDownstreamTestingFarmJobHelperMixin,
+    GetTestingFarmJobHelperMixin,
 )
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus

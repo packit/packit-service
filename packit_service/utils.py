@@ -1,6 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import argparse
 import itertools
 import logging
@@ -12,7 +14,7 @@ from io import StringIO
 from logging import StreamHandler
 from pathlib import Path
 from re import search
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import requests
@@ -20,6 +22,7 @@ from cachetools.func import ttl_cache
 from ogr.abstract import PullRequest
 from packit.config import JobConfig, PackageConfig, aliases
 from packit.config.aliases import Distro
+from packit.config.common_package_config import Deployment
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
 
@@ -30,6 +33,9 @@ from packit_service.constants import (
     ELN_EXTRAS_PACKAGE_LIST,
     ELN_PACKAGE_LIST,
 )
+
+if TYPE_CHECKING:
+    from packit_service.config import ServiceConfig
 
 logger = logging.getLogger(__name__)
 
@@ -231,9 +237,9 @@ def get_packit_commands_from_comment(
 
 
 def _create_base_parser(
-    prog: Optional[str] = None,
-    description: Optional[str] = None,
-    epilog: Optional[str] = None,
+    prog: str | None = None,
+    description: str | None = None,
+    epilog: str | None = None,
 ) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=prog,
@@ -247,9 +253,9 @@ def _create_base_parser(
 
 
 def get_comment_parser(
-    prog: Optional[str] = None,
-    description: Optional[str] = None,
-    epilog: Optional[str] = None,
+    prog: str | None = None,
+    description: str | None = None,
+    epilog: str | None = None,
 ) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
 
@@ -333,9 +339,9 @@ def get_comment_parser(
 
 
 def get_comment_parser_fedora_ci(
-    prog: Optional[str] = None,
-    description: Optional[str] = None,
-    epilog: Optional[str] = None,
+    prog: str | None = None,
+    description: str | None = None,
+    epilog: str | None = None,
 ) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
 
@@ -376,7 +382,7 @@ def get_comment_parser_fedora_ci(
     return parser
 
 
-def get_koji_task_id_and_url_from_stdout(stdout: str) -> tuple[Optional[int], Optional[str]]:
+def get_koji_task_id_and_url_from_stdout(stdout: str) -> tuple[int | None, str | None]:
     task_id, task_url = None, None
 
     task_id_match = search(pattern=r"Created task: (\d+)", string=stdout)
@@ -394,7 +400,7 @@ def get_koji_task_id_and_url_from_stdout(stdout: str) -> tuple[Optional[int], Op
 
 
 def pr_labels_match_configuration(
-    pull_request: Optional[PullRequest],
+    pull_request: PullRequest | None,
     configured_labels_present: list[str],
     configured_labels_absent: list[str],
 ) -> bool:
@@ -447,7 +453,7 @@ def check_url(url: str) -> bool:
         return False
 
 
-def check_content_type(content_type: Union[str, None], url: str) -> bool:
+def check_content_type(content_type: str | None, url: str) -> bool:
     """
     Verify that content_type is text/plain and log failures.
 
@@ -607,3 +613,8 @@ def break_lines_in_text(text: str, sep: str, max_line_length: int):
         split_text.append(line)
 
     return "\n".join(split_text)
+
+
+def get_check_name_prefix(service_config: ServiceConfig) -> str:
+    """Return the prefix for check names based on deployment environment."""
+    return "Packit-stg" if service_config.deployment == Deployment.stg else "Packit"

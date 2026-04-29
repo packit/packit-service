@@ -22,6 +22,8 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
     GetGithubCommentEventMixin,
     GetKojiBuildFromTaskOrPullRequestMixin,
+)
+from packit_service.worker.helpers.testing_farm_mixin import (
     GetTestingFarmJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus
