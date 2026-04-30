@@ -1795,8 +1795,8 @@ def test_get_additional_builds():
 
     additional_copr_builds = helper.get_copr_builds_from_other_pr()
 
-    assert additional_copr_builds.get("test-target") == additional_copr_build
-    assert additional_copr_builds.get("another-test-target") is None
+    assert additional_copr_builds.get("test-target") == [additional_copr_build]
+    assert additional_copr_builds.get("another-test-target") == []
 
 
 def test_get_additional_builds_pr_not_in_db():
@@ -1920,7 +1920,7 @@ def test_get_additional_builds_wrong_format():
 
 
 @pytest.mark.parametrize(
-    ("chroot,build,additional_build,result"),
+    ("chroot,build,additional_builds,result"),
     [
         (
             "centos-stream-x86_64",
@@ -1943,25 +1943,27 @@ def test_get_additional_builds_wrong_format():
                     },
                 ],
             ),
-            flexmock(
-                build_id="54321",
-                built_packages=[
-                    {
-                        "arch": "x86_64",
-                        "epoch": 0,
-                        "name": "not-cool-project",
-                        "release": "2.el8",
-                        "version": "0.1.0",
-                    },
-                    {
-                        "arch": "src",
-                        "epoch": 0,
-                        "name": "not-cool-project",
-                        "release": "2.el8",
-                        "version": "0.1.0",
-                    },
-                ],
-            ),
+            [
+                flexmock(
+                    build_id="54321",
+                    built_packages=[
+                        {
+                            "arch": "x86_64",
+                            "epoch": 0,
+                            "name": "not-cool-project",
+                            "release": "2.el8",
+                            "version": "0.1.0",
+                        },
+                        {
+                            "arch": "src",
+                            "epoch": 0,
+                            "name": "not-cool-project",
+                            "release": "2.el8",
+                            "version": "0.1.0",
+                        },
+                    ],
+                ),
+            ],
             [
                 {
                     "id": "123456:centos-stream-x86_64",
@@ -2007,7 +2009,7 @@ def test_get_additional_builds_wrong_format():
         ),
     ],
 )
-def test_get_artifacts(chroot, build, additional_build, result):
+def test_get_artifacts(chroot, build, additional_builds, result):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
@@ -2038,7 +2040,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
     artifacts = helper._get_artifacts(
         chroot=chroot,
         build=build,
-        additional_build=additional_build,
+        additional_builds=additional_builds,
     )
 
     assert artifacts == result
@@ -2225,41 +2227,41 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
 
 
 @pytest.mark.parametrize(
-    "comment,expected_identifier,expected_labels,expected_pr_arg,expected_envs",
+    "comment,expected_identifier,expected_labels,expected_pr_args,expected_envs",
     [
         (
             "/packit-dev test --identifier my-id-1 --labels label1,label2 namespace-1/repo-1#33",
             "my-id-1",
             ["label1", "label2"],
-            "namespace-1/repo-1#33",
+            ["namespace-1/repo-1#33"],
             None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --identifier my-id-2",
             "my-id-2",
             None,
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --labels label1 --identifier my-id-2",
             "my-id-2",
             ["label1"],
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --labels label1 --id my-id-2",
             "my-id-2",
             ["label1"],
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             None,
         ),
         (
             "/packit-dev test namespace-2/repo-2#36 --labels label1 -i my-id-2",
             "my-id-2",
             ["label1"],
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             None,
         ),
         (
@@ -2267,7 +2269,7 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             "--env IP_FAMILY=ipv6",
             "my-id-2",
             ["label1"],
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             {"IP_FAMILY": "ipv6"},
         ),
         (
@@ -2275,7 +2277,7 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             " -i my-id-2 --env IP_FAMILY=ipv6",
             "my-id-2",
             ["label1"],
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             {"INSTALL_TYPE": "bundle", "IP_FAMILY": "ipv6"},
         ),
         (
@@ -2283,7 +2285,7 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             " -i my-id-2 --env IP_FAMILY=ipv6",
             "my-id-2",
             ["label1"],
-            "namespace-2/repo-2#36",
+            ["namespace-2/repo-2#36"],
             {"IP_FAMILY": "ipv6", "INSTALL_TYPE": ""},
         ),
         # Test GitHub URL format (auto-converted by GitHub)
@@ -2291,21 +2293,37 @@ def test_is_supported_architecture(target, use_internal_tf, supported):
             "/packit-dev test https://github.com/kontura/librepo/pull/4",
             None,
             None,
-            "kontura/librepo#4",
+            ["kontura/librepo#4"],
             None,
         ),
         (
             "/packit-dev test https://github.com/namespace-3/repo-3/pull/42 --identifier my-id-3",
             "my-id-3",
             None,
-            "namespace-3/repo-3#42",
+            ["namespace-3/repo-3#42"],
             None,
         ),
         (
             "/packit-dev test --labels label1,label2 https://github.com/namespace-4/repo-4/pull/99",
             None,
             ["label1", "label2"],
-            "namespace-4/repo-4#99",
+            ["namespace-4/repo-4#99"],
+            None,
+        ),
+        # Test multiple PR arguments
+        (
+            "/packit-dev test namespace-1/repo-1#10 namespace-2/repo-2#20",
+            None,
+            None,
+            ["namespace-1/repo-1#10", "namespace-2/repo-2#20"],
+            None,
+        ),
+        (
+            "/packit-dev test namespace-1/repo-1#10 "
+            "https://github.com/namespace-2/repo-2/pull/20 -i my-id",
+            "my-id",
+            None,
+            ["namespace-1/repo-1#10", "namespace-2/repo-2#20"],
             None,
         ),
     ],
@@ -2314,7 +2332,7 @@ def test_parse_comment_arguments(
     comment: str,
     expected_identifier: str,
     expected_labels: list[str],
-    expected_pr_arg: str,
+    expected_pr_args: list[str],
     expected_envs: dict[str, str],
 ):
     job_config = JobConfig(
@@ -2342,7 +2360,7 @@ def test_parse_comment_arguments(
         job_config=job_config,
     )
 
-    assert helper.comment_arguments.pr_argument == expected_pr_arg
+    assert helper.comment_arguments.pr_arguments == expected_pr_args
     assert helper.comment_arguments.identifier == expected_identifier
     assert helper.comment_arguments.labels == expected_labels
     assert helper.comment_arguments.envs == expected_envs

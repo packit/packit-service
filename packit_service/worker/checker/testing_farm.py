@@ -74,8 +74,8 @@ class IsEventOk(
             # Not interested in closed merge requests
             return False
 
-        if self.testing_farm_job_helper.is_test_comment_pr_argument_present():
-            return self.testing_farm_job_helper.check_comment_pr_argument_and_report()
+        if self.testing_farm_job_helper.are_test_comment_pr_arguments_present():
+            return self.testing_farm_job_helper.check_comment_pr_arguments_and_report()
 
         return not (
             self.testing_farm_job_helper.skip_build
