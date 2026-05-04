@@ -2314,6 +2314,7 @@ def test_pr_test_command_handler_multiple_builds(
         ),
     )
 
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
@@ -2325,7 +2326,7 @@ def test_pr_test_command_handler_multiple_builds(
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        description="No latest successful Copr build from the other PR found.",
+        description="No latest successful Copr build from the other PR(s) found.",
         state=BaseCommitStatus.failure,
         url="",
         check_names="testing-farm:fedora-35-x86_64",
@@ -2422,7 +2423,6 @@ def test_pr_test_command_handler_multiple_builds(
         TestingFarmResult.queued,
     ).once()
 
-    urls.DASHBOARD_URL = "https://dashboard.localhost"
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Tests have been submitted ...",
         state=BaseCommitStatus.running,

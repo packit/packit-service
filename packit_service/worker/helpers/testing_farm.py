@@ -59,12 +59,17 @@ class CommentArguments:
     Parse arguments from trigger comment and provide the attributes to Testing Farm helper.
     """
 
+    pr_argument_pattern = re.compile(r"^[^/\s]+/[^#\s]+#\d+$")
+    github_url_pattern = re.compile(
+        r"^https://github\.com/([^/\s]+)/([^/\s]+)/pull/(\d+)$",
+    )
+
     def __init__(self, command_prefix: str, comment: str):
         self._parser: argparse.ArgumentParser = None
         self.packit_command: str = None
         self.identifier: str = None
         self.labels: list[str] = None
-        self.pr_argument: str = None
+        self.pr_arguments: list[str] = []
         self.envs: dict[str, str] = None
 
         if comment is None:
@@ -138,23 +143,20 @@ class CommentArguments:
                     continue
 
     def parse_unknown_arguments(self, unknown_args: list[str]) -> None:
-        # Process unknown_args to find pr_argument
+        # Process unknown_args to find pr_arguments
         # Supports these formats:
         # - namespace/repo#<pr_id>
         # - https://github.com/namespace/repo/pull/<pr_id> (GitHub auto-converts the above to this)
-        pr_argument_pattern = re.compile(r"^[^/\s]+/[^#\s]+#\d+$")
-        github_url_pattern = re.compile(r"^https://github\.com/([^/\s]+)/([^/\s]+)/pull/(\d+)$")
         for arg in unknown_args:
-            if pr_argument_pattern.match(arg):
-                self.pr_argument = arg
-                logger.debug(f"Parsed pr_argument: {self.pr_argument}")
-                break
-            if match := github_url_pattern.match(arg):
+            if self.pr_argument_pattern.match(arg):
+                self.pr_arguments.append(arg)
+                logger.debug(f"Parsed pr_argument: {arg}")
+            elif match := self.github_url_pattern.match(arg):
                 # Convert GitHub URL format back to namespace/repo#pr_id format
                 namespace, repo, pr_id = match.groups()
-                self.pr_argument = f"{namespace}/{repo}#{pr_id}"
-                logger.debug(f"Parsed pr_argument from GitHub URL: {arg} -> {self.pr_argument}")
-                break
+                pr_arg = f"{namespace}/{repo}#{pr_id}"
+                self.pr_arguments.append(pr_arg)
+                logger.debug(f"Parsed pr_argument from GitHub URL: {arg} -> {pr_arg}")
 
 
 class TestingFarmJobHelper(CoprBuildJobHelper):
@@ -184,7 +186,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
         self.celery_task = celery_task
         self._tft_client: Optional[TestingFarmClient] = None
-        self._copr_builds_from_other_pr: Optional[dict[str, CoprBuildTargetModel]] = None
+        self._copr_builds_from_other_pr: Optional[dict[str, list[CoprBuildTargetModel]]] = None
+        self._pr_arguments_with_builds: set[str] = set()
         self._test_check_names: Optional[list[str]] = None
         self._comment_arguments: Optional[CommentArguments] = None
 
@@ -328,8 +331,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "retest-failed",
         )
 
-    def is_test_comment_pr_argument_present(self):
-        return self.is_test_comment_event() and self.comment_arguments.pr_argument
+    def are_test_comment_pr_arguments_present(self):
+        return self.is_test_comment_event() and self.comment_arguments.pr_arguments
 
     def is_test_comment_identifier_present(self):
         return self.is_test_comment_event() and self.comment_arguments.identifier
@@ -356,13 +359,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     @property
     def copr_builds_from_other_pr(
         self,
-    ) -> Optional[dict[str, CoprBuildTargetModel]]:
+    ) -> Optional[dict[str, list[CoprBuildTargetModel]]]:
         """
         Dictionary containing copr build target model for each chroot
         if the testing farm was triggered by a comment with PR argument
         and we store any Copr builds for the given PR, otherwise None.
         """
-        if not self._copr_builds_from_other_pr and self.is_test_comment_pr_argument_present():
+        if not self._copr_builds_from_other_pr and self.are_test_comment_pr_arguments_present():
             self._copr_builds_from_other_pr = self.get_copr_builds_from_other_pr()
         return self._copr_builds_from_other_pr
 
@@ -467,7 +470,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         compose: str,
         artifacts: Optional[list[dict[str, Union[list[str], str]]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
-        additional_build: Optional["CoprBuildTargetModel"] = None,
+        additional_builds: Optional[list["CoprBuildTargetModel"]] = None,
     ) -> dict:
         """Prepare a Testing Farm request payload.
 
@@ -502,10 +505,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         else:
             build_log_url = nvr = srpm_url = build_id = None
 
-        if additional_build is not None:
-            packit_copr_projects.append(
-                f"{additional_build.owner}/{additional_build.project_name}",
-            )
+        packit_copr_projects.extend(
+            f"{additional_build.owner}/{additional_build.project_name}"
+            for additional_build in additional_builds or []
+        )
 
         packit_copr_rpms = (
             [
@@ -646,21 +649,33 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             }
         )
 
-    def check_comment_pr_argument_and_report(self) -> bool:
+    def check_comment_pr_arguments_and_report(self) -> bool:
         """
-        Check whether there are successful recent Copr builds for the additional PR given
-        in the test comment command argument.
+        Check whether there are successful recent Copr builds for the additional PRs given
+        in the test comment command arguments.
         """
-        if not self.copr_builds_from_other_pr:
+        # accessing the property triggers get_copr_builds_from_other_pr
+        # which populates _pr_arguments_with_builds
+        builds = self.copr_builds_from_other_pr
+
+        pr_arguments_without_builds = [
+            pr_arg
+            for pr_arg in self.comment_arguments.pr_arguments
+            if pr_arg not in self._pr_arguments_with_builds
+        ]
+
+        if pr_arguments_without_builds:
+            failed_prs = ", ".join(pr_arguments_without_builds)
             self.report_status_to_tests(
-                description="We were not able to get any Copr builds for given additional PR. "
+                description="We were not able to get any Copr builds "
+                f"for the given additional PR(s): {failed_prs}. "
                 "Please, make sure the comment command is in correct format "
-                "`/packit test namespace/repo#pr_id`",
+                "`/packit test namespace/repo#pr_id [namespace/repo#pr_id ...]`",
                 state=BaseCommitStatus.error,
             )
             return False
 
-        return True
+        return bool(builds)
 
     def is_fmf_configured(self) -> bool:
         """
@@ -709,11 +724,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         chroot: str,
         build: CoprBuildTargetModel,
-        additional_build: Optional[CoprBuildTargetModel],
+        additional_builds: Optional[list[CoprBuildTargetModel]],
     ) -> list[dict]:
         """
         Get the artifacts list from the build (if the skip_build option is not defined)
-        and additional build (from other PR) if present.
+        and additional builds (from other PRs) if present.
         """
         artifacts = []
         if not self.skip_build:
@@ -721,14 +736,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 self._artifact(chroot, int(build.build_id), build.built_packages),
             )
 
-        if additional_build:
-            artifacts.append(
-                self._artifact(
-                    chroot,
-                    int(additional_build.build_id),
-                    additional_build.built_packages,
-                ),
+        artifacts.extend(
+            self._artifact(
+                chroot,
+                int(additional_build.build_id),
+                additional_build.built_packages,
             )
+            for additional_build in additional_builds or []
+        )
 
         return artifacts
 
@@ -778,20 +793,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 details={"msg": "Project not allowed to use internal TF."},
             )
 
-        additional_build = None
+        additional_builds = []
         if self.copr_builds_from_other_pr and not (
-            additional_build := self.copr_builds_from_other_pr.get(chroot)
+            additional_builds := self.copr_builds_from_other_pr.get(chroot)
         ):
             self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.failure,
-                description="No latest successful Copr build from the other PR found.",
+                description="No latest successful Copr build from the other PR(s) found.",
                 target=test_run.target,
                 url="",
             )
             return TaskResults(
                 success=True,
                 details={
-                    "msg": "No latest successful Copr build from the other PR found.",
+                    "msg": "No latest successful Copr build from the other PR(s) found.",
                 },
             )
 
@@ -807,7 +822,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             test_run=test_run,
             chroot=chroot,
             build=build,
-            additional_build=additional_build,
+            additional_builds=additional_builds,
         )
 
     def prepare_and_send_tf_request(
@@ -815,7 +830,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         test_run: TFTTestRunTargetModel,
         chroot: str,
         build: Optional[CoprBuildTargetModel],
-        additional_build: Optional[CoprBuildTargetModel],
+        additional_builds: Optional[list[CoprBuildTargetModel]],
     ) -> TaskResults:
         """
         Prepare the payload that will be sent to Testing Farm, submit it to
@@ -850,9 +865,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             payload = self._payload(
                 target=test_run.target,
                 compose=compose,
-                artifacts=self._get_artifacts(chroot, build, additional_build),
+                artifacts=self._get_artifacts(chroot, build, additional_builds),
                 build=build,
-                additional_build=additional_build,
+                additional_builds=additional_builds,
             )
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(
@@ -887,14 +902,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self._handle_tf_submit_successful(
             test_run=test_run,
             response=response,
-            additional_build=additional_build,
+            additional_builds=additional_builds,
         )
 
     def _handle_tf_submit_successful(
         self,
         test_run: TFTTestRunTargetModel,
         response: RequestResponse,
-        additional_build: Optional[CoprBuildTargetModel],
+        additional_builds: Optional[list[CoprBuildTargetModel]],
     ):
         """
         Create the model for the TF run in the database and report
@@ -905,7 +920,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         test_run.set_pipeline_id(pipeline_id)
         test_run.set_status(TestingFarmResult.queued)
 
-        if additional_build:
+        for additional_build in additional_builds or []:
             test_run.add_copr_build(additional_build)
 
         self.report_status_to_tests_for_test_target(
@@ -986,72 +1001,80 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def get_copr_builds_from_other_pr(
         self,
-    ) -> Optional[dict[str, CoprBuildTargetModel]]:
+    ) -> Optional[dict[str, list[CoprBuildTargetModel]]]:
         """
-        Get additional Copr builds if there was a PR argument in the
+        Get additional Copr builds if there were PR arguments in the
         test comment command:
 
+        For each PR argument:
         1. parse the PR argument to get the repo, namespace and PR ID
         2. get the PR from the DB
         3. get the copr builds from DB for the given PR model
         4. filter the most recent successful copr build target models
-        5. construct a dictionary to map the target names to actual models
+
+        Then construct a dictionary to map the target names to actual models.
 
         Returns:
-            dict
+            dict mapping chroot to list of builds, or None if no builds found
         """
-        parsed_pr_argument = self._parse_comment_pr_argument()
-        if not parsed_pr_argument:
-            return None
+        all_successful_builds: list[CoprBuildTargetModel] = []
 
-        namespace, repo, pr_id = parsed_pr_argument
+        for pr_argument in self.comment_arguments.pr_arguments:
+            parsed = self._parse_pr_argument(pr_argument)
+            if not parsed:
+                continue
 
-        # for now let's default to github.com
-        project_url = f"https://github.com/{namespace}/{repo}"
-        pr_model = PullRequestModel.get(
-            pr_id=int(pr_id),
-            namespace=namespace,
-            repo_name=repo,
-            project_url=project_url,
-        )
+            namespace, repo, pr_id = parsed
 
-        if not pr_model:
-            logger.debug(f"No PR for {project_url} and PR ID {pr_id} found in DB.")
-            return None
-
-        copr_builds = pr_model.get_copr_builds()
-        if not copr_builds:
-            logger.debug(
-                f"No copr builds for {project_url} and PR ID {pr_id} found in DB.",
+            # for now let's default to github.com
+            project_url = f"https://github.com/{namespace}/{repo}"
+            pr_model = PullRequestModel.get(
+                pr_id=int(pr_id),
+                namespace=namespace,
+                repo_name=repo,
+                project_url=project_url,
             )
-            return None
 
-        successful_most_recent_builds = filter_most_recent_target_models_by_status(
-            models=copr_builds,
-            statuses_to_filter_with=[BuildStatus.success],
-        )
+            if not pr_model:
+                logger.debug(f"No PR for {project_url} and PR ID {pr_id} found in DB.")
+                continue
+
+            copr_builds = pr_model.get_copr_builds()
+            if not copr_builds:
+                logger.debug(
+                    f"No copr builds for {project_url} and PR ID {pr_id} found in DB.",
+                )
+                continue
+
+            successful_most_recent_builds = filter_most_recent_target_models_by_status(
+                models=copr_builds,
+                statuses_to_filter_with=[BuildStatus.success],
+            )
+            if successful_most_recent_builds:
+                self._pr_arguments_with_builds.add(pr_argument)
+            all_successful_builds.extend(successful_most_recent_builds)
+
+        if not all_successful_builds:
+            return None
 
         return self._construct_copr_builds_from_other_pr_dict(
-            successful_most_recent_builds,
+            all_successful_builds,
         )
 
-    def _parse_comment_pr_argument(self) -> Optional[tuple[str, str, str]]:
+    @staticmethod
+    def _parse_pr_argument(pr_argument: str) -> Optional[tuple[str, str, str]]:
         """
-        Parse the PR argument from test comment command if there is any.
+        Parse a PR argument in format namespace/repo#pr_id.
 
         Returns:
             tuple of strings for namespace, repo and pr_id
         """
-        if not self.comment_arguments.pr_argument:
-            return None
-
-        # self.comment_arguments.pr_argument should be in format namespace/repo#pr_id
-        pr_argument_parts = self.comment_arguments.pr_argument.split("#")
+        pr_argument_parts = pr_argument.split("#")
         if len(pr_argument_parts) != 2:
             logger.debug(
                 "Unexpected format of the test argument:"
                 f" not able to split the test argument "
-                f"{self.comment_arguments.pr_argument} with '#'.",
+                f"{pr_argument} with '#'.",
             )
             return None
 
@@ -1061,7 +1084,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             logger.debug(
                 "Unexpected format of the test argument: "
                 f"not able to split the test argument "
-                f"{self.comment_arguments.pr_argument} with '/'.",
+                f"{pr_argument} with '/'.",
             )
             return None
         namespace, repo = namespace_repo
@@ -1074,26 +1097,26 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def _construct_copr_builds_from_other_pr_dict(
         self,
-        successful_most_recent_builds,
-    ) -> Optional[dict[str, CoprBuildTargetModel]]:
+        successful_most_recent_builds: list[CoprBuildTargetModel],
+    ) -> dict[str, list[CoprBuildTargetModel]]:
         """
         Construct a dictionary that will contain for each build target name
-        a build target model from the given models if there is one
-        with matching target name.
+        a list of build target models from the given models with
+        matching target name.
 
         Args:
             successful_most_recent_builds: models to get the values from
 
         Returns:
-            dict
+            dict mapping chroot to list of builds
         """
-        result: dict[str, CoprBuildTargetModel] = {}
+        result: dict[str, list[CoprBuildTargetModel]] = {
+            target: [] for target in self.build_targets_for_tests
+        }
 
-        for build_target in self.build_targets_for_tests:
-            additional_build = [
-                build for build in successful_most_recent_builds if build.target == build_target
-            ]
-            result[build_target] = additional_build[0] if additional_build else None
+        for build in successful_most_recent_builds:
+            if build.target in result:
+                result[build.target].append(build)
 
         logger.debug(f"Additional builds dictionary: {result}")
 
