@@ -99,7 +99,7 @@ def test_test_another_pr_build_comment(comment_parser):
 
     args = comment_parser.parse_args(commands)
     assert args.command == "test"
-    assert args.target == "namespace/some-repo/#1234"
+    assert args.targets == ["namespace/some-repo/#1234"]
 
 
 def test_test_identifier_comment(comment_parser):

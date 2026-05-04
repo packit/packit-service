@@ -287,9 +287,9 @@ def get_comment_parser(
 
     test_parser = subparsers.add_parser("test", help="run tests in Testing Farm")
     test_parser.add_argument(
-        "target",
-        nargs="?",
-        help="reference to a PR in a different repository containing builds to test",
+        "targets",
+        nargs="*",
+        help="reference(s) to PR(s) in different repositories containing builds to test",
     )
     test_parser.add_argument("--commit", help="run tests configured with the commit trigger")
     test_parser.add_argument("--release", help="run tests configured with the release trigger")
