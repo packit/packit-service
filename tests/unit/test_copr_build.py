@@ -1109,3 +1109,68 @@ def test_get_running_jobs_rebuild_failed_passes_targets(github_pr_event):
         targets={"fedora-rawhide-x86_64", "fedora-40-x86_64"},
     ).and_return(sentinel).once()
     assert list(helper.get_running_jobs()) == sentinel
+
+
+def test_copr_build_end_skips_already_canceled():
+    from packit_service.worker.handlers.copr import CoprBuildEndHandler
+
+    handler = flexmock(
+        build=flexmock(status=BuildStatus.canceled),
+        copr_event=flexmock(
+            build_id="12345",
+            chroot="fedora-rawhide-x86_64",
+            build=flexmock(status=BuildStatus.canceled),
+        ),
+    )
+    result = CoprBuildEndHandler._run(handler)
+    assert result["success"]
+
+
+def test_copr_build_end_skips_reporting_for_superseded_build():
+    from packit_service.worker.handlers.copr import CoprBuildEndHandler
+
+    srpm_build = flexmock(status=BuildStatus.success, url="https://some.url/my.srpm")
+    build = flexmock(
+        id=1,
+        status=BuildStatus.pending,
+        target="fedora-rawhide-x86_64",
+        task_accepted_time=None,
+        web_url="https://copr.url/build/1",
+        build_logs_url="https://copr.url/logs/1",
+        build_id="12345",
+    )
+    build.should_receive("get_srpm_build").and_return(srpm_build)
+    build.should_receive("set_status").with_args(BuildStatus.failure).once()
+
+    copr_event = flexmock(
+        build_id="12345",
+        chroot="fedora-rawhide-x86_64",
+        status=0,
+        timestamp=None,
+    )
+
+    copr_build_helper = flexmock()
+    copr_build_helper.should_receive("report_status_to_all_for_chroot").never()
+    copr_build_helper.should_receive("notify_about_failure_if_configured").never()
+
+    pushgateway = flexmock(
+        copr_builds_finished=flexmock(inc=lambda: None),
+    )
+    pushgateway.should_receive("push").and_return()
+
+    handler = flexmock(
+        build=build,
+        copr_event=copr_event,
+        copr_build_helper=copr_build_helper,
+        pushgateway=pushgateway,
+    )
+    handler.should_receive("set_end_time").once()
+    handler.should_receive("set_srpm_url").once()
+
+    flexmock(CoprBuildTargetModel).should_receive("has_newer_run").with_args(build).and_return(
+        True,
+    ).once()
+
+    result = CoprBuildEndHandler._run(handler)
+    assert not result["success"]
+    assert result["details"]["msg"] == "RPMs failed to be built."

@@ -262,26 +262,34 @@ class AbstractKojiTaskReportHandler(
         else:
             self.push_metrics()
             self.build.set_status(new_commit_status.value)
-            self.report(description, new_commit_status, dashboard_url, koji_web_url)
             koji_build_logs = self.koji_task_event.get_koji_build_rpm_tasks_logs_urls(
                 self.service_config.koji_logs_url,
             )
-
             self.build.set_build_logs_urls(koji_build_logs)
             self.build.set_web_url(koji_web_url)
+
+            newer_run_exists = KojiBuildTargetModel.has_newer_run(self.build)
+            if newer_run_exists:
+                logger.info(
+                    f"Skipping status report for Koji build "
+                    f"{self.koji_task_event.task_id} ({self.build.target}): "
+                    f"a newer build exists for the same target."
+                )
+            else:
+                self.report(description, new_commit_status, dashboard_url, koji_web_url)
 
             if self.koji_task_event.state == KojiTaskState.failed:
                 logger.info(
                     f"Failed Koji scratch build (parent taskID = {self.koji_task_event.task_id})"
                 )
                 self.trigger_log_detective_if_configured()
-                # Convert dict of logs URLs to a string representation
-                logs_url_str = ", ".join(koji_build_logs.values()) if koji_build_logs else ""
-                self.notify_about_failure_if_configured(
-                    packit_dashboard_url=dashboard_url,
-                    external_dashboard_url=koji_web_url,
-                    logs_url=logs_url_str,
-                )
+                if not newer_run_exists:
+                    logs_url_str = ", ".join(koji_build_logs.values()) if koji_build_logs else ""
+                    self.notify_about_failure_if_configured(
+                        packit_dashboard_url=dashboard_url,
+                        external_dashboard_url=koji_web_url,
+                        logs_url=logs_url_str,
+                    )
 
         msg = (
             f"Build on {self.build.target} in koji changed state "

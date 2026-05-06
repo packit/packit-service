@@ -316,6 +316,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         if self.build.status in [
             BuildStatus.success,
             BuildStatus.failure,
+            BuildStatus.canceled,
         ]:
             msg = (
                 f"Copr build {self.copr_event.build_id} is already"
@@ -346,18 +347,25 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             packit_dashboard_url = get_copr_build_info_url(self.build.id)
             # if SRPM build failed it has been reported already so skip reporting
             if self.build.get_srpm_build().status != BuildStatus.failure:
-                self.copr_build_helper.report_status_to_all_for_chroot(
-                    state=BaseCommitStatus.failure,
-                    description=failed_msg,
-                    url=packit_dashboard_url,
-                    chroot=self.copr_event.chroot,
-                )
-                self.measure_time_after_reporting()
-                self.copr_build_helper.notify_about_failure_if_configured(
-                    packit_dashboard_url=packit_dashboard_url,
-                    external_dashboard_url=self.build.web_url,
-                    logs_url=self.build.build_logs_url,
-                )
+                if CoprBuildTargetModel.has_newer_run(self.build):
+                    logger.info(
+                        f"Skipping status report for Copr build "
+                        f"{self.copr_event.build_id} ({self.build.target}): "
+                        f"a newer build exists for the same target."
+                    )
+                else:
+                    self.copr_build_helper.report_status_to_all_for_chroot(
+                        state=BaseCommitStatus.failure,
+                        description=failed_msg,
+                        url=packit_dashboard_url,
+                        chroot=self.copr_event.chroot,
+                    )
+                    self.measure_time_after_reporting()
+                    self.copr_build_helper.notify_about_failure_if_configured(
+                        packit_dashboard_url=packit_dashboard_url,
+                        external_dashboard_url=self.build.web_url,
+                        logs_url=self.build.build_logs_url,
+                    )
             self.build.set_status(BuildStatus.failure)
             report_long_runtime("Copr build failed end", 120, run_start_time)
             return TaskResults(success=False, details={"msg": failed_msg})
