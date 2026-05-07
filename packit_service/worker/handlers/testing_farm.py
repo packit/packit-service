@@ -712,6 +712,15 @@ class TestingFarmResultsHandler(
             )
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 
+        if TFTTestRunTargetModel.has_newer_run(test_run_model):
+            logger.info(
+                f"Skipping status report for TF run {self.pipeline_id} "
+                f"({test_run_model.target}/{test_run_model.identifier}): "
+                f"a newer run exists for the same target."
+            )
+            test_run_model.set_status(self.result, created=self.created)
+            return TaskResults(success=True, details={})
+
         test_run_model.set_web_url(self.log_url)
         url = get_testing_farm_info_url(test_run_model.id) if test_run_model else None
         self.testing_farm_job_helper.report_status_to_tests_for_test_target(

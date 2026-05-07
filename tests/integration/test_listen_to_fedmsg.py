@@ -1207,6 +1207,7 @@ def test_copr_build_end_testing_farm_manual_trigger(
         copr_build_pr,
     )
     flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("has_newer_run").and_return(False)
     copr_build_pr.should_call("set_status").with_args(build_status).once()
     copr_build_pr.should_receive("set_end_time").once()
     copr_build_pr.should_receive("get_package_name").and_return(None)
@@ -2504,6 +2505,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr,
     )
+    flexmock(KojiBuildTargetModel).should_receive("has_newer_run").and_return(False)
     url = get_koji_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -2566,6 +2568,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr,
     )
+    flexmock(KojiBuildTargetModel).should_receive("has_newer_run").and_return(False)
     url = get_koji_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)

@@ -215,6 +215,7 @@ def test_testing_farm_response(
     flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
         tft_test_run_model,
     )
+    flexmock(TFTTestRunTargetModel).should_receive("has_newer_run").and_return(False)
     flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
         flexmock(id=1, type=ProjectEventModelType.pull_request),
     )
@@ -222,6 +223,128 @@ def test_testing_farm_response(
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     test_farm_handler.run()
+
+
+def test_testing_farm_response_skips_reporting_for_superseded_run():
+    package_config = flexmock(
+        jobs=[
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        identifier=None,
+                        _targets=["fedora-rawhide"],
+                    ),
+                },
+            ),
+            JobConfig(
+                type=JobType.tests,
+                manual_trigger=True,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        identifier=None,
+                        _targets=["fedora-rawhide"],
+                    ),
+                },
+            ),
+        ],
+        packages={
+            "package": {},
+        },
+    )
+    flexmock(PackageConfigGetter).should_receive(
+        "get_package_config_from_repo",
+    ).and_return(package_config)
+    config = flexmock(
+        command_handler_work_dir=flexmock(),
+        comment_command_prefix="/packit",
+    )
+    flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
+    flexmock(TFResultsEvent).should_receive("db_project_object").and_return(None)
+    config.should_receive("get_project").with_args(
+        url="https://github.com/packit/ogr",
+    ).and_return(
+        flexmock(
+            service=flexmock(instance_url="https://github.com"),
+            namespace="packit",
+            repo="ogr",
+        ),
+    )
+    config.should_receive("get_github_account_name").and_return("packit-as-a-service")
+    created_dt = datetime.now(timezone.utc)
+    event_dict = TFResultsEvent(
+        pipeline_id="id",
+        result=TFResult.canceled,
+        compose=flexmock(),
+        summary="Tests canceled ...",
+        log_url="some url",
+        copr_build_id=flexmock(),
+        copr_chroot="fedora-rawhide-x86_64",
+        commit_sha=flexmock(),
+        project_url="https://github.com/packit/ogr",
+        created=created_dt,
+    ).get_dict()
+    test_farm_handler = TFResultsHandler(
+        package_config=package_config,
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            manual_trigger=True,
+            packages={
+                "package": CommonPackageConfig(
+                    identifier=None,
+                ),
+            },
+        ),
+        event=event_dict,
+    )
+    flexmock(StatusReporter).should_receive("report").never()
+
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    tft_test_run_model = (
+        flexmock(
+            id=123,
+            submitted_time=datetime.now(),
+            target="fedora-rawhide-x86_64",
+            identifier=None,
+            status=None,
+        )
+        .should_receive("get_project_event_model")
+        .and_return(
+            flexmock(id=123)
+            .should_receive("get_project_event_object")
+            .and_return(
+                flexmock(
+                    id=12,
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                    project_event_model_type=ProjectEventModelType.pull_request,
+                    commit_sha="0000000000",
+                ),
+            )
+            .mock(),
+        )
+        .mock()
+    )
+    tft_test_run_model.should_receive("set_status").with_args(
+        TFResult.canceled,
+        created=created_dt,
+    ).and_return().once()
+    tft_test_run_model.should_receive("set_web_url").never()
+
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
+        tft_test_run_model,
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("has_newer_run").and_return(True)
+    flexmock(ProjectEventModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, type=ProjectEventModelType.pull_request),
+    )
+
+    flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+
+    result = test_farm_handler.run()
+    assert result["success"]
 
 
 @pytest.mark.parametrize(

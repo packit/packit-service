@@ -239,6 +239,7 @@ def copr_build_model(
             },
         ],
         task_accepted_time=datetime.now(),
+        submitted_time=datetime.now(),
         build_start_time=None,
         build_logs_url="https://log-url",
     )
@@ -316,6 +317,7 @@ def koji_build_pr():
         web_url="https://some-url",
         target="some-target",
         status="some-status",
+        submitted_time=datetime.now(),
         runs=runs,
     )
     koji_build_model._srpm_build_for_mocking = srpm_build

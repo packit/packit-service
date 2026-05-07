@@ -2375,6 +2375,34 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             return session.query(CoprBuildTargetModel).filter_by(id=id_).first()
 
     @classmethod
+    def has_newer_run(cls, run: "CoprBuildTargetModel") -> bool:
+        """Check if a newer build exists for the same target+identifier
+        on the same project object (e.g. same PR).
+
+        Used to avoid overwriting a newer build's check status when
+        processing results for an older (e.g. canceled) build.
+        """
+        project_event = run.get_project_event_model()
+        if not project_event or not run.submitted_time:
+            return False
+        with sa_session_transaction() as session:
+            return session.query(
+                session.query(CoprBuildTargetModel)
+                .join(CoprBuildGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event.type,
+                    ProjectEventModel.event_id == project_event.event_id,
+                    CoprBuildTargetModel.identifier == run.identifier,
+                    CoprBuildTargetModel.target == run.target,
+                    CoprBuildTargetModel.submitted_time > run.submitted_time,
+                    CoprBuildTargetModel.id != run.id,
+                )
+                .exists()
+            ).scalar()
+
+    @classmethod
     def get_all(cls) -> Iterable["CoprBuildTargetModel"]:
         with sa_session_transaction() as session:
             return session.query(CoprBuildTargetModel).order_by(
@@ -3013,6 +3041,33 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     def get_by_id(cls, id_: int) -> Optional["KojiBuildTargetModel"]:
         with sa_session_transaction() as session:
             return session.query(KojiBuildTargetModel).filter_by(id=id_).first()
+
+    @classmethod
+    def has_newer_run(cls, run: "KojiBuildTargetModel") -> bool:
+        """Check if a newer build exists for the same target
+        on the same project object (e.g. same PR).
+
+        Used to avoid overwriting a newer build's check status when
+        processing results for an older (e.g. canceled) build.
+        """
+        project_event = run.get_project_event_model()
+        if not project_event or not run.submitted_time:
+            return False
+        with sa_session_transaction() as session:
+            return session.query(
+                session.query(KojiBuildTargetModel)
+                .join(KojiBuildGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event.type,
+                    ProjectEventModel.event_id == project_event.event_id,
+                    KojiBuildTargetModel.target == run.target,
+                    KojiBuildTargetModel.submitted_time > run.submitted_time,
+                    KojiBuildTargetModel.id != run.id,
+                )
+                .exists()
+            ).scalar()
 
     @classmethod
     def get_all(cls) -> Iterable["KojiBuildTargetModel"]:
@@ -3854,6 +3909,34 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     def get_by_pipeline_id(cls, pipeline_id: str) -> Optional["TFTTestRunTargetModel"]:
         with sa_session_transaction() as session:
             return session.query(TFTTestRunTargetModel).filter_by(pipeline_id=pipeline_id).first()
+
+    @classmethod
+    def has_newer_run(cls, run: "TFTTestRunTargetModel") -> bool:
+        """Check if a newer test run exists for the same target+identifier
+        on the same project object (e.g. same PR).
+
+        Used to avoid overwriting a newer run's check status when
+        processing results for an older (e.g. canceled) run.
+        """
+        project_event = run.get_project_event_model()
+        if not project_event or not run.submitted_time:
+            return False
+        with sa_session_transaction() as session:
+            return session.query(
+                session.query(TFTTestRunTargetModel)
+                .join(TFTTestRunGroupModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event.type,
+                    ProjectEventModel.event_id == project_event.event_id,
+                    TFTTestRunTargetModel.identifier == run.identifier,
+                    TFTTestRunTargetModel.target == run.target,
+                    TFTTestRunTargetModel.submitted_time > run.submitted_time,
+                    TFTTestRunTargetModel.id != run.id,
+                )
+                .exists()
+            ).scalar()
 
     @classmethod
     def get_all_by_status(
