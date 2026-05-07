@@ -34,12 +34,19 @@ HELP_COMMENT_EPILOG = (
     "**Documentation**: \n - {docs}"
 )
 HELP_NOTE = (
-    "If using Fedora CI, refer to `/packit-ci help` instead. "
-    "Refer to `/packit-ci-stg help` if using the staging instance."
+    "`/packit` commands interact with the opt-in packit jobs "
+    "(e.g. `propose-downstream`, `pull-from-upstream`). "
+    "If you are looking for help on Fedora CI jobs "
+    "(e.g. `scratch-build`, `test rpminspect`, etc.), "
+    "refer to `/packit-ci` or `/packit-ci-stg`."
 )
 HELP_NOTE_FEDORA_CI = (
-    "For default Packit behaviour, refer to `/packit help` instead. "
-    "Refer to `/packit-stg help` if using the staging instance."
+    "`/packit-ci` commands interact with Fedora CI jobs "
+    "(e.g. `scratch-build`, `test rpminspect`, etc.). "
+    "If you are looking for help on the opt-in packit jobs "
+    "(e.g. `propose-downstream`, `pull-from-upstream`), "
+    "refer to `/packit` or `/packit-stg`. "
+    "These assume a `.packit.yaml` configuration file is present in the repo."
 )
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
