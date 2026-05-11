@@ -46,7 +46,7 @@ HELP_NOTE_FEDORA_CI = (
     "If you are looking for help on the opt-in packit jobs "
     "(e.g. `propose-downstream`, `pull-from-upstream`), "
     "refer to `/packit` or `/packit-stg`. "
-    "These assume a `.packit.yaml` configuration file is present in the repo."
+    "These assume a valid Packit configuration file is present in the repo."
 )
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
