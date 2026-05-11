@@ -9,12 +9,6 @@ from flexmock import flexmock
 from packit.config.aliases import Distro
 from packit.config.job_config import JobConfigTriggerType, JobType
 
-from packit_service.constants import (
-    HELP_COMMENT_DESCRIPTION,
-    HELP_COMMENT_EPILOG,
-    HELP_COMMENT_PROG,
-    HELP_COMMENT_PROG_FEDORA_CI,
-)
 from packit_service.events.logdetective import Result as LogDetectiveResultEvent
 from packit_service.models import (
     LogDetectiveRunModel,
@@ -27,20 +21,14 @@ from packit_service.utils import get_comment_parser, get_comment_parser_fedora_c
 
 @pytest.fixture(scope="module")
 def comment_parser() -> argparse.ArgumentParser:
-    return get_comment_parser(
-        prog=HELP_COMMENT_PROG,
-        description=HELP_COMMENT_DESCRIPTION,
-        epilog=HELP_COMMENT_EPILOG,
-    )
+    return get_comment_parser()
 
 
 @pytest.fixture(scope="module")
 def comment_parser_fedora_ci() -> argparse.ArgumentParser:
-    return get_comment_parser_fedora_ci(
-        prog=HELP_COMMENT_PROG_FEDORA_CI,
-        description=HELP_COMMENT_DESCRIPTION,
-        epilog=HELP_COMMENT_EPILOG,
-    )
+    supported_test_types = ["installability", "rpmlint", "rpminspect", "custom"]
+
+    return get_comment_parser_fedora_ci(supported_test_types=supported_test_types)
 
 
 @pytest.fixture()
