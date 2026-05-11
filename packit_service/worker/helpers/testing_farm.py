@@ -45,6 +45,11 @@ from packit_service.utils import (
     get_packit_commands_from_comment,
 )
 from packit_service.worker.celery_task import CeleryTask
+from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.testing_farm import (
+    IsFMFConfigPresent,
+    IsProjectOutsideOfTestsNamespace,
+)
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
 from packit_service.worker.helpers.testing_farm_client import TestingFarmClient
@@ -685,14 +690,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.custom_fmf:
             return True
 
-        try:
-            self.project.get_file_content(
-                path=f"{self.fmf_path}/.fmf/version",
-                ref=self.metadata.commit_sha,
-            )
-            return True
-        except FileNotFoundError:
-            return False
+        return IsFMFConfigPresent(
+            package_config=None, job_config=None, event=self.metadata.event_dict, task_name=None
+        ).pre_check()
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_tests_for_chroot(
@@ -1303,9 +1303,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 FEDORA_CI_TESTS = {}
 
 
-def implements_fedora_ci_test(test_name: str, skipif: Optional[Callable] = None) -> Callable:
+def implements_fedora_ci_test(
+    test_name: str, checkers: Optional[list[type[Checker]]] = None
+) -> Callable:
     def _update_mapping(function: Callable) -> Callable:
-        FEDORA_CI_TESTS[test_name] = (function, skipif)
+        FEDORA_CI_TESTS[test_name] = (function, checkers)
         return function
 
     return _update_mapping
@@ -1342,7 +1344,7 @@ class DownstreamTestingFarmJobHelper:
         service_config: ServiceConfig,
         project: GitProject,
         metadata: EventData,
-        filter_specific_test: bool = True,
+        filter_specific_tests: bool = True,
     ) -> list[str]:
         """
         Gets relevant Fedora CI tests registered using the `@implements_fedora_ci_test()` decorator.
@@ -1354,32 +1356,47 @@ class DownstreamTestingFarmJobHelper:
             service_config: Service config.
             project: Git project.
             metadata: Event metadata.
-            filter_specific_test: Whether to filter tests based on the command in user's comment.
+            filter_specific_tests: Whether to filter tests based on the command in user's comment.
 
         Returns:
             List of registered Fedora CI test names.
         """
+
+        def filter_tests(tests):
+            if metadata.event_type != pagure.pr.Comment.event_type():
+                return tests
+            # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
+            # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
+            comment_command_prefix = (
+                "/packit-ci-stg"
+                if service_config.comment_command_prefix.endswith("-stg")
+                else "/packit-ci"
+            )
+            commands = get_packit_commands_from_comment(
+                metadata.event_dict.get("comment"), comment_command_prefix
+            )
+            if not commands:
+                return []
+            if len(commands) > 1 and commands[1] in tests:
+                return [commands[1]]
+            return tests
+
         all_tests = [
             name
-            for name, (_, skipif) in FEDORA_CI_TESTS.items()
-            if not skipif or not skipif(service_config, project, metadata)
+            for name, (_, checkers) in FEDORA_CI_TESTS.items()
+            if all(
+                checker(
+                    package_config=None,
+                    job_config=None,
+                    event=metadata.event_dict,
+                    task_name=None,
+                ).pre_check()
+                for checker in checkers
+            )
         ]
-        if metadata.event_type != pagure.pr.Comment.event_type() or not filter_specific_test:
-            return all_tests
-        # TODO: remove this once Fedora CI has its own instances and comment_command_prefixes
-        # comment_command_prefixes for Fedora CI are /packit-ci and /packit-ci-stg
-        comment_command_prefix = (
-            "/packit-ci-stg"
-            if service_config.comment_command_prefix.endswith("-stg")
-            else "/packit-ci"
-        )
-        commands = get_packit_commands_from_comment(
-            metadata.event_dict.get("comment"), comment_command_prefix
-        )
-        if not commands:
-            return []
-        if len(commands) > 1 and commands[1] in all_tests:
-            return [commands[1]]
+
+        if filter_specific_tests:
+            return filter_tests(all_tests)
         return all_tests
 
     @property
@@ -1501,9 +1518,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "installability",
-        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
-            project
-        ),
+        checkers=[IsProjectOutsideOfTestsNamespace],
     )
     def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
@@ -1553,9 +1568,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "rpminspect",
-        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
-            project
-        ),
+        checkers=[IsProjectOutsideOfTestsNamespace],
     )
     def _payload_rpminspect(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
@@ -1573,9 +1586,7 @@ class DownstreamTestingFarmJobHelper:
 
     @implements_fedora_ci_test(
         "rpmlint",
-        skipif=lambda _, project, __: DownstreamTestingFarmJobHelper.is_project_in_tests_namespace(
-            project
-        ),
+        checkers=[IsProjectOutsideOfTestsNamespace],
     )
     def _payload_rpmlint(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/packit/tmt-plans.git"
@@ -1592,26 +1603,9 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    @staticmethod
-    def is_fmf_configured(project: GitProject, metadata: EventData) -> bool:
-        try:
-            project.get_file_content(
-                path=".fmf/version",
-                ref=metadata.commit_sha,
-            )
-        except FileNotFoundError:
-            return False
-        return True
-
-    @staticmethod
-    def is_project_in_tests_namespace(project: GitProject) -> bool:
-        return project.namespace == "tests"
-
     @implements_fedora_ci_test(
         "custom",
-        skipif=lambda _, project, metadata: not DownstreamTestingFarmJobHelper.is_fmf_configured(
-            project, metadata
-        ),
+        checkers=[IsFMFConfigPresent],
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
         payload = self._get_tf_base_payload(distro, compose)

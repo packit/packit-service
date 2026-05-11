@@ -9,7 +9,7 @@ Separated from handlers/mixin.py to avoid circular imports.
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from packit.config import JobConfig, PackageConfig
 
@@ -18,11 +18,13 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
     GetKojiBuildFromTaskOrPullRequestMixin,
 )
-from packit_service.worker.helpers.testing_farm import (
-    DownstreamTestingFarmJobHelper,
-    TestingFarmJobHelper,
-)
 from packit_service.worker.mixin import ConfigFromEventMixin
+
+if TYPE_CHECKING:
+    from packit_service.worker.helpers.testing_farm import (
+        DownstreamTestingFarmJobHelper,
+        TestingFarmJobHelper,
+    )
 
 
 class GetTestingFarmJobHelper(Protocol):
@@ -45,6 +47,8 @@ class GetTestingFarmJobHelperMixin(
     @property
     def testing_farm_job_helper(self) -> TestingFarmJobHelper:
         if not self._testing_farm_job_helper:
+            from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+
             self._testing_farm_job_helper = TestingFarmJobHelper(
                 service_config=self.service_config,
                 package_config=self.package_config,
@@ -77,6 +81,10 @@ class GetDownstreamTestingFarmJobHelperMixin(
     @property
     def downstream_testing_farm_job_helper(self) -> DownstreamTestingFarmJobHelper:
         if not self._downstream_testing_farm_job_helper:
+            from packit_service.worker.helpers.testing_farm import (
+                DownstreamTestingFarmJobHelper,
+            )
+
             self._downstream_testing_farm_job_helper = DownstreamTestingFarmJobHelper(
                 service_config=self.service_config,
                 project=self.project,
