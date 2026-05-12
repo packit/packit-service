@@ -3872,6 +3872,14 @@ def _test_downstream_tf_retrigger_common(
                     "cafe8a3fb7c24f7534a6157514dda0f3",
                     "Packit-stg - rpmlint - rawhide [beaf90b]",
                 ),
+                (
+                    "88ac5f0f7dc0c684f988ec9157fff5b2",
+                    "Packit-stg - rmdepcheck - rawhide [beaf90b]",
+                ),
+                (
+                    "325199098ce9f37cc790405f4fa300cf",
+                    "Packit-stg - license-validate - rawhide [beaf90b]",
+                ),
             ],
             id="rawhide target branch",
         ),
@@ -3884,6 +3892,11 @@ def _test_downstream_tf_retrigger_common(
                 ),
                 ("d6df09a49152552c196c4d06f286abef", "Packit-stg - rpminspect - f42 [beaf90b]"),
                 ("6901e099dadbb89822e6a64c411ceb8c", "Packit-stg - rpmlint - f42 [beaf90b]"),
+                ("ea75be809952ac2c43a139e80d2cedc1", "Packit-stg - rmdepcheck - f42 [beaf90b]"),
+                (
+                    "e3cceaaad50a791b999c00aba2973653",
+                    "Packit-stg - license-validate - f42 [beaf90b]",
+                ),
             ],
             id="f42 target branch",
         ),
@@ -3899,7 +3912,7 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
         target_branch,
         flags,
         "/packit-ci test",
-        tests=3,
+        tests=5,
     )
 
 
@@ -3971,8 +3984,13 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
                 ("Packit-stg - installability - eln [beaf90b]", "ca546b82b2aeb2fcef8bf12746f0bd06"),
                 ("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd"),
                 ("Packit-stg - rpmlint - eln [beaf90b]", "de24b7b63bf38420bdfea804d3bf56d7"),
+                ("Packit-stg - rmdepcheck - eln [beaf90b]", "8ad85bf19e686070b8c8105956ec273a"),
+                (
+                    "Packit-stg - license-validate - eln [beaf90b]",
+                    "54f936fa395a5b11c0595cde0de3571d",
+                ),
             },
-            3,
+            5,
             "eln",
             id="rpminspect - rawhide branch, eln target",
         ),
