@@ -341,6 +341,7 @@ def get_comment_parser_fedora_ci(
     prog: str | None = None,
     description: str | None = None,
     epilog: str | None = None,
+    supported_test_types: list[str] | None = None,
 ) -> argparse.ArgumentParser:
     parser = _create_base_parser(prog, description, epilog)
 
@@ -357,7 +358,7 @@ def get_comment_parser_fedora_ci(
     test_parser.add_argument(
         "test_identifier",
         nargs="?",
-        choices=["installability", "rpmlint", "rpminspect", "custom"],
+        choices=supported_test_types,
         help="specific type of tests to run",
     )
 
