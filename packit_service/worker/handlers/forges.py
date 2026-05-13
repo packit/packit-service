@@ -10,6 +10,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import (
     Deployment,
@@ -25,6 +26,7 @@ from packit_service.constants import (
     DOCS_URL_FEDORA_CI,
     HELP_COMMENT_DESCRIPTION,
     HELP_COMMENT_EPILOG,
+    HELP_COMMENT_NOTE,
     HELP_COMMENT_PROG,
     HELP_COMMENT_PROG_FEDORA_CI,
     HELP_COMMENT_PROG_FEDORA_CI_STG,
@@ -340,28 +342,34 @@ class GitCommentHelpHandler(
                 prog=HELP_COMMENT_PROG_FEDORA_CI_STG,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
+            epilog = HELP_COMMENT_EPILOG.format(
+                note=self.get_epilog_note_fedora_ci(), docs_url=DOCS_URL_FEDORA_CI
+            )
 
         elif self.comment.startswith("/packit-ci"):  # type: ignore
             parser = get_comment_parser_fedora_ci(
                 prog=HELP_COMMENT_PROG_FEDORA_CI,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
+            epilog = HELP_COMMENT_EPILOG.format(
+                note=self.get_epilog_note_fedora_ci(), docs_url=DOCS_URL_FEDORA_CI
+            )
 
         elif self.comment.startswith("/packit-stg"):  # type: ignore
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG_STG,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
+
+            epilog = HELP_COMMENT_EPILOG.format(note=self.get_epilog_note(), docs_url=DOCS_URL)
 
         else:
             parser = get_comment_parser(
                 prog=HELP_COMMENT_PROG,
                 description=HELP_COMMENT_DESCRIPTION,
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
+
+            epilog = HELP_COMMENT_EPILOG.format(note=self.get_epilog_note(), docs_url=DOCS_URL)
 
         body = break_lines_in_text(
             parser.format_help(), sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH
@@ -371,6 +379,16 @@ class GitCommentHelpHandler(
         self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})
+
+    def get_epilog_note(self) -> str:
+        return (
+            HELP_COMMENT_NOTE.format(note_content=HELP_NOTE)
+            if isinstance(self.project, PagureProject)
+            else ""
+        )
+
+    def get_epilog_note_fedora_ci(self) -> str:
+        return HELP_COMMENT_NOTE.format(note_content=HELP_NOTE_FEDORA_CI)
 
 
 @reacts_to(event=github.pr.Comment)

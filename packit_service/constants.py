@@ -25,14 +25,16 @@ HELP_COMMENT_PROG_STG = "/packit-stg"
 HELP_COMMENT_PROG_FEDORA_CI = "/packit-ci"
 HELP_COMMENT_PROG_FEDORA_CI_STG = "/packit-ci-stg"
 HELP_COMMENT_DESCRIPTION = ""
-HELP_COMMENT_EPILOG = (
-    "**Please note**: \n - {note}\n\n"
+HELP_COMMENT_NOTE = "**Please note**: \n - {note_content}\n\n"
+HELP_COMMENT_CONTACT = (
     "**Contact**:\n"
     " - *Email*: hello@packit.dev\n"
     " - *Matrix*: #packit:fedora.im\n"
     " - *Mastodon*: @packit@fosstodon.org\n\n"
-    "**Documentation**: \n - {docs}"
 )
+HELP_COMMENT_DOCS = "**Documentation**: \n - {docs_url}"
+HELP_COMMENT_EPILOG = "{note}" + HELP_COMMENT_CONTACT + HELP_COMMENT_DOCS
+
 HELP_NOTE = (
     "`/packit` commands interact with the opt-in packit jobs "
     "(e.g. `propose-downstream`, `pull-from-upstream`). "
