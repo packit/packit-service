@@ -337,20 +337,28 @@ class GitCommentHelpHandler(
         pass
 
     def run(self) -> TaskResults:
+        if not self.comment:
+            msg = (
+                "GitCommentHelpHandler was run, but the triggering comment is missing."
+                "Won't post a comment in response."
+            )
+            logger.debug(msg)
+            return TaskResults(success=False, details={"msg": msg})
+
         # Determine parameters based on comment prefix
         comment = self.comment
 
-        if comment.startswith("/packit-ci-stg"):  # type: ignore
+        if comment.startswith("/packit-ci-stg"):
             prog = HELP_COMMENT_PROG_FEDORA_CI_STG
             parser_func = get_comment_parser_fedora_ci
             epilog_note = self.get_epilog_note_fedora_ci()
             docs_url = DOCS_URL_FEDORA_CI
-        elif comment.startswith("/packit-ci"):  # type: ignore
+        elif comment.startswith("/packit-ci"):
             prog = HELP_COMMENT_PROG_FEDORA_CI
             parser_func = get_comment_parser_fedora_ci
             epilog_note = self.get_epilog_note_fedora_ci()
             docs_url = DOCS_URL_FEDORA_CI
-        elif comment.startswith("/packit-stg"):  # type: ignore
+        elif comment.startswith("/packit-stg"):
             prog = HELP_COMMENT_PROG_STG
             parser_func = get_comment_parser  # type: ignore[assignment]
             epilog_note = self.get_epilog_note()
