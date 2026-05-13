@@ -77,6 +77,7 @@ def test_logdetective_koji_build_scratch_downstream(
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr_downstream
     )
+    flexmock(KojiBuildTargetModel).should_receive("has_newer_run").and_return(False)
 
     koji_build_pr_downstream.should_receive("set_build_start_time").once()
     koji_build_pr_downstream.should_receive("set_build_finished_time").once()
@@ -186,6 +187,7 @@ def test_logdetective_skipped_when_project_disabled(
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr_downstream
     )
+    flexmock(KojiBuildTargetModel).should_receive("has_newer_run").and_return(False)
 
     koji_build_pr_downstream.should_receive("set_build_start_time").once()
     koji_build_pr_downstream.should_receive("set_build_finished_time").once()

@@ -2383,7 +2383,9 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         processing results for an older (e.g. canceled) build.
         """
         project_event = run.get_project_event_model()
-        if not project_event or not run.submitted_time:
+        runs = run.group_of_targets.runs if run.group_of_targets else []
+        pipeline_datetime = max((r.datetime for r in runs if r.datetime), default=None)
+        if not project_event or not pipeline_datetime:
             return False
         with sa_session_transaction() as session:
             return session.query(
@@ -2396,7 +2398,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
                     ProjectEventModel.event_id == project_event.event_id,
                     CoprBuildTargetModel.identifier == run.identifier,
                     CoprBuildTargetModel.target == run.target,
-                    CoprBuildTargetModel.submitted_time > run.submitted_time,
+                    PipelineModel.datetime > pipeline_datetime,
                     CoprBuildTargetModel.id != run.id,
                 )
                 .exists()
@@ -3051,7 +3053,9 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
         processing results for an older (e.g. canceled) build.
         """
         project_event = run.get_project_event_model()
-        if not project_event or not run.submitted_time:
+        runs = run.group_of_targets.runs if run.group_of_targets else []
+        pipeline_datetime = max((r.datetime for r in runs if r.datetime), default=None)
+        if not project_event or not pipeline_datetime:
             return False
         with sa_session_transaction() as session:
             return session.query(
@@ -3063,7 +3067,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
                     ProjectEventModel.type == project_event.type,
                     ProjectEventModel.event_id == project_event.event_id,
                     KojiBuildTargetModel.target == run.target,
-                    KojiBuildTargetModel.submitted_time > run.submitted_time,
+                    PipelineModel.datetime > pipeline_datetime,
                     KojiBuildTargetModel.id != run.id,
                 )
                 .exists()
@@ -3919,7 +3923,9 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         processing results for an older (e.g. canceled) run.
         """
         project_event = run.get_project_event_model()
-        if not project_event or not run.submitted_time:
+        runs = run.group_of_targets.runs if run.group_of_targets else []
+        pipeline_datetime = max((r.datetime for r in runs if r.datetime), default=None)
+        if not project_event or not pipeline_datetime:
             return False
         with sa_session_transaction() as session:
             return session.query(
@@ -3932,7 +3938,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
                     ProjectEventModel.event_id == project_event.event_id,
                     TFTTestRunTargetModel.identifier == run.identifier,
                     TFTTestRunTargetModel.target == run.target,
-                    TFTTestRunTargetModel.submitted_time > run.submitted_time,
+                    PipelineModel.datetime > pipeline_datetime,
                     TFTTestRunTargetModel.id != run.id,
                 )
                 .exists()

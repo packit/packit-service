@@ -95,6 +95,7 @@ def test_testing_farm_response(
     tests_summary,
     status_status,
     status_message,
+    monkeypatch,
 ):
     package_config = flexmock(
         jobs=[
@@ -180,7 +181,7 @@ def test_testing_farm_response(
         update_feedback_time=object,
     ).once()
 
-    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    monkeypatch.setattr(urls, "DASHBOARD_URL", "https://dashboard.localhost")
     tft_test_run_model = (
         flexmock(
             id=123,
@@ -225,7 +226,7 @@ def test_testing_farm_response(
     test_farm_handler.run()
 
 
-def test_testing_farm_response_skips_reporting_for_superseded_run():
+def test_testing_farm_response_skips_reporting_for_superseded_run(monkeypatch):
     package_config = flexmock(
         jobs=[
             JobConfig(
@@ -302,7 +303,7 @@ def test_testing_farm_response_skips_reporting_for_superseded_run():
     )
     flexmock(StatusReporter).should_receive("report").never()
 
-    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    monkeypatch.setattr(urls, "DASHBOARD_URL", "https://dashboard.localhost")
     tft_test_run_model = (
         flexmock(
             id=123,
@@ -385,6 +386,7 @@ def test_downstream_testing_farm_response(
     tests_summary,
     status_status,
     status_message,
+    monkeypatch,
 ):
     config = flexmock(
         command_handler_work_dir=flexmock(),
@@ -430,7 +432,7 @@ def test_downstream_testing_farm_response(
         target_branch="rawhide",
     ).once()
 
-    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    monkeypatch.setattr(urls, "DASHBOARD_URL", "https://dashboard.localhost")
     tft_test_run_model = (
         flexmock(
             id=123,
@@ -1637,7 +1639,8 @@ def test_get_request_details():
         ),
     ],
 )
-def test_trigger_build(copr_build, wait_for_build):
+def test_trigger_build(copr_build, wait_for_build, monkeypatch):
+    monkeypatch.setattr(urls, "DASHBOARD_URL", "https://dashboard.localhost")
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
     package_config = PackageConfig(packages={"package": CommonPackageConfig()})
@@ -1719,7 +1722,8 @@ def test_trigger_build(copr_build, wait_for_build):
     tf_handler.run()
 
 
-def test_trigger_build_manual_tests_dont_report():
+def test_trigger_build_manual_tests_dont_report(monkeypatch):
+    monkeypatch.setattr(urls, "DASHBOARD_URL", "https://dashboard.localhost")
     copr_build = flexmock(
         id=1,
         commit_sha="1111111111111111111111111111111111111111",

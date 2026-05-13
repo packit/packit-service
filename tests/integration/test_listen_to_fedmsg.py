@@ -2666,6 +2666,7 @@ def test_koji_build_end_downstream(
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr_downstream,
     )
+    flexmock(KojiBuildTargetModel).should_receive("has_newer_run").and_return(False)
     url = koji_build_pr_downstream.web_url
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
