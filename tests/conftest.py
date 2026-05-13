@@ -396,7 +396,7 @@ def koji_build_pr_downstream():
 
     run_model = flexmock(
         id=3,
-        datetime=datetime.now(),
+        datetime=datetime.utcnow(),
         job_project_event=project_event_model,
         srpm_build=srpm_build,
         koji_build=koji_build_model,
