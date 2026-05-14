@@ -10,6 +10,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import (
     Deployment,
@@ -25,6 +26,7 @@ from packit_service.constants import (
     DOCS_URL_FEDORA_CI,
     HELP_COMMENT_DESCRIPTION,
     HELP_COMMENT_EPILOG,
+    HELP_COMMENT_NOTE,
     HELP_COMMENT_PROG,
     HELP_COMMENT_PROG_FEDORA_CI,
     HELP_COMMENT_PROG_FEDORA_CI_STG,
@@ -335,42 +337,61 @@ class GitCommentHelpHandler(
         pass
 
     def run(self) -> TaskResults:
-        if self.comment.startswith("/packit-ci-stg"):  # type: ignore
-            parser = get_comment_parser_fedora_ci(
-                prog=HELP_COMMENT_PROG_FEDORA_CI_STG,
-                description=HELP_COMMENT_DESCRIPTION,
+        if not self.comment:
+            msg = (
+                "GitCommentHelpHandler was run, but the triggering comment is missing."
+                "Won't post a comment in response."
             )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
+            logger.debug(msg)
+            return TaskResults(success=False, details={"msg": msg})
 
-        elif self.comment.startswith("/packit-ci"):  # type: ignore
-            parser = get_comment_parser_fedora_ci(
-                prog=HELP_COMMENT_PROG_FEDORA_CI,
-                description=HELP_COMMENT_DESCRIPTION,
-            )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE_FEDORA_CI, docs=DOCS_URL_FEDORA_CI)
+        # Determine parameters based on comment prefix
+        comment = self.comment
 
-        elif self.comment.startswith("/packit-stg"):  # type: ignore
-            parser = get_comment_parser(
-                prog=HELP_COMMENT_PROG_STG,
-                description=HELP_COMMENT_DESCRIPTION,
-            )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
-
+        if comment.startswith("/packit-ci-stg"):
+            prog = HELP_COMMENT_PROG_FEDORA_CI_STG
+            parser_func = get_comment_parser_fedora_ci
+            epilog_note = self.get_epilog_note_fedora_ci()
+            docs_url = DOCS_URL_FEDORA_CI
+        elif comment.startswith("/packit-ci"):
+            prog = HELP_COMMENT_PROG_FEDORA_CI
+            parser_func = get_comment_parser_fedora_ci
+            epilog_note = self.get_epilog_note_fedora_ci()
+            docs_url = DOCS_URL_FEDORA_CI
+        elif comment.startswith("/packit-stg"):
+            prog = HELP_COMMENT_PROG_STG
+            parser_func = get_comment_parser  # type: ignore[assignment]
+            epilog_note = self.get_epilog_note()
+            docs_url = DOCS_URL
         else:
-            parser = get_comment_parser(
-                prog=HELP_COMMENT_PROG,
-                description=HELP_COMMENT_DESCRIPTION,
-            )
-            epilog = HELP_COMMENT_EPILOG.format(note=HELP_NOTE, docs=DOCS_URL)
+            prog = HELP_COMMENT_PROG
+            parser_func = get_comment_parser  # type: ignore[assignment]
+            epilog_note = self.get_epilog_note()
+            docs_url = DOCS_URL
 
+        # Use determined parameters to create parser and epilog
+        parser = parser_func(prog=prog, description=HELP_COMMENT_DESCRIPTION)
+        epilog = HELP_COMMENT_EPILOG.format(note=epilog_note, docs_url=docs_url)
+
+        # Format and comment help message
         body = break_lines_in_text(
             parser.format_help(), sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH
         )
-        # put message in code block to retain formatting
+        # Put body in code block to retain formatting
         help_message = f"```\n{body}\n```\n{epilog}"
         self.add_comment(body=help_message)
 
         return TaskResults(success=True, details={"msg": help_message})
+
+    def get_epilog_note(self) -> str:
+        return (
+            HELP_COMMENT_NOTE.format(note_content=HELP_NOTE)
+            if isinstance(self.project, PagureProject)
+            else ""
+        )
+
+    def get_epilog_note_fedora_ci(self) -> str:
+        return HELP_COMMENT_NOTE.format(note_content=HELP_NOTE_FEDORA_CI)
 
 
 @reacts_to(event=github.pr.Comment)
