@@ -1575,7 +1575,7 @@ class DownstreamTestingFarmJobHelper:
         git_ref = "master"
         # rpminspect defines its own container in the tmt plan file,
         # hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, multihost=True)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1593,7 +1593,7 @@ class DownstreamTestingFarmJobHelper:
         git_ref = "main"
         # rpmlint defines its own container in the tmt plan file,
         # hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, multihost=True)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1614,7 +1614,7 @@ class DownstreamTestingFarmJobHelper:
         git_repo = "https://forge.fedoraproject.org/ci/shared-tests"
         git_ref = "main" if self.service_config.deployment == Deployment.prod else "stg"
         # All tests in ci/shared-tests define their own provision hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, multihost=True)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
