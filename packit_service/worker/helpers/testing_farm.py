@@ -1652,7 +1652,12 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    def _get_tf_base_payload(self, distro: str, compose: Optional[str]) -> dict:
+    def _get_tf_base_payload(
+        self,
+        distro: str,
+        compose: Optional[str],
+        multihost: bool = False,
+    ) -> dict:
         """
         Common payload for all fedora-ci testing-farm jobs.
 
@@ -1663,6 +1668,17 @@ class DownstreamTestingFarmJobHelper:
         # this has to be specified at the api request level.
         # TODO: Revisit when 0.2 testing-farm API is decided
         os_params = {"os": {"compose": compose}} if compose else {}
+        multihost_params = (
+            {
+                "settings": {
+                    "pipeline": {
+                        "type": "tmt-multihost",
+                    }
+                }
+            }
+            if multihost
+            else {}
+        )
         dist_git_branch = self.pr.target_branch
         variables = {}
         artifacts = []
@@ -1698,6 +1714,7 @@ class DownstreamTestingFarmJobHelper:
                     "token": self.service_config.testing_farm_secret,
                 },
             },
+            **multihost_params,
         }
 
     def _handle_tf_submit_successful(
