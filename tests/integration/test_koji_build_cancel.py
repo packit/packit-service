@@ -517,3 +517,73 @@ def test_downstream_koji_build_cancel_uses_event_based_filtering(monkeypatch):
         job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
+
+
+def test_downstream_koji_scratch_build_cancel_uses_event_based_filtering(
+    mock_distgit_pr_functionality,
+    monkeypatch,
+):
+    """Test that cancel_cutoff_time is set for Fedora CI scratch builds.
+
+    The Fedora CI code path (process_fedora_ci_jobs) used to skip setting
+    cancel_cutoff_time because it didn't call create_tasks(). This test
+    verifies the fix: process_fedora_ci_jobs now queries
+    PipelineModel.get_latest_datetime_for_event and serializes the cutoff
+    into the event dict, so the handler can cancel stale builds.
+    """
+    monkeypatch.setenv("CANCEL_RUNNING_JOBS", "1")
+
+    cutoff_time = datetime(2025, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+
+    # Override the autouse fixture mock — return a specific cutoff time
+    flexmock(PipelineModel).should_receive("get_latest_datetime_for_event").with_args(
+        project_event_type=ProjectEventModelType.pull_request,
+        event_id=9,
+    ).and_return(cutoff_time).once()
+
+    # Mocks for the build execution flow inside _run()
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket")
+    koji_build_target = flexmock(
+        id=123,
+        target="main",
+        status="queued",
+        set_status=lambda x: None,
+        set_task_id=lambda x: None,
+        set_web_url=lambda x: None,
+        set_build_logs_urls=lambda x: None,
+        set_data=lambda x: None,
+        set_build_submission_stdout=lambda x: None,
+    )
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(koji_build_target)
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=[koji_build_target]),
+    )
+    flexmock(commands).should_receive("run_command_remote").and_return(
+        flexmock(stdout="some output"),
+    )
+    flexmock(distgit_handlers).should_receive("get_koji_task_id_and_url_from_stdout").and_return(
+        (123, "koji-web-url"),
+    )
+
+    # The key assertion: get_running must be called with event-based parameters
+    flexmock(KojiBuildGroupModel).should_receive("get_running").with_args(
+        project_event_type=ProjectEventModelType.pull_request,
+        event_id=9,
+        created_before=cutoff_time,
+        targets=None,
+    ).and_return([]).once()
+
+    processing_results = SteveJobs().process_message(mock_distgit_pr_functionality)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results[:1],
+    )
+
+    # Verify that cancel_cutoff_time was serialized into the event dict
+    assert event_dict.get("cancel_cutoff_time") == cutoff_time.timestamp()
+
+    results = run_downstream_koji_scratch_build_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
