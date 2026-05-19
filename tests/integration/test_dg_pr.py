@@ -122,7 +122,10 @@ def test_downstream_koji_scratch_build(distgit_pr_event, target_branch, uid, che
         project=flexmock(project_url="https://src.fedoraproject.org/rpms/optee_os"),
     )
     db_project_event = (
-        flexmock().should_receive("get_project_event_object").and_return(db_project_object).mock()
+        flexmock(type=ProjectEventModelType.pull_request, event_id=9)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
     )
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,

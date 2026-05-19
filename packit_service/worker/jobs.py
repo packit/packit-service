@@ -645,6 +645,12 @@ class SteveJobs:
         handlers_triggered_by_job = None
         check_target = None
 
+        if self.event.db_project_event:
+            self.event.cancel_cutoff_time = PipelineModel.get_latest_datetime_for_event(
+                project_event_type=self.event.db_project_event.type,
+                event_id=self.event.db_project_event.event_id,
+            )
+
         # [XXX] if there are ever monorepos in Fedora CI…
         # monorepo_package = None
         if isinstance(self.event, abstract.comment.CommentEvent):
