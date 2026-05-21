@@ -18,6 +18,7 @@ from packit_service.models import (
     LogDetectiveRunModel,
 )
 from packit_service.worker.helpers.logdetective import (
+    LD_COMMENTARY,
     LogDetectiveKojiTriggerHelper,
     logger,
 )
@@ -86,6 +87,9 @@ def test_logdetective_koji_set_payload(mock_koji_task_failed_event, mock_event_d
             "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
             "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
         },
+        "build_metadata": {
+            "commentary": LD_COMMENTARY,
+        },
         "target_build": "12345",
         "build_system": "koji",
         "commit_sha": "abc123",
@@ -129,6 +133,9 @@ def test_logdetective_koji_success(
                 "root.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/root.log",
                 "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
                 "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
+            },
+            "build_metadata": {
+                "commentary": LD_COMMENTARY,
             },
             "target_build": "12345",
             "build_system": LogDetectiveBuildSystem.koji.value,
