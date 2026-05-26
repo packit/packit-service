@@ -3,8 +3,10 @@
 
 import pytest
 from flexmock import flexmock
+from packit.actions import ActionName
 from packit.config import CommonPackageConfig, JobConfig, JobType, PackageConfig
 from packit.config.job_config import JobConfigTriggerType
+from packit.sync import SyncFilesItem
 
 from packit_service.config import ServiceConfig
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -177,3 +179,55 @@ def test_branches(
             propose_downstream_helper.get_fast_forward_merge_branches_for(source_branch)
             == ff_branches[source_branch]
         )
+
+
+def test_propose_downstream_tracks_extra_source_in_dist_git():
+    """
+    https://github.com/packit/packit/issues/2365
+
+    The documented workaround for tracking a local ``Source`` file in
+    dist-git instead of the lookaside cache is to combine ``files_to_sync``
+    with a ``post-modifications`` action that stages the file in dist-git's
+    Git index. Make sure the configuration survives through to the
+    ``propose_downstream`` helper used to drive the job.
+    """
+    add_to_index = "bash -c 'cd \"$PACKIT_DOWNSTREAM_REPO\" && git add pkg.service'"
+    common = CommonPackageConfig(
+        specfile_path="pkg.spec",
+        downstream_package_name="pkg",
+        files_to_sync=[
+            SyncFilesItem(src=["pkg.spec"], dest="pkg.spec"),
+            SyncFilesItem(src=["pkg.service"], dest="pkg.service"),
+        ],
+        actions={ActionName.post_modifications: [add_to_index]},
+    )
+    job = JobConfig(
+        type=JobType.propose_downstream,
+        trigger=JobConfigTriggerType.release,
+        packages={"pkg": common},
+    )
+
+    flexmock(ServiceConfig, get_project=lambda url: flexmock(default_branch="main"))
+    helper = ProposeDownstreamJobHelper(
+        service_config=ServiceConfig(),
+        package_config=PackageConfig(jobs=[job], packages={"pkg": common}),
+        job_config=job,
+        project=flexmock(),
+        metadata=flexmock(pr_id=None),
+        db_project_event=flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(flexmock(job_config_trigger_type=JobConfigTriggerType.release))
+        .mock(),
+    )
+
+    # The ``post-modifications`` action with the ``git add`` command is
+    # what makes Packit treat the file as VCS-tracked and skip the
+    # lookaside cache upload.
+    actions = helper.job_config.actions
+    assert ActionName.post_modifications in actions
+    assert any("git add pkg.service" in cmd for cmd in actions[ActionName.post_modifications])
+
+    # ``pkg.service`` is listed in ``files_to_sync`` so Packit copies it
+    # into dist-git in the first place.
+    synced = {item.dest for item in helper.package_config.files_to_sync}
+    assert "pkg.service" in synced
