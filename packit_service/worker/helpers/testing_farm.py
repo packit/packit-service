@@ -691,7 +691,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return True
 
         return IsFMFConfigPresent(
-            package_config=None, job_config=None, event=self.metadata.event_dict, task_name=None
+            package_config=None,
+            job_config=self.job_config,
+            event=self.metadata.event_dict,
+            task_name=None,
         ).pre_check()
 
     def report_missing_build_chroot(self, chroot: str):

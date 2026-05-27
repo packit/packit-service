@@ -1528,3 +1528,72 @@ def test_is_project_enabled_for_eln(disabled_projects, project_url, should_pass)
     )
 
     assert checker.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "fmf_path, fmf_version_path, should_pass",
+    (
+        pytest.param(
+            None,
+            ".fmf/version",
+            True,
+            id="no fmf_path, .fmf/version at root",
+        ),
+        pytest.param(
+            None,
+            None,
+            False,
+            id="no fmf_path, no .fmf/version",
+        ),
+        pytest.param(
+            "test/fmf",
+            "test/fmf/.fmf/version",
+            True,
+            id="fmf_path set, .fmf/version at fmf_path",
+        ),
+        pytest.param(
+            "test/fmf",
+            ".fmf/version",
+            False,
+            id="fmf_path set, .fmf/version only at root",
+        ),
+        pytest.param(
+            "/test/fmf/",
+            "test/fmf/.fmf/version",
+            True,
+            id="fmf_path has leading/trailing slashes",
+        ),
+        pytest.param(
+            "/",
+            ".fmf/version",
+            True,
+            id="fmf_path is '/'",
+        ),
+    ),
+)
+def test_is_fmf_config_present(fmf_path, fmf_version_path, should_pass):
+    from packit_service.worker.checker.testing_farm import IsFMFConfigPresent
+
+    commit_sha = "abc123"
+    job_config = flexmock(fmf_path=fmf_path)
+    event = {
+        "event_type": github.pr.Action.event_type(),
+        "commit_sha": commit_sha,
+    }
+
+    git_project = flexmock()
+    if should_pass:
+        git_project.should_receive("get_file_content").with_args(
+            path=fmf_version_path, ref=commit_sha
+        ).and_return("1").once()
+    else:
+        git_project.should_receive("get_file_content").and_raise(FileNotFoundError)
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    checker = IsFMFConfigPresent(
+        package_config=None,
+        job_config=job_config,
+        event=event,
+    )
+
+    assert checker.pre_check() == should_pass
