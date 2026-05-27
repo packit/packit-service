@@ -3,6 +3,7 @@
 
 import logging
 import os
+from pathlib import PurePosixPath
 from typing import Optional
 
 from packit_service.constants import (
@@ -342,7 +343,14 @@ class IsFMFConfigPresent(_TestingFarmTestTypeChecker):
             commit_sha = self.data.event_dict.get("commit_sha")
 
             self.project.get_file_content(
-                path=".fmf/version",
+                path=str(
+                    PurePosixPath(
+                        self.job_config.fmf_path.removeprefix("/")
+                        if self.job_config and self.job_config.fmf_path
+                        else "",
+                        ".fmf/version",
+                    )
+                ),
                 ref=commit_sha,
             )
         except FileNotFoundError:
