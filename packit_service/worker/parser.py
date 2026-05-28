@@ -1922,7 +1922,7 @@ class Parser:
             analysis_id=analysis_id
         )
         if not log_detective_run:
-            logger.error(
+            logger.info(
                 f"Received results Log Detective analysis: '{analysis_id}' "
                 "but no analysis with this id was requested."
             )
