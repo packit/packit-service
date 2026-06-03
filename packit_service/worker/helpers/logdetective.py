@@ -23,6 +23,14 @@ from packit_service.worker.monitoring import Pushgateway
 
 logger = logging.getLogger(__name__)
 
+LD_COMMENTARY = (
+    "Build was executed in downstream Koji using containerized environment provided by Mock."
+    "The build.log contains output of the package build, it is the most likely to contain messages,"
+    " indicating the root cause."
+    "The mock_output.log is a general log from Mock."
+    "The root.log is a log from creation of the chroot environment."
+)
+
 
 class LogDetectiveKojiTriggerHelper:
     """
@@ -113,6 +121,7 @@ class LogDetectiveKojiTriggerHelper:
         endpoint_url = f"{self.url}/analyze"
         request_json = {
             "artifacts": artifacts,
+            "build_metadata": {"commentary": LD_COMMENTARY},
             "target_build": str(build_arch_task_id),
             "build_system": LogDetectiveBuildSystem.koji.value,
             "commit_sha": self.data.commit_sha,
