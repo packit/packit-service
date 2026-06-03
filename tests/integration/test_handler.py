@@ -224,7 +224,7 @@ def test_precheck_push(github_push_event):
                 config={"username": "nobody"},
                 project_proxy=flexmock(
                     get=lambda owner, project: {
-                        "packit_forge_projects_allowed": "github.com/packit-service/hello-world",
+                        "packit_forge_projects_allowed": ["github.com/packit-service/hello-world"],
                     },
                 ),
             ),

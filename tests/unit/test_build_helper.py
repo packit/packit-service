@@ -2679,7 +2679,7 @@ def test_copr_project_and_namespace(
                     ),
                 },
             ),
-            "",
+            [],
             False,
             id="empty",
         ),
@@ -2694,7 +2694,7 @@ def test_copr_project_and_namespace(
                     ),
                 },
             ),
-            "something/different",
+            ["something/different"],
             False,
             id="not-present",
         ),
@@ -2709,7 +2709,7 @@ def test_copr_project_and_namespace(
                     ),
                 },
             ),
-            "git.instance.io/the/example/namespace/the-example-repo",
+            ["git.instance.io/the/example/namespace/the-example-repo"],
             True,
             id="present",
         ),
@@ -2724,9 +2724,39 @@ def test_copr_project_and_namespace(
                     ),
                 },
             ),
-            "something/different\ngit.instance.io/the/example/namespace/the-example-repo",
+            ["git.instance.io/the/example/namespace/*"],
+            True,
+            id="wildcard",
+        ),
+        pytest.param(
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    ),
+                },
+            ),
+            ["something/different", "git.instance.io/the/example/namespace/the-example-repo"],
             True,
             id="present-more-values",
+        ),
+        pytest.param(
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    ),
+                },
+            ),
+            ["something/different", "git.instance.io/the/example/namespace/*"],
+            True,
+            id="wildcard-more-values",
         ),
     ],
 )
