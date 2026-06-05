@@ -1578,7 +1578,7 @@ class DownstreamTestingFarmJobHelper:
         git_ref = "master"
         # rpminspect defines its own container in the tmt plan file,
         # hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, multihost=True)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1596,7 +1596,7 @@ class DownstreamTestingFarmJobHelper:
         git_ref = "main"
         # rpmlint defines its own container in the tmt plan file,
         # hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, multihost=True)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1617,7 +1617,7 @@ class DownstreamTestingFarmJobHelper:
         git_repo = "https://forge.fedoraproject.org/ci/shared-tests"
         git_ref = "main" if self.service_config.deployment == Deployment.prod else "stg"
         # All tests in ci/shared-tests define their own provision hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, multihost=True)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1655,7 +1655,12 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    def _get_tf_base_payload(self, distro: str, compose: Optional[str]) -> dict:
+    def _get_tf_base_payload(
+        self,
+        distro: str,
+        compose: Optional[str],
+        multihost: bool = False,
+    ) -> dict:
         """
         Common payload for all fedora-ci testing-farm jobs.
 
@@ -1666,6 +1671,17 @@ class DownstreamTestingFarmJobHelper:
         # this has to be specified at the api request level.
         # TODO: Revisit when 0.2 testing-farm API is decided
         os_params = {"os": {"compose": compose}} if compose else {}
+        multihost_params = (
+            {
+                "settings": {
+                    "pipeline": {
+                        "type": "tmt-multihost",
+                    }
+                }
+            }
+            if multihost
+            else {}
+        )
         dist_git_branch = self.pr.target_branch
         variables = {}
         artifacts = []
@@ -1701,6 +1717,7 @@ class DownstreamTestingFarmJobHelper:
                     "token": self.service_config.testing_farm_secret,
                 },
             },
+            **multihost_params,
         }
 
     def _handle_tf_submit_successful(
