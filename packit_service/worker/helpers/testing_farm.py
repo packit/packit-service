@@ -1526,7 +1526,7 @@ class DownstreamTestingFarmJobHelper:
     def _payload_installability(self, distro: str, compose: str) -> dict:
         git_repo = "https://github.com/fedora-ci/installability-pipeline.git"
         git_ref = "master"
-        payload = self._get_tf_base_payload(distro, compose)
+        payload = self._get_tf_base_payload(distro, compose, with_artifacts=False)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1544,7 +1544,7 @@ class DownstreamTestingFarmJobHelper:
         git_ref = "master"
         # rpminspect defines its own container in the tmt plan file,
         # hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, with_artifacts=False)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1562,7 +1562,7 @@ class DownstreamTestingFarmJobHelper:
         git_ref = "main"
         # rpmlint defines its own container in the tmt plan file,
         # hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, with_artifacts=False)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1583,7 +1583,7 @@ class DownstreamTestingFarmJobHelper:
         git_repo = "https://forge.fedoraproject.org/ci/shared-tests"
         git_ref = "main" if self.service_config.deployment == Deployment.prod else "stg"
         # All tests in ci/shared-tests define their own provision hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None)
+        payload = self._get_tf_base_payload(distro, None, with_artifacts=False)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1621,7 +1621,9 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    def _get_tf_base_payload(self, distro: str, compose: Optional[str]) -> dict:
+    def _get_tf_base_payload(
+        self, distro: str, compose: Optional[str], with_artifacts: bool = True
+    ) -> dict:
         """
         Common payload for all fedora-ci testing-farm jobs.
 
@@ -1655,7 +1657,7 @@ class DownstreamTestingFarmJobHelper:
                     "arch": "x86_64",
                     **os_params,
                     "variables": variables,
-                    "artifacts": artifacts,
+                    "artifacts": (with_artifacts and artifacts) or [],
                     "tmt": {
                         "context": context,
                     },

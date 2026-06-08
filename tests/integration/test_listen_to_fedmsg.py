@@ -2676,38 +2676,46 @@ def test_koji_build_end_downstream(
     koji_build_pr_downstream.should_receive("set_status").with_args("success").once()
     koji_build_pr_downstream.should_receive("set_build_logs_urls")
     koji_build_pr_downstream.should_receive("set_web_url")
-    common_payload_no_compose = {
-        "environments": [
-            {
-                "arch": "x86_64",
-                "variables": {
-                    "KOJI_TASK_ID": "1",
-                },
-                "artifacts": [
-                    {
-                        "id": "1",
-                        "type": "fedora-koji-build",
+
+    def _common_payload(*, with_compose: bool, with_artifact: bool):
+        _payload = {
+            "environments": [
+                {
+                    "arch": "x86_64",
+                    "variables": {
+                        "KOJI_TASK_ID": "1",
                     },
-                ],
-                "tmt": {
-                    "context": {
-                        "distro": distro,
-                        "arch": "x86_64",
-                        "trigger": "commit",
-                        "initiator": "fedora-ci",
-                        "dist-git-branch": "rawhide",
-                        **extra_context,
+                    "artifacts": [],
+                    "tmt": {
+                        "context": {
+                            "distro": distro,
+                            "arch": "x86_64",
+                            "trigger": "commit",
+                            "initiator": "fedora-ci",
+                            "dist-git-branch": "rawhide",
+                            **extra_context,
+                        },
                     },
                 },
+            ],
+            "notification": {
+                "webhook": {
+                    "url": "https://stg.packit.dev/api/testing-farm/results",
+                    "token": "secret token",
+                },
             },
-        ],
-        "notification": {
-            "webhook": {
-                "url": "https://stg.packit.dev/api/testing-farm/results",
-                "token": "secret token",
-            },
-        },
-    }
+        }
+        assert isinstance(_payload["environments"], list)  # narrow type
+        if with_artifact:
+            _payload["environments"][0]["artifacts"] = [
+                {
+                    "id": "1",
+                    "type": "fedora-koji-build",
+                }
+            ]
+        if with_compose:
+            _payload["environments"][0]["os"] = {"compose": compose}
+        return _payload
 
     installability_repo = "https://github.com/fedora-ci/installability-pipeline.git"
     payload_installability = {
@@ -2717,10 +2725,8 @@ def test_koji_build_end_downstream(
                 "ref": "master",
             },
         },
-        **common_payload_no_compose,
+        **_common_payload(with_compose=True, with_artifact=False),
     }
-    payload_installability = copy.deepcopy(payload_installability)
-    payload_installability["environments"][0]["os"] = {"compose": compose}
 
     rpminspect_repo = "https://github.com/fedora-ci/rpminspect-pipeline.git"
     payload_rpminspect = {
@@ -2730,7 +2736,7 @@ def test_koji_build_end_downstream(
                 "ref": "master",
             },
         },
-        **common_payload_no_compose,
+        **_common_payload(with_compose=False, with_artifact=False),
     }
 
     rpmlint_repo = "https://github.com/packit/tmt-plans.git"
@@ -2743,7 +2749,7 @@ def test_koji_build_end_downstream(
                 "name": "/plans/rpmlint",
             },
         },
-        **common_payload_no_compose,
+        **_common_payload(with_compose=False, with_artifact=False),
     }
 
     shared_tests_repo = "https://forge.fedoraproject.org/ci/shared-tests"
@@ -2756,7 +2762,7 @@ def test_koji_build_end_downstream(
                 "name": "/rmdepcheck",
             },
         },
-        **common_payload_no_compose,
+        **_common_payload(with_compose=False, with_artifact=False),
     }
 
     payload_license_validate = {
@@ -2767,7 +2773,7 @@ def test_koji_build_end_downstream(
                 "name": "/license-validate",
             },
         },
-        **common_payload_no_compose,
+        **_common_payload(with_compose=False, with_artifact=False),
     }
 
     payload_custom = {
@@ -2777,37 +2783,7 @@ def test_koji_build_end_downstream(
                 "ref": "0011223344",
             },
         },
-        "environments": [
-            {
-                "arch": "x86_64",
-                "os": {"compose": compose},
-                "variables": {
-                    "KOJI_TASK_ID": "1",
-                },
-                "artifacts": [
-                    {
-                        "id": "1",
-                        "type": "fedora-koji-build",
-                    },
-                ],
-                "tmt": {
-                    "context": {
-                        "distro": distro,
-                        "arch": "x86_64",
-                        "trigger": "commit",
-                        "initiator": "fedora-ci",
-                        "dist-git-branch": "rawhide",
-                        **extra_context,
-                    },
-                },
-            },
-        ],
-        "notification": {
-            "webhook": {
-                "url": "https://stg.packit.dev/api/testing-farm/results",
-                "token": "secret token",
-            },
-        },
+        **_common_payload(with_compose=True, with_artifact=True),
     }
 
     flexmock(aliases).should_receive("get_aliases").and_return({"fedora-all": [], "epel-all": []})
