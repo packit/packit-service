@@ -1450,6 +1450,12 @@ class Parser:
         start_time = nested_get(event, "info", "start_time")
         completion_time = nested_get(event, "info", "completion_time")
 
+        # TODO: Actually trigger on these events instead
+        # Check if it is an early update to an archbuild
+        if nested_get(event, "info", "method") == "buildArch":
+            logger.debug("Got an early update to an archbuild finishing")
+            return None
+
         rpm_build_task_ids = {}
         rpm_build_failed_arch_list: list[str] = []
         rpm_build_task_labels = {}
