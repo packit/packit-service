@@ -469,12 +469,16 @@ def run_propose_downstream_handler(
     package_config: dict,
     job_config: dict,
     sync_release_run_id: Optional[int] = None,
+    retry_tag: Optional[str] = None,
+    retry_version: Optional[str] = None,
 ):
     handler = ProposeDownstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         sync_release_run_id=sync_release_run_id,
+        retry_tag=retry_tag,
+        retry_version=retry_version,
         celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
@@ -494,12 +498,16 @@ def run_pull_from_upstream_handler(
     package_config: dict,
     job_config: dict,
     sync_release_run_id: Optional[int] = None,
+    retry_tag: Optional[str] = None,
+    retry_version: Optional[str] = None,
 ):
     handler = PullFromUpstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         sync_release_run_id=sync_release_run_id,
+        retry_tag=retry_tag,
+        retry_version=retry_version,
         celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)

@@ -238,6 +238,8 @@ class AbstractSyncReleaseHandler(
         event: dict,
         celery_task: Task,
         sync_release_run_id: Optional[int] = None,
+        retry_tag: Optional[str] = None,
+        retry_version: Optional[str] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -247,6 +249,8 @@ class AbstractSyncReleaseHandler(
         )
         self._project_url = self.data.project_url
         self._sync_release_run_id = sync_release_run_id
+        self._retry_tag = retry_tag
+        self._retry_version = retry_version
         self.helper: Optional[SyncReleaseHelper] = None
 
     @property
@@ -316,6 +320,8 @@ class AbstractSyncReleaseHandler(
                 # is not retried also automatically
                 kargs = self.celery_task.task.request.kwargs.copy()
                 kargs["sync_release_run_id"] = model.id
+                kargs["retry_tag"] = tag
+                kargs["retry_version"] = version
                 # https://docs.celeryq.dev/en/stable/userguide/tasks.html#retrying
                 # https://docs.celeryq.dev/en/stable/reference/celery.app.task.html#celery.app.task.Task.retry
                 self.celery_task.task.retry(
@@ -344,8 +350,30 @@ class AbstractSyncReleaseHandler(
 
         return downstream_pr, additional_prs
 
-    def _get_or_create_sync_release_run(self, project_event_model=None) -> SyncReleaseModel:
-        if self._sync_release_run_id is not None:
+    def _get_or_create_sync_release_run(
+        self,
+        project_event_model: Optional[ProjectEventModel] = None,
+        tag: Optional[str] = None,
+        version: Optional[str] = None,
+    ) -> SyncReleaseModel:
+        """Get the existing sync release run model if retrying, or create a new one.
+
+        On retry, the existing model is reused only when the tag and version
+        match the retry parameters, so that other versions in a multi-version
+        run get their own models.
+
+        Args:
+            project_event_model: The project event model associated with the run.
+            tag: The tag of the release being synced.
+            version: The version of the release being synced.
+
+        Returns:
+            The SyncReleaseModel representing the run.
+        """
+        if self._sync_release_run_id is not None and (
+            (self._retry_tag is None and self._retry_version is None)
+            or (tag == self._retry_tag and version == self._retry_version)
+        ):
             return SyncReleaseModel.get_by_id(self._sync_release_run_id)
 
         sync_release_model, _ = SyncReleaseModel.create_with_new_run(
@@ -605,7 +633,9 @@ class AbstractSyncReleaseHandler(
             if tag and self.data.event_type == anitya.NewHotness.event_type()
             else None
         )
-        sync_release_run_model = self._get_or_create_sync_release_run(release_event)
+        sync_release_run_model = self._get_or_create_sync_release_run(
+            release_event, tag=tag, version=version
+        )
         branches_to_run = [target.branch for target in sync_release_run_model.sync_release_targets]
         logger.debug(
             f"Branches to run {self.job_config.type} "
@@ -720,6 +750,8 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         event: dict,
         celery_task: Task,
         sync_release_run_id: Optional[int] = None,
+        retry_tag: Optional[str] = None,
+        retry_version: Optional[str] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -727,6 +759,8 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
             event=event,
             celery_task=celery_task,
             sync_release_run_id=sync_release_run_id,
+            retry_tag=retry_tag,
+            retry_version=retry_version,
         )
 
     @staticmethod
@@ -782,6 +816,8 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         event: dict,
         celery_task: Task,
         sync_release_run_id: Optional[int] = None,
+        retry_tag: Optional[str] = None,
+        retry_version: Optional[str] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -789,6 +825,8 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             event=event,
             celery_task=celery_task,
             sync_release_run_id=sync_release_run_id,
+            retry_tag=retry_tag,
+            retry_version=retry_version,
         )
         if self.data.event_type in (pagure.pr.Comment.event_type(),):
             # use upstream project URL when retriggering from dist-git PR
