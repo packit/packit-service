@@ -2377,7 +2377,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     @classmethod
     def has_newer_run(cls, run: "CoprBuildTargetModel") -> bool:
         """Check if a newer build exists for the same target+identifier
-        on the same project object (e.g. same PR).
+        on the same project event (e.g. same commit within a PR).
 
         Used to avoid overwriting a newer build's check status when
         processing results for an older (e.g. canceled) build.
@@ -2396,6 +2396,7 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
                 .filter(
                     ProjectEventModel.type == project_event.type,
                     ProjectEventModel.event_id == project_event.event_id,
+                    ProjectEventModel.commit_sha == project_event.commit_sha,
                     CoprBuildTargetModel.identifier == run.identifier,
                     CoprBuildTargetModel.target == run.target,
                     PipelineModel.datetime > pipeline_datetime,
@@ -3047,7 +3048,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     @classmethod
     def has_newer_run(cls, run: "KojiBuildTargetModel") -> bool:
         """Check if a newer build exists for the same target
-        on the same project object (e.g. same PR).
+        on the same project event (e.g. same commit within a PR).
 
         Used to avoid overwriting a newer build's check status when
         processing results for an older (e.g. canceled) build.
@@ -3066,6 +3067,7 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
                 .filter(
                     ProjectEventModel.type == project_event.type,
                     ProjectEventModel.event_id == project_event.event_id,
+                    ProjectEventModel.commit_sha == project_event.commit_sha,
                     KojiBuildTargetModel.target == run.target,
                     PipelineModel.datetime > pipeline_datetime,
                     KojiBuildTargetModel.id != run.id,
@@ -3917,7 +3919,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     @classmethod
     def has_newer_run(cls, run: "TFTTestRunTargetModel") -> bool:
         """Check if a newer test run exists for the same target+identifier
-        on the same project object (e.g. same PR).
+        on the same project event (e.g. same commit within a PR).
 
         Used to avoid overwriting a newer run's check status when
         processing results for an older (e.g. canceled) run.
@@ -3936,6 +3938,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
                 .filter(
                     ProjectEventModel.type == project_event.type,
                     ProjectEventModel.event_id == project_event.event_id,
+                    ProjectEventModel.commit_sha == project_event.commit_sha,
                     TFTTestRunTargetModel.identifier == run.identifier,
                     TFTTestRunTargetModel.target == run.target,
                     PipelineModel.datetime > pipeline_datetime,
