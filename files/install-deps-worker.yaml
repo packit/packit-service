@@ -23,6 +23,7 @@
           - python3-sentry-sdk
           - python3-syslog-rfc5424-formatter # logging to Splunk
           - dnf-utils
+          - gnome-srpm-macros
           - make
           # for pip-installing sandcastle from git repo
           - git-core
