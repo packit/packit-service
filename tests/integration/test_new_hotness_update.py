@@ -579,6 +579,209 @@ def test_new_hotness_update_non_git_multiple_versions(new_hotness_update):
     assert first_dict_value(results["job"])["success"]
 
 
+def test_retry_pull_from_upstream_multi_version(new_hotness_update):
+    """On retry with multiple versions, only the failed version should reuse its
+    SyncReleaseModel. Other versions must create their own models."""
+    new_hotness_update["trigger"]["msg"]["message"]["upstream_versions"] = ["7.0.3", "7.0.4"]
+
+    class AnityaTestProjectModel(AnityaProjectModel):
+        pass
+
+    db_project_object = flexmock(
+        id=12,
+        project_event_model_type=ProjectEventModelType.anitya_multiple_versions,
+        job_config_trigger_type=JobConfigTriggerType.release,
+        project=AnityaTestProjectModel(),
+    )
+    project_event = (
+        flexmock(type=ProjectEventModelType.anitya_multiple_versions, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    run_model = flexmock(PipelineModel)
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.anitya_multiple_versions,
+        event_id=12,
+        commit_sha=None,
+    ).and_return(project_event)
+    flexmock(AnityaMultipleVersionsModel).should_receive("get_or_create").with_args(
+        versions=["7.0.3", "7.0.4"],
+        project_name="redis",
+        project_id=4181,
+        package="redis",
+    ).and_return(db_project_object)
+
+    # The retried model (for version 7.0.4 which failed download previously)
+    retried_target = flexmock(status="retry", id=1234, branch="main")
+    retried_model = flexmock(id=123, sync_release_targets=[retried_target])
+    flexmock(SyncReleaseModel).should_receive("get_by_id").with_args(123).and_return(
+        retried_model,
+    ).once()
+
+    # A new model should be created for version 7.0.3 (never attempted before)
+    new_target = flexmock(status="queued", id=1235, branch="main")
+    new_model = flexmock(id=124, sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
+        project_event_model=project_event,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+        package_name="redis",
+    ).and_return(new_model, run_model).once()
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued,
+        branch="main",
+    ).and_return(new_target).once()
+
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace="downstream-namespace",
+        repo_name="downstream-repo",
+        project_url="https://src.fedoraproject.org/rpms/downstream-repo",
+        target_branch=str,
+        url=str,
+    ).and_return(flexmock(sync_release_targets=[flexmock()]))
+
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec', "
+        "jobs: [{trigger: release, job: pull_from_upstream, metadata: {targets:[]}}]}"
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    distgit_project = flexmock(
+        get_files=lambda ref, recursive: [".packit.yaml"],
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        full_repo_name="rpms/redis",
+        repo="redis",
+        namespace="rpms",
+        is_private=lambda: False,
+        default_branch="main",
+    )
+
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
+    lp.working_dir = ""
+    lp.git_project = distgit_project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
+    flexmock(Allowlist, check_and_report=True)
+
+    flexmock(
+        packit_service.worker.handlers.distgit,
+    ).should_receive("get_monitoring_metadata").and_return(
+        flexmock(all_versions=True),
+    )
+
+    service_config = ServiceConfig().get_service_config()
+    flexmock(service_config).should_receive("get_project").with_args(
+        "https://src.fedoraproject.org/rpms/redis",
+        required=False,
+    ).and_return(distgit_project)
+    flexmock(service_config).should_receive("get_project").with_args(
+        "https://src.fedoraproject.org/rpms/redis",
+    ).and_return(distgit_project)
+
+    target_project = (
+        flexmock(namespace="downstream-namespace", repo="downstream-repo")
+        .should_receive("get_web_url")
+        .and_return("https://src.fedoraproject.org/rpms/downstream-repo")
+        .mock()
+    )
+    pr = (
+        flexmock(
+            id=21,
+            url="some_url",
+            target_project=target_project,
+            description="some-title",
+        )
+        .should_receive("comment")
+        .mock()
+    )
+    # 7.0.4 (retried version) succeeds this time
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="main",
+        versions=["7.0.4"],
+        create_pr=True,
+        local_pr_branch_suffix="update-pull_from_upstream",
+        use_downstream_specfile=True,
+        add_pr_instructions=True,
+        resolved_bugs=["rhbz#2106196"],
+        release_monitoring_project_id=4181,
+        sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
+        fast_forward_merge_branches=set(),
+    ).and_return((pr, {})).once().ordered()
+    # 7.0.3 (new version) also succeeds
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="main",
+        versions=["7.0.3"],
+        create_pr=True,
+        local_pr_branch_suffix="update-pull_from_upstream",
+        use_downstream_specfile=True,
+        add_pr_instructions=True,
+        resolved_bugs=["rhbz#2106196"],
+        release_monitoring_project_id=4181,
+        sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
+        fast_forward_merge_branches=set(),
+    ).and_return((pr, {})).once().ordered()
+    flexmock(PackitAPI).should_receive("clean")
+
+    for target, model in [
+        (retried_target, retried_model),
+        (new_target, new_model),
+    ]:
+        flexmock(target).should_receive("set_status").with_args(
+            status=SyncReleaseTargetStatus.running,
+        ).once()
+        flexmock(target).should_receive("set_downstream_pr_url").with_args(
+            downstream_pr_url="some_url",
+        )
+        flexmock(target).should_receive("set_downstream_prs").with_args(
+            downstream_prs=list,
+        ).once()
+        flexmock(target).should_receive("set_status").with_args(
+            status=SyncReleaseTargetStatus.submitted,
+        ).once()
+        flexmock(target).should_receive("set_start_time").once()
+        flexmock(target).should_receive("set_finished_time").once()
+        flexmock(target).should_receive("set_logs").once()
+        flexmock(model).should_receive("set_status").with_args(
+            status=SyncReleaseStatus.finished,
+        ).once()
+        model.should_receive("get_package_name").and_return(None)
+
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
+    flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.release,
+            id=123,
+            project_event_model_type=ProjectEventModelType.release,
+        ),
+    )
+    flexmock(group).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(shutil).should_receive("rmtree").with_args("")
+
+    processing_results = SteveJobs().process_message(new_hotness_update)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert json.dumps(event_dict)
+
+    # Simulate retry: pass sync_release_run_id and retry_version for 7.0.4
+    results = run_pull_from_upstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+        sync_release_run_id=123,
+        retry_version="7.0.4",
+    )
+    assert first_dict_value(results["job"])["success"]
+
+
 def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_git):
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
