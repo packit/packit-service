@@ -350,6 +350,8 @@ def test_logdetective_process_message_error(
 
     assert run_model_after.status == LogDetectiveResult.error
     assert run_model_after.log_detective_response is None
+    assert run_model_after.error_msg is not None
+    assert run_model_after.error_msg != ""
 
     # Verify timestamp was updated from the event
     # database stores timestamp as UTC, but without timezone information
