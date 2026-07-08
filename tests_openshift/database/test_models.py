@@ -1473,7 +1473,7 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
     Then set the `log_detective_response` field and verify."""
 
     # Dummy Log Detective response, not representative of actual contents
-    log_detective_response = {"explanation": {"text": "Explanation text", "logprobs": None}}
+    log_detective_response = {"explanation": {"text": "Explanation text"}}
     log_detective_run_group = LogDetectiveRunGroupModel.create([])
     run_target_model = LogDetectiveRunModel.create(
         status=LogDetectiveResult.unknown,

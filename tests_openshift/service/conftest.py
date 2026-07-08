@@ -39,11 +39,7 @@ def logdetective_analysis_success_event():
     return {
         "topic": "org.fedoraproject.prod.logdetective.analysis",
         "log_detective_response": {
-            "explanation": {
-                "text": "The RPM build failed due to...",
-                "logprobs": None,
-            },
-            "response_certainty": 0.95,
+            "explanation": {"text": "The RPM build failed due to..."},
             "snippets": [],
         },
         "target_build": "123456",
