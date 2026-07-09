@@ -110,12 +110,17 @@ def test_parse_logdetective_analysis_result_error(
 
     assert isinstance(event_object, LogDetectiveResultEvent)
     assert event_object.log_detective_response is None
+    assert event_object.error_msg is not None
+    assert isinstance(event_object.error_msg, str)
+    assert event_object.error_msg != ""
+    assert "Internal Server Error" in event_object.error_msg
     assert event_object.target_build == "9999"
     assert event_object.status == "error"
     assert event_object.build_system == LogDetectiveBuildSystem(build_system)
 
     # Attempt to serialize dictionary form of the object
     object_dict = event_object.get_dict()
+    assert object_dict["error_msg"] == event_object.error_msg
     json.dumps(object_dict)
 
 
@@ -175,6 +180,10 @@ def test_logdetective_run_success(
     handler = handler_and_models
     handler.status = LogDetectiveResult.from_string(status_str)
     handler.build_system = LogDetectiveBuildSystem(build_system)
+    if status_str == "complete":
+        handler.log_detective_response = flexmock(explanation="mock explanation")
+    if status_str == "error":
+        handler.error_msg = "mock error message"
 
     # Mock LogDetectiveRunModel if the new state is `LogDetectiveResult.unknown`
     # we must change the mock so that the existing state is different
@@ -202,13 +211,26 @@ def test_logdetective_run_success(
         analysis_id="123456"
     ).and_return(run_model)
 
-    # Expect set_status to be called with a datetime object
-    run_model.should_receive("set_status").with_args(
-        handler.status,
-        log_detective_analysis_start=datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc).replace(
-            tzinfo=None
-        ),
-    ).once()
+    mock_timestamp = datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc).replace(tzinfo=None)
+
+    if status_str == "complete":
+        run_model.should_receive("set_log_detective_response").with_args(
+            handler.log_detective_response,
+            status=handler.status,
+            log_detective_analysis_start=mock_timestamp,
+        ).once()
+    if status_str == "error":
+        run_model.should_receive("set_error_msg").with_args(
+            "mock error message",
+            status=handler.status,
+            log_detective_analysis_start=mock_timestamp,
+        ).once()
+    if status_str == "unknown":
+        run_model.should_receive("set_error_msg").with_args(
+            "Unknown status received for this job",
+            status=handler.status,
+            log_detective_analysis_start=mock_timestamp,
+        ).once()
 
     # Mock Build Model
     build_model = flexmock(web_url="https://build.url")
@@ -245,6 +267,70 @@ def test_logdetective_run_success(
     details = result["details"]
     assert isinstance(details, dict)
     assert len(details) == 0
+
+
+@pytest.mark.parametrize(
+    "response, error_msg, status",
+    [
+        (
+            {"explanation": "Build failed because..."},
+            None,
+            LogDetectiveResult.complete,
+        ),
+        (
+            None,
+            "Server error '500 Internal Server Error'",
+            LogDetectiveResult.error,
+        ),
+    ],
+    ids=["stores_response", "stores_error_msg"],
+)
+def test_logdetective_run_stores_result(handler_and_models, response, error_msg, status):
+    """Test that the handler persists log_detective_response or error_msg
+    as separate fields on the model."""
+    handler = handler_and_models
+    handler.status = status
+    handler.build_system = LogDetectiveBuildSystem.copr
+    handler.log_detective_response = response
+    handler.error_msg = error_msg
+
+    run_model = flexmock(
+        status=LogDetectiveResult.running,
+        submitted_time=datetime.now(timezone.utc),
+        copr_build_target_id=999,
+        target="fedora-44-x86_64",
+        id=123,
+    )
+    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").with_args(
+        analysis_id="123456"
+    ).and_return(run_model)
+
+    if response:
+        run_model.should_receive("set_log_detective_response").with_args(
+            response,
+            status=handler.status,
+            log_detective_analysis_start=handler.log_detective_analysis_start,
+        ).once()
+        run_model.should_receive("set_error_msg").never()
+    else:
+        run_model.should_receive("set_log_detective_response").never()
+        run_model.should_receive("set_error_msg").with_args(
+            error_msg,
+            status=handler.status,
+            log_detective_analysis_start=handler.log_detective_analysis_start,
+        ).once()
+
+    build_model = flexmock(web_url="https://build.url")
+    build_model.should_receive("get_branch_name").and_return("main")
+    flexmock(CoprBuildTargetModel).should_receive("get_by_id").with_args(999).and_return(
+        build_model
+    )
+    flexmock(FedoraCIHelper).should_receive("report").once()
+    flexmock(handler.pushgateway).should_receive("log_detective_runs_finished.inc").once()
+    flexmock(handler.pushgateway).should_receive("log_detective_run_finished.observe").once()
+
+    result = handler.run()
+    assert result["success"]
 
 
 def test_logdetective_run_unknown_identifier(handler_and_models):
@@ -314,6 +400,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
     """Test that missing web_url in build model is handled by passing empty string"""
     handler = handler_and_models
     handler.build_system = LogDetectiveBuildSystem.copr
+    handler.log_detective_response = {"explanation": "Build failed because..."}
 
     run_model = flexmock(
         status=LogDetectiveResult.running,
@@ -322,7 +409,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
         target="fedora-rawhide-x86_64",
         id=123,
     )
-    run_model.should_receive("set_status")
+    run_model.should_receive("set_log_detective_response")
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
         run_model
     )

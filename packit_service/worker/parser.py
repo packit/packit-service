@@ -1941,6 +1941,7 @@ class Parser:
             project_url=project_url,
             commit_sha=commit_sha,
             pr_id=pr_id,
+            error_msg=event.get("error_msg"),
         )
 
     # The .__func__ are needed for Python < 3.10

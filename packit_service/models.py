@@ -4856,16 +4856,15 @@ class LogDetectiveBuildSystem(enum.Enum):
 
 
 class LogDetectiveResult(str, enum.Enum):
-    """Values represents a state the Log Detective analysis.
-    Log Detective analysis is perfomed only on failing builds.
-    However, analysis itself can not fail."""
+    """Values represents a state of the Log Detective analysis.
+    Log Detective analysis is performed only on failed builds."""
 
     __test__ = False
 
     complete = "complete"
     running = "running"
     unknown = "unknown"
-    error = "error"
+    error = "error"  # In case of Log Detective service error
 
     @classmethod
     def from_string(cls, value):
@@ -4896,7 +4895,15 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     # - ARCH = x86_64 aarch64 ... (we could possibly also include srpm here)
     # We use this for human-distinguishable labels of different LD analyses
     target = Column(String)
-    log_detective_response = Column(JSON)
+
+    # If status=error, then log_detective_response is null and error_msg is set
+    # If status=complete, then log_detective_response is set and error_msg is null
+    # log_detective_response should contain:
+    #   explanation: str
+    #   snippets: list[dict]
+    #   solution: Optional[str] (although usually this is set)
+    log_detective_response = Column(JSON, nullable=True)
+    error_msg = Column(String, nullable=True)
     # Derived from `log_detective_analysis_start` field of the event
     submitted_time = Column(DateTime, default=datetime.utcnow)
     # UUID of Log Detective analysis, provided by logdetective-packit
@@ -4936,18 +4943,11 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         "KojiBuildTargetModel", back_populates="log_detective_runs", uselist=False
     )
 
-    def set_status(
-        self, status: LogDetectiveResult, log_detective_analysis_start: Optional[DateTime] = None
-    ):
-        """Set status of Log Detective run, optionally with log_detective_analysis_start time"""
-        with sa_session_transaction(commit=True) as session:
-            self.status = status
-            if log_detective_analysis_start and not self.submitted_time:
-                self.submitted_time = log_detective_analysis_start
-            session.add(self)
-
     def set_log_detective_response(
-        self, log_detective_response: dict, status: Optional[LogDetectiveResult]
+        self,
+        log_detective_response: dict,
+        status: Optional[LogDetectiveResult] = None,
+        log_detective_analysis_start: Optional[DateTime] = None,
     ):
         """Set `log_detective_response` field with response from Log Detective service,
         and the `status` field to complete, if no other state is given."""
@@ -4957,6 +4957,26 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                 self.status = status
             else:
                 self.status = LogDetectiveResult.complete
+            if log_detective_analysis_start and not self.submitted_time:
+                self.submitted_time = log_detective_analysis_start
+            session.add(self)
+
+    def set_error_msg(
+        self,
+        error_msg: str,
+        status: Optional[LogDetectiveResult] = None,
+        log_detective_analysis_start: Optional[DateTime] = None,
+    ):
+        """Set `error_msg` field with error message from Log Detective service,
+        and the `status` field to error, if no other state is given."""
+        with sa_session_transaction(commit=True) as session:
+            self.error_msg = error_msg
+            if status:
+                self.status = status
+            else:
+                self.status = LogDetectiveResult.error
+            if log_detective_analysis_start and not self.submitted_time:
+                self.submitted_time = log_detective_analysis_start
             session.add(self)
 
     @classmethod

@@ -31,16 +31,24 @@ class Result(AbstractResult):
     def __init__(
         self,
         target_build: str,
-        log_detective_response: dict,
         status: LogDetectiveResult,
         build_system: LogDetectiveBuildSystem,
         log_detective_analysis_start: datetime,
         log_detective_analysis_id: str,
         project_url: str,
         commit_sha: str,
+        log_detective_response: Optional[dict] = None,
         pr_id: Optional[int] = None,
         identifier: Optional[str] = None,
+        error_msg: Optional[str] = None,
     ):
+        """
+        Initialize a Log Detective result. Based on status,
+        the result contains either a response or an error message.
+
+        If status="error", expect log_detective_response: None and error_msg: str.
+        If status="complete", expect log_detective_response: dict and error_msg: None.
+        """
         super().__init__(pr_id=pr_id, project_url=project_url)
         self.target_build = target_build
         self.log_detective_response = log_detective_response
@@ -50,6 +58,7 @@ class Result(AbstractResult):
         self.log_detective_analysis_start = log_detective_analysis_start
         self.log_detective_analysis_id = log_detective_analysis_id
         self.commit_sha = commit_sha
+        self.error_msg = error_msg
 
     def get_dict(self, default_dict: Optional[dict] = None) -> dict:
         """Return Log Detective result as a dictionary,
@@ -63,6 +72,7 @@ class Result(AbstractResult):
         result["log_detective_response"] = self.log_detective_response
         result["identifier"] = self.identifier
         result["commit_sha"] = self.commit_sha
+        result["error_msg"] = self.error_msg
 
         return result
 

@@ -1436,9 +1436,10 @@ def test_create_log_detective_run_model(clean_before_and_after):
     assert run_target_model.build_system == LogDetectiveBuildSystem.copr
 
 
-def test_set_log_detective_run_model_status(clean_before_and_after):
+@pytest.mark.parametrize("status", [*list(LogDetectiveResult), None])
+def test_set_log_detective_run_model_error_msg(clean_before_and_after, status):
     """Create a new LogDetectiveRunModel with default values.
-    Then set the `status` field to `LogDetectiveResult.complete` and verify."""
+    Then set the `error_msg` field and verify."""
 
     log_detective_run_group = LogDetectiveRunGroupModel.create([])
     run_target_model = LogDetectiveRunModel.create(
@@ -1451,18 +1452,22 @@ def test_set_log_detective_run_model_status(clean_before_and_after):
     )
 
     assert run_target_model.status == LogDetectiveResult.unknown
-    assert run_target_model.log_detective_response is None
+    assert run_target_model.error_msg is None
     assert run_target_model.target_build == "99999"
     assert run_target_model.build_system == LogDetectiveBuildSystem.copr
 
-    run_target_model.set_status(LogDetectiveResult.complete)
+    run_target_model.set_error_msg("Server error '500 Internal Server Error'", status=status)
 
     run_target_model = LogDetectiveRunModel.get_by_log_detective_analysis_id(
         "4e2f949a-cec4-11f0-99ca-9a478821d0e2"
     )
 
-    assert run_target_model.status == LogDetectiveResult.complete
-    assert run_target_model.log_detective_response is None
+    if not status:
+        assert run_target_model.status == LogDetectiveResult.error
+    else:
+        assert run_target_model.status == status
+
+    assert run_target_model.error_msg == "Server error '500 Internal Server Error'"
     assert run_target_model.target_build == "99999"
     assert run_target_model.build_system == LogDetectiveBuildSystem.copr
 
@@ -1473,7 +1478,7 @@ def test_set_log_detective_run_model_response(clean_before_and_after, status):
     Then set the `log_detective_response` field and verify."""
 
     # Dummy Log Detective response, not representative of actual contents
-    log_detective_response = {"explanation": {"text": "Explanation text", "logprobs": None}}
+    log_detective_response = {"explanation": {"text": "Explanation text"}}
     log_detective_run_group = LogDetectiveRunGroupModel.create([])
     run_target_model = LogDetectiveRunModel.create(
         status=LogDetectiveResult.unknown,
@@ -1783,9 +1788,9 @@ def test_log_detective_run_get_all_by_status(clean_before_and_after):
     assert {record.analysis_id for record in records} == {"uuid-1", "uuid-2"}
 
 
-def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
-    """Verify if providing a time to set_status updates the submitted_time,
-    if, and only if, the the `submitted_time` is `None`."""
+def test_set_log_detective_run_model_time_update(clean_before_and_after):
+    """Verify if providing a time to set_log_detective_response updates the submitted_time,
+    if, and only if, the `submitted_time` is `None`."""
     group = LogDetectiveRunGroupModel.create([])
     run = LogDetectiveRunModel.create(
         status=LogDetectiveResult.running,
@@ -1799,9 +1804,10 @@ def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
     # Ensure default time was set
     assert run.submitted_time is not None
 
-    # Try to update status with a specific time
+    # Try to update with a specific time — should not overwrite existing submitted_time
     new_time = datetime(2023, 1, 1, 12, 0, 0)
-    run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
+    response = {"explanation": "test"}
+    run.set_log_detective_response(response, log_detective_analysis_start=new_time)
 
     # Reload to check persistence
     run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-time-test")
@@ -1822,7 +1828,7 @@ def test_set_log_detective_run_model_status_time_update(clean_before_and_after):
     run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-build-without-time")
 
     assert run.submitted_time is None
-    run.set_status(LogDetectiveResult.complete, log_detective_analysis_start=new_time)
+    run.set_error_msg("some error", log_detective_analysis_start=new_time)
 
     run = LogDetectiveRunModel.get_by_log_detective_analysis_id("uuid-build-without-time")
 
