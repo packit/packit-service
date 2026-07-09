@@ -150,14 +150,22 @@ class DownstreamLogDetectiveResultsHandler(
 
         if self.log_detective_response:
             log_detective_run_model.set_log_detective_response(
-                self.log_detective_response, self.status
+                self.log_detective_response,
+                status=self.status,
+                log_detective_analysis_start=self.log_detective_analysis_start,
             )
-        if self.status == LogDetectiveResult.error:
-            log_detective_run_model.set_error_msg(self.error_msg or "Unknown error", self.status)
-
-        log_detective_run_model.set_status(
-            self.status, log_detective_analysis_start=self.log_detective_analysis_start
-        )
+        elif self.status == LogDetectiveResult.error:
+            log_detective_run_model.set_error_msg(
+                self.error_msg or "Unknown error",
+                status=self.status,
+                log_detective_analysis_start=self.log_detective_analysis_start,
+            )
+        else:
+            log_detective_run_model.set_error_msg(
+                "Unknown status received for this job",
+                status=self.status,
+                log_detective_analysis_start=self.log_detective_analysis_start,
+            )
 
         return TaskResults(success=True, details={})
 

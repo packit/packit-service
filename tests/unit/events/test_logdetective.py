@@ -211,16 +211,26 @@ def test_logdetective_run_success(
         analysis_id="123456"
     ).and_return(run_model)
 
-    # Expect set_status to be called with a datetime object
-    run_model.should_receive("set_status").with_args(
-        handler.status,
-        log_detective_analysis_start=datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc).replace(
-            tzinfo=None
-        ),
-    ).once()
+    mock_timestamp = datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc).replace(tzinfo=None)
 
-    run_model.should_receive("set_log_detective_response").times(int(status_str == "complete"))
-    run_model.should_receive("set_error_msg").times(int(status_str == "error"))
+    if status_str == "complete":
+        run_model.should_receive("set_log_detective_response").with_args(
+            handler.log_detective_response,
+            status=handler.status,
+            log_detective_analysis_start=mock_timestamp,
+        ).once()
+    if status_str == "error":
+        run_model.should_receive("set_error_msg").with_args(
+            "mock error message",
+            status=handler.status,
+            log_detective_analysis_start=mock_timestamp,
+        ).once()
+    if status_str == "unknown":
+        run_model.should_receive("set_error_msg").with_args(
+            "Unknown status received for this job",
+            status=handler.status,
+            log_detective_analysis_start=mock_timestamp,
+        ).once()
 
     # Mock Build Model
     build_model = flexmock(web_url="https://build.url")
@@ -296,13 +306,19 @@ def test_logdetective_run_stores_result(handler_and_models, response, error_msg,
     ).and_return(run_model)
 
     if response:
-        run_model.should_receive("set_log_detective_response").with_args(response, status).once()
+        run_model.should_receive("set_log_detective_response").with_args(
+            response,
+            status=handler.status,
+            log_detective_analysis_start=handler.log_detective_analysis_start,
+        ).once()
         run_model.should_receive("set_error_msg").never()
     else:
         run_model.should_receive("set_log_detective_response").never()
-        run_model.should_receive("set_error_msg").with_args(error_msg, status).once()
-
-    run_model.should_receive("set_status").once()
+        run_model.should_receive("set_error_msg").with_args(
+            error_msg,
+            status=handler.status,
+            log_detective_analysis_start=handler.log_detective_analysis_start,
+        ).once()
 
     build_model = flexmock(web_url="https://build.url")
     build_model.should_receive("get_branch_name").and_return("main")
@@ -384,6 +400,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
     """Test that missing web_url in build model is handled by passing empty string"""
     handler = handler_and_models
     handler.build_system = LogDetectiveBuildSystem.copr
+    handler.log_detective_response = {"explanation": "Build failed because..."}
 
     run_model = flexmock(
         status=LogDetectiveResult.running,
@@ -392,7 +409,7 @@ def test_logdetective_run_empty_url_fallback(handler_and_models):
         target="fedora-rawhide-x86_64",
         id=123,
     )
-    run_model.should_receive("set_status")
+    run_model.should_receive("set_log_detective_response")
     flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
         run_model
     )

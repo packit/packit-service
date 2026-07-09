@@ -4943,18 +4943,11 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         "KojiBuildTargetModel", back_populates="log_detective_runs", uselist=False
     )
 
-    def set_status(
-        self, status: LogDetectiveResult, log_detective_analysis_start: Optional[DateTime] = None
-    ):
-        """Set status of Log Detective run, optionally with log_detective_analysis_start time"""
-        with sa_session_transaction(commit=True) as session:
-            self.status = status
-            if log_detective_analysis_start and not self.submitted_time:
-                self.submitted_time = log_detective_analysis_start
-            session.add(self)
-
     def set_log_detective_response(
-        self, log_detective_response: dict, status: Optional[LogDetectiveResult] = None
+        self,
+        log_detective_response: dict,
+        status: Optional[LogDetectiveResult] = None,
+        log_detective_analysis_start: Optional[DateTime] = None,
     ):
         """Set `log_detective_response` field with response from Log Detective service,
         and the `status` field to complete, if no other state is given."""
@@ -4964,9 +4957,16 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                 self.status = status
             else:
                 self.status = LogDetectiveResult.complete
+            if log_detective_analysis_start and not self.submitted_time:
+                self.submitted_time = log_detective_analysis_start
             session.add(self)
 
-    def set_error_msg(self, error_msg: str, status: Optional[LogDetectiveResult] = None):
+    def set_error_msg(
+        self,
+        error_msg: str,
+        status: Optional[LogDetectiveResult] = None,
+        log_detective_analysis_start: Optional[DateTime] = None,
+    ):
         """Set `error_msg` field with error message from Log Detective service,
         and the `status` field to error, if no other state is given."""
         with sa_session_transaction(commit=True) as session:
@@ -4975,6 +4975,8 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                 self.status = status
             else:
                 self.status = LogDetectiveResult.error
+            if log_detective_analysis_start and not self.submitted_time:
+                self.submitted_time = log_detective_analysis_start
             session.add(self)
 
     @classmethod
