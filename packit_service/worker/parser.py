@@ -1444,6 +1444,18 @@ class Parser:
         start_time = nested_get(event, "info", "start_time")
         completion_time = nested_get(event, "info", "completion_time")
 
+        # Check if it is an early update to an archbuild
+        if nested_get(event, "info", "method") == "buildArch":
+            parent = nested_get(event, "info", "parent")
+            return koji.result.Task(
+                parent=parent,
+                task_id=task_id,
+                state=state_enum,
+                old_state=old_state,
+                start_time=start_time,
+                completion_time=completion_time,
+            )
+
         rpm_build_task_ids = {}
         rpm_build_failed_arch_list: list[str] = []
         for children in nested_get(event, "info", "children", default=[]):
