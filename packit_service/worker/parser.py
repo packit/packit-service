@@ -5,6 +5,7 @@
 Parser is transforming github JSONs into `events` objects
 """
 
+import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -130,6 +131,8 @@ class Parser:
             gitlab.push.Commit,
             gitlab.push.Tag,
             gitlab.release.Release,
+            forgejo.action_run.PullRequest,
+            forgejo.action_run.Push,
             forgejo.pr.Comment,
             forgejo.pr.Action,
             forgejo.push.Commit,
@@ -199,6 +202,7 @@ class Parser:
                 Parser.parse_logdetective_analysis_event,
                 Parser.parse_forgejo_push_event,
                 Parser.parse_forgejo_pr_event,
+                Parser.parse_forgejo_action_run_event,
                 Parser.parse_forgejo_comment_event,
             )
         ):
@@ -1976,10 +1980,11 @@ class Parser:
         num_commits = payload.get("total_commits")
 
         # Strip the ref prefix to get the branch/tag name
-        _, ref_type, ref_name = raw_ref.split("/", 2)
-        if ref_type not in ("heads", "tags"):
+        parts = raw_ref.split("/", 2)
+        if len(parts) != 3 or parts[1] not in ("heads", "tags"):
             logger.debug(f"Forgejo push event ignored – not a branch or tag push ('{raw_ref}')")
             return None
+        ref_name = parts[2]
 
         logger.info(
             f"Forgejo push event on '{ref_name}': "
@@ -2002,6 +2007,7 @@ class Parser:
             project_url=repo_url,
             commit_sha=after,
             commit_sha_before=before,
+            committer=pusher,
         )
 
     @staticmethod
@@ -2028,6 +2034,10 @@ class Parser:
             return None
 
         pr_id = pr.get("number")
+        if not pr_id:
+            logger.warning("No pull request number / ID in event.")
+            return None
+
         actor = nested_get(payload, "pull_request", "user", "login")
         repo = payload.get("repository", {})
         base = pr.get("base")
@@ -2038,7 +2048,8 @@ class Parser:
         try:
             target_repo_namespace = base["repo"]["owner"]["login"]
             target_repo_name = base["repo"]["name"]
-            base_ref = head["sha"]
+            target_branch = base["ref"]
+            base_ref = head["ref"]
             base_repo_namespace = head["repo"]["owner"]["login"]
             base_repo_name = head["repo"]["name"]
             project_url = repo["html_url"]
@@ -2057,9 +2068,10 @@ class Parser:
             base_ref=base_ref,
             target_repo_namespace=target_repo_namespace,
             target_repo_name=target_repo_name,
+            target_branch=target_branch,
             project_url=project_url,
             commit_sha=commit_sha,
-            commit_sha_before=payload.get("before", ""),
+            commit_sha_before=None,  # the payload does not include this info
             actor=actor,
             body=body,
         )
@@ -2079,9 +2091,11 @@ class Parser:
         if action not in {"created", "edited"} or not issue_id:
             return None
 
-        # Only treat as PR if 'pull_request' is present and not None
-        issue_dict = payload.get("issue", {})
-        is_pr = issue_dict.get("pull_request") is not None
+        is_pr = payload.get("is_pull")
+        if is_pr and not payload.get("pull_request"):
+            logger.warning("Missing pull request info in Forgejo PR comment event.")
+            return None
+
         comment = nested_get(payload, "comment", "body")
         comment_id = nested_get(payload, "comment", "id")
         logger.info(
@@ -2090,6 +2104,8 @@ class Parser:
         )
 
         user_login = nested_get(payload, "comment", "user", "login")
+        target_repo_name = nested_get(payload, "repository", "name")
+        project_url = nested_get(payload, "repository", "html_url")
 
         if is_pr:
             # For PR comments, extract repo info from pull_request section
@@ -2097,6 +2113,7 @@ class Parser:
                 payload, "pull_request", "head", "repo", "owner", "login"
             )
             base_repo_name = nested_get(payload, "pull_request", "head", "repo", "name")
+            source_project_url = nested_get(payload, "pull_request", "head", "repo", "html_url")
             target_repo_namespace = nested_get(
                 payload, "pull_request", "base", "repo", "owner", "login"
             )
@@ -2104,10 +2121,8 @@ class Parser:
             # For issue comments, extract from repository section
             base_repo_namespace = nested_get(payload, "repository", "owner", "login")
             base_repo_name = nested_get(payload, "repository", "name")
+            source_project_url = project_url
             target_repo_namespace = nested_get(payload, "repository", "owner", "login")
-
-        target_repo_name = nested_get(payload, "repository", "name")
-        https_url = nested_get(payload, "repository", "html_url")
 
         if not (
             base_repo_name and base_repo_namespace and target_repo_name and target_repo_namespace
@@ -2130,7 +2145,8 @@ class Parser:
                 base_repo_name=base_repo_name,
                 target_repo_namespace=target_repo_namespace,
                 target_repo_name=target_repo_name,
-                project_url=https_url,
+                project_url=project_url,
+                source_project_url=source_project_url,
                 actor=user_login,
                 comment=comment,
                 comment_id=comment_id,
@@ -2145,7 +2161,7 @@ class Parser:
             repo_namespace=base_repo_namespace,
             repo_name=base_repo_name,
             target_repo=f"{target_repo_namespace}/{target_repo_name}",
-            project_url=https_url,
+            project_url=project_url,
             actor=user_login,
             comment=comment,
             comment_id=comment_id,
@@ -2153,6 +2169,94 @@ class Parser:
             base_ref=default_branch,
             dist_git_project_url=None,
         )
+
+    @staticmethod
+    def parse_forgejo_action_run_event(
+        event: dict,
+    ) -> Optional[Union[forgejo.action_run.PullRequest, forgejo.action_run.Push]]:
+        if "forgejo.action_run" not in (topic := event.get("topic", "")):
+            return None
+        logger.info(f"Forgejo action run event, topic: {topic}")
+
+        if (run := nested_get(event, "body", "run")) is None:
+            return None
+
+        trigger_event = run.get("trigger_event")
+
+        if trigger_event not in ("pull_request", "push"):
+            logger.info(
+                f"Skipping Forgejo action run triggered by {trigger_event}."
+                " Packit only reacts to action runs triggered "
+                " by the push and pull_request event."
+            )
+            return None
+
+        try:
+            actor = nested_get(run, "trigger_user", "login")
+            title = run.get("title")
+            status = run.get("status")
+            date_updated = run.get("updated")
+            url = run.get("html_url")
+            commit_sha = run.get("commit_sha")
+
+            repo = run.get("repository")
+            project_url = repo.get("html_url")
+            project_name = repo.get("name")
+            project_namespace = nested_get(repo, "owner", "login")
+
+            run_event: Union[forgejo.action_run.PullRequest, forgejo.action_run.Push, None] = None
+            pr_id = None
+            pr_url = None
+            pr_source_branch = None
+            git_ref = None
+
+            if trigger_event == "pull_request":
+                event_payload = json.loads(nested_get(run, "event_payload"))
+                pr = event_payload.get("pull_request")
+                pr_id = pr.get("number")
+                pr_url = pr.get("url")
+                pr_source_branch = nested_get(pr, "head", "ref")
+
+            elif trigger_event == "push":
+                git_ref = run.get("prettyref")
+
+        except (AttributeError, TypeError, KeyError, json.JSONDecodeError):
+            logger.warning("Missing required nested fields in action run event.")
+            return None
+
+        if trigger_event == "pull_request":
+            run_event = forgejo.action_run.PullRequest(
+                actor=actor,
+                title=title,
+                comment=None,  # the payload does not include this info
+                status=status,
+                date_updated=date_updated,
+                url=url,
+                commit_sha=commit_sha,
+                pr_id=pr_id,
+                pr_url=pr_url,
+                pr_source_branch=pr_source_branch,
+                project_url=project_url,
+                project_name=project_name,
+                project_namespace=project_namespace,
+            )
+
+        elif trigger_event == "push":
+            run_event = forgejo.action_run.Push(
+                actor=actor,
+                title=title,
+                comment=None,  # the payload does not include this info
+                status=status,
+                date_updated=date_updated,
+                url=url,
+                commit_sha=commit_sha,
+                git_ref=git_ref,
+                project_url=project_url,
+                project_name=project_name,
+                project_namespace=project_namespace,
+            )
+
+        return run_event
 
     # The .__func__ are needed for Python < 3.10
     MAPPING: ClassVar[dict[str, dict[str, Callable]]] = {
@@ -2178,6 +2282,10 @@ class Parser:
             "forgejo.push": parse_forgejo_push_event.__func__,  # type: ignore
             "forgejo.pull_request": parse_forgejo_pr_event.__func__,  # type: ignore
             "forgejo.issue_comment": parse_forgejo_comment_event.__func__,  # type: ignore
+            "forgejo.action_run_success": parse_forgejo_action_run_event.__func__,  # type: ignore
+            "forgejo.action_run_failure": parse_forgejo_action_run_event.__func__,  # type: ignore
+            "forgejo.action_run_recover": parse_forgejo_action_run_event.__func__,  # type: ignore
+            "forgejo.action_run_cancelled": parse_forgejo_action_run_event.__func__,  # type: ignore
             "pagure.pull-request.flag.added": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.flag.updated": parse_pagure_pr_flag_event.__func__,  # type: ignore
             "pagure.pull-request.comment.added": parse_pagure_pull_request_comment_event.__func__,  # type: ignore
