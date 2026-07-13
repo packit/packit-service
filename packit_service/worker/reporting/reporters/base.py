@@ -79,9 +79,14 @@ class StatusReporter:
         Returns GitProject from which we can set commit status.
         """
         if self._project_with_commit is None:
+            # In case of Gitlab and Forgejo, status needs to be set on the commit in the
+            # source project (in case the PR comes from a fork, the status needs to be set
+            # in the fork, otherwise the status check won't display in the PR)
             self._project_with_commit = (
                 self.pull_request_object.source_project
-                if isinstance(self.project, GitlabProject) and self.pr_id is not None
+                if (isinstance(self.project, (GitlabProject, ForgejoProject)))
+                and self.pr_id is not None
+                and self.pull_request_object is not None
                 else self.project
             )
 

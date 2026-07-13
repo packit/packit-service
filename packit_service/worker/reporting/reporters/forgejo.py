@@ -18,8 +18,10 @@ class StatusReporterForgejo(StatusReporter):
     def get_commit_status(state: BaseCommitStatus):
         mapped_state = StatusReporter.get_commit_status(state)
 
-        if mapped_state == CommitStatus.error:
-            mapped_state = CommitStatus.failure
+        # Forgejo supports pending, success, failure, error, warning
+        if mapped_state == CommitStatus.running:
+            mapped_state = CommitStatus.pending
+
         return mapped_state
 
     def set_status(
@@ -32,15 +34,25 @@ class StatusReporterForgejo(StatusReporter):
         markdown_content: Optional[str] = None,
         target_branch: Optional[str] = None,
     ):
+        """
+        Set status of a Forgejo check.
+
+        Discards `markdown_content`, as it isn't supported by Forgejo. If it fails
+        to set a check status, it resorts to posting a comment.
+        """
         state_to_set = self.get_commit_status(state)
-        logger.debug(f"Setting Forgejo status '{state_to_set.name}'")
+        logger.debug(
+            f"Setting Forgejo status '{state_to_set.name}' for check '{check_name}' and "
+            f"target '{target_branch}': {description}"
+        )
+        if markdown_content:
+            logger.debug(
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored.",
+            )
 
         try:
             self.project_with_commit.set_commit_status(
                 self.commit_sha, state_to_set, url, description, check_name, trim=True
             )
-
         except ForgejoAPIException as e:
-            logger.debug(f"Failed to set status: {e}")
-
-            self._add_commit_comment_with_status(state, description, check_name, url)
+            self._comment_as_set_status_fallback(e, state, description, check_name, url)

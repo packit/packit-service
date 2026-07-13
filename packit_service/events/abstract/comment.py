@@ -152,7 +152,6 @@ class Issue(AddIssueEventToDb, CommentEvent):
         tag_name: str = "",
         comment_object: Optional[Comment] = None,
         dist_git_project_url=None,
-        commit_sha: Optional[str] = None,
     ) -> None:
         super().__init__(
             project_url=project_url,
@@ -169,7 +168,7 @@ class Issue(AddIssueEventToDb, CommentEvent):
 
         # Lazy properties
         self._tag_name = tag_name
-        self._commit_sha: Optional[str] = commit_sha
+        self._commit_sha: Optional[str] = None
         self._comment_object = comment_object
         self._issue_object: Optional[OgrIssue] = None
 
