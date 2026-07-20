@@ -4,14 +4,14 @@
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 6fec9b7edb08fd9989088709d864a7826dc74e80 # frozen: v0.15.12
+    rev: 2700fd5671c633760d912769c041bfcde2b9a01b  # frozen: v0.15.22
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
   # 1.18.2 is the last mypy version compatible with Python 3.9
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 9f70dc58c23dfcca1b97af99eaeee3140a807c7e # frozen: v1.18.2
+    rev: 41e691678310dfd3833f7ab4e180ddb014310356  # frozen: v2.3.0
     hooks:
       - id: mypy
         args: [
@@ -104,7 +104,7 @@ repos:
         # 'git diff --staged', i.e. always passes in pre-push/manual stage.
         stages: [pre-commit]
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 943377262562a12b57292fc98fabd7dbf81451fe # frozen: 0.37.2
+    rev: 1a4bb160cab6417b3045e1b37b6b72449243e658  # frozen: 0.37.4
     hooks:
       - id: check-github-workflows
         args: ["--verbose"]
