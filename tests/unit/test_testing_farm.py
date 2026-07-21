@@ -1,7 +1,9 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import re
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any, Optional
 
 import pytest
 from flexmock import flexmock
@@ -602,447 +604,216 @@ def test_is_compose_matching(compose, composes, result):
     assert TFClient.is_compose_matching(compose, composes) is result
 
 
+@dataclass
+class PayloadTestcase:
+    tf_api: str = "https://api.dev.testing-farm.io/v0.1/"
+    tf_token: str = "very-secret"
+    internal_tf_token: str = ""
+    use_internal_tf: bool = False
+    ps_deployment: Deployment = Deployment.stg
+    repo: str = "packit"
+    namespace: str = "packit-service"
+    commit_sha: str = "feb41e5"
+    tag_name: str = "1.0"
+    project_url: str = "https://github.com/source/packit"
+    git_ref: str = "master"
+    copr_owner: str = "me"
+    copr_project: str = "cool-project"
+    build_id: str = "123456"
+    chroot: str = "centos-stream-x86_64"
+    distro: str = "centos-stream"
+    compose: str = "Fedora-Rawhide"
+    arch: str = "x86_64"
+    artifacts: Any = field(
+        default_factory=lambda: [
+            {"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"},
+        ],
+    )
+    tmt_plan: Optional[str] = None
+    tf_post_install_script: Optional[str] = None
+    tf_extra_params: Optional[dict[str, Any]] = None
+    copr_rpms: Optional[str] = None
+    comment: Optional[str] = None
+    expected_envs: Optional[dict[str, str]] = None
+
+
 @pytest.mark.parametrize(
-    (
-        "tf_api,"
-        "tf_token,"
-        "internal_tf_token,"
-        "use_internal_tf,"
-        "ps_deployment,"
-        "repo,"
-        "namespace,"
-        "commit_sha,"
-        "tag_name,"
-        "project_url,"
-        "git_ref,"
-        "copr_owner,"
-        "copr_project,"
-        "build_id,"
-        "chroot,"
-        "distro,"
-        "compose,"
-        "arch,"
-        "artifacts,"
-        "tmt_plan,"
-        "tf_post_install_script,"
-        "tf_extra_params,"
-        "copr_rpms,"
-        "comment,"
-        "expected_envs"
-    ),
+    "testcase",
     [
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "",  # without internal TF configured
-            False,
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
+        pytest.param(
+            PayloadTestcase(),
+            id="without_internal_tf",
         ),
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "internal-very-secret",  # internal TF configured
-            False,  # internal TF disabled in the config
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
+        pytest.param(
+            PayloadTestcase(
+                internal_tf_token="internal-very-secret",
+                use_internal_tf=False,
+            ),
+            id="internal_tf_configured_but_disabled",
         ),
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "internal-very-secret",  # internal TF configured
-            True,  # internal TF enabled in the config
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
+        pytest.param(
+            PayloadTestcase(
+                internal_tf_token="internal-very-secret",
+                use_internal_tf=True,
+            ),
+            id="internal_tf_enabled",
         ),
-        # Testing built_packages
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "internal-very-secret",  # internal TF configured
-            True,  # internal TF enabled in the config
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [
-                {
-                    "id": "123456:centos-stream-x86_64",
-                    "type": "fedora-copr-build",
-                    "packages": ["cool-project-0:0.1.0-2.el8.x86_64"],
+        pytest.param(
+            PayloadTestcase(
+                internal_tf_token="internal-very-secret",
+                use_internal_tf=True,
+                artifacts=[
+                    {
+                        "id": "123456:centos-stream-x86_64",
+                        "type": "fedora-copr-build",
+                        "packages": ["cool-project-0:0.1.0-2.el8.x86_64"],
+                    },
+                ],
+                copr_rpms="cool-project-0:0.1.0-2.el8.x86_64",
+            ),
+            id="built_packages",
+        ),
+        pytest.param(
+            PayloadTestcase(
+                internal_tf_token="internal-very-secret",
+                use_internal_tf=True,
+                tmt_plan="^packit",
+                tf_post_install_script="echo 'hi packit'",
+            ),
+            id="tmt_plan_and_post_install_script",
+        ),
+        pytest.param(
+            PayloadTestcase(
+                internal_tf_token="internal-very-secret",
+                use_internal_tf=True,
+                artifacts=[
+                    {
+                        "id": "123456:centos-stream-x86_64",
+                        "type": "fedora-copr-build",
+                    },
+                    {
+                        "id": "54321:centos-stream-x86_64",
+                        "type": "fedora-copr-build",
+                        "packages": ["not-cool-project-0:0.1.0-2.el8.x86_64"],
+                    },
+                ],
+                copr_rpms="not-cool-project-0:0.1.0-2.el8.x86_64",
+            ),
+            id="built_packages_multiple_builds",
+        ),
+        pytest.param(
+            PayloadTestcase(
+                internal_tf_token="internal-very-secret",
+                use_internal_tf=True,
+                artifacts=[
+                    {
+                        "id": "123456:centos-stream-x86_64",
+                        "type": "fedora-copr-build",
+                        "packages": [
+                            "cool-project-0:0.1.0-2.el8.x86_64",
+                            "cool-project-2-0:0.1.0-2.el8.x86_64",
+                        ],
+                    },
+                    {
+                        "id": "54321:centos-stream-x86_64",
+                        "type": "fedora-copr-build",
+                        "packages": [
+                            "not-cool-project-0:0.1.0-2.el8.x86_64",
+                            "not-cool-project-2-0:0.1.0-2.el8.x86_64",
+                        ],
+                    },
+                ],
+                copr_rpms=(
+                    "cool-project-0:0.1.0-2.el8.x86_64 cool-project-2-0:0.1.0-2.el8.x86_64 "
+                    "not-cool-project-0:0.1.0-2.el8.x86_64 not-cool-project-2-0:0.1.0-2.el8.x86_64"
+                ),
+            ),
+            id="built_packages_multiple_builds_and_packages",
+        ),
+        pytest.param(
+            PayloadTestcase(
+                tf_extra_params={
+                    "api_key": "foo",
+                    "notification": {"webhook": {"url": "https://malicious.net"}},
                 },
-            ],
-            None,
-            None,
-            None,
-            "cool-project-0:0.1.0-2.el8.x86_64",
-            None,
-            None,
+            ),
+            id="extra_params_do_not_override_api_key_and_notifications",
         ),
-        # Test tmt_plan and tf_post_install_script
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "internal-very-secret",  # internal TF configured
-            True,  # internal TF enabled in the config
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            "^packit",
-            "echo 'hi packit'",
-            None,
-            None,
-            None,
-            None,
-        ),
-        # Testing built_packages for more builds (additional build from other PR)
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "internal-very-secret",  # internal TF configured
-            True,  # internal TF enabled in the config
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [
-                {
-                    "id": "123456:centos-stream-x86_64",
-                    "type": "fedora-copr-build",
+        pytest.param(
+            PayloadTestcase(
+                tf_extra_params={
+                    "api_key": "foo",
+                    "notification": {"webhook": {"url": "https://malicious.net"}},
                 },
-                {
-                    "id": "54321:centos-stream-x86_64",
-                    "type": "fedora-copr-build",
-                    "packages": ["not-cool-project-0:0.1.0-2.el8.x86_64"],
+                comment=(
+                    "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env INSTALL_TYPE=bundle"
+                ),
+                expected_envs={"IP_FAMILY": "ipv6", "INSTALL_TYPE": "bundle"},
+            ),
+            id="comment_env_vars",
+        ),
+        pytest.param(
+            PayloadTestcase(
+                tf_extra_params={
+                    "api_key": "foo",
+                    "notification": {"webhook": {"url": "https://malicious.net"}},
                 },
-            ],
-            None,
-            None,
-            None,
-            "not-cool-project-0:0.1.0-2.el8.x86_64",
-            None,
-            None,
+                comment=(
+                    "/packit test --labels suite1 "
+                    "--env IP_FAMILY=ipv6 --env MY_ENV_VARIABLE=my-value2"
+                ),
+                expected_envs={"IP_FAMILY": "ipv6", "MY_ENV_VARIABLE": "my-value2"},
+            ),
+            id="comment_env_vars_highest_priority",
         ),
-        # Testing built_packages for more builds (additional build from other PR) and more packages
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "internal-very-secret",  # internal TF configured
-            True,  # internal TF enabled in the config
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [
-                {
-                    "id": "123456:centos-stream-x86_64",
-                    "type": "fedora-copr-build",
-                    "packages": [
-                        "cool-project-0:0.1.0-2.el8.x86_64",
-                        "cool-project-2-0:0.1.0-2.el8.x86_64",
-                    ],
+        pytest.param(
+            PayloadTestcase(
+                tf_extra_params={
+                    "api_key": "foo",
+                    "notification": {"webhook": {"url": "https://malicious.net"}},
                 },
-                {
-                    "id": "54321:centos-stream-x86_64",
-                    "type": "fedora-copr-build",
-                    "packages": [
-                        "not-cool-project-0:0.1.0-2.el8.x86_64",
-                        "not-cool-project-2-0:0.1.0-2.el8.x86_64",
-                    ],
-                },
-            ],
-            None,
-            None,
-            None,
-            "cool-project-0:0.1.0-2.el8.x86_64 cool-project-2-0:0.1.0-2.el8.x86_64 "
-            "not-cool-project-0:0.1.0-2.el8.x86_64 not-cool-project-2-0:0.1.0-2.el8.x86_64",
-            None,
-            None,
-        ),
-        # Test that API key and notifications is not overriden by extra-params
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "",  # without internal TF configured
-            False,
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            {
-                "api_key": "foo",
-                "notification": {"webhook": {"url": "https://malicious.net"}},
-            },
-            None,
-            None,
-            None,
-        ),
-        # Test that comment env vars are loaded properly to TF payload
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "",  # without internal TF configured
-            False,
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            {
-                "api_key": "foo",
-                "notification": {"webhook": {"url": "https://malicious.net"}},
-            },
-            None,
-            "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env INSTALL_TYPE=bundle",
-            {"IP_FAMILY": "ipv6", "INSTALL_TYPE": "bundle"},
-        ),
-        # Test that comment env vars has the highest priority
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "",  # without internal TF configured
-            False,
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            {
-                "api_key": "foo",
-                "notification": {"webhook": {"url": "https://malicious.net"}},
-            },
-            None,
-            "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env MY_ENV_VARIABLE=my-value2",
-            {"IP_FAMILY": "ipv6", "MY_ENV_VARIABLE": "my-value2"},
-        ),
-        # Test unseting the env variable
-        (
-            "https://api.dev.testing-farm.io/v0.1/",
-            "very-secret",
-            "",  # without internal TF configured
-            False,
-            Deployment.stg,
-            "packit",
-            "packit-service",
-            "feb41e5",
-            "1.0",
-            "https://github.com/source/packit",
-            "master",
-            "me",
-            "cool-project",
-            "123456",
-            "centos-stream-x86_64",
-            "centos-stream",
-            "Fedora-Rawhide",
-            "x86_64",
-            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
-            None,
-            None,
-            {
-                "api_key": "foo",
-                "notification": {"webhook": {"url": "https://malicious.net"}},
-            },
-            None,
-            "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env MY_ENV_VARIABLE=",
-            {"IP_FAMILY": "ipv6", "MY_ENV_VARIABLE": ""},
+                comment=(
+                    "/packit test --labels suite1 --env IP_FAMILY=ipv6 --env MY_ENV_VARIABLE="
+                ),
+                expected_envs={"IP_FAMILY": "ipv6", "MY_ENV_VARIABLE": ""},
+            ),
+            id="unset_env_variable",
         ),
     ],
 )
-def test_payload(
-    tf_api,
-    tf_token,
-    internal_tf_token,
-    use_internal_tf,
-    ps_deployment,
-    repo,
-    namespace,
-    commit_sha,
-    tag_name,
-    project_url,
-    git_ref,
-    copr_owner,
-    copr_project,
-    build_id,
-    chroot,
-    distro,
-    compose,
-    arch,
-    artifacts,
-    tmt_plan,
-    tf_post_install_script,
-    tf_extra_params,
-    copr_rpms,
-    comment,
-    expected_envs,
-):
+def test_payload(testcase: PayloadTestcase):
     service_config = ServiceConfig.get_service_config()
-    service_config.testing_farm_api_url = tf_api
-    service_config.testing_farm_secret = tf_token
-    service_config.internal_testing_farm_secret = internal_tf_token
-    service_config.deployment = ps_deployment
+    service_config.testing_farm_api_url = testcase.tf_api
+    service_config.testing_farm_secret = testcase.tf_token
+    service_config.internal_testing_farm_secret = testcase.internal_tf_token
+    service_config.deployment = testcase.ps_deployment
     service_config.comment_command_prefix = "/packit"
 
     package_config = flexmock(jobs=[])
     pr = flexmock(
         source_project=flexmock(get_web_url=lambda: "https://github.com/source/packit"),
         target_project=flexmock(get_web_url=lambda: "https://github.com/packit/packit"),
-        head_commit=commit_sha,
+        head_commit=testcase.commit_sha,
         target_branch_head_commit="abcdefgh",
         source_branch="the-source-branch",
         target_branch="the-target-branch",
     )
     project = flexmock(
-        repo=repo,
-        namespace=namespace,
+        repo=testcase.repo,
+        namespace=testcase.namespace,
         service="GitHub",
-        get_git_urls=lambda: {"git": f"{project_url}.git"},
+        get_git_urls=lambda: {"git": f"{testcase.project_url}.git"},
         get_pr=lambda id_: pr,
-        full_repo_name=f"{namespace}/{repo}",
+        full_repo_name=f"{testcase.namespace}/{testcase.repo}",
     )
     metadata = flexmock(
         trigger=flexmock(),
-        commit_sha=commit_sha,
-        tag_name=tag_name,
-        git_ref=git_ref,
-        project_url=project_url,
+        commit_sha=testcase.commit_sha,
+        tag_name=testcase.tag_name,
+        git_ref=testcase.git_ref,
+        project_url=testcase.project_url,
         pr_id=123,
-        event_dict={"comment": comment},
+        event_dict={"comment": testcase.comment},
     )
     db_project_object = flexmock()
 
@@ -1060,10 +831,10 @@ def test_payload(
             trigger=JobConfigTriggerType.pull_request,
             packages={
                 "package": CommonPackageConfig(
-                    use_internal_tf=use_internal_tf,
-                    tmt_plan=tmt_plan,
-                    tf_post_install_script=tf_post_install_script,
-                    tf_extra_params=tf_extra_params,
+                    use_internal_tf=testcase.use_internal_tf,
+                    tmt_plan=testcase.tmt_plan,
+                    tf_post_install_script=testcase.tf_post_install_script,
+                    tf_extra_params=testcase.tf_extra_params,
                 ),
             },
         ),
@@ -1071,24 +842,26 @@ def test_payload(
     # Add custom env var to job_config
     job_helper.job_config.env = {"MY_ENV_VARIABLE": "my-value"}
 
-    token_to_use = internal_tf_token if use_internal_tf else tf_token
+    token_to_use = testcase.internal_tf_token if testcase.use_internal_tf else testcase.tf_token
     assert job_helper.tft_client._token == token_to_use
 
     job_helper = flexmock(job_helper)
 
-    job_helper.should_receive("job_owner").and_return(copr_owner)
-    job_helper.should_receive("job_project").and_return(copr_project)
+    job_helper.should_receive("job_owner").and_return(testcase.copr_owner)
+    job_helper.should_receive("job_project").and_return(testcase.copr_project)
 
     # URLs shortened for clarity
     log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
-    srpm_url = f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
+    srpm_url = (
+        f"https://download.copr.fedorainfracloud.org/results/.../{testcase.repo}-0.1-1.src.rpm"
+    )
     copr_build_id = "42"
     copr_build = flexmock(
-        id=int(build_id),
+        id=int(testcase.build_id),
         build_id=copr_build_id,
         built_packages=[
             {
-                "name": repo,
+                "name": testcase.repo,
                 "version": "0.1",
                 "release": "1",
                 "arch": "noarch",
@@ -1102,42 +875,43 @@ def test_payload(
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
     payload = job_helper._payload(
-        target=chroot,
-        compose=compose,
-        artifacts=artifacts,
+        target=testcase.chroot,
+        compose=testcase.compose,
+        artifacts=testcase.artifacts,
         build=copr_build,
     )
 
     expected_test = {
-        "url": project_url,
-        "ref": commit_sha,
+        "url": testcase.project_url,
+        "ref": testcase.commit_sha,
         "merge_sha": "abcdefgh",
         "path": ".",
     }
-    if tmt_plan:
-        expected_test["name"] = tmt_plan
+    if testcase.tmt_plan:
+        expected_test["name"] = testcase.tmt_plan
 
     assert payload["test"]["tmt"] == expected_test
 
     expected_environments = [
         {
-            "arch": arch,
-            "os": {"compose": compose},
-            "artifacts": artifacts,
+            "arch": testcase.arch,
+            "os": {"compose": testcase.compose},
+            "artifacts": testcase.artifacts,
             "tmt": {
                 "context": {
-                    "distro": distro,
-                    "arch": arch,
+                    "distro": testcase.distro,
+                    "arch": testcase.arch,
                     "trigger": "commit",
                     "initiator": "packit",
+                    "deployment": testcase.ps_deployment.name,
                 },
             },
             "variables": {
                 "PACKIT_BUILD_LOG_URL": log_url,
-                "PACKIT_COMMIT_SHA": commit_sha,
-                "PACKIT_TAG_NAME": tag_name,
-                "PACKIT_FULL_REPO_NAME": f"{namespace}/{repo}",
-                "PACKIT_PACKAGE_NVR": f"{repo}-0.1-1",
+                "PACKIT_COMMIT_SHA": testcase.commit_sha,
+                "PACKIT_TAG_NAME": testcase.tag_name,
+                "PACKIT_FULL_REPO_NAME": f"{testcase.namespace}/{testcase.repo}",
+                "PACKIT_PACKAGE_NVR": f"{testcase.repo}-0.1-1",
                 "PACKIT_SOURCE_BRANCH": "the-source-branch",
                 "PACKIT_SOURCE_SHA": "feb41e5",
                 "PACKIT_SOURCE_URL": "https://github.com/source/packit",
@@ -1152,23 +926,25 @@ def test_payload(
             },
         },
     ]
-    if copr_rpms:
-        expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = copr_rpms
+    if testcase.copr_rpms:
+        expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = testcase.copr_rpms
 
-    if tf_post_install_script:
+    if testcase.tf_post_install_script:
         expected_environments[0]["settings"] = {
-            "provisioning": {"post_install_script": tf_post_install_script},
+            "provisioning": {
+                "post_install_script": testcase.tf_post_install_script,
+            },
         }
 
-    if comment is not None:
-        expected_environments[0]["variables"].update(expected_envs)
+    if testcase.comment is not None:
+        expected_environments[0]["variables"].update(testcase.expected_envs)
         # If MY_ENV_VARIABLE="" then it should be unset from payload and removed from expected envs
-        if expected_envs.get("MY_ENV_VARIABLE") == "":
+        if testcase.expected_envs.get("MY_ENV_VARIABLE") == "":
             expected_environments[0]["variables"].pop("MY_ENV_VARIABLE")
 
     assert payload["environments"] == expected_environments
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
-    if tf_extra_params:
+    if testcase.tf_extra_params:
         assert payload["notification"]["webhook"]["url"] != "https://malicious.net"
 
 
