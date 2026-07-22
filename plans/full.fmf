@@ -1,0 +1,8 @@
+summary: Unit, integration & functional tests.
+
+discover+:
+  filter: tag:full
+
+provision:
+  how: container
+  image: quay.io/packit/packit-service-tests:stg

@@ -1,0 +1,42 @@
+summary:
+  Full test suite of the Packit Service
+
+component:
+  - packit-service
+tier: 1
+tag:
+  - full
+
+adjust+:
+  - when: initiator == packit
+    environment+:
+      COLOR: "no"
+      CONTAINER_RUN_INTERACTIVE: ""
+
+path: /
+test: 'make check "TEST_TARGET=$TEST_TARGET"'
+duration: 30m
+
+/custom-target:
+  summary: Custom tests
+  description: |
+    Custom tests that are useful for debugging as it is much easier to override
+    the ‹TEST_TARGET› environment variable, disabled in CI as it is split into
+    the separate test suites.
+  tag: manual
+  adjust:
+    - when: initiator != human
+      enabled: false
+      because: "This test suite is for manually specifying the target and to be run locally"
+
+/unit:
+  summary: Unit tests
+  order: 1
+  environment+:
+    TEST_TARGET: tests/unit/
+
+/integration:
+  summary: Integration tests
+  order: 2
+  environment+:
+    TEST_TARGET: tests/integration/
