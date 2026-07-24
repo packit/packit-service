@@ -4,9 +4,10 @@
 import pytest
 from flexmock import flexmock
 from gitlab.exceptions import GitlabError
-from ogr import PagureService
+from ogr import ForgejoService, PagureService
 from ogr.abstract import CommitStatus
 from ogr.exceptions import GithubAPIException, GitlabAPIException
+from ogr.services.forgejo import ForgejoProject
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
     GithubCheckRunResult,
@@ -32,6 +33,71 @@ from packit_service.worker.reporting import (
 from packit_service.worker.reporting.news import News
 
 create_table_content = StatusReporterGithubChecks._create_table
+
+
+@pytest.mark.parametrize(
+    ("commit_sha,pr_id,pr_object,state,description,check_name,url,state_to_set"),
+    [
+        pytest.param(
+            "88881111",
+            None,
+            None,
+            BaseCommitStatus.success,
+            "We made it!",
+            "packit/forgejo-rpm-build",
+            "https://api.packit.dev/build/115/logs",
+            CommitStatus.success,
+            id="Forgejo branch",
+        ),
+        pytest.param(
+            "88887777",
+            123,
+            flexmock(source_project=flexmock()),
+            BaseCommitStatus.success,
+            "We made it!",
+            "packit/forgejo-rpm-build",
+            "https://api.packit.dev/build/116/logs",
+            CommitStatus.success,
+            id="Forgejo PR",
+        ),
+    ],
+)
+def test_set_status_forgejo(
+    commit_sha,
+    pr_id,
+    pr_object,
+    state,
+    description,
+    check_name,
+    url,
+    state_to_set,
+):
+    service = flexmock(ForgejoService)
+    project = ForgejoProject(None, service, None)
+    reporter = StatusReporter.get_instance(
+        project=project,
+        commit_sha=commit_sha,
+        pr_id=pr_id,
+        packit_user="packit",
+    )
+
+    act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(ForgejoProject)
+
+    act_upon.should_receive("set_commit_status").with_args(
+        commit_sha,
+        state_to_set,
+        url,
+        description,
+        check_name,
+        trim=True,
+    ).once()
+
+    if pr_id is not None:
+        flexmock(ForgejoProject).should_receive("get_pr").with_args(pr_id).and_return(
+            pr_object,
+        )
+
+    reporter.set_status(state, description, check_name, url)
 
 
 @pytest.mark.parametrize(
