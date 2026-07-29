@@ -338,7 +338,7 @@ def test_create_issue_if_needed(
     message,
     comment_to_existing,
 ):
-    project = flexmock()
+    project = flexmock(has_issues=True)
     check = lambda value: value is None  # noqa
     project.should_receive("get_issue_list").and_return(issues).once()
 
@@ -364,3 +364,20 @@ def test_create_issue_if_needed(
         comment_to_existing,
     )
     assert check(issue_created)
+
+
+def test_create_issue_if_needed_issue_tracker_disabled():
+    """When issue tracker is disabled (e.g. GitHub fork),
+    create_issue_if_needed should check has_issues and return None
+    without attempting to list or create issues.
+    """
+    project = flexmock(has_issues=False, full_repo_name="namespace/project")
+    project.should_receive("get_issue_list").never()
+    project.should_receive("create_issue").never()
+
+    result = create_issue_if_needed(
+        project,
+        "Some title",
+        "Some message",
+    )
+    assert result is None

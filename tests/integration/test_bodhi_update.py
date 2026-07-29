@@ -307,7 +307,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         alias=None,
     ).and_raise(PackitException, "Failed to create an update")
 
-    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock = flexmock(GithubProject, has_issues=True)
     issue_project_mock.should_receive("get_issue_list").and_return([]).once()
     issue_project_mock.should_receive("create_issue").and_return(
         flexmock(id=3, url="https://github.com/namespace/project/issues/3"),
@@ -424,7 +424,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         alias=None,
     ).and_raise(PackitException, "Failed to create an update")
 
-    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock = flexmock(GithubProject, has_issues=True)
     issue_project_mock.should_receive("get_issue_list").and_return(
         [
             flexmock(

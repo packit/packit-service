@@ -34,7 +34,7 @@ def test_create_one_issue_for_pr():
         ),
     )
     project = (
-        flexmock()
+        flexmock(has_issues=True, full_repo_name="namespace/project")
         .should_receive("create_issue")
         .once()
         .and_return(flexmock(id="1", url="an url"))

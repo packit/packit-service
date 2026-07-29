@@ -617,6 +617,7 @@ def test_dist_git_push_release_handle_one_failed(
             get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
             default_branch="main",
+            has_issues=True,
         )
         .should_receive("create_issue")
         .once()
@@ -798,6 +799,7 @@ def test_dist_git_push_release_handle_all_failed(
             get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
             default_branch="main",
+            has_issues=True,
         )
         .should_receive("create_issue")
         .with_args(
@@ -1056,6 +1058,7 @@ def test_dont_retry_propose_downstream_task(
             get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
             default_branch="main",
+            has_issues=True,
         )
         .should_receive("create_issue")
         .once()
