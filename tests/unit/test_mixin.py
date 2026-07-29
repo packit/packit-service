@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import time
 from typing import Optional
 
 import pytest
@@ -17,9 +18,11 @@ from packit_service.worker.handlers.mixin import (
     GetVMImageDataMixin,
 )
 from packit_service.worker.mixin import (
+    _PACKAGER_CACHE,
     ConfigFromDistGitUrlMixin,
     ConfigFromEventMixin,
     GetBranchesFromIssueMixin,
+    PackitAPIWithDownstreamMixin,
 )
 
 
@@ -155,3 +158,190 @@ def test_ConfigFromDistGitUrlMixin():
 
     mixin = Test()
     assert mixin.project_url == "url to distgit"
+
+
+class TestIsPackager:
+    """Tests for PackitAPIWithDownstreamMixin.is_packager()
+
+    Verifies retry logic for transient FASJSON errors and
+    TTL caching of successful lookups.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _clear_packager_cache(self):
+        """Ensure every test starts with a clean cache."""
+        _PACKAGER_CACHE.clear()
+        yield
+        _PACKAGER_CACHE.clear()
+
+    @staticmethod
+    def _make_mixin():
+        """Create a minimal PackitAPIWithDownstreamMixin instance with
+        mocked dependencies so we can call is_packager() directly."""
+        from fasjson_client import Client as FasjsonClient
+
+        class _ConcreteDownstreamMixin(PackitAPIWithDownstreamMixin):
+            """Concrete subclass that stubs the abstract properties
+            inherited from Config so the mixin can be instantiated."""
+
+            @property
+            def project(self):
+                return None
+
+            @property
+            def service_config(self):
+                return None
+
+            @property
+            def project_url(self):
+                return ""
+
+        def init(*args):
+            pass
+
+        FasjsonClient.__init__ = init
+
+        flexmock(_ConcreteDownstreamMixin).should_receive(
+            "packit_api",
+        ).and_return(
+            flexmock(init_kerberos_ticket=lambda: None),
+        )
+
+        return _ConcreteDownstreamMixin()
+
+    def test_successful_lookup_is_cached(self):
+        """A successful FASJSON response is cached; subsequent calls
+        do not hit the API again."""
+        from fasjson_client import Client as FasjsonClient
+
+        flexmock(time).should_receive("sleep").never()
+        mixin = self._make_mixin()
+
+        # First call returns packager groups
+        mock_client = flexmock()
+        mock_client.should_receive("list_user_groups").with_args(
+            username="testuser",
+        ).and_return(
+            flexmock(result=[{"groupname": "packager"}]),
+        ).once()  # Must be called exactly once
+
+        flexmock(FasjsonClient).new_instances(mock_client)
+
+        assert mixin.is_packager("testuser") is True
+
+        # Second call should use cache (no new client created)
+        assert mixin.is_packager("testuser") is True
+
+    def test_retry_on_transient_error_then_success(self):
+        """Transient 5xx errors are retried; a subsequent success returns
+        True and caches the result."""
+        from fasjson_client import Client as FasjsonClient
+        from fasjson_client.errors import APIError
+
+        flexmock(time).should_receive("sleep").and_return(None)
+        mixin = self._make_mixin()
+
+        mock_client = flexmock()
+        mock_client.should_receive("list_user_groups").with_args(
+            username="retryuser",
+        ).and_raise(
+            APIError,
+            "Service Unavailable",
+            502,
+        ).and_return(
+            flexmock(result=[{"groupname": "packager"}]),
+        ).twice()
+
+        flexmock(FasjsonClient).new_instances(mock_client)
+
+        assert mixin.is_packager("retryuser") is True
+        # Verify the result was cached
+        assert "retryuser" in _PACKAGER_CACHE
+        assert _PACKAGER_CACHE["retryuser"] is True
+
+    def test_cache_hit_during_outage(self):
+        """A previously cached packager remains authorized even when
+        FASJSON is down."""
+        from fasjson_client import Client as FasjsonClient
+
+        flexmock(time).should_receive("sleep").never()
+        mixin = self._make_mixin()
+
+        # Populate cache via a successful call
+        mock_client = flexmock()
+        mock_client.should_receive("list_user_groups").with_args(
+            username="cacheduser",
+        ).and_return(
+            flexmock(result=[{"groupname": "packager"}]),
+        ).once()
+
+        flexmock(FasjsonClient).new_instances(mock_client)
+        assert mixin.is_packager("cacheduser") is True
+
+        # Now the API is "down" — but we should still get True from cache
+        # (no new API call should be made)
+        assert mixin.is_packager("cacheduser") is True
+
+    def test_non_transient_error_not_retried(self):
+        """A 404 (user not found) error is not retried and returns False."""
+        from fasjson_client import Client as FasjsonClient
+        from fasjson_client.errors import APIError
+
+        flexmock(time).should_receive("sleep").never()
+        mixin = self._make_mixin()
+
+        mock_client = flexmock()
+        mock_client.should_receive("list_user_groups").with_args(
+            username="unknownuser",
+        ).and_raise(
+            APIError,
+            "User not found",
+            404,
+        ).once()  # Must be called exactly once — no retries
+
+        flexmock(FasjsonClient).new_instances(mock_client)
+
+        assert mixin.is_packager("unknownuser") is False
+
+    def test_exhausted_retries_returns_false(self):
+        """When all retries are exhausted on transient errors,
+        is_packager() returns False."""
+        from fasjson_client import Client as FasjsonClient
+        from fasjson_client.errors import APIError
+
+        flexmock(time).should_receive("sleep").and_return(None)
+        mixin = self._make_mixin()
+
+        mock_client = flexmock()
+        mock_client.should_receive("list_user_groups").with_args(
+            username="unluckyuser",
+        ).and_raise(
+            APIError,
+            "Internal Server Error",
+            500,
+        ).times(3)  # _FASJSON_RETRY_COUNT = 3
+
+        flexmock(FasjsonClient).new_instances(mock_client)
+
+        assert mixin.is_packager("unluckyuser") is False
+
+    def test_non_packager_user_returns_false(self):
+        """A user who is not in the 'packager' group returns False
+        and is NOT cached (only positive results are cached)."""
+        from fasjson_client import Client as FasjsonClient
+
+        flexmock(time).should_receive("sleep").never()
+        mixin = self._make_mixin()
+
+        mock_client = flexmock()
+        mock_client.should_receive("list_user_groups").with_args(
+            username="nonpackager",
+        ).and_return(
+            flexmock(result=[{"groupname": "users"}]),
+        ).once()
+
+        flexmock(FasjsonClient).new_instances(mock_client)
+
+        assert mixin.is_packager("nonpackager") is False
+        # Only positive results are cached to avoid stale-negative denial
+        assert "nonpackager" not in _PACKAGER_CACHE

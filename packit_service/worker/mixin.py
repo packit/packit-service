@@ -3,10 +3,12 @@
 
 import logging
 import re
+import time
 from abc import abstractmethod
 from pathlib import Path
 from typing import Optional, Protocol, Union
 
+from cachetools import TTLCache
 from fasjson_client import Client
 from fasjson_client.errors import APIError
 from ogr.abstract import GitProject, Issue, PullRequest
@@ -26,6 +28,17 @@ from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
+
+# Cache for positive is_packager() lookups so that known packagers
+# remain authorized during brief FASJSON outages.
+# Keys are FAS usernames, values are True (only positive results cached
+# to avoid locking out legitimate packagers due to transient data issues).
+# Revocations of packager status are extremely rare, so a long TTL is fine.
+_PACKAGER_CACHE: TTLCache = TTLCache(maxsize=256, ttl=8 * 60 * 60)
+
+# Retry configuration for transient FASJSON API errors
+_FASJSON_RETRY_COUNT = 3
+_FASJSON_RETRY_BACKOFF = 2  # seconds, doubled on each retry
 
 
 class Config(Protocol):
@@ -157,14 +170,73 @@ class PackitAPIWithDownstreamMixin(PackitAPIWithDownstreamProtocol):
         return self._packit_api
 
     def is_packager(self, user):
+        """Check whether a FAS user is a packager.
+
+        Uses a TTL cache for successful lookups and retries transient
+        FASJSON errors (5xx) with exponential backoff so that brief API
+        outages do not silently deny legitimate packagers.
+
+        Args:
+            user: FAS username to check.
+
+        Returns:
+            True if the user belongs to the ``packager`` group,
+            False otherwise.
+        """
+        cached = _PACKAGER_CACHE.get(user)
+        if cached is not None:
+            logger.debug(f"Using cached packager status for user {user}.")
+            return cached
+
         self.packit_api.init_kerberos_ticket()
         client = Client(FASJSON_URL)
+
         try:
-            groups = client.list_user_groups(username=user)
-        except APIError:
-            logger.debug(f"Unable to get groups for user {user}.")
+            groups = self._fetch_user_groups_with_retries(client, user)
+        except APIError as exc:
+            logger.warning(
+                f"Unable to get groups for user {user} (code={exc.code}): {exc}",
+            )
             return False
-        return "packager" in [group["groupname"] for group in groups.result]
+
+        is_member = "packager" in [group["groupname"] for group in groups.result]
+        if is_member:
+            _PACKAGER_CACHE[user] = True
+        return is_member
+
+    @staticmethod
+    def _fetch_user_groups_with_retries(client: Client, user: str):
+        """Attempt to fetch user groups from FASJSON with retries.
+
+        Returns the API response on success.  Raises the last
+        ``APIError`` after all retries have been exhausted (or
+        immediately for non-transient errors).
+        """
+        last_error: Optional[APIError] = None
+        for attempt in range(_FASJSON_RETRY_COUNT):
+            try:
+                return client.list_user_groups(username=user)
+            except APIError as exc:  # noqa: PERF203
+                last_error = exc
+                # Retry only on server-side / transient errors (5xx)
+                if isinstance(exc.code, int) and exc.code >= 500:
+                    delay = _FASJSON_RETRY_BACKOFF * (2**attempt)
+                    logger.debug(
+                        f"Transient FASJSON error for user {user} "
+                        f"(attempt {attempt + 1}/{_FASJSON_RETRY_COUNT}, "
+                        f"code={exc.code}): {exc}. "
+                        f"Retrying in {delay}s.",
+                    )
+                    time.sleep(delay)
+                    continue
+                # Non-transient error (e.g. 404 user not found) —
+                # do not retry, raise immediately.
+                logger.debug(
+                    f"FASJSON API error for user {user} (code={exc.code}): {exc}",
+                )
+                raise
+
+        raise last_error
 
     def clean_api(self) -> None:
         """TODO: probably we should clean something even here
