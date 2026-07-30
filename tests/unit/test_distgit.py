@@ -19,6 +19,7 @@ from packit_service.worker.handlers.distgit import (
     ProposeDownstreamHandler,
     PullFromUpstreamHandler,
 )
+from packit_service.worker.mixin import _PACKAGER_CACHE
 from packit_service.worker.reporting import utils
 
 
@@ -94,6 +95,7 @@ PAGURE_PULL_REQUEST_COMMENT_PROCESSED = '{"created_at": 1658228337, "project_url
     ],
 )
 def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_passed):
+    _PACKAGER_CACHE.clear()
     data_dict = json.loads(data)
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(None)
     flexmock(Client).should_receive("__getattr__").with_args(
