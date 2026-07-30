@@ -72,7 +72,7 @@ packit_service/worker/checker/testing_farm.py   @mfocko @nforro
 packit_service/worker/checker/vm_image.py       @majamassarini @mfocko
 
 # Worker Handlers
-packit_service/worker/handlers/forges.py        @mfocko
+packit_service/worker/handlers/forges.py        @mfocko @betulependule
 packit_service/worker/handlers/testing_farm.py  @nforro @mfocko
 packit_service/worker/handlers/usage.py         @majamassarini
 packit_service/worker/handlers/vm_image.py      @mfocko
@@ -96,6 +96,7 @@ packit_service/worker/reporting/__init__.py     @mfocko
 packit_service/worker/reporting/enums.py        @mfocko
 packit_service/worker/reporting/news.py         @mfocko @lbarcziova
 packit_service/worker/reporting/reporters/base.py @mfocko
+packit_service/worker/reporting/reporters/forgejo.py @mfocko @betulependule
 packit_service/worker/reporting/reporters/github.py @mfocko
 packit_service/worker/reporting/reporters/gitlab.py @mfocko
 packit_service/worker/reporting/reporters/pagure.py @mfocko @lbarcziova
