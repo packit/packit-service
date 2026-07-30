@@ -2440,3 +2440,43 @@ class TestGetRunningJobs:
         flexmock(helper).should_receive("get_running_jobs").and_return([])
         helper._tft_client.should_receive("cancel").never()
         helper.cancel_running_tests()
+
+
+class TestIsFreshlyBranchedFedora:
+    @pytest.fixture(autouse=True)
+    def _mock_aliases(self):
+        from packit.config.aliases import Distro
+
+        import packit_service.worker.helpers.testing_farm as tf_module
+
+        flexmock(tf_module).should_receive("get_aliases").and_return(
+            {
+                "fedora-development": [
+                    Distro("fedora-42", "f42"),
+                    Distro("fedora-rawhide", "rawhide"),
+                ],
+            },
+        )
+
+    def test_branched_release_detected(self):
+        assert TFJobHelper.is_freshly_branched_fedora("fedora-42") is True
+
+    def test_rawhide_not_detected(self):
+        assert TFJobHelper.is_freshly_branched_fedora("fedora-rawhide") is False
+
+    def test_unknown_distro_not_detected(self):
+        assert TFJobHelper.is_freshly_branched_fedora("fedora-99") is False
+
+    def test_stable_distro_not_detected(self):
+        assert TFJobHelper.is_freshly_branched_fedora("fedora-41") is False
+
+    def test_non_fedora_not_detected(self):
+        assert TFJobHelper.is_freshly_branched_fedora("centos-stream-9") is False
+
+    def test_empty_development_list(self):
+        import packit_service.worker.helpers.testing_farm as tf_module
+
+        flexmock(tf_module).should_receive("get_aliases").and_return(
+            {"fedora-development": []},
+        )
+        assert TFJobHelper.is_freshly_branched_fedora("fedora-42") is False

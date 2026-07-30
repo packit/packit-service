@@ -10,6 +10,7 @@ from typing import Any, Callable, Optional, Union
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, PackageConfig
+from packit.config.aliases import get_aliases
 from packit.exceptions import PackitConfigException
 from packit.utils import nested_get
 from packit.utils.koji_helper import KojiHelper
@@ -220,6 +221,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     @property
     def skip_build(self) -> bool:
         return self.job_config.skip_build
+
+    @staticmethod
+    def is_freshly_branched_fedora(distro: str) -> bool:
+        aliases = get_aliases()
+        fedora_development = aliases.get("fedora-development", [])
+        branched = {d.namever for d in fedora_development[:-1]}
+        return distro in branched
 
     @property
     def custom_fmf(self) -> bool:
@@ -860,9 +868,34 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             msg = "Not supported architecture."
             return TaskResults(success=True, details={"msg": msg})
 
-        compose = self.tft_client.distro2compose(distro, report_error)
+        skip_if_branched = (
+            self.job_config.skip_missing_branched_composes
+            and self.is_freshly_branched_fedora(distro)
+        )
+        compose_not_found = False
+
+        def maybe_skip_error(description, markdown_content):
+            nonlocal compose_not_found
+            if skip_if_branched and markdown_content is not None:
+                compose_not_found = True
+                return
+            report_error(description, markdown_content)
+
+        compose = self.tft_client.distro2compose(distro, maybe_skip_error)
 
         if not compose:
+            if compose_not_found:
+                self.report_status_to_tests_for_test_target(
+                    state=BaseCommitStatus.neutral,
+                    description=f"Compose not yet available for {distro}. Skipping.",
+                    target=test_run.target,
+                )
+                return TaskResults(
+                    success=True,
+                    details={
+                        "msg": f"Skipped freshly branched {distro}, compose not available.",
+                    },
+                )
             msg = "We were not able to map distro to TF compose."
             return TaskResults(success=False, details={"msg": msg})
 
