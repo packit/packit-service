@@ -21,6 +21,15 @@ def create_issue_if_needed(
     comment_to_existing: Optional[str] = None,
     add_packit_prefix: Optional[bool] = True,
 ) -> Optional[Issue]:
+    if not project.has_issues:
+        logger.warning(
+            f"Issue tracker is disabled for {project.full_repo_name}. "
+            "Cannot create or update issues. "
+            "This is expected for GitHub forks where issue tracking "
+            "is disabled by default.",
+        )
+        return None
+
     # TODO: Improve filtering
     issues = project.get_issue_list()
     packit_title = f"[packit] {title}"

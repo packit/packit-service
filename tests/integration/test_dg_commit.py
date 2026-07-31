@@ -566,7 +566,7 @@ def test_downstream_koji_build_failure_issue_created():
         koji_target=None,
     ).and_raise(PackitException, "Some error")
 
-    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock = flexmock(GithubProject, has_issues=True)
     issue_project_mock.should_receive("get_issue_list").and_return([]).once()
     issue_project_mock.should_receive("create_issue").and_return(
         flexmock(id=3, url="https://github.com/namespace/project/issues/3"),
@@ -684,7 +684,7 @@ def test_downstream_koji_build_failure_issue_comment():
         koji_target=None,
     ).and_raise(PackitException, "Some error")
 
-    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock = flexmock(GithubProject, has_issues=True)
     issue_project_mock.should_receive("get_issue_list").and_return(
         [
             flexmock(
