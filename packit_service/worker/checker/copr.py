@@ -2,11 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from collections.abc import Iterable
+from pathlib import Path
+
+from packit.config import JobConfigTriggerType
 
 from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
 )
 from packit_service.events import gitlab
+from packit_service.events.abstract.comment import PullRequest as PRCommentEvent
+from packit_service.service.db_project_events import AddBranchPushEventToDb as PushEvent
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
@@ -141,3 +147,52 @@ class CanActorRunTestsJob(
                 )
                 return False
         return True
+
+
+class AreFilesChanged(Checker, GetCoprBuildJobHelperForIdMixin, ConfigFromEventMixin):
+    """
+    Check if any files under the current package's `paths` field is changed.
+    If not, then just skip the current copr build job.
+    """
+
+    def get_files_changed(self) -> Iterable[Path]:
+        """
+        Get the list of files changed in the current commit or the current pullrequest
+        """
+        if self.job_config.trigger == JobConfigTriggerType.pull_request:
+            pr = self.project.get_pr(self.data.pr_id)
+            for file in pr.changes.files:
+                yield Path(file)
+        if self.job_config.trigger == JobConfigTriggerType.commit:
+            push_event = self.data.to_event()
+            assert isinstance(push_event, PushEvent)
+            files = set()
+            for commit in push_event.commits:
+                files |= set(commit["modified"])
+                files |= set(commit["added"])
+                yield from [Path(file) for file in files]
+            return
+        # Unexpected case
+        raise NotImplementedError(f"Trigger not supported: {self.job_config.trigger}")
+
+    def pre_check(self) -> bool:
+        if self.job_config.trigger == JobConfigTriggerType.release:
+            # For releases we don't do any checks
+            return True
+        if isinstance(self.data.to_event(), PRCommentEvent):
+            # For PR comments don't do any checks
+            return True
+        package_config = self.package_config
+        # The paths that we need to check for files changed
+        paths = package_config["paths"]
+        if any(root_path in paths for root_path in (".", "./")):
+            # Early exit if the git root was included, in which case we don't need to
+            # check the files changed
+            return True
+        for changed_file in self.get_files_changed():
+            # Main check
+            if any(changed_file.is_relative_to(p) for p in paths):
+                return True
+        # Should only get here if there are specific `paths` and none of the `changed_file`
+        # are relative to the paths there -> No relevant files changed for the package.
+        return False
