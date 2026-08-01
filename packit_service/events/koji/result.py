@@ -151,6 +151,7 @@ class Task(KojiEvent):
         self,
         task_id: int,
         state: KojiTaskState,
+        parent: Optional[int] = None,
         old_state: Optional[KojiTaskState] = None,
         rpm_build_task_ids: Optional[dict[str, int]] = None,
         rpm_build_failed_arch_list: Optional[list[str]] = None,
@@ -158,6 +159,7 @@ class Task(KojiEvent):
         completion_time: Optional[Union[int, float, str]] = None,
     ):
         super().__init__(
+            parent=parent,
             task_id=task_id,
             rpm_build_task_ids=rpm_build_task_ids,
             start_time=start_time,
