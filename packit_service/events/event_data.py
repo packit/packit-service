@@ -175,14 +175,17 @@ class EventData:
         #    We would also lose silent fail on some of the currently ignored
         #    events (right now we log a warning).
         if self.event_type in {
+            "forgejo.pr.Action",
             "github.pr.Action",
             "pagure.pr.Action",
             "gitlab.mr.Action",
+            "forgejo.pr.Comment",
             "github.pr.Comment",
             "pagure.pr.Comment",
             "gitlab.mr.Comment",
             "pagure.pr.Flag",
             "github.check.PullRequest",
+            "forgejo.action_run.PullRequest",
         }:
             (
                 self._db_project_object,
@@ -195,10 +198,12 @@ class EventData:
                 commit_sha=self.commit_sha,
             )
         elif self.event_type in {
+            "forgejo.push.Commit",
             "github.push.Commit",
             "gitlab.push.Commit",
             "pagure.push.Commit",
             "github.check.Commit",
+            "forgejo.action_run.Push",
         }:
             (
                 self._db_project_object,
@@ -239,6 +244,7 @@ class EventData:
                 package=self.event_dict.get("package_name"),
             )
         elif self.event_type in {
+            "forgejo.issue.Comment",
             "github.issue.Comment",
             "gitlab.issue.Comment",
         }:
