@@ -28,6 +28,7 @@ from packit_service.constants import (
 )
 from packit_service.events import (
     abstract,
+    forgejo,
     github,
     gitlab,
     koji,
@@ -348,9 +349,11 @@ class SteveJobs:
         elif isinstance(
             self.event,
             (
+                forgejo.pr.Comment,
                 github.pr.Comment,
                 gitlab.mr.Comment,
                 pagure.pr.Comment,
+                forgejo.issue.Comment,
                 github.issue.Comment,
                 gitlab.issue.Comment,
             ),
@@ -362,7 +365,7 @@ class SteveJobs:
                 GitPullRequestCommentHelpHandler
                 if isinstance(
                     self.event,
-                    (github.pr.Comment, gitlab.mr.Comment, pagure.pr.Comment),
+                    (forgejo.pr.Comment, github.pr.Comment, gitlab.mr.Comment, pagure.pr.Comment),
                 )
                 else GitIssueCommentHelpHandler
             )
@@ -375,7 +378,9 @@ class SteveJobs:
                 isinstance(
                     self.event,
                     (
+                        forgejo.pr.Action,
                         pagure.pr.Action,
+                        forgejo.pr.Comment,
                         pagure.pr.Comment,
                         koji.result.Task,
                         testing_farm.Result,
@@ -960,7 +965,11 @@ class SteveJobs:
             return commands[0] == "koji-tag"
 
         matching_jobs: list[JobConfig] = []
-        if isinstance(self.event, pagure.pr.Comment):
+
+        # [XXX] this assumes all Forgejo events come from dist-git
+        # if we ever add support for Forgejo in the upstream, all forgejo.pr.Comment
+        # events would be processed in this if branch meant only for dist-git
+        if isinstance(self.event, (forgejo.pr.Comment, pagure.pr.Comment)):
             for job in self.event.packages_config.get_job_views():
                 if (
                     job.type in [JobType.koji_build, JobType.bodhi_update]
@@ -976,7 +985,7 @@ class SteveJobs:
                         if event_is_koji_tag_command() and not job.sidetag_group:
                             continue
                     # A koji_build or bodhi_update job with commit or koji_build trigger
-                    # can be re-triggered by a Pagure comment in a PR
+                    # can be re-triggered by a Pagure/Forgejo comment in a PR
                     matching_jobs.append(job)
                 elif (
                     job.type == JobType.pull_from_upstream
