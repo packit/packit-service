@@ -3,7 +3,7 @@
 
 import logging
 import socket
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from os import getenv
 from typing import ClassVar, Optional
 
@@ -12,15 +12,19 @@ from celery import Task
 from celery._state import get_current_task
 from celery.signals import after_setup_logger
 from copr.v3 import CoprException
+from kubernetes.client import V1DeleteOptions
+from kubernetes.client.rest import ApiException
 from ogr import __version__ as ogr_version
 from ogr.exceptions import OgrException
 from packit import __version__ as packit_version
 from packit.exceptions import PackitException
+from sandcastle.api import Sandcastle
 from sqlalchemy import __version__ as sqlal_version
 from syslog_rfc5424_formatter import RFC5424Formatter
 
 from packit_service import __version__ as ps_version
 from packit_service.celerizer import celery_app, get_redis_config
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
     CELERY_DEFAULT_MAIN_TASK_NAME,
     DEFAULT_RETRY_BACKOFF,
@@ -1082,3 +1086,79 @@ def cleanup_orphaned_pidbox_queues() -> None:
         logger.error(f"Redis error during pidbox cleanup: {e}")
     except Exception as e:
         logger.error(f"Unexpected error during pidbox cleanup: {e}")
+
+
+@celery_app.task
+def cleanup_orphaned_pvcs() -> None:
+    """Clean up orphaned Sandcastle interim PVCs that leaked when workers died
+    before their cleanup ran.
+
+    Lists PVCs matching the Sandcastle interim naming pattern in the sandbox
+    namespace, checks whether a corresponding pod still exists, and deletes
+    any PVC whose pod is gone (and older than a grace period to avoid racing
+    with PVC creation during pod scheduling).
+
+    Runs periodically via Celery beat.
+    """
+    logger.info("Starting cleanup of orphaned Sandcastle PVCs")
+
+    # Skip PVCs younger than this to avoid racing with pod scheduling
+    min_age = timedelta(minutes=30)
+
+    try:
+        service_config = ServiceConfig.get_service_config()
+        namespace = service_config.command_handler_k8s_namespace
+        api = Sandcastle.get_api_client()
+
+        pvcs = api.list_namespaced_persistent_volume_claim(namespace=namespace)
+
+        interim_pvcs = [
+            pvc
+            for pvc in pvcs.items
+            if pvc.metadata.name.startswith("sandcastle-") and pvc.metadata.name.endswith("-pvc")
+        ]
+
+        if not interim_pvcs:
+            logger.info("No Sandcastle interim PVCs found")
+            return
+
+        pods = api.list_namespaced_pod(namespace=namespace)
+        now = datetime.now(timezone.utc)
+
+        deleted_count = 0
+        for pvc in interim_pvcs:
+            pvc_name = pvc.metadata.name
+
+            pvc_age = now - pvc.metadata.creation_timestamp
+            if pvc_age < min_age:
+                logger.debug(f"Skipping young PVC {pvc_name} (age: {pvc_age})")
+                continue
+
+            has_active_pod = any(
+                volume.persistent_volume_claim
+                and volume.persistent_volume_claim.claim_name == pvc_name
+                for pod_obj in pods.items
+                for volume in (pod_obj.spec.volumes or [])
+            )
+
+            if has_active_pod:
+                continue
+
+            try:
+                api.delete_namespaced_persistent_volume_claim(
+                    pvc_name,
+                    namespace=namespace,
+                    body=V1DeleteOptions(grace_period_seconds=0),
+                )
+                deleted_count += 1
+                logger.info(f"Deleted orphaned PVC: {pvc_name}")
+            except ApiException as e:
+                if e.status != 404:
+                    logger.warning(f"Failed to delete PVC {pvc_name}: {e}")
+
+        logger.info(
+            f"PVC cleanup complete: found {len(interim_pvcs)} interim PVCs, "
+            f"deleted {deleted_count} orphaned"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during PVC cleanup: {e}")
