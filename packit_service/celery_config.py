@@ -59,6 +59,11 @@ beat_schedule = {
         "schedule": crontab(minute=30, hour=0),  # nightly at 12:30 AM
         "options": {"queue": "short-running"},
     },
+    "cleanup-orphaned-pvcs": {
+        "task": "packit_service.worker.tasks.cleanup_orphaned_pvcs",
+        "schedule": crontab(minute=0, hour="*/6"),  # every 6 hours
+        "options": {"queue": "short-running"},
+    },
 }
 
 # http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application
