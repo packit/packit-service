@@ -11,6 +11,7 @@ import requests
 from ogr.utils import RequestResponse
 from packit.constants import HTTP_REQUEST_TIMEOUT
 from packit.exceptions import PackitException
+from urllib3.util.retry import Retry
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -33,7 +34,16 @@ class TestingFarmClient:
         self._token = token
 
         self.session = requests.session()
-        self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
+        retry_strategy = Retry(
+            total=5,
+            backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["GET", "POST", "DELETE"],
+        )
+        self.session.mount(
+            "https://",
+            requests.adapters.HTTPAdapter(max_retries=retry_strategy),
+        )
         self.session.headers.update({"Authorization": f"Bearer {self._token}"})
 
     @property

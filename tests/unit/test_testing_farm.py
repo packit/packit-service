@@ -2480,3 +2480,46 @@ class TestIsFreshlyBranchedFedora:
             {"fedora-development": []},
         )
         assert TFJobHelper.is_freshly_branched_fedora("fedora-42") is False
+
+
+class TestTestingFarmClientRetry:
+    """Tests for the retry mechanism configured on the TF API client."""
+
+    def test_retry_strategy_is_configured(self):
+        """Verify that the session retry strategy retries on 5xx status codes."""
+        from urllib3.util.retry import Retry
+
+        service_config = ServiceConfig.get_service_config()
+        client = TFClient(
+            api_url=service_config.testing_farm_api_url,
+            token=service_config.testing_farm_secret,
+        )
+        adapter = client.session.get_adapter("https://example.com")
+        retry = adapter.max_retries
+
+        assert isinstance(retry, Retry)
+        assert retry.total == 5
+        assert retry.backoff_factor == 1
+        assert 500 in retry.status_forcelist
+        assert 502 in retry.status_forcelist
+        assert 503 in retry.status_forcelist
+        assert 504 in retry.status_forcelist
+
+    def test_retry_allows_post_and_delete(self):
+        """Verify that POST and DELETE methods are retried (needed for TF
+        request submission and cancellation)."""
+        from urllib3.util.retry import Retry
+
+        service_config = ServiceConfig.get_service_config()
+        client = TFClient(
+            api_url=service_config.testing_farm_api_url,
+            token=service_config.testing_farm_secret,
+        )
+        adapter = client.session.get_adapter("https://example.com")
+        retry = adapter.max_retries
+
+        assert isinstance(retry, Retry)
+        allowed = retry.allowed_methods
+        assert "GET" in allowed
+        assert "POST" in allowed
+        assert "DELETE" in allowed
