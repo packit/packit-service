@@ -1,0 +1,4 @@
+[Container]
+ContainerName=postgres
+Image=quay.io/sclorg/postgresql-15-c9s
+Network=postgres.network

@@ -1,0 +1,8 @@
+[Unit]
+After=packit-service.container
+Requires=packit-service.container
+
+[Container]
+ContainerName=packit-dashboard
+Image=quay.io/packit/dashboard:prod
+User=1024
