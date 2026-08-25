@@ -91,10 +91,117 @@ def test_check_copr_build_already_successful():
             .should_receive("get")
             .with_args(1)
             .and_return(flexmock(ended_on="timestamp", state="completed"))
+            .mock()
+            .should_receive("get_source_chroot")
+            .with_args(1)
+            .and_return(flexmock(state="succeeded"))
             .mock(),
         ),
     )
+    # update_srpm_build_state is called but SRPM build already succeeded,
+    # so the handler dispatch is a safe idempotent operation
+    flexmock(packit_service.worker.helpers.build.babysit).should_receive(
+        "update_srpm_build_state",
+    ).once()
     assert check_copr_build(build_id=1)
+
+
+def test_check_copr_build_srpm_status_check_dispatched_when_db_already_success(
+    add_pull_request_event_with_sha_123456,
+):
+    """When copr_build_end handlers update the SRPM build DB row to
+    success before babysit runs, babysit should still call
+    update_srpm_build_state to dispatch the SRPM status check.
+
+    Regression test for https://github.com/packit/packit-service/issues/3170
+    """
+    db_project_object, db_project_event = add_pull_request_event_with_sha_123456
+    srpm_build = flexmock(
+        copr_build_id="55",
+        status=BuildStatus.success,
+        commit_sha="123456",
+    )
+    flexmock(srpm_build).should_receive("get_project_event_object").and_return(
+        db_project_object,
+    )
+    flexmock(srpm_build).should_receive("get_project_event_model").and_return(
+        db_project_event,
+    )
+    flexmock(srpm_build).should_receive("get_package_name").and_return(None)
+
+    db_build = flexmock(
+        build_id="55",
+        status=BuildStatus.success,
+        submitted_time=datetime.datetime.utcnow(),
+        target="the-target",
+        owner="the-owner",
+        project_name="the-namespace-repo_name-5",
+        commit_sha="123456",
+    )
+
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").with_args(
+        1,
+    ).and_return([db_build])
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        srpm_build,
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "the-owner", "copr_url": "https://dummy.url"}),
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        db_build,
+    )
+
+    build_copr = flexmock(
+        ended_on="timestamp",
+        started_on="timestamp",
+        state="succeeded",
+        ownername="the-owner",
+        projectname="the-namespace-repo_name-5",
+        source_package={
+            "name": "source_package_name",
+            "url": "https://some.host/my.srpm",
+        },
+    )
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            build_proxy=flexmock()
+            .should_receive("get")
+            .with_args(1)
+            .and_return(build_copr)
+            .mock()
+            .should_receive("get_source_chroot")
+            .with_args(1)
+            .and_return(flexmock(state="succeeded"))
+            .mock(),
+        ),
+    )
+    flexmock(events.copr.CoprBuild).should_receive("get_packages_config").and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig(specfile_path="some.spec")},
+                ),
+            ],
+            packages={"package": CommonPackageConfig(specfile_path="some.spec")},
+        ),
+    )
+
+    # The key assertion: celery_run_async must be called to dispatch
+    # the CoprBuildEndHandler for the SRPM, even though the DB already
+    # shows success.
+    celery_run_async_called = []
+    flexmock(
+        packit_service.worker.helpers.build.babysit,
+        celery_run_async=lambda signatures: celery_run_async_called.append(signatures),
+    )
+
+    assert check_copr_build(build_id=1)
+    assert len(celery_run_async_called) == 1, (
+        "Expected celery_run_async to be called once for the SRPM status check"
+    )
 
 
 def celery_run_async_stub(signatures, handlers) -> None:
