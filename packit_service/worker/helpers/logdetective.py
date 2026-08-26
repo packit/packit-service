@@ -13,23 +13,18 @@ import requests
 from packit_service.events import koji
 from packit_service.events.event_data import EventData
 from packit_service.models import (
+    GitBranchModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
     LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
+    ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.utils import verify_artifact
 from packit_service.worker.monitoring import Pushgateway
 
 logger = logging.getLogger(__name__)
-
-LD_COMMENTARY = (
-    "Build was executed in downstream Koji using containerized environment provided by Mock."
-    "The build.log contains output of the package build, it is the most likely to contain messages,"
-    " indicating the root cause."
-    "The mock_output.log is a general log from Mock."
-    "The root.log is a log from creation of the chroot environment."
-)
 
 
 class LogDetectiveKojiTriggerHelper:
@@ -64,6 +59,55 @@ class LogDetectiveKojiTriggerHelper:
         self.token = logdetective_token
         # run_group created after 1st succcessful trigger, right before creating RunModel
         self.run_group: Optional[LogDetectiveRunGroupModel] = None
+
+    def _format_duration(self) -> str:
+        """Return a human-readable build duration, or empty string if unavailable."""
+        try:
+            start = float(self.koji_event.start_time)
+            end = float(self.koji_event.completion_time)
+        except (TypeError, ValueError):
+            return ""
+        seconds = end - start
+        if seconds < 0:
+            return ""
+        return f"Build ran for {seconds:.0f} seconds before failing."
+
+    def _build_commentary(self, arch: str) -> str:
+        """Build a dynamic commentary string with per-build context for Log Detective."""
+        build = self.koji_event.build_model
+        parts = [
+            "Build was executed in downstream Koji"
+            " using containerized environment provided by Mock.",
+            f"Package NVR: {build.nvr or 'unknown'},"
+            f" target: {self.koji_event.target or 'unknown'}, arch: {arch}.",
+            "Scratch build." if build.scratch else "Official (non-scratch) build.",
+        ]
+        db_project_object = self.koji_event.db_project_object
+        if isinstance(db_project_object, PullRequestModel):
+            parts.append(f"PR build (PR #{db_project_object.pr_id}).")
+        elif isinstance(db_project_object, GitBranchModel):
+            parts.append(f"Branch build ({db_project_object.name}).")
+        elif isinstance(db_project_object, ProjectReleaseModel):
+            parts.append(f"Release build (tag: {db_project_object.tag_name}).")
+        duration = self._format_duration()
+        if duration:
+            parts.append(duration)
+        if build.sidetag:
+            parts.append(
+                f"Built in sidetag: {build.sidetag}."
+                " Sidetag builds use an isolated buildroot inheriting from the base tag;"
+                " dependency resolution failures may reflect non-default package versions"
+                " present in the sidetag."
+            )
+        parts += [
+            "The build.log contains output of the package build"
+            " and is the most likely source of the root cause.",
+            "The mock_output.log is a general log from Mock.",
+            "The root.log is a log from creation of the chroot environment.",
+        ]
+        if build.build_submission_stdout:
+            parts.append(f"Build submission output: {build.build_submission_stdout}")
+        return " ".join(parts)
 
     def trigger_log_detective_analysis(self) -> list[bool]:
         """
@@ -121,7 +165,7 @@ class LogDetectiveKojiTriggerHelper:
         endpoint_url = f"{self.url}/analyze"
         request_json = {
             "artifacts": artifacts,
-            "build_metadata": {"commentary": LD_COMMENTARY},
+            "build_metadata": {"commentary": self._build_commentary(arch)},
             "target_build": str(build_arch_task_id),
             "build_system": LogDetectiveBuildSystem.koji.value,
             "commit_sha": self.data.commit_sha,

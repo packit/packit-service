@@ -73,6 +73,10 @@ def test_logdetective_koji_build_scratch_downstream(
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
 
     koji_build_pr_downstream.target = "rawhide"
+    koji_build_pr_downstream.nvr = "packit-0.123.0-1.fc00"
+    koji_build_pr_downstream.scratch = True
+    koji_build_pr_downstream.sidetag = None
+    koji_build_pr_downstream.build_submission_stdout = "MOCK STDOUT"
     flexmock(koji.result.Task).should_receive("get_packages_config").and_return(None)
     flexmock(KojiBuildTargetModel).should_receive("get_by_task_id").and_return(
         koji_build_pr_downstream

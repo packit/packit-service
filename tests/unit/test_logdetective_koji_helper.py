@@ -18,7 +18,6 @@ from packit_service.models import (
     LogDetectiveRunModel,
 )
 from packit_service.worker.helpers.logdetective import (
-    LD_COMMENTARY,
     LogDetectiveKojiTriggerHelper,
     logger,
 )
@@ -54,7 +53,13 @@ def mock_event_data():
 @pytest.fixture
 def mock_koji_task_failed_event():
     mock_group = flexmock(runs=[flexmock()])
-    mock_build_model = flexmock(group_of_targets=mock_group)
+    mock_build_model = flexmock(
+        group_of_targets=mock_group,
+        nvr="test-package-1.0-1.fc44",
+        scratch=False,
+        sidetag=None,
+        build_submission_stdout=None,
+    )
 
     return flexmock(
         task_id=12340,
@@ -64,6 +69,9 @@ def mock_koji_task_failed_event():
         build_model=mock_build_model,
         rpm_build_task_ids={"x86_64": 12345},
         rpm_build_failed_arch_list=["x86_64"],
+        db_project_object=None,
+        start_time=1000,
+        completion_time=1045,
     )
 
 
@@ -84,11 +92,23 @@ def test_logdetective_koji_set_payload(mock_koji_task_failed_event, mock_event_d
     request_json = {
         "artifacts": {
             "root.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/root.log",
-            "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
+            "mock_output.log": (
+                "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log"
+            ),
             "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
         },
         "build_metadata": {
-            "commentary": LD_COMMENTARY,
+            "commentary": (
+                "Build was executed in downstream Koji"
+                " using containerized environment provided by Mock."
+                " Package NVR: test-package-1.0-1.fc44, target: rawhide, arch: x86_64."
+                " Official (non-scratch) build."
+                " Build ran for 45 seconds before failing."
+                " The build.log contains output of the package build"
+                " and is the most likely source of the root cause."
+                " The mock_output.log is a general log from Mock."
+                " The root.log is a log from creation of the chroot environment."
+            ),
         },
         "target_build": "12345",
         "build_system": "koji",
@@ -130,12 +150,26 @@ def test_logdetective_koji_success(
         f"{LOGDETECTIVE_PACKIT_SERVER_URL}/analyze",
         json={
             "artifacts": {
-                "root.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/root.log",
-                "mock_output.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log",
-                "build.log": "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log",
+                "root.log": ("https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/root.log"),
+                "mock_output.log": (
+                    "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/mock_output.log"
+                ),
+                "build.log": (
+                    "https://kojipkgs.fedoraproject.org//work/tasks/2345/12345/build.log"
+                ),
             },
             "build_metadata": {
-                "commentary": LD_COMMENTARY,
+                "commentary": (
+                    "Build was executed in downstream Koji"
+                    " using containerized environment provided by Mock."
+                    " Package NVR: test-package-1.0-1.fc44, target: rawhide, arch: x86_64."
+                    " Official (non-scratch) build."
+                    " Build ran for 45 seconds before failing."
+                    " The build.log contains output of the package build"
+                    " and is the most likely source of the root cause."
+                    " The mock_output.log is a general log from Mock."
+                    " The root.log is a log from creation of the chroot environment."
+                ),
             },
             "target_build": "12345",
             "build_system": LogDetectiveBuildSystem.koji.value,
