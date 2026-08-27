@@ -5,6 +5,8 @@
 Unit tests for LogDetectiveKojiTriggerHelper class.
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 import requests
 from flexmock import flexmock
@@ -12,10 +14,13 @@ from flexmock import flexmock
 import packit_service.worker.helpers.logdetective as logdetective_module
 from packit_service.constants import LOGDETECTIVE_PACKIT_SERVER_URL, KojiTaskState
 from packit_service.models import (
+    GitBranchModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
     LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
+    ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.worker.helpers.logdetective import (
     LogDetectiveKojiTriggerHelper,
@@ -377,3 +382,224 @@ def test_logdetective_koji_missing_time(
     trigger_success = helper.trigger_log_detective_analysis()
 
     assert not all(trigger_success)
+
+
+def _make_helper(koji_event, event_data=None):
+    """Return a LogDetectiveKojiTriggerHelper with stub credentials."""
+    if event_data is None:
+        event_data = flexmock(commit_sha="abc", project_url="https://example.com", pr_id=None)
+    return LogDetectiveKojiTriggerHelper(
+        koji_event,
+        event_data,
+        flexmock(),
+        "https://kojipkgs.fedoraproject.org",
+        LOGDETECTIVE_PACKIT_SERVER_URL,
+        "token",
+    )
+
+
+def _make_build_model(*, nvr="pkg-1.0-1.fc44", scratch=False, sidetag=None, stdout=None):
+    return flexmock(
+        nvr=nvr,
+        scratch=scratch,
+        sidetag=sidetag,
+        build_submission_stdout=stdout,
+    )
+
+
+def _make_event(
+    build_model, *, target="rawhide", db_project_object=None, start_time=1000, completion_time=1045
+):
+    return flexmock(
+        build_model=build_model,
+        target=target,
+        db_project_object=db_project_object,
+        start_time=start_time,
+        completion_time=completion_time,
+    )
+
+
+def test_format_duration_valid():
+    event = _make_event(_make_build_model(), start_time=1000, completion_time=1060)
+    helper = _make_helper(event)
+    assert helper._format_duration() == "Build ran for 60 seconds before failing."
+
+
+def test_format_duration_zero_seconds():
+    event = _make_event(_make_build_model(), start_time=1000, completion_time=1000)
+    helper = _make_helper(event)
+    assert helper._format_duration() == "Build ran for 0 seconds before failing."
+
+
+def test_format_duration_start_time_none():
+    event = _make_event(_make_build_model(), start_time=None, completion_time=1045)
+    helper = _make_helper(event)
+    assert helper._format_duration() == ""
+
+
+def test_format_duration_completion_time_none():
+    event = _make_event(_make_build_model(), start_time=1000, completion_time=None)
+    helper = _make_helper(event)
+    assert helper._format_duration() == ""
+
+
+def test_format_duration_non_numeric_start():
+    event = _make_event(_make_build_model(), start_time="not-a-number", completion_time=1045)
+    helper = _make_helper(event)
+    assert helper._format_duration() == ""
+
+
+def test_format_duration_non_numeric_completion():
+    event = _make_event(_make_build_model(), start_time=1000, completion_time="bad")
+    helper = _make_helper(event)
+    assert helper._format_duration() == ""
+
+
+def test_format_duration_negative():
+    # end before start — physically impossible but must be handled gracefully
+    event = _make_event(_make_build_model(), start_time=2000, completion_time=1000)
+    helper = _make_helper(event)
+    assert helper._format_duration() == ""
+
+
+def test_build_commentary_baseline(mock_koji_task_failed_event):
+    """Non-scratch, no project object, known NVR, valid duration, no sidetag, no stdout."""
+    helper = _make_helper(mock_koji_task_failed_event)
+    result = helper._build_commentary("x86_64")
+    assert "Build was executed in downstream Koji" in result
+    assert "Package NVR: test-package-1.0-1.fc44, target: rawhide, arch: x86_64." in result
+    assert "Official (non-scratch) build." in result
+    assert "Build ran for 45 seconds before failing." in result
+    assert result.endswith("The root.log is a log from creation of the chroot environment.")
+
+
+def test_build_commentary_scratch_build():
+    build = _make_build_model(scratch=True)
+    event = _make_event(build)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "Scratch build." in result
+    assert "Official (non-scratch) build." not in result
+
+
+def test_build_commentary_unknown_nvr():
+    build = _make_build_model(nvr=None)
+    event = _make_event(build)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "Package NVR: unknown" in result
+
+
+def test_build_commentary_unknown_target():
+    build = _make_build_model()
+    event = _make_event(build, target=None)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "target: unknown" in result
+
+
+def test_build_commentary_pr_build():
+    build = _make_build_model()
+    pr_model = MagicMock(spec=PullRequestModel)
+    pr_model.pr_id = 99
+    event = _make_event(build, db_project_object=pr_model)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "PR build (PR #99)." in result
+    assert "Branch build" not in result
+    assert "Release build" not in result
+
+
+def test_build_commentary_branch_build():
+    build = _make_build_model()
+    branch_model = MagicMock(spec=GitBranchModel)
+    branch_model.name = "main"
+    event = _make_event(build, db_project_object=branch_model)
+    helper = _make_helper(event)
+    result = helper._build_commentary("aarch64")
+    assert "Branch build (main)." in result
+    assert "PR build" not in result
+    assert "Release build" not in result
+
+
+def test_build_commentary_release_build():
+    build = _make_build_model()
+    release_model = MagicMock(spec=ProjectReleaseModel)
+    release_model.tag_name = "v1.2.3"
+    event = _make_event(build, db_project_object=release_model)
+    helper = _make_helper(event)
+    result = helper._build_commentary("s390x")
+    assert "Release build (tag: v1.2.3)." in result
+    assert "PR build" not in result
+    assert "Branch build" not in result
+
+
+def test_build_commentary_no_project_object():
+    build = _make_build_model()
+    event = _make_event(build, db_project_object=None)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "PR build" not in result
+    assert "Branch build" not in result
+    assert "Release build" not in result
+
+
+def test_build_commentary_no_duration():
+    build = _make_build_model()
+    event = _make_event(build, start_time=None, completion_time=None)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "seconds before failing" not in result
+
+
+def test_build_commentary_with_sidetag():
+    build = _make_build_model(sidetag="f44-build-side-12345")
+    event = _make_event(build)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "Built in sidetag: f44-build-side-12345." in result
+    assert "Sidetag builds use an isolated buildroot" in result
+
+
+def test_build_commentary_without_sidetag():
+    build = _make_build_model(sidetag=None)
+    event = _make_event(build)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "Built in sidetag" not in result
+
+
+def test_build_commentary_with_build_submission_stdout():
+    build = _make_build_model(stdout="Task submitted: 12345")
+    event = _make_event(build)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "Build submission output: Task submitted: 12345" in result
+
+
+def test_build_commentary_without_build_submission_stdout():
+    build = _make_build_model(stdout=None)
+    event = _make_event(build)
+    helper = _make_helper(event)
+    result = helper._build_commentary("x86_64")
+    assert "Build submission output" not in result
+
+
+def test_build_commentary_all_optional_fields():
+    """All optional fields present simultaneously."""
+    build = _make_build_model(
+        scratch=True,
+        sidetag="f44-side-99",
+        stdout="Submitted OK",
+    )
+    pr_model = MagicMock(spec=PullRequestModel)
+    pr_model.pr_id = 7
+    event = _make_event(build, db_project_object=pr_model, start_time=500, completion_time=800)
+    helper = _make_helper(event)
+    result = helper._build_commentary("ppc64le")
+
+    assert "Scratch build." in result
+    assert "PR build (PR #7)." in result
+    assert "Build ran for 300 seconds before failing." in result
+    assert "Built in sidetag: f44-side-99." in result
+    assert "Build submission output: Submitted OK" in result
