@@ -36,8 +36,6 @@ from packit_service.events import (
 )
 from packit_service.events.event_data import EventData
 from packit_service.models import AllowlistModel, AllowlistStatus
-from packit_service.worker.helpers.build import CoprBuildJobHelper
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
@@ -386,8 +384,13 @@ class Allowlist:
         user_or_project_denied,
         short_msg,
     ):
+        # Local imports to avoid circular import:
+        # allowlist -> helpers/testing_farm -> checker/testing_farm
+        # -> handlers/__init__ -> handlers/forges -> allowlist
+        from packit_service.worker.helpers.build import CoprBuildJobHelper
+        from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+
         for job_config in job_configs:
-            job_helper_kls: type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
             if job_config.type == JobType.tests:
                 job_helper_kls = TestingFarmJobHelper
             else:

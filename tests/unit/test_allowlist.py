@@ -888,6 +888,21 @@ def test_check_and_report_actor_pull_request(
     )
 
 
+def test_no_circular_import_in_allowlist():
+    """Verify allowlist module can be imported independently without circular import."""
+    import importlib
+    import sys
+
+    # Remove cached module to force a fresh import
+    module_name = "packit_service.worker.allowlist"
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+
+    # This should not raise ImportError
+    mod = importlib.import_module(module_name)
+    assert hasattr(mod, "Allowlist")
+
+
 @pytest.mark.parametrize(
     "url, expected_url",
     [
