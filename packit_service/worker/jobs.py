@@ -48,7 +48,7 @@ from packit_service.utils import (
     get_packit_commands_from_comment,
     pr_labels_match_configuration,
 )
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -770,7 +770,7 @@ class SteveJobs:
             )
             return []
 
-        allowlist = Allowlist(service_config=self.service_config)
+        allowlist = AllowlistChecker(service_config=self.service_config)
         processing_results: list[TaskResults] = []
 
         statuses_check_feedback: list[datetime] = []

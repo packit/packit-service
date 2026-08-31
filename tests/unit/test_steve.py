@@ -37,7 +37,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
@@ -204,7 +204,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     ).and_return((pr, {})).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(group).should_receive("apply_async").times(1 if success else 0)
 
     flexmock(ProposeDownstreamJobHelper).should_receive(

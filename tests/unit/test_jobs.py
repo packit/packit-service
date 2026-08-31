@@ -28,7 +28,7 @@ from packit_service.events import (
     vm_image,
 )
 from packit_service.models import TFTTestRunTargetModel
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildHandler,
@@ -3631,7 +3631,7 @@ def test_unapproved_jobs():
         [None, None, None],
     )
     # TODO: »do not« mock the ‹Allowlist› directly!!!
-    flexmock(Allowlist).should_receive("check_and_report").and_return(False)
+    flexmock(AllowlistChecker).should_receive("check_and_report").and_return(False)
 
     results = jobs.process_jobs()
     assert results and len(results) == 3, "we have gotten exactly 3 results"

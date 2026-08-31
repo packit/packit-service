@@ -41,7 +41,7 @@ from packit_service.models import (
 )
 from packit_service.package_config_getter import PackageConfigGetter
 from packit_service.service.urls import get_propose_downstream_info_url
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers import distgit
 from packit_service.worker.handlers.distgit import (
@@ -183,7 +183,7 @@ jobs:
     lp = flexmock(git_project=flexmock(default_branch="main"))
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     yield project_class, issue_comment_propose_downstream_event(forge)
 
@@ -467,7 +467,7 @@ def mock_repository_issue_retriggering():
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(group).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").and_return()
 

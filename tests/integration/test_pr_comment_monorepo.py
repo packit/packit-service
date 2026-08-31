@@ -21,7 +21,7 @@ from packit_service.models import (
     ProjectEventModelType,
     PullRequestModel,
 )
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
@@ -85,7 +85,7 @@ def mock_pr_comment_monorepo_functionality(request):
     ).and_return(db_project_object)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
 
 @pytest.mark.parametrize(

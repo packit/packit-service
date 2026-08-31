@@ -32,7 +32,7 @@ from packit_service.models import (
     SyncReleaseTargetStatus,
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -223,7 +223,7 @@ def test_new_hotness_update(new_hotness_update, sync_release_model):
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(
@@ -331,7 +331,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
         default_branch="main",
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     # Anitya event now always creates AnityaMultipleVersionsModel
     anitya_db_object = flexmock(
@@ -463,7 +463,7 @@ def test_new_hotness_update_non_git_multiple_versions(new_hotness_update):
     lp.git_project = distgit_project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     # Mock monitoring metadata to allow processing all versions
     flexmock(
@@ -663,7 +663,7 @@ def test_retry_pull_from_upstream_multi_version(new_hotness_update):
     lp.git_project = distgit_project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     flexmock(
         packit_service.worker.handlers.distgit,
@@ -827,7 +827,7 @@ def test_new_hotness_update_non_git(new_hotness_update, sync_release_model_non_g
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     service_config = ServiceConfig().get_service_config()
     flexmock(service_config).should_receive("get_project").with_args(

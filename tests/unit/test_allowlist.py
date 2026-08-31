@@ -38,14 +38,15 @@ from packit_service.models import (
     AllowlistStatus,
 )
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
 
 
 @pytest.fixture()
-def allowlist():
-    return Allowlist(service_config=ServiceConfig.get_service_config())
+def allowlist() -> AllowlistChecker:
+    return AllowlistChecker(service_config=ServiceConfig.get_service_config())
 
 
 @pytest.fixture(scope="module")
@@ -611,7 +612,7 @@ def events(request) -> Iterable[tuple[github.abstract.GithubEvent, bool, Iterabl
 )
 def test_check_and_report(
     add_pull_request_event_with_empty_sha,
-    allowlist: Allowlist,
+    allowlist: AllowlistChecker,
     allowlist_entries,
     events: Iterable[tuple[github.abstract.GithubEvent, bool, Iterable[str]]],
 ):

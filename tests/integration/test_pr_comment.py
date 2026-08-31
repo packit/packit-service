@@ -70,7 +70,7 @@ from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import (
     get_packit_commands_from_comment,
 )
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.run_condition import IsRunConditionSatisfied
 from packit_service.worker.handlers import distgit
@@ -217,7 +217,7 @@ def mock_pr_comment_functionality(request):
     ).and_return(db_project_object)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: flexmock())
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
 
 def one_job_finished_with_msg(results: list[TaskResults], msg: str):
@@ -535,7 +535,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         project_event,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
         type=ProjectEventModelType.pull_request,
@@ -761,7 +761,7 @@ def test_pr_test_command_handler(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -849,7 +849,7 @@ def test_pr_test_command_handler_identifiers(
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject,
@@ -1038,7 +1038,7 @@ def test_pr_test_command_handler_retries(
     urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -1245,7 +1245,7 @@ def test_pr_test_command_handler_skip_build_option(
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject,
@@ -1455,7 +1455,7 @@ def test_pr_test_command_handler_compose_not_present(
         ranch="public",
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject,
@@ -1583,7 +1583,7 @@ def test_pr_test_command_handler_composes_not_available(
         ranch="public",
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
         GithubProject,
@@ -1679,7 +1679,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
         namespace="packit-service",
@@ -1741,7 +1741,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
         namespace="packit-service",
@@ -2001,7 +2001,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(
@@ -2193,7 +2193,7 @@ def test_pr_test_command_handler_multiple_builds(
     ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(
         GithubProject,
         get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"],
@@ -3000,7 +3000,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment(pagure_pr_comment_
 
     flexmock(GitUpstream).should_receive("get_last_tag").and_return("7.0.3")
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
         True,
     )
@@ -3174,7 +3174,7 @@ def test_pull_from_upstream_retrigger_via_dist_git_pr_comment_non_git(
     flexmock(GithubService).should_receive("set_auth_method").with_args(
         AuthMethod.token,
     ).once()
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
         True,
     )
@@ -3374,7 +3374,7 @@ def _run_pull_from_upstream_with_version(
     flexmock(GithubService).should_receive("set_auth_method").with_args(
         AuthMethod.token,
     ).once()
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(True)
 
     def _get_project(url, *_, **__):

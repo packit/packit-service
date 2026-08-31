@@ -35,7 +35,7 @@ from packit_service.models import (
 )
 from packit_service.service.db_project_events import AddReleaseEventToDb
 from packit_service.service.urls import get_propose_downstream_info_url
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.handlers.distgit import AbstractSyncReleaseHandler
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
@@ -210,7 +210,7 @@ def test_dist_git_push_release_handle(
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
     target_project = (
         flexmock(namespace="downstream-namespace", repo="downstream-repo")
@@ -354,7 +354,7 @@ def test_dist_git_push_release_handle_fast_forward_branches(
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
     target_project = (
         flexmock(namespace="downstream-namespace", repo="downstream-repo")
@@ -495,7 +495,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     for model in propose_downstream_target_models:
@@ -645,7 +645,7 @@ def test_dist_git_push_release_handle_one_failed(
             ],
         ),
     )
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
     failed_branch = fedora_branches[1]
 
@@ -845,7 +845,7 @@ def test_dist_git_push_release_handle_all_failed(
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
@@ -959,7 +959,7 @@ def test_retry_propose_downstream_task(
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
@@ -1074,7 +1074,7 @@ def test_dont_retry_propose_downstream_task(
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(
@@ -1215,7 +1215,7 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
         ),
     )
 
-    flexmock(Allowlist, check_and_report=True)
+    flexmock(AllowlistChecker, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url, required=True: project
 
     flexmock(AddReleaseEventToDb).should_receive("db_project_object").and_return(

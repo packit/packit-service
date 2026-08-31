@@ -18,7 +18,7 @@ from packit_service.models import (
     PullRequestModel,
     VMImageBuildTargetModel,
 )
-from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.allowlist_checker import AllowlistChecker
 from packit_service.worker.handlers.vm_image import VMImageBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -89,7 +89,7 @@ def test_vm_image_build(github_vm_image_build_comment):
             commit_sha="123456",
         ),
     )
-    flexmock(Allowlist).should_receive("check_and_report").and_return(True)
+    flexmock(AllowlistChecker).should_receive("check_and_report").and_return(True)
 
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
         [
