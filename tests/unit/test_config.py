@@ -83,6 +83,14 @@ def test_parse_valid(service_config_valid):
     assert config.package_config_path_override is None
 
 
+def test_mr_target_membership_respects_branch(service_config_valid):
+    config = ServiceConfig.get_from_dict(service_config_valid)
+    assert MRTarget("redhat/centos-stream/src/.+", "c9s") in config.gitlab_mr_targets_handled
+    assert (
+        MRTarget("redhat/centos-stream/src/.+", "rawhide") not in config.gitlab_mr_targets_handled
+    )
+
+
 def test_parse_optional_values(service_config_valid):
     """When optional values are set, they are correctly parsed"""
     config = ServiceConfig.get_from_dict(

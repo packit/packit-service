@@ -90,7 +90,7 @@ class MRTarget(NamedTuple):
         if not isinstance(other, MRTarget):
             raise NotImplementedError()
 
-        return self.repo == other.repo and self.branch == self.branch
+        return self.repo == other.repo and self.branch == other.branch
 
 
 class ServiceConfig(Config):
