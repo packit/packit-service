@@ -8,7 +8,7 @@ TODO: The build and test handlers are independent and should be moved away.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any, Optional
 
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
@@ -60,6 +60,7 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     reacts_to,
 )
+from packit_service.worker.helpers.testing_farm import DownstreamTestingFarmJobHelper
 from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     GetIssueMixin,
@@ -348,6 +349,7 @@ class GitCommentHelpHandler(
 
         # Determine parameters based on comment prefix
         comment = self.comment
+        kwargs: dict[str, Any] = {}
 
         if comment.startswith("/packit-ci-stg"):
             prog = HELP_COMMENT_PROG_FEDORA_CI_STG
@@ -370,16 +372,24 @@ class GitCommentHelpHandler(
             epilog_note = self.get_epilog_note()
             docs_url = DOCS_URL
 
-        # Use determined parameters to create parser and epilog
-        parser = parser_func(prog=prog, description=HELP_COMMENT_DESCRIPTION)
-        epilog = HELP_COMMENT_EPILOG.format(note=epilog_note, docs_url=docs_url)
-
         # `/packit help build` shows the sub-arguments of one command; anything
         # it does not recognise falls back to the full help.
-        help_text = parser.format_help()
         requested = get_packit_commands_from_comment(comment, prog)
-        if len(requested) > 1 and requested[0] == "help":
-            help_text = get_subcommand_help(parser, requested[1]) or help_text
+        requested_subcommand = (
+            requested[1] if len(requested) > 1 and requested[0] == "help" else None
+        )
+        # The Fedora CI test types cost an API call, so only look them up when
+        # `/packit-ci help test` is the thing that is going to list them.
+        if requested_subcommand == "test" and parser_func is get_comment_parser_fedora_ci:
+            kwargs["supported_test_types"] = self.get_fedora_ci_tests()
+
+        # Use determined parameters to create parser and epilog
+        parser = parser_func(prog=prog, description=HELP_COMMENT_DESCRIPTION, **kwargs)
+        epilog = HELP_COMMENT_EPILOG.format(note=epilog_note, docs_url=docs_url)
+
+        help_text = parser.format_help()
+        if requested_subcommand:
+            help_text = get_subcommand_help(parser, requested_subcommand) or help_text
 
         # Format and comment help message
         body = break_lines_in_text(help_text, sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH)
@@ -398,6 +408,14 @@ class GitCommentHelpHandler(
 
     def get_epilog_note_fedora_ci(self) -> str:
         return HELP_COMMENT_NOTE.format(note_content=HELP_NOTE_FEDORA_CI)
+
+    def get_fedora_ci_tests(self) -> list[str]:
+        return DownstreamTestingFarmJobHelper.get_fedora_ci_tests(
+            self.service_config,
+            self.project,
+            self.data,
+            filter_specific_tests=False,
+        )
 
 
 @reacts_to(event=github.pr.Comment)

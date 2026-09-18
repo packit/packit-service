@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import copy
 import json
 import shutil
 from pathlib import Path
@@ -267,6 +268,108 @@ def test_pr_comment_help_handler_github(
     )
 
     assert first_dict_value(results["job"])["success"]
+
+
+def test_pr_comment_help_handler_fedora_ci_test_choices(pr_help_comment_event):
+    """`/packit-ci help test` should list the registered Fedora CI test types
+    as choices for the `test_identifier` argument, the same list used to
+    validate an actual `/packit-ci test <type>` command."""
+    event = copy.deepcopy(pr_help_comment_event)
+    event["comment"]["body"] = "/packit-ci help test"
+
+    packit_yaml = "{'specfile_path': 'the-specfile.spec'}"
+
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"],
+    )
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+
+    pr = flexmock(head_commit="12345")
+    comment = flexmock()
+
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    pr.should_receive("get_comment").and_return(comment)
+    comment.should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("get_fedora_ci_tests").and_return(
+        ["rpmlint", "rpminspect"],
+    )
+
+    processing_results = SteveJobs().process_message(event)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert len(processing_results) == 1
+
+    comment_bodies = []
+    pr.should_receive("comment").replace_with(
+        lambda body, **_: comment_bodies.append(body),
+    ).once()
+
+    results = run_help_pr_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+    assert "rpmlint" in comment_bodies[0]
+    assert "rpminspect" in comment_bodies[0]
+
+
+def test_pr_comment_help_handler_fedora_ci_skips_test_lookup(pr_help_comment_event):
+    """Plain `/packit-ci help` must not pay for the Fedora CI test types: that list
+    is only printed by `/packit-ci help test`, and fetching it costs an API call."""
+    event = copy.deepcopy(pr_help_comment_event)
+    event["comment"]["body"] = "/packit-ci help"
+
+    packit_yaml = "{'specfile_path': 'the-specfile.spec'}"
+
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"],
+    )
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+
+    pr = flexmock(head_commit="12345")
+    comment = flexmock()
+
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    pr.should_receive("get_comment").and_return(comment)
+    comment.should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    flexmock(DownstreamTestingFarmJobHelper).should_receive("get_fedora_ci_tests").never()
+
+    processing_results = SteveJobs().process_message(event)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+    assert len(processing_results) == 1
+
+    comment_bodies = []
+    pr.should_receive("comment").replace_with(
+        lambda body, **_: comment_bodies.append(body),
+    ).once()
+
+    results = run_help_pr_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+    assert "test" in comment_bodies[0]
 
 
 def test_pr_comment_help_handler_pagure(pagure_pr_comment_added):
