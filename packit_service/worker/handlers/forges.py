@@ -50,6 +50,7 @@ from packit_service.utils import (
     get_comment_parser,
     get_comment_parser_fedora_ci,
     get_packit_commands_from_comment,
+    get_subcommand_help,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.checker.abstract import Checker
@@ -373,10 +374,15 @@ class GitCommentHelpHandler(
         parser = parser_func(prog=prog, description=HELP_COMMENT_DESCRIPTION)
         epilog = HELP_COMMENT_EPILOG.format(note=epilog_note, docs_url=docs_url)
 
+        # `/packit help build` shows the sub-arguments of one command; anything
+        # it does not recognise falls back to the full help.
+        help_text = parser.format_help()
+        requested = get_packit_commands_from_comment(comment, prog)
+        if len(requested) > 1 and requested[0] == "help":
+            help_text = get_subcommand_help(parser, requested[1]) or help_text
+
         # Format and comment help message
-        body = break_lines_in_text(
-            parser.format_help(), sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH
-        )
+        body = break_lines_in_text(help_text, sep=",", max_line_length=COMMENT_MAX_LINE_LENGTH)
         # Put body in code block to retain formatting
         help_message = f"```\n{body}\n```\n{epilog}"
         self.add_comment(body=help_message)

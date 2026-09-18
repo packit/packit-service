@@ -3,10 +3,33 @@
 
 import pytest
 
-from packit_service.utils import get_packit_commands_from_comment
+from packit_service.utils import (
+    get_comment_parser,
+    get_comment_parser_fedora_ci,
+    get_packit_commands_from_comment,
+    get_subcommand_help,
+)
 
 packit_comment_command_prefix = "/packit"
 packit_comment_command_prefix_fedora_ci = "/packit-ci"
+
+
+def test_parse_help_command_comment(comment_parser):
+    comment = "/packit help build"
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
+
+    args = comment_parser.parse_args(commands)
+    assert args.command == "help"
+    assert args.command_arg == "build"
+
+
+def test_parse_help_command_comment_fedora_ci(comment_parser_fedora_ci):
+    comment = "/packit-ci help test"
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix_fedora_ci)
+
+    args = comment_parser_fedora_ci.parse_args(commands)
+    assert args.command == "help"
+    assert args.command_arg == "test"
 
 
 def test_parse_build_comment(comment_parser):
@@ -310,3 +333,38 @@ def test_test_eln_branch_comment_fedora_ci(comment_parser_fedora_ci):
     args = comment_parser_fedora_ci.parse_args(commands)
     assert args.command == "test"
     assert args.check_target == "eln"
+
+
+def test_subcommand_help_lists_sub_arguments():
+    help_text = get_subcommand_help(get_comment_parser(prog="/packit"), "copr-build")
+
+    assert help_text.startswith("usage: /packit copr-build")
+    assert "--help" not in help_text
+    assert "--commit" in help_text
+    assert "--release" in help_text
+
+
+def test_subcommand_help_resolves_alias():
+    parser = get_comment_parser(prog="/packit")
+
+    assert get_subcommand_help(parser, "build") == get_subcommand_help(parser, "copr-build")
+
+
+def test_subcommand_help_without_sub_arguments():
+    help_text = get_subcommand_help(get_comment_parser(prog="/packit"), "rebuild-failed")
+
+    assert help_text == "/packit rebuild-failed has no sub-arguments.\n"
+
+
+def test_subcommand_help_unknown_command():
+    assert get_subcommand_help(get_comment_parser(prog="/packit"), "no-such-command") is None
+
+
+def test_subcommand_help_fedora_ci():
+    parser = get_comment_parser_fedora_ci(
+        prog="/packit-ci", supported_test_types=["installability", "rpmlint"]
+    )
+    help_text = get_subcommand_help(parser, "test")
+
+    assert help_text.startswith("usage: /packit-ci test")
+    assert "--target" in help_text
