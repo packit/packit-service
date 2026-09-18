@@ -4084,6 +4084,14 @@ def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment
             id="rpminspect - rawhide branch, eln target",
         ),
         pytest.param(
+            "/packit-ci test --target eln rpminspect",
+            "rawhide",
+            {("Packit-stg - rpminspect - eln [beaf90b]", "bb18abcfd81c6e8f66320513e432b4cd")},
+            1,
+            "eln",
+            id="rpminspect - rawhide branch, eln target, argument re-order",
+        ),
+        pytest.param(
             "/packit-ci test --target eln",
             "rawhide",
             {

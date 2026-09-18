@@ -42,6 +42,7 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import (
     get_check_name_prefix,
+    get_comment_parser_fedora_ci,
     get_package_nvrs,
     get_packit_commands_from_comment,
 )
@@ -1415,8 +1416,20 @@ class DownstreamTestingFarmJobHelper:
             )
             if not commands:
                 return []
-            if len(commands) > 1 and commands[1] in tests:
-                return [commands[1]]
+
+            parser = get_comment_parser_fedora_ci(prog=comment_command_prefix)
+            try:
+                args = parser.parse_args(commands)
+            except SystemExit:
+                logger.debug(
+                    f"Comment command {commands} uses unexpected syntax or contains "
+                    "unsupported arguments. As a result, we'll fall back to running "
+                    "all tests without any filtering.",
+                )
+                return tests
+
+            if getattr(args, "test_identifier", None) in tests:
+                return [args.test_identifier]
             return tests
 
         all_tests = [
