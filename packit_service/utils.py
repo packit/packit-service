@@ -14,7 +14,7 @@ from io import StringIO
 from logging import StreamHandler
 from pathlib import Path
 from re import search
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import requests
@@ -236,6 +236,16 @@ def get_packit_commands_from_comment(
     return []
 
 
+class _SubcommandParser(argparse.ArgumentParser):
+    # Commands arrive in comments, where `-h` means nothing; without this every
+    # command would list it and `/packit help <command>` could never report
+    # that a command takes no sub-arguments.
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("add_help", False)
+        kwargs.setdefault("formatter_class", RawTextHelpFormatter)
+        super().__init__(**kwargs)
+
+
 def _create_base_parser(
     prog: str | None = None,
     description: str | None = None,
@@ -250,6 +260,25 @@ def _create_base_parser(
     )
 
 
+def get_subcommand_help(parser: argparse.ArgumentParser, command: str) -> str | None:
+    """Return the help for one command of a comment parser, e.g. `build`.
+
+    Aliases resolve to the command they stand for. Returns None when the parser
+    has no such command, so the caller can fall back to the top-level help.
+    """
+    subparsers = next(
+        (a for a in parser._actions if isinstance(a, argparse._SubParsersAction)),
+        None,
+    )
+    if subparsers is None or command not in subparsers.choices:
+        return None
+
+    subparser = subparsers.choices[command]
+    if not subparser._actions:
+        return f"{subparser.prog} has no sub-arguments.\n"
+    return subparser.format_help()
+
+
 def get_comment_parser(
     prog: str | None = None,
     description: str | None = None,
@@ -261,10 +290,17 @@ def get_comment_parser(
     subparsers = parser.add_subparsers(
         dest="command",
         help="commands available",
+        parser_class=_SubcommandParser,
     )
-    subparsers.add_parser(
+    help_parser = subparsers.add_parser(
         "help",
         help="show this help message",
+    )
+    help_parser.add_argument(
+        "command_arg",
+        metavar="command",
+        nargs="?",
+        help="show the help message of this command",
     )
 
     build_parser = subparsers.add_parser(
@@ -288,7 +324,8 @@ def get_comment_parser(
     test_parser.add_argument(
         "targets",
         nargs="*",
-        help="reference(s) to PR(s) in different repositories containing builds to test",
+        help="reference(s) to PR(s) in different repositories containing builds to test \n"
+        "(expected format: <namespace>/<repo>#<pr_id>)",
     )
     test_parser.add_argument("--commit", help="run tests configured with the commit trigger")
     test_parser.add_argument("--release", help="run tests configured with the release trigger")
@@ -348,10 +385,17 @@ def get_comment_parser_fedora_ci(
     subparsers = parser.add_subparsers(
         dest="command",
         help="commands available",
+        parser_class=_SubcommandParser,
     )
-    subparsers.add_parser(
+    help_parser = subparsers.add_parser(
         "help",
         help="show this help message",
+    )
+    help_parser.add_argument(
+        "command_arg",
+        metavar="command",
+        nargs="?",
+        help="show the help message of this command",
     )
 
     test_parser = subparsers.add_parser("test", help="run tests in Testing Farm")
