@@ -126,7 +126,7 @@ from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     ConfigFromUrlMixin,
     GetBranchesFromIssueMixin,
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
     GetSyncReleaseTagMixin,
     LocalProjectMixin,
     PackitAPIWithDownstreamMixin,
@@ -1413,7 +1413,7 @@ class DownstreamKojiBuildHandler(
     ConfigFromEventMixin,
     LocalProjectMixin,
     PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
 ):
     task_name = TaskName.downstream_koji_build
 
@@ -1528,7 +1528,7 @@ class TagIntoSidetagHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
 ):
     task_name = TaskName.tag_into_sidetag
 
