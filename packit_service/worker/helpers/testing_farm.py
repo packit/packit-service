@@ -223,6 +223,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def skip_build(self) -> bool:
         return self.job_config.skip_build
 
+    @property
+    def skip_install(self) -> bool:
+        return self.job_config.skip_install
+
     @staticmethod
     def is_freshly_branched_fedora(distro: str) -> bool:
         aliases = get_aliases()
@@ -388,14 +392,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         chroot: str,
         build_id: Optional[int],
         built_packages: Optional[list[dict]],
-    ) -> dict[str, Union[list[str], str]]:
-        artifact: dict[str, Union[list[str], str]] = {
+        install: Optional[bool] = None,
+    ) -> dict[str, Union[list[str], str, bool]]:
+        artifact: dict[str, Union[list[str], str, bool]] = {
             "id": f"{build_id}:{chroot}",
             "type": "fedora-copr-build",
         }
 
         if built_packages:
             artifact["packages"] = get_package_nvrs(built_packages)
+
+        if install is not None:
+            artifact["install"] = install
 
         return artifact
 
@@ -482,7 +490,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         target: str,
         compose: str,
-        artifacts: Optional[list[dict[str, Union[list[str], str]]]] = None,
+        artifacts: Optional[list[dict[str, Union[list[str], str, bool]]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
         additional_builds: Optional[list["CoprBuildTargetModel"]] = None,
     ) -> dict:
@@ -743,11 +751,23 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         Get the artifacts list from the build (if the skip_build option is not defined)
         and additional builds (from other PRs) if present.
+
+        When the skip_install option is set, all Copr artifacts are attached with
+        'install': False so that Testing Farm makes them available but does not
+        install their packages (leaving installation to the tmt plan/tests). This
+        is independent of the skip_build option.
         """
+        # None means "use Testing Farm's default" (i.e. install the artifact).
+        install = False if self.skip_install else None
         artifacts = []
         if not self.skip_build:
             artifacts.append(
-                self._artifact(chroot, int(build.build_id), build.built_packages),
+                self._artifact(
+                    chroot,
+                    int(build.build_id),
+                    build.built_packages,
+                    install=install,
+                ),
             )
 
         artifacts.extend(
@@ -755,6 +775,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 chroot,
                 int(additional_build.build_id),
                 additional_build.built_packages,
+                install=install,
             )
             for additional_build in additional_builds or []
         )
