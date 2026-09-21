@@ -590,6 +590,33 @@ def test_artifact(
     assert result == artifact
 
 
+def test_artifact_skip_install():
+    """When install=False is passed, the artifact carries 'install': False so
+    that Testing Farm attaches the Copr build but does not install its packages.
+    """
+    result = TFJobHelper._artifact(
+        "centos-stream-x86_64",
+        "123456",
+        [
+            {
+                "arch": "x86_64",
+                "epoch": 0,
+                "name": "cool-project",
+                "release": "2.el8",
+                "version": "0.1.0",
+            },
+        ],
+        install=False,
+    )
+
+    assert result == {
+        "id": "123456:centos-stream-x86_64",
+        "type": "fedora-copr-build",
+        "packages": ["cool-project-0.1.0-2.el8.x86_64"],
+        "install": False,
+    }
+
+
 @pytest.mark.parametrize(
     ("compose", "composes", "result"),
     [
@@ -1947,6 +1974,136 @@ def test_get_artifacts(chroot, build, additional_builds, result):
     )
 
     assert artifacts == result
+
+
+def _make_get_artifacts_helper(job_config):
+    metadata = flexmock(
+        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"},
+    )
+    return TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=flexmock(),
+        metadata=metadata,
+        db_project_event=flexmock()
+        .should_receive("get_project_event_object")
+        .and_return(flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request))
+        .mock(),
+        job_config=job_config,
+    )
+
+
+def test_get_artifacts_skip_install():
+    """With skip_install enabled, every Copr artifact (main build and additional
+    builds from other PRs) carries 'install': False.
+    """
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        skip_install=True,
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            ),
+        },
+    )
+    helper = _make_get_artifacts_helper(job_config)
+
+    build = flexmock(
+        build_id="123456",
+        built_packages=[
+            {
+                "arch": "x86_64",
+                "epoch": 0,
+                "name": "cool-project",
+                "release": "2.el8",
+                "version": "0.1.0",
+            },
+        ],
+    )
+    additional_builds = [
+        flexmock(
+            build_id="54321",
+            built_packages=[
+                {
+                    "arch": "x86_64",
+                    "epoch": 0,
+                    "name": "not-cool-project",
+                    "release": "2.el8",
+                    "version": "0.1.0",
+                },
+            ],
+        ),
+    ]
+
+    artifacts = helper._get_artifacts(
+        chroot="centos-stream-x86_64",
+        build=build,
+        additional_builds=additional_builds,
+    )
+
+    assert artifacts == [
+        {
+            "id": "123456:centos-stream-x86_64",
+            "type": "fedora-copr-build",
+            "packages": ["cool-project-0.1.0-2.el8.x86_64"],
+            "install": False,
+        },
+        {
+            "id": "54321:centos-stream-x86_64",
+            "type": "fedora-copr-build",
+            "packages": ["not-cool-project-0.1.0-2.el8.x86_64"],
+            "install": False,
+        },
+    ]
+
+
+def test_get_artifacts_skip_install_independent_of_skip_build():
+    """skip_install is independent of skip_build: even when the main build is
+    not attached (skip_build), additional builds still carry 'install': False.
+    """
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        skip_build=True,
+        skip_install=True,
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            ),
+        },
+    )
+    helper = _make_get_artifacts_helper(job_config)
+
+    additional_builds = [
+        flexmock(
+            build_id="54321",
+            built_packages=[
+                {
+                    "arch": "x86_64",
+                    "epoch": 0,
+                    "name": "not-cool-project",
+                    "release": "2.el8",
+                    "version": "0.1.0",
+                },
+            ],
+        ),
+    ]
+
+    artifacts = helper._get_artifacts(
+        chroot="centos-stream-x86_64",
+        build=None,
+        additional_builds=additional_builds,
+    )
+
+    assert artifacts == [
+        {
+            "id": "54321:centos-stream-x86_64",
+            "type": "fedora-copr-build",
+            "packages": ["not-cool-project-0.1.0-2.el8.x86_64"],
+            "install": False,
+        },
+    ]
 
 
 @pytest.mark.parametrize(
