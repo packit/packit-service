@@ -8,7 +8,7 @@ from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, PackageConfig
 
 from packit_service.config import ServiceConfig
-from packit_service.events import anitya, pagure
+from packit_service.events import anitya, forgejo, pagure
 from packit_service.events.event_data import EventData
 from packit_service.models import ProjectEventModel
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
@@ -49,7 +49,11 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
                 distgit_project_url = self.metadata.event_dict.get(
                     "distgit_project_url",
                 )
-            elif self.metadata.event_type in (pagure.pr.Comment.event_type(),):
+            # TODO: remove Pagure-related code after the dist-git migration
+            elif self.metadata.event_type in (
+                forgejo.pr.Comment.event_type(),
+                pagure.pr.Comment.event_type(),
+            ):
                 distgit_project_url = self.metadata.event_dict.get("project_url")
             git_project = self.service_config.get_project(url=distgit_project_url)
             self._default_dg_branch = git_project.default_branch
