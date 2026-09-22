@@ -737,6 +737,9 @@ class AbortSyncRelease(Exception):
 @reacts_to(event=abstract.comment.Issue)
 @reacts_to(event=github.check.Release)
 class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
+    # TODO: No code working with the value of `topic` was found
+    # so hopefully this can be updated after the migration of
+    # dist-git
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.propose_downstream
     helper_kls = ProposeDownstreamJobHelper
@@ -1179,6 +1182,9 @@ class AbstractDownstreamKojiBuildHandler(
     This handler can submit a build in Koji from a dist-git.
     """
 
+    # TODO: No code working with the value of `topic` was found
+    # so hopefully this can be updated after the migration of
+    # dist-git
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.downstream_koji_build
 
