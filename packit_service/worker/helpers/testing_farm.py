@@ -5,7 +5,7 @@ import logging
 import re
 import shlex
 from collections.abc import Iterable
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TypedDict
 
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
@@ -164,6 +164,13 @@ class CommentArguments:
                 pr_arg = f"{namespace}/{repo}#{pr_id}"
                 self.pr_arguments.append(pr_arg)
                 logger.debug(f"Parsed pr_argument from GitHub URL: {arg} -> {pr_arg}")
+
+
+class TestingFarmArtifact(TypedDict, total=False):
+    id: str
+    type: str
+    packages: list[str]
+    install: bool
 
 
 class TestingFarmJobHelper(CoprBuildJobHelper):
@@ -393,8 +400,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         build_id: Optional[int],
         built_packages: Optional[list[dict]],
         install: Optional[bool] = None,
-    ) -> dict[str, Union[list[str], str, bool]]:
-        artifact: dict[str, Union[list[str], str, bool]] = {
+    ) -> TestingFarmArtifact:
+        artifact: TestingFarmArtifact = {
             "id": f"{build_id}:{chroot}",
             "type": "fedora-copr-build",
         }
@@ -490,7 +497,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         target: str,
         compose: str,
-        artifacts: Optional[list[dict[str, Union[list[str], str, bool]]]] = None,
+        artifacts: Optional[list[TestingFarmArtifact]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
         additional_builds: Optional[list["CoprBuildTargetModel"]] = None,
     ) -> dict:
@@ -747,7 +754,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         chroot: str,
         build: CoprBuildTargetModel,
         additional_builds: Optional[list[CoprBuildTargetModel]],
-    ) -> list[dict]:
+    ) -> list[TestingFarmArtifact]:
         """
         Get the artifacts list from the build (if the skip_build option is not defined)
         and additional builds (from other PRs) if present.
