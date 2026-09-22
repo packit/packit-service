@@ -120,3 +120,33 @@ class LogDetectiveResultList(Resource):
         )
         resp.headers["Content-Range"] = f"log-detective-results {first + 1}-{last}/*"
         return resp
+
+
+@ns.route("/groups")
+class LogDetectiveGroupList(Resource):
+    @ns.expect(pagination_arguments)
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Log Detective group list follows")
+    def get(self):
+        """List all Log Detective run groups."""
+        first, last = indices()
+        result = []
+        for group_model in LogDetectiveRunGroupModel.get_range(first, last):
+            targets = sorted(group_model.grouped_targets, key=lambda target: target.id)
+            group_dict = {
+                "packit_id": group_model.id,
+                "submitted_time": optional_timestamp(group_model.submitted_time),
+                "run_ids": sorted(run.id for run in group_model.runs) if group_model.runs else [],
+                "log_detective_targets": [
+                    {
+                        "id": target.id,
+                        "target_arch": target.target,
+                        "status": target.status.value,
+                    }
+                    for target in targets
+                ],
+            }
+            group_dict.update(get_project_info_from_build(group_model))
+            result.append(group_dict)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
+        resp.headers["Content-Range"] = f"log-detective-groups {first + 1}-{last}/*"
+        return resp

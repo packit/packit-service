@@ -5159,6 +5159,19 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             return session.query(LogDetectiveRunGroupModel).filter_by(id=group_id).first()
 
     @classmethod
+    def get_range(
+        cls,
+        first: int,
+        last: int,
+    ) -> Iterable["LogDetectiveRunGroupModel"]:
+        with sa_session_transaction() as session:
+            query = session.query(LogDetectiveRunGroupModel).order_by(
+                desc(LogDetectiveRunGroupModel.id),
+            )
+
+            return query.slice(first, last)
+
+    @classmethod
     def get_running(
         cls,
         project_event_type: ProjectEventModelType,
