@@ -46,6 +46,7 @@ def global_service_config():
         PagureService(instance_url="https://src.fedoraproject.org", token="token"),
         PagureService(instance_url="https://git.stg.centos.org", token="6789"),
         ForgejoService(instance_url="https://codeberg.org", token="token"),
+        ForgejoService(instance_url="https://forge.fedoraproject.org", token="token"),
     }
     service_config.server_name = "localhost"
     service_config.github_requests_log_path = "/path"
@@ -667,6 +668,12 @@ def pytest_assertrepr_compare(op, left, right):
 @pytest.fixture()
 def pagure_pr_comment_added():
     with open(DATA_DIR / "fedmsg" / "pagure_pr_comment.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def forgejo_pr_comment_added():
+    with open(DATA_DIR / "fedmsg" / "forgejo_pr_comment.json") as outfile:
         return json.load(outfile)
 
 

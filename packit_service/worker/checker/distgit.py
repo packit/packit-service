@@ -11,6 +11,7 @@ from packit_service import utils
 from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.events import (
     anitya,
+    forgejo,
     github,
     gitlab,
     koji,
@@ -291,7 +292,11 @@ class ValidInformationForPullFromUpstream(Checker, GetDistGitPullRequestMixin):
             msg_to_report = "We were not able to get the upstream tag name(s)."
             valid = False
 
-        if self.data.event_type in (pagure.pr.Comment.event_type(),):
+        # TODO: remove Pagure-related code after the dist-git migration
+        if self.data.event_type in (
+            forgejo.pr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
+        ):
             commenter = self.data.actor
             logger.debug(
                 f"Triggering pull-from-upstream through comment by: {commenter}",

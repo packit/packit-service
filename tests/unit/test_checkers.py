@@ -7,6 +7,7 @@ import pytest
 from flexmock import flexmock
 from ogr import PagureService
 from ogr.abstract import AccessLevel, PRStatus
+from ogr.services.forgejo import ForgejoProject
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from packit.actions import ActionName
@@ -1155,6 +1156,11 @@ def test_allowed_builders_for_bodhi_alias(
             JobConfigTriggerType.release,
             "pull_from_upstream_retrigger_pr_comment",
         ),
+        (
+            JobType.pull_from_upstream,
+            JobConfigTriggerType.release,
+            "pull_from_upstream_retrigger_forgejo_pr_comment",
+        ),
         (JobType.koji_build, JobConfigTriggerType.commit, "koji_build_trigger_push"),
         (JobType.koji_build, JobConfigTriggerType.commit, "koji_build_retrigger_pr_comment"),
         #        (
@@ -1197,6 +1203,7 @@ def test_run_condition(
     new_hotness_update,
     distgit_push_event,
     pagure_pr_comment_added,
+    forgejo_pr_comment_added,
     koji_build_tagged,
     koji_build_completed_event,
     github_pr_event,
@@ -1209,7 +1216,8 @@ def test_run_condition(
             packages={
                 "package": CommonPackageConfig(
                     downstream_package_name="package",
-                    specfile_path="package.spec",
+                    # distinguish between upstream and downstream .spec files
+                    specfile_path="upstream-package.spec",
                     clone_repos_before_run_condition=clone_repos,
                 ),
             },
@@ -1227,13 +1235,18 @@ def test_run_condition(
             ActionName.run_condition: [command],
         }
 
+    # if not set, version is already known from the event data itself
+    expected_project_cls = None
+
     if event_type == "pull_from_upstream_trigger_anitya":
         flexmock(anitya.update.NewHotness).should_receive("_add_release_and_event").and_return()
         event = Parser.parse_new_hotness_update_event(new_hotness_update)
         git_ref = "7.0.3"
+        # version is already known from the Anitya event's `versions` list
     elif event_type == "koji_build_trigger_push":
         event = distgit_push_event
         git_ref = "ad0c308af91da45cf40b253cd82f07f63ea9cbbf"
+        expected_project_cls = PagureProject
     elif event_type in (
         "pull_from_upstream_retrigger_pr_comment",
         "koji_build_retrigger_pr_comment",
@@ -1241,6 +1254,11 @@ def test_run_condition(
     ):
         event = Parser.parse_pagure_pull_request_comment_event(pagure_pr_comment_added)
         git_ref = "beaf90bcecc51968a46663f8d6f092bfdc92e682"
+        expected_project_cls = PagureProject
+    elif event_type == "pull_from_upstream_retrigger_forgejo_pr_comment":
+        event = Parser.parse_forgejo_comment_event(forgejo_pr_comment_added)
+        git_ref = "d0bb319af8dfa9944649231d09573ca02650ff9d"
+        expected_project_cls = ForgejoProject
     #    elif event_type in (
     #        "koji_build_retrigger_issue_comment",
     #        "bodhi_update_retrigger_issue_comment",
@@ -1251,15 +1269,19 @@ def test_run_condition(
     ):
         event = Parser.parse_koji_build_tag_event(koji_build_tagged)
         git_ref = "HEAD"
+        # version is already known from the koji tag event
     elif event_type == "bodhi_update_trigger_koji_build_success":
         event = koji_build_completed_event
         git_ref = "e029dd5250dde9a37a2cdddb6d822d973b09e5da"
+        # version is already known from the koji result event
     elif event_type == "copr_build_trigger_pr_creation":
         event = github_pr_event
         git_ref = "528b803be6f93e19ca4130bf4976f2800a3004c4"
+        expected_project_cls = GithubProject
     elif event_type == "copr_build_trigger_pr_push":
         event = github_push_event
         git_ref = "04885ff850b0fa0e206cd09db73565703d48f99b"
+        expected_project_cls = GithubProject
 
     checker = IsRunConditionSatisfied(
         package_config,
@@ -1268,6 +1290,9 @@ def test_run_condition(
     )
 
     flexmock(PagureProject).should_receive("get_pr").with_args(36).and_return(
+        flexmock(source_project=checker.project)
+    )
+    flexmock(ForgejoProject).should_receive("get_pr").with_args(3366).and_return(
         flexmock(source_project=checker.project)
     )
     flexmock(GithubProject).should_receive("get_pr").with_args(342).and_return(
@@ -1297,12 +1322,20 @@ def test_run_condition(
             "Release: 1\nSummary: package\n"
             "License: MIT\n%description\npackage\n"
         )
-        flexmock(PagureProject).should_receive("get_file_content").with_args(
-            path="package.spec", ref=git_ref
-        ).and_return(spec_file_content)
-        flexmock(GithubProject).should_receive("get_file_content").with_args(
-            path="package.spec", ref=git_ref
-        ).and_return(spec_file_content)
+        for project_cls in (PagureProject, ForgejoProject, GithubProject):
+            mock = flexmock(project_cls).should_receive("get_file_content")
+            if project_cls is expected_project_cls:
+                # pick downstream .spec file in case of dist-git
+                expected_path = (
+                    "package.spec"
+                    if project_cls in (PagureProject, ForgejoProject)
+                    else "upstream-package.spec"
+                )
+                mock.with_args(path=expected_path, ref=git_ref).and_return(
+                    spec_file_content,
+                ).once()
+            else:
+                mock.never()
 
     assert checker.pre_check() == should_pass
 
