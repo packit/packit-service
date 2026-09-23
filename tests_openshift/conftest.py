@@ -2707,5 +2707,13 @@ def a_log_detective_group(branch_project_event_model):
         log_detective_run_group=group,
         log_detective_response=SampleValues.ld_log_detective_response,
     )
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.error,
+        target_build="error-build",
+        target="fedora-42-aarch64",
+        build_system=LogDetectiveBuildSystem.koji,
+        log_detective_analysis_id="error-analysis-id",
+        log_detective_run_group=group,
+    )
 
     yield group

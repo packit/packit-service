@@ -1091,7 +1091,34 @@ def test_log_detective_group(client, clean_before_and_after, a_log_detective_gro
     assert isinstance(response_dict["submitted_time"], int)
     assert datetime.datetime.fromtimestamp(response_dict["submitted_time"])
     assert len(response_dict["run_ids"]) == 1
-    assert len(response_dict["log_detective_target_ids"]) == 1
+    assert response_dict["log_detective_target_ids"] == sorted(
+        target.id for target in a_log_detective_group.grouped_targets
+    )
+    assert "log_detective_targets" not in response_dict
+
+
+def test_log_detective_groups_list(client, clean_before_and_after, a_log_detective_group):
+    response = client.get(
+        url_for("api.log-detective_log_detective_group_list") + "?page=1&per_page=2",
+    )
+
+    assert response.status_code == 206
+    assert response.headers["Content-Range"] == "log-detective-groups 1-2/*"
+
+    response_list = response.json
+    assert len(response_list) == 1
+    assert response_list[0]["packit_id"] == a_log_detective_group.id
+    expected_targets = [
+        {
+            "id": target.id,
+            "target_arch": target.target,
+            "status": target.status.value,
+        }
+        for target in sorted(a_log_detective_group.grouped_targets, key=lambda target: target.id)
+    ]
+    assert response_list[0]["log_detective_targets"] == expected_targets
+    assert "log_detective_target_ids" not in response_list[0]
+    assert "log_detective_target_arches" not in response_list[0]
 
 
 def test_log_detective_list(client, clean_before_and_after, a_log_detective_result):
