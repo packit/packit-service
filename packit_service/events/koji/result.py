@@ -154,6 +154,7 @@ class Task(KojiEvent):
         old_state: Optional[KojiTaskState] = None,
         rpm_build_task_ids: Optional[dict[str, int]] = None,
         rpm_build_failed_arch_list: Optional[list[str]] = None,
+        rpm_build_task_labels: Optional[dict[str, str]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
@@ -164,6 +165,7 @@ class Task(KojiEvent):
             completion_time=completion_time,
         )
         self.rpm_build_failed_arch_list = rpm_build_failed_arch_list
+        self.rpm_build_task_labels = rpm_build_task_labels or {}
         self.state = state
         self.old_state = old_state
 
@@ -227,6 +229,7 @@ class Task(KojiEvent):
             old_state=(KojiTaskState(event.get("old_state")) if event.get("old_state") else None),
             rpm_build_task_ids=event.get("rpm_build_task_ids"),
             rpm_build_failed_arch_list=event.get("rpm_build_failed_arch_list"),
+            rpm_build_task_labels=event.get("rpm_build_task_labels"),
             start_time=event.get("start_time"),
             completion_time=event.get("completion_time"),
         )
