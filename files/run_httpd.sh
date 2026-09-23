@@ -21,21 +21,32 @@ fi
 
 export PACKIT_SERVICE_CONFIG="${HOME}/.config/packit-service.yaml"
 SERVER_NAME=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\1/p' "$PACKIT_SERVICE_CONFIG")
-HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVICE_CONFIG")
+HTTP_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVICE_CONFIG")
+
+HTTPD_ARGS=(
+    --access-log
+    --log-to-terminal
+    --server-name "${SERVER_NAME}"
+    --processes 2
+    --restart-interval 28800
+    --graceful-timeout 15
+    --locale "C.UTF-8"
+    --http2
+)
+
+if [[ -f /secrets/fullchain.pem && -f /secrets/privkey.pem ]]; then
+    HTTPD_ARGS+=(
+        --https-port "${HTTP_PORT:-8443}"
+        --ssl-certificate-file /secrets/fullchain.pem
+        --ssl-certificate-key-file /secrets/privkey.pem
+    )
+else
+    HTTPD_ARGS+=(--port "${HTTP_PORT:-8443}")
+fi
 
 # See "mod_wsgi-express-3 start-server --help" for details on
 # these options, and the configuration documentation of mod_wsgi:
 # https://modwsgi.readthedocs.io/en/master/configuration.html
 exec mod_wsgi-express-3 start-server \
-    --access-log \
-    --log-to-terminal \
-    --http2 \
-    --https-port "${HTTPS_PORT:-8443}" \
-    --ssl-certificate-file /secrets/fullchain.pem \
-    --ssl-certificate-key-file /secrets/privkey.pem \
-    --server-name "${SERVER_NAME}" \
-    --processes 2 \
-    --restart-interval 28800 \
-    --graceful-timeout 15 \
-    --locale "C.UTF-8" \
+    "${HTTPD_ARGS[@]}" \
     /usr/share/packit/packit.wsgi
