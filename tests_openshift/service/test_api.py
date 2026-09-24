@@ -40,7 +40,7 @@ def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     assert response_dict[1]["pr_id"] == SampleValues.pr_id
     assert {len(response_build["status_per_chroot"]) for response_build in response_dict} == {1, 2}
 
-    assert response_dict[1]["build_submitted_time"] is not None
+    assert response_dict[1]["submitted_time"] is not None
     assert response_dict[1]["project_url"] == SampleValues.project_url
 
     # four builds, but three unique build ids
@@ -68,7 +68,7 @@ def test_pagination(client, clean_before_and_after, too_many_copr_builds):
     )
     response_dict_1 = response_1.json
     assert len(list(response_dict_1[1]["status_per_chroot"])) == 2
-    assert response_dict_1[1]["build_submitted_time"] is not None
+    assert response_dict_1[1]["submitted_time"] is not None
     assert len(response_dict_1) == 20  # three builds, but two unique build ids
 
     response_2 = client.get(
@@ -76,7 +76,7 @@ def test_pagination(client, clean_before_and_after, too_many_copr_builds):
     )
     response_dict_2 = response_2.json
     assert len(list(response_dict_2[1]["status_per_chroot"])) == 2
-    assert response_dict_2[1]["build_submitted_time"] is not None
+    assert response_dict_2[1]["submitted_time"] is not None
     assert len(response_dict_2) == 30  # three builds, but two unique build ids
 
 
@@ -89,7 +89,7 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
     assert response_dict["build_id"] == SampleValues.build_id
     assert response_dict["status"] == SampleValues.status_pending
     assert response_dict["chroot"] == SampleValues.target
-    assert response_dict["build_submitted_time"] is not None
+    assert response_dict["submitted_time"] is not None
     assert "build_start_time" in response_dict
     assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
@@ -121,7 +121,7 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     assert response_dict[1]["project_url"] == SampleValues.project_url
     assert response_dict[1]["pr_id"] == SampleValues.pr_id
 
-    assert response_dict[1]["build_submitted_time"] is not None
+    assert response_dict[1]["submitted_time"] is not None
 
     assert {response_build["task_id"] for response_build in response_dict} == {
         build.task_id for build in multiple_koji_builds
@@ -154,7 +154,7 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     assert response_dict["task_id"] == SampleValues.build_id
     assert response_dict["status"] == SampleValues.status_pending
     assert response_dict["chroot"] == SampleValues.target
-    assert response_dict["build_submitted_time"] is not None
+    assert response_dict["submitted_time"] is not None
     assert "build_start_time" in response_dict
     assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
@@ -186,7 +186,7 @@ def test_detailed_koji_build_info_non_scratch(
     assert response_dict["task_id"] == SampleValues.build_id
     assert response_dict["status"] == SampleValues.status_pending
     assert response_dict["chroot"] == SampleValues.target
-    assert response_dict["build_submitted_time"] is not None
+    assert response_dict["submitted_time"] is not None
     assert "build_start_time" in response_dict
     assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
@@ -245,7 +245,7 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["project_url"] == SampleValues.project_url
     assert response_dict[0]["pr_id"] == SampleValues.pr_id
     assert response_dict[0]["branch_name"] is None  # trigger was PR, not branch push
-    assert response_dict[0]["build_submitted_time"] is not None
+    assert response_dict[0]["submitted_time"] is not None
 
 
 def test_srpm_build_info(
@@ -260,7 +260,7 @@ def test_srpm_build_info(
     response_dict = response.json
 
     assert response_dict["status"] == "success"
-    assert response_dict["build_submitted_time"] is not None
+    assert response_dict["submitted_time"] is not None
     assert "url" in response_dict
     assert response_dict["logs"] is not None
 
@@ -285,7 +285,7 @@ def test_srpm_build_in_copr_info(
     response_dict = response.json
 
     assert response_dict["status"] == "success"
-    assert response_dict["build_submitted_time"] is not None
+    assert response_dict["submitted_time"] is not None
     assert "url" in response_dict
     assert response_dict["logs"] is None
     assert response_dict["copr_build_id"] is not None
