@@ -11,6 +11,7 @@ from packit_service import utils
 from packit_service.constants import MSG_GET_IN_TOUCH
 from packit_service.events import (
     anitya,
+    forgejo,
     github,
     gitlab,
     koji,
@@ -25,14 +26,14 @@ from packit_service.worker.checker.abstract import ActorChecker, Checker
 from packit_service.worker.checker.helper import DistgitAccountsChecker
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
 )
 from packit_service.worker.reporting import report_in_issue_repository
 
 logger = logging.getLogger(__name__)
 
 
-class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
+class LabelsOnDistgitPR(Checker, GetDistGitPullRequestMixin):
     """Verifies that state of labels on the PR matches the configuration.
 
     The check passes also if the event is not a `pagure.push.Commit`,
@@ -51,7 +52,7 @@ class LabelsOnDistgitPR(Checker, GetPagurePullRequestMixin):
         )
 
 
-class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
+class PermissionOnDistgit(Checker, GetDistGitPullRequestMixin):
     """Verifies that author of given event has permissions for the workflow.
 
     If the check fails for `pagure.pr.Comment` event, a notification is posted
@@ -141,7 +142,7 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
         return True
 
 
-class PermissionOnDistgitForFedoraCI(Checker, GetPagurePullRequestMixin):
+class PermissionOnDistgitForFedoraCI(Checker, GetDistGitPullRequestMixin):
     """Verifies if user posting a comment with command is a packager."""
 
     def pre_check(self) -> bool:
@@ -177,7 +178,7 @@ class IsProjectEnabledForELN(Checker):
         return FedoraCIConfig.get_config().is_eln_enabled(self.project.get_web_url())
 
 
-class PackageNeedsELNBuildFromRawhide(Checker, GetPagurePullRequestMixin):
+class PackageNeedsELNBuildFromRawhide(Checker, GetDistGitPullRequestMixin):
     def pre_check(self) -> bool:
         if (
             self.pull_request.target_branch == "rawhide"
@@ -261,7 +262,7 @@ class TaggedBuildIsNotABuildOfSelf(Checker):
         return True
 
 
-class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
+class ValidInformationForPullFromUpstream(Checker, GetDistGitPullRequestMixin):
     """
     Check that package config (with upstream_project_url set) is present
     and that we were able to parse repo namespace, name and the tag name.
@@ -291,7 +292,11 @@ class ValidInformationForPullFromUpstream(Checker, GetPagurePullRequestMixin):
             msg_to_report = "We were not able to get the upstream tag name(s)."
             valid = False
 
-        if self.data.event_type in (pagure.pr.Comment.event_type(),):
+        # TODO: remove Pagure-related code after the dist-git migration
+        if self.data.event_type in (
+            forgejo.pr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
+        ):
             commenter = self.data.actor
             logger.debug(
                 f"Triggering pull-from-upstream through comment by: {commenter}",

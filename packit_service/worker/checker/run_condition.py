@@ -9,6 +9,7 @@ from functools import cmp_to_key
 from pathlib import Path
 from typing import Optional
 
+from ogr.services.forgejo import ForgejoProject
 from ogr.services.pagure import PagureProject
 from packit.actions import ActionName
 from packit.actions_handler import ActionsHandler
@@ -24,6 +25,7 @@ from specfile import Specfile
 
 from packit_service.events import (
     anitya,
+    forgejo,
     github,
     gitlab,
     koji,
@@ -115,13 +117,17 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
         extra_env = {}
 
         try:
+            # TODO: remove Pagure-related code after the dist-git migration
             if self.data.event_type in (
+                forgejo.pr.Action.event_type(),
                 github.pr.Action.event_type(),
                 pagure.pr.Action.event_type(),
                 gitlab.mr.Action.event_type(),
+                forgejo.pr.Comment.event_type(),
                 github.pr.Comment.event_type(),
                 pagure.pr.Comment.event_type(),
                 gitlab.mr.Comment.event_type(),
+                forgejo.action_run.PullRequest.event_type(),
                 pagure.pr.Flag.event_type(),
                 github.check.PullRequest.event_type(),
             ):
@@ -158,7 +164,8 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
                 version = self.data.event_dict.get("version")
 
             if self.job_config.clone_repos_before_run_condition:
-                if isinstance(project, PagureProject):
+                # TODO: remove Pagure-related code after the dist-git migration
+                if isinstance(project, (ForgejoProject, PagureProject)):
                     self.packit_api.dg.local_project.checkout_release(git_ref)
                     extra_env["PACKIT_DOWNSTREAM_REPO"] = str(
                         self.packit_api.dg.local_project.working_dir
@@ -173,9 +180,10 @@ class IsRunConditionSatisfied(Checker, ConfigFromEventMixin, PackitAPIWithUpstre
                     if version is None:
                         version = self.packit_api.up.get_current_version()
             else:
+                # TODO: remove Pagure-related code after the dist-git migration
                 specfile_path = (
                     f"{self.job_config.downstream_package_name}.spec"
-                    if isinstance(project, PagureProject)
+                    if isinstance(project, (ForgejoProject, PagureProject))
                     else self.job_config.specfile_path
                 )
                 if version is None:
