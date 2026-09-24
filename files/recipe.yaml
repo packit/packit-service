@@ -7,6 +7,7 @@
   vars:
     home_path: "{{ lookup('env', 'HOME') }}"
     packit_service_path: /src
+    editable_install: "{{ lookup('env', 'DEPLOYMENT') == 'dev' }}"
   tasks:
     - import_tasks: tasks/common.yaml
     - import_tasks: tasks/httpd.yaml

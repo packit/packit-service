@@ -21,7 +21,22 @@ fi
 
 export PACKIT_SERVICE_CONFIG="${HOME}/.config/packit-service.yaml"
 SERVER_NAME=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\1/p' "$PACKIT_SERVICE_CONFIG")
-HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVICE_CONFIG")
+PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVICE_CONFIG")
+
+http_flags=(
+    --http2
+)
+if [[ -f /secrets/privkey.pem ]]; then
+    http_flags+=(
+        --https-port "${PORT:-8443}"
+        --ssl-certificate-file /secrets/fullchain.pem
+        --ssl-certificate-key-file /secrets/privkey.pem
+    )
+else
+    http_flags+=(
+        --port "${PORT:-8080}"
+    )
+fi
 
 # See "mod_wsgi-express-3 start-server --help" for details on
 # these options, and the configuration documentation of mod_wsgi:
@@ -29,10 +44,7 @@ HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVIC
 exec mod_wsgi-express-3 start-server \
     --access-log \
     --log-to-terminal \
-    --http2 \
-    --https-port "${HTTPS_PORT:-8443}" \
-    --ssl-certificate-file /secrets/fullchain.pem \
-    --ssl-certificate-key-file /secrets/privkey.pem \
+    "${http_flags[@]}" \
     --server-name "${SERVER_NAME}" \
     --processes 2 \
     --restart-interval 28800 \

@@ -1,0 +1,6 @@
+[Build]
+ImageTag=localhost/packit-service:dev
+SetWorkingDirectory=../../
+File=files/docker/Dockerfile
+Environment=SOURCE_BRANCH=main
+Environment=DEPLOYMENT=dev

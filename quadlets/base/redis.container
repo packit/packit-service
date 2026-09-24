@@ -1,0 +1,5 @@
+[Container]
+ContainerName=redis
+Image=quay.io/sclorg/redis-6-c9s
+User=1024
+Network=redis.network

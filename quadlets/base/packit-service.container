@@ -1,0 +1,4 @@
+[Container]
+ContainerName=packit-service
+Image=quay.io/packit/service:prod
+User=1024
