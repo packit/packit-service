@@ -2063,7 +2063,9 @@ class Parser:
             logger.warning("No pull request number / ID in event.")
             return None
 
-        actor = nested_get(payload, "pull_request", "user", "login")
+        # parse the login of the user who triggered the PR event (e.g., synchronize),
+        # because this user doesn't need to match the original author of the PR
+        actor = nested_get(payload, "sender", "login")
         repo = payload.get("repository", {})
         base = pr.get("base")
         head = pr.get("head")
