@@ -1458,12 +1458,14 @@ class Parser:
 
         rpm_build_task_ids = {}
         rpm_build_failed_arch_list: list[str] = []
+        rpm_build_task_labels = {}
         for children in nested_get(event, "info", "children", default=[]):
             arch = children.get("arch")
             subtask_id = children.get("id")
             subtask_state = children.get("state")
             if children.get("method") == "buildArch":
                 rpm_build_task_ids[arch] = subtask_id
+                rpm_build_task_labels[arch] = children.get("label")
                 if KojiTaskState.from_number(subtask_state) == KojiTaskState.failed:
                     rpm_build_failed_arch_list.append(arch)
 
@@ -1475,6 +1477,7 @@ class Parser:
             completion_time=completion_time,
             rpm_build_task_ids=rpm_build_task_ids,
             rpm_build_failed_arch_list=rpm_build_failed_arch_list,
+            rpm_build_task_labels=rpm_build_task_labels,
         )
 
     @staticmethod

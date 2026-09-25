@@ -39,6 +39,7 @@ def test_parse_koji_build_scratch_event_end(koji_build_scratch_end, koji_build_p
     assert event_object.task_id == 45270170
     assert event_object.state == KojiTaskState.closed
     assert event_object.rpm_build_task_ids == {"noarch": 45270227}
+    assert event_object.rpm_build_task_labels == {"noarch": "noarch"}
     assert event_object.get_koji_build_rpm_tasks_logs_urls() == {
         "noarch": "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/mock_output.log",
     }
@@ -48,6 +49,23 @@ def test_parse_koji_build_scratch_event_end(koji_build_scratch_end, koji_build_p
     )
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "foo/bar"
+
+
+def test_parse_koji_build_scratch_event_preserves_noarch_label(
+    koji_build_scratch_end,
+):
+    """
+    This is related to the broken reporting of Log Detective jobs for noarch packages.
+    Koji could provision different arches for different LD runs, posting 2 seemingly
+    different analyses, when in fact they should be replaced. The parser for koji events
+    had to also store labels for that reason.
+    """
+    koji_build_scratch_end["info"]["children"][1]["arch"] = "x86_64"
+
+    event_object = Parser.parse_koji_task_event(koji_build_scratch_end)
+
+    assert event_object.rpm_build_task_ids == {"x86_64": 45270227}
+    assert event_object.rpm_build_task_labels == {"x86_64": "noarch"}
 
 
 def test_parse_koji_build_event_start_old_format(

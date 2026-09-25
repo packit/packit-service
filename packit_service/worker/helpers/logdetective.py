@@ -215,10 +215,22 @@ class LogDetectiveKojiTriggerHelper:
         # "target" field in LDRunModel refers to:
         # - "target-arch" for Koji builds (e.g. fc44-aarch64)
         # - "chroot" for Copr builds (e.g. fedora-rawhide-x86_64)
+
+        # Note: Parent tasks for scratch builds of both arch-sensitive and arch-agnostic (noarch)
+        # packages have arch=="noarch".
+        #   - A) In case of noarch packages, child buildArch subtasks have "noarch" label.
+        #     So parent task: arch=noarch, child buildArch task arch=whatever, but label=noarch.
+        #   - B) In case of arch-sensitive buildArch subtasks, label is the same as arch.
+        # Since koji can give builders with different arches for noarch packages when retriggering,
+        # we have to use label to ensure that the new analysis CI job replaces the old one.
+
+        status_arch = (
+            "noarch" if self.koji_event.rpm_build_task_labels.get(arch) == "noarch" else arch
+        )
         LogDetectiveRunModel.create(
             LogDetectiveResult.running,
             str(build_arch_task_id),
-            f"{self.koji_event.target}-{arch}",
+            f"{self.koji_event.target}-{status_arch}",
             LogDetectiveBuildSystem.koji,
             analysis_id,
             self.run_group,
