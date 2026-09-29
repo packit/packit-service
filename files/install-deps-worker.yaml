@@ -59,6 +59,10 @@
           - python3-specfile
           - packit
         state: latest
+      register: copr_packages
+      until: copr_packages is succeeded
+      retries: 5
+      delay: 30
     - name: Install OpenScanHub client from Copr
       ansible.builtin.dnf:
         name: osh-client
