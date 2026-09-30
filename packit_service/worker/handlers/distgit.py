@@ -49,6 +49,7 @@ from packit_service.constants import (
 from packit_service.events import (
     abstract,
     anitya,
+    forgejo,
     github,
     gitlab,
     koji,
@@ -126,7 +127,7 @@ from packit_service.worker.mixin import (
     ConfigFromEventMixin,
     ConfigFromUrlMixin,
     GetBranchesFromIssueMixin,
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
     GetSyncReleaseTagMixin,
     LocalProjectMixin,
     PackitAPIWithDownstreamMixin,
@@ -171,6 +172,7 @@ class ChoosenGithubAuthMethod:
 
 
 @configured_as(job_type=JobType.sync_from_downstream)
+@reacts_to(event=forgejo.push.Commit)
 @reacts_to(event=pagure.push.Commit)
 class SyncFromDownstream(
     JobHandler,
@@ -735,6 +737,9 @@ class AbortSyncRelease(Exception):
 @reacts_to(event=abstract.comment.Issue)
 @reacts_to(event=github.check.Release)
 class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
+    # TODO: No code working with the value of `topic` was found
+    # so hopefully this can be updated after the migration of
+    # dist-git
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.propose_downstream
     helper_kls = ProposeDownstreamJobHelper
@@ -800,6 +805,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
 @configured_as(job_type=JobType.pull_from_upstream)
 @run_for_comment(command="pull-from-upstream")
 @reacts_to(event=anitya.NewHotness)
+@reacts_to(event=forgejo.pr.Comment)
 @reacts_to(event=pagure.pr.Comment)
 class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     task_name = TaskName.pull_from_upstream
@@ -828,7 +834,12 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             retry_tag=retry_tag,
             retry_version=retry_version,
         )
-        if self.data.event_type in (pagure.pr.Comment.event_type(),):
+
+        # TODO: remove Pagure-related code after the dist-git migration
+        if self.data.event_type in (
+            forgejo.pr.Comment.event_type(),
+            pagure.pr.Comment.event_type(),
+        ):
             # use upstream project URL when retriggering from dist-git PR
             self._project_url = package_config.upstream_project_url
         # allow self.project to be None
@@ -1171,6 +1182,9 @@ class AbstractDownstreamKojiBuildHandler(
     This handler can submit a build in Koji from a dist-git.
     """
 
+    # TODO: No code working with the value of `topic` was found
+    # so hopefully this can be updated after the migration of
+    # dist-git
     topic = "org.fedoraproject.prod.pagure.git.receive"
     task_name = TaskName.downstream_koji_build
 
@@ -1413,7 +1427,7 @@ class DownstreamKojiBuildHandler(
     ConfigFromEventMixin,
     LocalProjectMixin,
     PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
 ):
     task_name = TaskName.downstream_koji_build
 
@@ -1528,7 +1542,7 @@ class TagIntoSidetagHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
+    GetDistGitPullRequestMixin,
 ):
     task_name = TaskName.tag_into_sidetag
 
