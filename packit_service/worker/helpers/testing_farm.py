@@ -50,6 +50,7 @@ from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     IsFMFConfigPresent,
+    IsPreviewTest,
     IsProjectOutsideOfTestsNamespace,
 )
 from packit_service.worker.helpers.build import CoprBuildJobHelper
@@ -1670,6 +1671,13 @@ class DownstreamTestingFarmJobHelper:
         return payload
 
     @implements_fedora_ci_test(
+        "fedora-review",
+        checkers=[IsProjectOutsideOfTestsNamespace, IsPreviewTest],
+    )
+    def _payload_fedora_review(self, distro: str, compose: str) -> dict:
+        return self._get_fedora_ci_payload(distro, "/fedora-review")
+
+    @implements_fedora_ci_test(
         "rmdepcheck",
         checkers=[IsProjectOutsideOfTestsNamespace],
     )
@@ -1680,7 +1688,7 @@ class DownstreamTestingFarmJobHelper:
         "license-validate",
         checkers=[IsProjectOutsideOfTestsNamespace],
     )
-    def _payload_fedora_review(self, distro: str, compose: str) -> dict:
+    def _payload_license_validate(self, distro: str, compose: str) -> dict:
         return self._get_fedora_ci_payload(distro, "/license-validate")
 
     @implements_fedora_ci_test(
