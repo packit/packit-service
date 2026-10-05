@@ -348,7 +348,7 @@ class LocalProjectMixin(Config):
         return self._local_project
 
 
-class GetPagurePullRequest(Protocol):
+class GetDistGitPullRequest(Protocol):
     @property
     @abstractmethod
     def pull_request(self) -> PullRequest: ...
@@ -357,7 +357,7 @@ class GetPagurePullRequest(Protocol):
     def get_pr_author(self) -> Optional[str]: ...
 
 
-class GetPagurePullRequestMixin(GetPagurePullRequest):
+class GetDistGitPullRequestMixin(GetDistGitPullRequest):
     _pull_request: Optional[PullRequest] = None
 
     @property
