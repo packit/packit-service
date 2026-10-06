@@ -188,8 +188,10 @@ class SampleValues:
     ld_analysis_id = "bbeea1a5-541e-41a6-ac0b-4343f344fb71"
     ld_target_build = "123"
     ld_log_detective_response: ClassVar[dict] = {
-        "explanation": {"logprobs": None, "text": "This is a dummy response from Log Detective"},
-        "response_certainty": 0.0,
+        "explanation": "This is a dummy response from Log Detective",
+        "no_issue_found": False,
+        "snippets": [],
+        "solution": None,
     }
     ld_chroot = "fedora-42-x86_64"
     ld_status = LogDetectiveResult.complete

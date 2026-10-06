@@ -31,7 +31,6 @@ from packit_service.events import (
     github,
     gitlab,
     koji,
-    logdetective,
     openscanhub,
     pagure,
     testing_farm,
@@ -44,9 +43,6 @@ from packit_service.events.enums import (
 )
 from packit_service.models import (
     GitBranchModel,
-    LogDetectiveBuildSystem,
-    LogDetectiveResult,
-    LogDetectiveRunModel,
     ProjectEventModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -148,7 +144,6 @@ class Parser:
             pagure.push.Commit,
             testing_farm.Result,
             vm_image.Result,
-            logdetective.Result,
         ]
     ]:
         """
@@ -199,7 +194,6 @@ class Parser:
                 Parser.parse_openscanhub_task_started_event,
                 Parser.parse_commit_comment_event,
                 Parser.parse_pagure_pull_request_event,
-                Parser.parse_logdetective_analysis_event,
                 Parser.parse_forgejo_push_event,
                 Parser.parse_forgejo_pr_event,
                 Parser.parse_forgejo_action_run_event,
@@ -1912,79 +1906,6 @@ class Parser:
         return event
 
     @staticmethod
-    def parse_logdetective_analysis_event(event) -> Optional[logdetective.Result]:
-        """Parse logdetective.analysis events. Discard events using unsupported
-        build systems or with incorrect topic."""
-
-        if "logdetective.analysis" not in event.get("topic", ""):
-            return None
-
-        target_build = event.get("target_build")
-        build_system = event.get("build_system")
-        analysis_id = event.get("log_detective_analysis_id")
-        log_detective_analysis_start = event.get("log_detective_analysis_start")
-        status = LogDetectiveResult.from_string(event.get("status"))
-        project_url = event.get("project_url")
-        commit_sha = event.get("commit_sha")
-        pr_id = event.get("pr_id")
-
-        if not ServiceConfig.get_service_config().logdetective_enabled:
-            logger.info(
-                f"Log Detective analysis event {analysis_id} received "
-                "but Log Detective integration is disabled. Dropping the message."
-            )
-            return None
-
-        try:
-            log_detective_analysis_start = datetime.fromisoformat(log_detective_analysis_start)
-        except (TypeError, ValueError):
-            logger.error(
-                f"Received Log Detective analysis: '{analysis_id}' for build: '{target_build}' "
-                f"with invalid creation time: '{log_detective_analysis_start}'"
-            )
-            return None
-
-        try:
-            build_system = LogDetectiveBuildSystem(build_system)
-        except ValueError:
-            logger.error(
-                f"Received Log Detective analysis: '{analysis_id}' for build: {target_build} "
-                f"from an incompatible build system {build_system}. Dropping the message."
-            )
-            return None
-
-        logger.info(
-            f"Log Detective analysis: '{analysis_id}' for build: {target_build} "
-            f"in {build_system} is in state {status}."
-        )
-
-        log_detective_run = LogDetectiveRunModel.get_by_log_detective_analysis_id(
-            analysis_id=analysis_id
-        )
-        if not log_detective_run:
-            logger.info(
-                f"Received results Log Detective analysis: '{analysis_id}' "
-                "but no analysis with this id was requested."
-            )
-            return None
-
-        identifier = log_detective_run.identifier
-
-        return logdetective.Result(
-            target_build=target_build,
-            log_detective_response=event.get("log_detective_response"),
-            status=status,
-            build_system=build_system,
-            identifier=identifier,
-            log_detective_analysis_start=log_detective_analysis_start,
-            log_detective_analysis_id=analysis_id,
-            project_url=project_url,
-            commit_sha=commit_sha,
-            pr_id=pr_id,
-            error_msg=event.get("error_msg"),
-        )
-
-    @staticmethod
     def parse_forgejo_push_event(event: dict) -> Optional[forgejo.push.Commit]:
         if "forgejo.push" not in event.get("topic", ""):
             return None
@@ -2335,9 +2256,6 @@ class Parser:
             ),
             "openscanhub.task.finished": (
                 parse_openscanhub_task_finished_event.__func__  # type: ignore
-            ),
-            "logdetective.analysis": (
-                parse_logdetective_analysis_event.__func__  # type: ignore
             ),
         },
         "testing-farm": {

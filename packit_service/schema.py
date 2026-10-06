@@ -102,6 +102,7 @@ class ServiceConfigSchema(UserConfigSchema):
     logdetective_enabled = fields.Bool(missing=False, default=False)
     logdetective_url = fields.String()
     logdetective_token = fields.String()
+    logdetective_request_timeout = fields.Integer()
 
     @post_load
     def make_instance(self, data, **kwargs):

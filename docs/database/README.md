@@ -144,3 +144,20 @@ Here is a list of commands to run if you need a local database with real data fr
 ### Deleting old data
 
 See [db-cleanup script](https://github.com/packit/packit-service/blob/main/files/scripts/db-cleanup.py)
+
+### Log Detective runs and API polling
+
+Log Detective API polling uses nullable columns on `log_detective_run`:
+`selected_logs` stores the ordered, verified log names and URLs, and
+`analysis_commentary` stores the generated commentary. Together with the
+existing `analysis_id`, they reconstruct the same generic `/analyze` request
+for an uncertain POST retry. `accepted_time` records a validated `202` so
+subsequent checks use GET. The per-run Celery task retries active runs, while
+the hourly Beat scan recovers any running API run whose task was lost or
+exhausted. A terminal result is stored only after Fedora CI reporting succeeds;
+concurrent workers may send duplicate reports. Historical rows have null
+submission inputs and are not polled.
+No API bearer token is stored. For an application rollback, disable new
+submissions and keep the expanded schema so active rows can resume when polling
+code is restored. The migration's schema downgrade drops these fields; run it
+only after active API work is drained or exported.

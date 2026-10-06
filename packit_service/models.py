@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from os import getenv
 from typing import (
     TYPE_CHECKING,
+    NamedTuple,
     Optional,
     Union,
     overload,
@@ -2607,20 +2608,6 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
             session.add(scan)
             return scan
 
-    def add_log_detective_run(
-        self, analysis_id: str, identifier: Optional[str] = None
-    ) -> "LogDetectiveRunModel":
-        with sa_session_transaction(commit=True) as session:
-            ld_run = LogDetectiveRunModel.get_or_create(
-                analysis_id=analysis_id,
-                build_system=LogDetectiveBuildSystem.copr,
-                build_id=self.id,
-                identifier=identifier,
-            )
-            ld_run.copr_build_target = self
-            session.add(ld_run)
-            return ld_run
-
     @contextmanager
     def add_scan_transaction(self) -> Generator["OSHScanModel"]:
         """
@@ -3025,20 +3012,6 @@ class KojiBuildTargetModel(GroupAndTargetModelConnector, Base):
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         # All SRPMBuild models for all the runs have to be same.
         return self.group_of_targets.runs[0].srpm_build if self.group_of_targets.runs else None
-
-    def add_log_detective_run(
-        self, analysis_id: str, identifier: Optional[str] = None
-    ) -> "LogDetectiveRunModel":
-        with sa_session_transaction(commit=True) as session:
-            ld_run = LogDetectiveRunModel.get_or_create(
-                analysis_id=analysis_id,
-                build_system=LogDetectiveBuildSystem.koji,
-                build_id=self.id,
-                identifier=identifier,
-            )
-            ld_run.koji_build_target = self
-            session.add(ld_run)
-            return ld_run
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildTargetModel"]:
@@ -4874,6 +4847,17 @@ class LogDetectiveResult(str, enum.Enum):
             return cls.unknown
 
 
+class LogDetectiveReportContext(NamedTuple):
+    """Persisted details needed to report a claimed Log Detective result."""
+
+    project_url: str
+    commit_sha: str
+    pr_id: Optional[int]
+    branch: Optional[str]
+    target: Optional[str]
+    status: LogDetectiveResult
+
+
 class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     """States of Log Detective runs. Tracking runs of Log Detective analysis in supported
     build systems, with relationships to their respective models."""
@@ -4885,7 +4869,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     # From job configuration
     identifier = Column(String, nullable=True)
 
-    # Set from `target_build` field of the message created by logdetective-packit
+    # Set from `target_build` field of the message created by logdetective
     # either copr build ID or koji task ID
     target_build = Column(String)
 
@@ -4904,10 +4888,14 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     #   solution: Optional[str] (although usually this is set)
     log_detective_response = Column(JSON, nullable=True)
     error_msg = Column(String, nullable=True)
-    # Derived from `log_detective_analysis_start` field of the event
+    # Immutable inputs for API submission; null on historical message-queue runs.
+    # Historical message-based runs must retain SQL NULL, not JSON null.
+    selected_logs = Column(JSON(none_as_null=True), nullable=True)
+    analysis_commentary = Column(Text, nullable=True)
+    accepted_time = Column(DateTime, nullable=True)
+    # Local submission time for API runs; historical rows may use the old event time.
     submitted_time = Column(DateTime, default=datetime.utcnow)
-    # UUID of Log Detective analysis, provided by logdetective-packit
-    # interface server https://github.com/fedora-copr/logdetective-packit
+    # Client UUID for API runs; historical rows retain their old analysis ID.
     analysis_id = Column(String, unique=True, nullable=False)
     build_system = Column(Enum(LogDetectiveBuildSystem))
 
@@ -4943,82 +4931,6 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         "KojiBuildTargetModel", back_populates="log_detective_runs", uselist=False
     )
 
-    def set_log_detective_response(
-        self,
-        log_detective_response: dict,
-        status: Optional[LogDetectiveResult] = None,
-        log_detective_analysis_start: Optional[DateTime] = None,
-    ):
-        """Set `log_detective_response` field with response from Log Detective service,
-        and the `status` field to complete, if no other state is given."""
-        with sa_session_transaction(commit=True) as session:
-            self.log_detective_response = log_detective_response
-            if status:
-                self.status = status
-            else:
-                self.status = LogDetectiveResult.complete
-            if log_detective_analysis_start and not self.submitted_time:
-                self.submitted_time = log_detective_analysis_start
-            session.add(self)
-
-    def set_error_msg(
-        self,
-        error_msg: str,
-        status: Optional[LogDetectiveResult] = None,
-        log_detective_analysis_start: Optional[DateTime] = None,
-    ):
-        """Set `error_msg` field with error message from Log Detective service,
-        and the `status` field to error, if no other state is given."""
-        with sa_session_transaction(commit=True) as session:
-            self.error_msg = error_msg
-            if status:
-                self.status = status
-            else:
-                self.status = LogDetectiveResult.error
-            if log_detective_analysis_start and not self.submitted_time:
-                self.submitted_time = log_detective_analysis_start
-            session.add(self)
-
-    @classmethod
-    def get_or_create(
-        cls,
-        analysis_id: str,
-        build_system: LogDetectiveBuildSystem,
-        build_id: int,
-        identifier: Optional[str] = None,
-    ) -> "LogDetectiveRunModel":
-        with sa_session_transaction(commit=True) as session:
-            ld_run = cls.get_by_log_detective_analysis_id(analysis_id)
-            if not ld_run:
-                ld_run = cls()
-                ld_run.analysis_id = analysis_id
-                ld_run.status = LogDetectiveResult.running
-                ld_run.build_system = build_system
-                ld_run.identifier = identifier
-
-                build: Union[CoprBuildTargetModel, KojiBuildTargetModel, None] = None
-
-                if build_system == LogDetectiveBuildSystem.copr:
-                    build = CoprBuildTargetModel.get_by_id(build_id)
-                    ld_run.copr_build_target = build
-                elif build_system == LogDetectiveBuildSystem.koji:
-                    build = KojiBuildTargetModel.get_by_id(build_id)
-                    ld_run.koji_build_target = build
-
-                if not build:
-                    raise ValueError(
-                        f"Build ID: {build_id} not found for build system: {build_system}"
-                    )
-                ld_run.target = build.target
-
-                runs = []
-                if build.group_of_targets and build.group_of_targets.runs:
-                    runs = build.group_of_targets.runs
-
-                ld_run.group_of_targets = LogDetectiveRunGroupModel.create(runs)
-                session.add(ld_run)
-            return ld_run
-
     @classmethod
     def create(
         cls,
@@ -5030,6 +4942,9 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         log_detective_run_group: "LogDetectiveRunGroupModel",
         log_detective_response: Optional[dict] = None,
         identifier: Optional[str] = None,
+        selected_logs: Optional[list[dict[str, str]]] = None,
+        analysis_commentary: Optional[str] = None,
+        koji_build_target: Optional["KojiBuildTargetModel"] = None,
     ) -> "LogDetectiveRunModel":
         """Create new instance of LogDetectiveRunModel and commit the change to the database.
 
@@ -5042,23 +4957,44 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             log_detective_run_group: "LogDetectiveRunGroupModel"
             log_detective_response: results of Log Detective analysis
             identifier: identifier from configuration
+            selected_logs: ordered, verified log names and URLs; null on historical rows
+            analysis_commentary: commentary generated when logs were selected
+            koji_build_target: associated parent build, saved with the request
         Returns:
             'LogDetectiveRunModel' object
         """
+        if (selected_logs is None) != (analysis_commentary is None):
+            raise ValueError("Log Detective API inputs must be saved together")
         with sa_session_transaction(commit=True) as session:
             log_detective_run = cls()
+            # Add before linking relationships: appending to an attached group may
+            # autoflush, and the build link must be part of that flush.
+            session.add(log_detective_run)
             log_detective_run.status = status
             log_detective_run.target_build = target_build
             log_detective_run.target = target
             log_detective_run.build_system = build_system
             log_detective_run.analysis_id = log_detective_analysis_id
             log_detective_run.identifier = identifier
+            if selected_logs is not None:
+                log_detective_run.selected_logs = selected_logs
+                log_detective_run.analysis_commentary = analysis_commentary
+            log_detective_run.koji_build_target = koji_build_target
             if log_detective_response:
                 log_detective_run.log_detective_response = log_detective_response
             log_detective_run_group.log_detective_run_targets.append(log_detective_run)
-            session.add(log_detective_run)
 
         return log_detective_run
+
+    def analysis_request(self) -> dict:
+        """Rebuild the generic API request from immutable saved inputs and ID."""
+        if self.selected_logs is None or self.analysis_commentary is None:
+            raise ValueError(f"Log Detective run {self.id} has no saved API inputs")
+        return {
+            "id": self.analysis_id,
+            "files": self.selected_logs,
+            "build_metadata": {"commentary": self.analysis_commentary},
+        }
 
     @classmethod
     def get_by_build(
@@ -5073,16 +5009,6 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             )
 
     @classmethod
-    def get_all_by_status(cls, status: LogDetectiveResult) -> Iterable["LogDetectiveRunModel"]:
-        """Get all Log Detective analysis with matching status"""
-        with sa_session_transaction() as session:
-            return (
-                session.query(LogDetectiveRunModel)
-                .filter(LogDetectiveRunModel.status == status)
-                .all()
-            )
-
-    @classmethod
     def get_by_log_detective_analysis_id(cls, analysis_id: str) -> "LogDetectiveRunModel":
         """Get analysis matching given analysis id. Identifiers are unique."""
         with sa_session_transaction() as session:
@@ -5092,6 +5018,94 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     def get_by_id(cls, id_: int) -> Optional["LogDetectiveRunModel"]:
         with sa_session_transaction() as session:
             return session.query(LogDetectiveRunModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_report_context(
+        cls, run_id: int, status: LogDetectiveResult
+    ) -> Optional[LogDetectiveReportContext]:
+        """Read Fedora CI context for a proposed terminal result.
+
+        Deleted, historical, already completed, or superseded runs need no
+        report. A live run without a Git URL or commit must retry later.
+        """
+        with sa_session_transaction() as session:
+            run: Optional[LogDetectiveRunModel] = (
+                session.query(cls).filter_by(id=run_id).one_or_none()
+            )
+            if run is None or run.selected_logs is None or run.status != LogDetectiveResult.running:
+                return None
+            build = run.koji_build_target
+            if build is None:
+                logger.warning("Build for Log Detective run %s was deleted", run_id)
+                return None
+            if KojiBuildTargetModel.has_newer_run(build):
+                logger.info("Skipping obsolete Log Detective report for run %s", run_id)
+                return None
+            project = run.get_project()
+            event = run.get_project_event_model()
+            if (
+                not isinstance(project, GitProjectModel)
+                or not project.project_url
+                or not event
+                or not event.commit_sha
+            ):
+                raise ValueError(f"Missing reporting context for Log Detective run {run_id}")
+            return LogDetectiveReportContext(
+                project_url=project.project_url,
+                commit_sha=event.commit_sha,
+                pr_id=run.get_pr_id(),
+                branch=build.get_branch_name(),
+                target=run.target,
+                status=status,
+            )
+
+    @classmethod
+    def finish_api_run(
+        cls,
+        run_id: int,
+        status: LogDetectiveResult,
+        result: Optional[dict],
+        error: Optional[str],
+    ) -> Optional[datetime]:
+        """Store the first terminal API result and return its submission time."""
+        if status not in (LogDetectiveResult.complete, LogDetectiveResult.error):
+            raise ValueError(f"Invalid terminal Log Detective status: {status}")
+        with sa_session_transaction(commit=True) as session:
+            run = session.query(cls).filter_by(id=run_id).with_for_update().one_or_none()
+            if run is None or run.selected_logs is None or run.status != LogDetectiveResult.running:
+                return None
+            run.status = status
+            run.log_detective_response = result
+            run.error_msg = error
+            return run.submitted_time
+
+    @classmethod
+    def mark_api_accepted(cls, run_id: int) -> None:
+        """Remember a valid POST response so subsequent checks use GET."""
+        with sa_session_transaction(commit=True) as session:
+            run = session.query(cls).filter_by(id=run_id).with_for_update().one_or_none()
+            if run is None or run.selected_logs is None or run.status != LogDetectiveResult.running:
+                return
+            if not run.accepted_time:
+                run.accepted_time = datetime.utcnow()
+
+    @classmethod
+    def get_pending_api_run_ids(cls) -> list[int]:
+        """Return running API analyses for Beat recovery, including failed reports.
+
+        Commentary also distinguishes API runs from historical JSON null rows.
+        """
+        with sa_session_transaction() as session:
+            return [
+                row.id
+                for row in session.query(cls.id)
+                .filter(
+                    cls.selected_logs.isnot(None),
+                    cls.analysis_commentary.isnot(None),
+                    cls.status == LogDetectiveResult.running,
+                )
+                .all()
+            ]
 
     @classmethod
     def get_range(
@@ -5170,43 +5184,6 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
             )
 
             return query.slice(first, last)
-
-    @classmethod
-    def get_running(
-        cls,
-        project_event_type: ProjectEventModelType,
-        event_id: int,
-        created_before: Optional[datetime] = None,
-    ) -> Iterable[LogDetectiveRunModel]:
-        """Get list of currently running Log Detective runs for a given project
-        object (e.g. a PR or branch).
-
-        Args:
-            project_event_type: Type of the project event (e.g. pull_request).
-            event_id: ID of the project object (e.g. PullRequestModel.id).
-            created_before: If set, only return runs whose pipeline was
-                created at or before this datetime (used to avoid cancelling
-                runs from the current trigger batch).
-
-        Returns:
-            An iterable over Log Detective run models representing Log Detective runs
-            runs that are running.
-        """
-        with sa_session_transaction() as session:
-            q = (
-                session.query(LogDetectiveRunModel)
-                .join(LogDetectiveRunGroupModel)
-                .join(PipelineModel)
-                .join(ProjectEventModel)
-                .filter(
-                    ProjectEventModel.type == project_event_type,
-                    ProjectEventModel.event_id == event_id,
-                    LogDetectiveRunModel.status == LogDetectiveResult.running,
-                )
-            )
-            if created_before is not None:
-                q = q.filter(PipelineModel.datetime <= created_before)
-            return q
 
 
 @cached(cache=TTLCache(maxsize=2048, ttl=(60 * 60 * 24)))

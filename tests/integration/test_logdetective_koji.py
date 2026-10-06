@@ -6,7 +6,6 @@ Integration tests for Log Detective with Koji builds.
 """
 
 import pytest
-import requests
 from flexmock import Mock, flexmock
 from packit.config.common_package_config import Deployment
 
@@ -16,8 +15,6 @@ from packit_service.constants import LOGDETECTIVE_PACKIT_SERVER_URL
 from packit_service.events import koji
 from packit_service.models import (
     KojiBuildTargetModel,
-    LogDetectiveBuildSystem,
-    LogDetectiveResult,
     LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
 )
@@ -94,43 +91,21 @@ def test_logdetective_koji_build_scratch_downstream(
     flexmock(StatusReporter).should_receive("set_status").and_return().once()
 
     if failed_builds > 0:
-        mock_ld_response = flexmock(status_code=200)
-        mock_ld_response.should_receive("raise_for_status")
-        mock_ld_response.should_receive("json").and_return(
-            {
-                "log_detective_analysis_id": "test-analysis-id-123",
-                "creation_time": "2026-01-01T12:00:00Z",
-            },
-            {
-                "log_detective_analysis_id": "test-analysis-id-456",
-                "creation_time": "2026-01-01T12:00:05Z",
-            },
-        ).one_by_one()
-        flexmock(requests).should_receive("post").and_return(mock_ld_response)
+        flexmock(logdetective_module.LogDetectiveRunHelper).should_receive("submit_analysis").times(
+            failed_builds
+        )
         flexmock(logdetective_module).should_receive("verify_artifact").and_return(True)
+        flexmock(logdetective_module.celery_app).should_receive("send_task").with_args(
+            "task.process_log_detective_run", args=(1,), countdown=120
+        ).times(failed_builds)
 
     mock_group_run = flexmock(id=1)
     flexmock(LogDetectiveRunGroupModel).should_receive("create").times(
         int(failed_builds > 0)
     ).and_return(mock_group_run)
-    if failed_builds > 0:
-        flexmock(LogDetectiveRunModel).should_receive("create").with_args(
-            LogDetectiveResult.running,
-            "123456",
-            "rawhide-x86_64",
-            LogDetectiveBuildSystem.koji,
-            "test-analysis-id-123",
-            mock_group_run,
-        )
-    if failed_builds > 1:
-        flexmock(LogDetectiveRunModel).should_receive("create").with_args(
-            LogDetectiveResult.running,
-            "123457",
-            "rawhide-noarch",
-            LogDetectiveBuildSystem.koji,
-            "test-analysis-id-456",
-            mock_group_run,
-        )
+    flexmock(LogDetectiveRunModel).should_receive("create").times(failed_builds).and_return(
+        flexmock(id=1)
+    )
 
     pushgateway = flexmock(
         log_detective_runs_started=flexmock(),
@@ -142,8 +117,6 @@ def test_logdetective_koji_build_scratch_downstream(
     pushgateway.fedora_ci_koji_builds_finished.should_receive("inc").once().and_return()
     pushgateway.should_receive("push").and_return()
     flexmock(Pushgateway).new_instances(pushgateway)
-
-    koji_build_pr_downstream.should_receive("add_log_detective_run").times(failed_builds)
 
     results = run_downstream_koji_scratch_build_report_handler(
         koji_scratch_build_fixture, None, None
@@ -202,7 +175,7 @@ def test_logdetective_skipped_when_project_disabled(
     flexmock(StatusReporter).should_receive("set_status").and_return().once()
 
     # Log Detective should NOT be called
-    flexmock(requests).should_receive("post").never()
+    flexmock(logdetective_module.LogDetectiveRunHelper).should_receive("submit_analysis").never()
     flexmock(LogDetectiveRunGroupModel).should_receive("create").never()
     flexmock(LogDetectiveRunModel).should_receive("create").never()
 
@@ -216,8 +189,6 @@ def test_logdetective_skipped_when_project_disabled(
     pushgateway.fedora_ci_koji_builds_finished.should_receive("inc").once().and_return()
     pushgateway.should_receive("push").and_return()
     flexmock(Pushgateway).new_instances(pushgateway)
-
-    koji_build_pr_downstream.should_receive("add_log_detective_run").never()
 
     results = run_downstream_koji_scratch_build_report_handler(failed_build_event, None, None)
     assert first_dict_value(results["job"])["success"]

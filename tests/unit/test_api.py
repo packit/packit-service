@@ -8,6 +8,7 @@ import pytest
 from packit_service.models import optional_time
 from packit_service.service.api.system import get_commit_from_version
 from packit_service.service.api.usage import process_timestamps
+from packit_service.service.api.utils import convert_log_detective_response
 
 
 @pytest.mark.parametrize(
@@ -18,6 +19,32 @@ def test_optional_time(input_object, expected_type):
     # optional_time returns a string if its passed a datetime object
     # None if passed a NoneType object
     assert isinstance(optional_time(input_object), expected_type)
+
+
+@pytest.mark.parametrize(
+    "response,expected",
+    [
+        (None, None),
+        (
+            {
+                "explanation": {"text": "A build dependency is missing."},
+                "solution": {"text": "Install the build dependency."},
+                "snippets": [{"text": "error: dependency not found"}],
+            },
+            {
+                "explanation": "A build dependency is missing.",
+                "solution": "Install the build dependency.",
+                "snippets": [{"text": "error: dependency not found"}],
+            },
+        ),
+        (
+            {"explanation": "The build failed.", "solution": None},
+            {"explanation": "The build failed.", "solution": None},
+        ),
+    ],
+)
+def test_convert_log_detective_response(response, expected):
+    assert convert_log_detective_response(response) == expected
 
 
 @pytest.mark.parametrize(
