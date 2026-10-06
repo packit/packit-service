@@ -45,7 +45,7 @@ class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
             if not (user_can_merge_pr or self.data.actor in self.service_config.admins):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                    state=BaseCommitStatus.neutral,
+                    state=BaseCommitStatus.failure,
                 )
                 return False
 
@@ -53,7 +53,7 @@ class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
             msg = "Non-scratch builds not possible from upstream."
             self.koji_build_helper.report_status_to_all(
                 description=msg,
-                state=BaseCommitStatus.neutral,
+                state=BaseCommitStatus.failure,
                 url=KOJI_PRODUCTION_BUILDS_ISSUE,
             )
             return False
