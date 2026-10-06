@@ -12,7 +12,11 @@ from packit_service.models import (
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import get_project_info_from_build, response_maker
+from packit_service.service.api.utils import (
+    convert_log_detective_response,
+    get_project_info_from_build,
+    response_maker,
+)
 
 logger = logging.getLogger("packit_service")
 
@@ -33,6 +37,8 @@ class LogDetectiveResult(Resource):
                 {"error": "No info about Log Detective run stored in DB"},
                 status=HTTPStatus.NOT_FOUND,
             )
+        # Convert Log Detective 5.0 response into a compatible format
+        ld_response = convert_log_detective_response(log_detective_run_model.log_detective_response)
         run_ids = []
         if log_detective_run_model.group_of_targets.runs:
             run_ids = sorted(run.id for run in log_detective_run_model.group_of_targets.runs)
@@ -43,7 +49,7 @@ class LogDetectiveResult(Resource):
             "status": log_detective_run_model.status.value,
             "chroot": log_detective_run_model.target,
             "commit_sha": log_detective_run_model.commit_sha,
-            "log_detective_response": log_detective_run_model.log_detective_response,
+            "log_detective_response": ld_response,
             "error_msg": log_detective_run_model.error_msg,
             "target_build": log_detective_run_model.target_build,
             "run_ids": run_ids,
@@ -99,13 +105,18 @@ class LogDetectiveResultList(Resource):
             run_ids = []
             if log_detective_run_model.group_of_targets.runs:
                 run_ids = sorted(run.id for run in log_detective_run_model.group_of_targets.runs)
+            # Convert Log Detective 5.0 response into a compatible format
+            ld_response = convert_log_detective_response(
+                log_detective_run_model.log_detective_response
+            )
+
             log_detective_result_dict = {
                 "packit_id": log_detective_run_model.id,
                 "analysis_id": log_detective_run_model.analysis_id,
                 "status": log_detective_run_model.status.value,
                 "chroot": log_detective_run_model.target,
                 "commit_sha": log_detective_run_model.commit_sha,
-                "log_detective_response": log_detective_run_model.log_detective_response,
+                "log_detective_response": ld_response,
                 "error_msg": log_detective_run_model.error_msg,
                 "target_build": log_detective_run_model.target_build,
                 "run_ids": run_ids,

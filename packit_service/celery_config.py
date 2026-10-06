@@ -16,6 +16,7 @@ task_ignore_result = True
 imports = ("packit_service.worker.tasks", "packit_service.service.tasks")
 
 task_routes = {
+    "task.process_log_detective_run": "long-running",
     "task.babysit_vm_image_build": "long-running",
     "task.babysit_copr_build": "long-running",
     "packit_service.service.tasks.get_past_usage_data": "long-running",
@@ -24,6 +25,11 @@ task_routes = {
 
 # https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html
 beat_schedule = {
+    "babysit-pending-log-detective-runs": {
+        "task": "task.babysit_pending_log_detective_runs",
+        "schedule": 3600.0,
+        "options": {"queue": "long-running"},
+    },
     "update-pending-copr-builds": {
         "task": "packit_service.worker.tasks.babysit_pending_copr_builds",
         "schedule": 3600.0,

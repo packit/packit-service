@@ -104,6 +104,15 @@ def test_parse_optional_values(service_config_valid):
     assert config.package_config_path_override == ".distro/source-git.yaml"
 
 
+def test_logdetective_request_timeout_configuration(service_config_valid):
+    """The Log Detective HTTP timeout can be set through service configuration."""
+    config = ServiceConfig.get_from_dict(
+        {**service_config_valid, "logdetective_request_timeout": 41}
+    )
+    assert config.logdetective_request_timeout == 41
+    assert ServiceConfig().logdetective_request_timeout == 30
+
+
 @pytest.fixture(scope="module")
 def service_config_invalid():
     return {

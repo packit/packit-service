@@ -147,14 +147,18 @@ erDiagram
     }
 
     log_detective_run {
+        timestamp_without_time_zone accepted_time
+        text analysis_commentary
         character_varying analysis_id UK
         logdetectivebuildsystem build_system
         integer copr_build_target_id FK
+        character_varying error_msg
         integer id PK
         character_varying identifier
         integer koji_build_target_id FK
         json log_detective_response
         integer log_detective_run_group_id FK
+        json selected_logs
         logdetectiveresult status
         timestamp_without_time_zone submitted_time
         character_varying target

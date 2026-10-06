@@ -1,17 +1,14 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+"""Persisted Log Detective babysitting and the existing Packit result API."""
 
-import re
-from datetime import datetime
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-import pytest
-from flexmock import flexmock
+from flask import url_for
 
-from packit_service.config import ServiceConfig
 from packit_service.models import (
     BuildStatus,
-    CoprBuildGroupModel,
-    CoprBuildTargetModel,
     KojiBuildGroupModel,
     KojiBuildTargetModel,
     LogDetectiveBuildSystem,
@@ -23,333 +20,160 @@ from packit_service.models import (
     Session,
     SRPMBuildModel,
 )
+from packit_service.worker.helpers import logdetective as polling
 from packit_service.worker.helpers.fedora_ci import FedoraCIHelper
-from packit_service.worker.reporting.enums import BaseCommitStatus
-from packit_service.worker.tasks import process_message
+from packit_service.worker.reporting import BaseCommitStatus
 
 
-@pytest.mark.parametrize(
-    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
-)
-def test_logdetective_process_message(
-    build_system,
-    clean_before_and_after,
-    logdetective_analysis_success_event,
-    mock_metrics_counters,
-    eager_celery_tasks,
-):
-    """Test that the processing of a Log Detective event
-    via the main Celery task `process_message`.
-    """
+def test_missing_log_detective_run_needs_no_report(clean_before_and_after):
+    """A deleted run cannot send an external report."""
+    assert LogDetectiveRunModel.get_report_context(-1, LogDetectiveResult.error) is None
 
-    logdetective_analysis_success_event["build_system"] = build_system
 
-    # Create the Project Event and Pull Request
-    pr_model = PullRequestModel.get_or_create(
-        pr_id=123,
-        namespace="packit",
-        repo_name="packit",
-        project_url=logdetective_analysis_success_event["project_url"],
-    )
-
-    project_event = ProjectEventModel.get_or_create(
-        type=pr_model.project_event_model_type,
-        event_id=pr_model.id,
-        commit_sha=logdetective_analysis_success_event["commit_sha"],
-    )
-
-    # Create a PipelineModel linking the event and the SRPM build
-    _, pipeline = SRPMBuildModel.create_with_new_run(
-        project_event_model=project_event, package_name="packit"
-    )
-
-    if build_system == LogDetectiveBuildSystem.copr:
-        # The .create() method handles the logic of attaching to the pipeline
-        build_group, _ = CoprBuildGroupModel.create(run_model=pipeline)
-
-        build = CoprBuildTargetModel.create(
-            build_id=logdetective_analysis_success_event["target_build"],
-            project_name="packit-packit-123",
-            owner="packit",
-            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-            target="fedora-rawhide-x86_64",
-            status=BuildStatus.failure,
-            copr_build_group=build_group,
-        )
-    else:
-        build_group = KojiBuildGroupModel.create(run_model=pipeline)
-
-        build = KojiBuildTargetModel.create(
-            task_id=logdetective_analysis_success_event["target_build"],
-            scratch=False,
-            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-            target="rawhide-x86_64",
-            status=BuildStatus.failure,
-            koji_build_group=build_group,
-        )
-
-    # This ensures the LD run is associated with the correct PR/Commit
-    ld_group = LogDetectiveRunGroupModel.create(run_models=[pipeline])
-
-    ld_run = LogDetectiveRunModel.create(
+def test_polled_result_is_available_through_packit_api(client, clean_before_and_after, monkeypatch):
+    """A polled API result remains readable through Packit's result endpoint."""
+    analysis_id = "7d036221-ec50-4d31-b714-09edaccf1486"
+    group = LogDetectiveRunGroupModel.create([])
+    run = LogDetectiveRunModel.create(
         status=LogDetectiveResult.running,
-        target_build=logdetective_analysis_success_event["target_build"],
-        build_system=build_system,
-        log_detective_analysis_id=logdetective_analysis_success_event["log_detective_analysis_id"],
-        log_detective_run_group=ld_group,
-        target="fedora-rawhide-x86_64" if build_system == "copr" else "rawhide-x86_64",
-        identifier=logdetective_analysis_success_event["identifier"],
+        target_build="12345",
+        target="rawhide-x86_64",
+        build_system=LogDetectiveBuildSystem.koji,
+        log_detective_analysis_id=analysis_id,
+        log_detective_run_group=group,
+        selected_logs=[{"name": "build.log", "url": "https://example.org/build.log"}],
+        analysis_commentary="The build failed.",
+    )
+    expected_request = {
+        "id": analysis_id,
+        "files": [{"name": "build.log", "url": "https://example.org/build.log"}],
+        "build_metadata": {"commentary": "The build failed."},
+    }
+    assert run.analysis_request() == expected_request
+    LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="historical",
+        target="rawhide-x86_64",
+        build_system=LogDetectiveBuildSystem.koji,
+        log_detective_analysis_id="historical-message-run",
+        log_detective_run_group=group,
+    )
+    LogDetectiveRunModel.mark_api_accepted(run.id)
+    assert run.accepted_time is not None
+    Session().expire_all()
+    assert LogDetectiveRunModel.get_by_id(run.id).analysis_request() == expected_request
+    assert LogDetectiveRunModel.get_pending_api_run_ids() == [run.id]
+
+    monkeypatch.setattr(
+        polling.ServiceConfig,
+        "get_service_config",
+        lambda: SimpleNamespace(
+            logdetective_url="https://logdetective.example",
+            logdetective_token="secret",
+            logdetective_request_timeout=1,
+        ),
+    )
+    reply = MagicMock(status_code=200, headers={})
+    reply.json.return_value = {
+        "id": analysis_id,
+        "taskType": "generic",
+        "createdAt": "2026-09-18T10:00:00Z",
+        "status": "done",
+        "result": {"explanation": "The build failed"},
+        "error": None,
+    }
+    monkeypatch.setattr(polling.requests, "get", lambda *a, **kw: reply)
+    status_during_report = []
+
+    def report(*_):
+        """Read committed state before allowing the terminal transition."""
+        Session().expire_all()
+        status_during_report.append(LogDetectiveRunModel.get_by_id(run.id).status)
+
+    monkeypatch.setattr(polling.LogDetectiveRunHelper, "_report", report)
+    monkeypatch.setattr(
+        polling,
+        "Pushgateway",
+        lambda: SimpleNamespace(
+            log_detective_runs_finished=SimpleNamespace(inc=lambda: None),
+            log_detective_run_finished=SimpleNamespace(observe=lambda *_: None),
+            push=lambda: None,
+        ),
     )
 
-    # Under normal circumstances, the default `submitted_time`
-    # would be the current time. However, that would prevent us from testing
-    # full logic of the `set_status` method. Instead we set the `submitted_time`
-    # to a value from `logdetective_analysis_event`.
-    expected_time = datetime.fromisoformat(
-        logdetective_analysis_success_event["log_detective_analysis_start"]
+    polling.LogDetectiveRunHelper(run.id).advance()
+    assert status_during_report == [LogDetectiveResult.running]
+    assert (
+        LogDetectiveRunModel.finish_api_run(run.id, LogDetectiveResult.error, None, "late") is None
     )
-    ld_run.submitted_time = expected_time
+    Session().expire_all()
+    result = client.get(url_for("api.log-detective_log_detective_result", id=run.id))
+    assert result.status_code == 200
+    assert result.json["status"] == "complete"
+    assert result.json["analysis_id"] == analysis_id
+    assert result.json["log_detective_response"] == {"explanation": "The build failed"}
+    assert LogDetectiveRunModel.get_pending_api_run_ids() == []
 
-    # Manually link the run to the target build (create doesn't do this part)
-    if build_system == LogDetectiveBuildSystem.copr:
-        ld_run.copr_build_target = build
-    else:
-        ld_run.koji_build_target = build
-    Session().add(ld_run)
-    Session().commit()
 
-    service_config = ServiceConfig().get_service_config()
-    service_config.fedora_ci.enabled_projects = {logdetective_analysis_success_event["project_url"]}
-    service_config.logdetective_enabled = True
-
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
-
-    mock_service = flexmock(instance_url="https://github.com", hostname="github.com")
-    mock_service.should_receive("get_rate_limit_remaining").and_return(10000)
-    mock_project = flexmock(
-        repo="packit",
-        namespace="packit",
-        service=mock_service,
+def test_terminal_report_recovers_project_and_build_context(clean_before_and_after, monkeypatch):
+    """A terminal run can report using its persisted build and project links."""
+    project_url = "https://github.com/packit/packit"
+    pr = PullRequestModel.get_or_create(
+        pr_id=42, namespace="packit", repo_name="packit", project_url=project_url
     )
-    # Mock retrieving the PR and its target branch
-    mock_project.should_receive("get_pr").with_args(123).and_return(flexmock(target_branch="main"))
-
-    # Return our mock project when requested
-    flexmock(service_config).should_receive("get_project").with_args(
-        url=logdetective_analysis_success_event["project_url"]
-    ).and_return(mock_project)
-
-    flexmock(FedoraCIHelper).should_receive("report").with_args(
-        state=BaseCommitStatus.success,
-        description="Log Detective analysis status: complete",
-        url=re.compile(r"^/jobs/log-detective/\d+$"),
-        check_name="Packit - Log Detective analysis",
-    ).once()
-
-    result = process_message.apply(
-        args=[logdetective_analysis_success_event],
-        kwargs={"source": "fedora-messaging", "event_type": "logdetective.analysis"},
-        throw=True,
+    event = ProjectEventModel.get_or_create(
+        type=pr.project_event_model_type, event_id=pr.id, commit_sha="abc123"
     )
-    result = result.get()
-    # Verify task success
-    assert result, "Task returned no results"
-    assert result[0]["success"], f"Task failed: {result[0]}"
-
+    _, pipeline = SRPMBuildModel.create_with_new_run(
+        project_event_model=event, package_name="packit"
+    )
+    build_group = KojiBuildGroupModel.create(run_model=pipeline)
+    build = KojiBuildTargetModel.create(
+        task_id="12345",
+        scratch=True,
+        web_url="https://koji.example/taskinfo?taskID=12345",
+        target="rawhide",
+        status=BuildStatus.failure,
+        koji_build_group=build_group,
+    )
+    group = LogDetectiveRunGroupModel.create([pipeline])
+    run = LogDetectiveRunModel.create(
+        status=LogDetectiveResult.running,
+        target_build="12346",
+        target="rawhide-noarch",
+        build_system=LogDetectiveBuildSystem.koji,
+        log_detective_analysis_id="7d036221-ec50-4d31-b714-09edaccf1486",
+        log_detective_run_group=group,
+        selected_logs=[{"name": "build.log", "url": "https://example.org/build.log"}],
+        analysis_commentary="The build failed.",
+        koji_build_target=build,
+    )
     Session().expire_all()
 
-    # Reload from DB to verify changes
-    run_model_after = LogDetectiveRunModel.get_by_log_detective_analysis_id(
-        logdetective_analysis_success_event["log_detective_analysis_id"]
-    )
+    project = SimpleNamespace(get_pr=lambda *_: SimpleNamespace(target_branch="main"))
+    config = SimpleNamespace(get_project=lambda **_: project, deployment="prod")
+    monkeypatch.setattr(polling.ServiceConfig, "get_service_config", lambda: config)
+    monkeypatch.setattr(KojiBuildTargetModel, "has_newer_run", lambda *_: False)
+    monkeypatch.setattr(polling, "get_check_name_prefix", lambda *_: "Packit")
+    reports = []
 
-    assert run_model_after.status == LogDetectiveResult.complete
-    assert run_model_after.log_detective_response is not None
+    def report(helper, **kwargs):
+        """Capture the Fedora CI call without sending an external status."""
+        reports.append((helper, kwargs))
 
-    # Verify timestamp was updated from the event
-    # database stores timestamp as UTC, but without timezone information
-    # we need to remove timezone information here, to get a match
-    assert run_model_after.submitted_time == expected_time.replace(tzinfo=None)
-
-
-@pytest.mark.parametrize(
-    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
-)
-def test_logdetective_process_message_logdetective_disabled(
-    build_system,
-    clean_before_and_after,
-    logdetective_analysis_success_event,
-    mock_metrics_counters,
-    eager_celery_tasks,
-):
-    """Test that the processing of a Log Detective event
-    via the main Celery task `process_message` does not occur if the integration is disabled.
-    """
-
-    logdetective_analysis_success_event["build_system"] = build_system
-
-    service_config = ServiceConfig().get_service_config()
-    service_config.fedora_ci.enabled_projects = {logdetective_analysis_success_event["project_url"]}
-    service_config.logdetective_enabled = False
-
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
-
-    # Ensure FedoraCIHelper.report is never called when LD is disabled
-    flexmock(FedoraCIHelper).should_receive("report").never()
-
-    result = process_message.apply(
-        args=[logdetective_analysis_success_event],
-        kwargs={"source": "fedora-messaging", "event_type": "logdetective.analysis"},
-        throw=True,
-    )
-    result = result.get()
-    # Parser returns None when LD is disabled, so no handlers run
-    assert result == []
-
-
-@pytest.mark.parametrize(
-    "build_system", [LogDetectiveBuildSystem.copr, LogDetectiveBuildSystem.koji]
-)
-def test_logdetective_process_message_error(
-    build_system,
-    clean_before_and_after,
-    logdetective_analysis_error_event,
-    mock_metrics_counters,
-    eager_celery_tasks,
-):
-    """Test that the processing of a Log Detective event
-    via the main Celery task `process_message` if the analysis state is `error`.
-    """
-
-    logdetective_analysis_error_event["build_system"] = build_system
-
-    # Create the Project Event and Pull Request
-    pr_model = PullRequestModel.get_or_create(
-        pr_id=123,
-        namespace="packit",
-        repo_name="packit",
-        project_url=logdetective_analysis_error_event["project_url"],
-    )
-
-    project_event = ProjectEventModel.get_or_create(
-        type=pr_model.project_event_model_type,
-        event_id=pr_model.id,
-        commit_sha=logdetective_analysis_error_event["commit_sha"],
-    )
-
-    # Create a PipelineModel linking the event and the SRPM build
-    _, pipeline = SRPMBuildModel.create_with_new_run(
-        project_event_model=project_event, package_name="packit"
-    )
-
-    # The .create() method handles the logic of attaching to the pipeline
-    if build_system == LogDetectiveBuildSystem.copr:
-        # The .create() method handles the logic of attaching to the pipeline
-        build_group, _ = CoprBuildGroupModel.create(run_model=pipeline)
-
-        build = CoprBuildTargetModel.create(
-            build_id=logdetective_analysis_error_event["target_build"],
-            project_name="packit-packit-123",
-            owner="packit",
-            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-            target="fedora-rawhide-x86_64",
-            status=BuildStatus.failure,
-            copr_build_group=build_group,
-        )
-    else:
-        build_group = KojiBuildGroupModel.create(run_model=pipeline)
-
-        build = KojiBuildTargetModel.create(
-            task_id=logdetective_analysis_error_event["target_build"],
-            scratch=False,
-            web_url="https://copr.fedorainfracloud.org/coprs/packit/packit-123/build/123456/",
-            target="fedora-rawhide-x86_64",
-            status=BuildStatus.failure,
-            koji_build_group=build_group,
-        )
-
-    # This ensures the LD run is associated with the correct PR/Commit
-    ld_group = LogDetectiveRunGroupModel.create(run_models=[pipeline])
-
-    ld_run = LogDetectiveRunModel.create(
-        status=LogDetectiveResult.running,
-        target_build=logdetective_analysis_error_event["target_build"],
-        build_system=build_system,
-        log_detective_analysis_id=logdetective_analysis_error_event["log_detective_analysis_id"],
-        log_detective_run_group=ld_group,
-        target="fedora-rawhide-x86_64",
-        identifier=logdetective_analysis_error_event["identifier"],
-    )
-
-    # Under normal circumstances, the default `submitted_time`
-    # would be the current time. However, that would prevent us from testing
-    # full logic of the `set_status` method. Instead we set the `submitted_time`
-    # to a value from `logdetective_analysis_event`.
-    expected_time = datetime.fromisoformat(
-        logdetective_analysis_error_event["log_detective_analysis_start"]
-    )
-    ld_run.submitted_time = expected_time
-
-    # Manually link the run to the target build (create doesn't do this part)
-    if build_system == LogDetectiveBuildSystem.copr:
-        ld_run.copr_build_target = build
-    else:
-        ld_run.koji_build_target = build
-
-    Session().add(ld_run)
-    Session().commit()
-
-    service_config = ServiceConfig().get_service_config()
-    service_config.fedora_ci.enabled_projects = {logdetective_analysis_error_event["project_url"]}
-    service_config.logdetective_enabled = True
-
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(service_config)
-
-    mock_service = flexmock(instance_url="https://github.com", hostname="github.com")
-    mock_service.should_receive("get_rate_limit_remaining").and_return(10000)
-    mock_project = flexmock(
-        repo="packit",
-        namespace="packit",
-        service=mock_service,
-    )
-    # Mock retrieving the PR and its target branch
-    mock_project.should_receive("get_pr").with_args(123).and_return(flexmock(target_branch="main"))
-
-    # Return our mock project when requested
-    flexmock(service_config).should_receive("get_project").with_args(
-        url=logdetective_analysis_error_event["project_url"]
-    ).and_return(mock_project)
-
-    flexmock(FedoraCIHelper).should_receive("report").with_args(
-        state=BaseCommitStatus.error,
-        description="Log Detective analysis status: error",
-        url=re.compile(r"^/jobs/log-detective/\d+$"),
-        check_name="Packit - Log Detective analysis",
-    ).once()
-
-    result = process_message.apply(
-        args=[logdetective_analysis_error_event],
-        kwargs={"source": "fedora-messaging", "event_type": "logdetective.analysis"},
-        throw=True,
-    )
-    result = result.get()
-    # Verify task success
-    assert result, "Task returned no results"
-    assert result[0]["success"], f"Task failed: {result[0]}"
-
+    monkeypatch.setattr(FedoraCIHelper, "report", report)
+    polling.LogDetectiveRunHelper(run.id)._report(LogDetectiveResult.complete)
+    assert len(reports) == 1
+    helper, values = reports[0]
+    assert helper.project is project
+    assert helper.metadata.commit_sha == "abc123" and helper.metadata.pr_id == 42
+    assert helper.target_branch == "rawhide-noarch"
+    assert values["state"] == BaseCommitStatus.success
+    assert values["check_name"] == "Packit - Log Detective analysis"
+    polling.LogDetectiveRunHelper(run.id)._report(LogDetectiveResult.complete)
+    assert len(reports) == 2  # Concurrent checks may duplicate the external call.
+    LogDetectiveRunModel.finish_api_run(run.id, LogDetectiveResult.complete, {"a": 1}, None)
+    polling.LogDetectiveRunHelper(run.id)._report(LogDetectiveResult.complete)
+    assert len(reports) == 2
     Session().expire_all()
-
-    # Reload from DB to verify changes
-    run_model_after = LogDetectiveRunModel.get_by_log_detective_analysis_id(
-        logdetective_analysis_error_event["log_detective_analysis_id"]
-    )
-
-    assert run_model_after.status == LogDetectiveResult.error
-    assert run_model_after.log_detective_response is None
-    assert run_model_after.error_msg is not None
-    assert run_model_after.error_msg != ""
-
-    # Verify timestamp was updated from the event
-    # database stores timestamp as UTC, but without timezone information
-    # we need to remove timezone information here, to get a match
-    assert run_model_after.submitted_time == expected_time.replace(tzinfo=None)
+    assert LogDetectiveRunModel.get_by_id(run.id).status == LogDetectiveResult.complete

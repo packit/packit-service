@@ -40,6 +40,7 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     GitProjectModel,
+    LogDetectiveRunModel,
     SyncReleaseTargetModel,
     VMImageBuildTargetModel,
     get_usage_data,
@@ -60,7 +61,6 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     CoprOpenScanHubTaskFinishedHandler,
     CoprOpenScanHubTaskStartedHandler,
-    DownstreamLogDetectiveResultsHandler,
     DownstreamTestingFarmELNHandler,
     DownstreamTestingFarmHandler,
     DownstreamTestingFarmResultsHandler,
@@ -107,6 +107,7 @@ from packit_service.worker.helpers.build.babysit import (
     check_pending_vm_image_builds,
     update_vm_image_build,
 )
+from packit_service.worker.helpers.logdetective import check_log_detective_run
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
@@ -120,6 +121,10 @@ class PackitCoprBuildTimeoutException(PackitException):
 
 class PackitVMImageBuildTimeoutException(PackitException):
     """VM image build has timed out"""
+
+
+class LogDetectiveRunPending(PackitException):
+    """Log Detective analysis or reporting still needs another check."""
 
 
 @after_setup_logger.connect
@@ -886,18 +891,27 @@ def run_openscanhub_task_started_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.downstream_log_detective_results, base=TaskWithRetry)
-def run_downstream_log_detective_results_handler(
-    event: dict,
-    package_config: dict,
-    job_config: dict,
-):
-    handler = DownstreamLogDetectiveResultsHandler(
-        package_config=load_package_config(package_config),
-        job_config=load_job_config(job_config),
-        event=event,
-    )
-    return get_handlers_task_results(handler.run_job(), event)
+@celery_app.task(
+    bind=True,
+    name=TaskName.process_log_detective_run,
+    acks_late=True,
+    autoretry_for=(LogDetectiveRunPending,),
+    retry_backoff=30,
+    retry_backoff_max=3600,
+    retry_jitter=False,
+    max_retries=14,
+)
+def process_log_detective_run(self, run_id: int) -> None:
+    """Check one run; Celery retries pending work as it does for Copr and VM image."""
+    if not check_log_detective_run(run_id):
+        raise LogDetectiveRunPending(f"Log Detective run {run_id} is not ready yet")
+
+
+@celery_app.task(name="task.babysit_pending_log_detective_runs")
+def babysit_pending_log_detective_runs() -> None:
+    """Poll running API analyses inline when their per-run task was lost or exhausted."""
+    for run_id in LogDetectiveRunModel.get_pending_api_run_ids():
+        check_log_detective_run(run_id)
 
 
 def get_handlers_task_results(results: dict, event: dict) -> dict:

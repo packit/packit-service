@@ -188,6 +188,10 @@ run only the unit tests use:
 
     TEST_TARGET=tests/unit make check-in-container
 
+When mocking Celery task dispatch in tests, patch `Celery.send_task` on the
+class. Patching the shared `celery_app` instance can leave an instance method
+behind after cleanup and make later tests contact Redis.
+
 #### **Database tests**
 
 Database tests can be run using a dedicated target.

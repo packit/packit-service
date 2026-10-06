@@ -306,7 +306,7 @@ class TaskName(str, enum.Enum):
     downstream_koji_scratch_build = "task.run_downstream_koji_scratch_build_handler"
     downstream_koji_scratch_build_report = "task.run_downstream_koji_scratch_build_report_handler"
     downstream_koji_eln_scratch_build = "task.run_downstream_koji_eln_scratch_build_handler"
-    downstream_log_detective_results = "task.run_downstream_log_detective_results_handler"
+    process_log_detective_run = "task.process_log_detective_run"
 
 
 class Handler(PackitAPIProtocol, Config):

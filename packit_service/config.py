@@ -124,6 +124,7 @@ class ServiceConfig(Config):
         logdetective_enabled: bool = False,
         logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
         logdetective_token: str = "",
+        logdetective_request_timeout: int = 30,
         **kwargs,
     ):
         if "authentication" in kwargs:
@@ -218,6 +219,8 @@ class ServiceConfig(Config):
         self.logdetective_url = logdetective_url
         # Token to be used with Log Detective interface server
         self.logdetective_token = logdetective_token
+        # Request timeout for communication with Log Detective API, in seconds
+        self.logdetective_request_timeout = logdetective_request_timeout
 
     service_config = None
 

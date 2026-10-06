@@ -32,7 +32,6 @@ from packit_service.events import (
     github,
     gitlab,
     koji,
-    logdetective,
     pagure,
     testing_farm,
 )
@@ -384,7 +383,6 @@ class SteveJobs:
                         pagure.pr.Comment,
                         koji.result.Task,
                         testing_farm.Result,
-                        logdetective.Result,
                     ),
                 )
                 and self.event.db_project_object

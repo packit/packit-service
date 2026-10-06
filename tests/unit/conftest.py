@@ -9,9 +9,7 @@ from flexmock import flexmock
 from packit.config.aliases import Distro
 from packit.config.job_config import JobConfigTriggerType, JobType
 
-from packit_service.events.logdetective import Result as LogDetectiveResultEvent
 from packit_service.models import (
-    LogDetectiveRunModel,
     ProjectEventModel,
     ProjectEventModelType,
     PullRequestModel,
@@ -162,15 +160,3 @@ def add_pull_request_event_with_sha_528b80():
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
     ).and_return(db_project_object)
     yield db_project_object, db_project_event
-
-
-@pytest.fixture
-def log_detective_result_event_creation():
-    flexmock(LogDetectiveResultEvent).should_receive("db_project_object").and_return(None)
-
-
-@pytest.fixture
-def log_detective_run_model_get_by_identifier():
-    flexmock(LogDetectiveRunModel).should_receive("get_by_log_detective_analysis_id").and_return(
-        flexmock(identifier="test-identifier")
-    )

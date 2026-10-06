@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from http import HTTPStatus
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from flask.json import jsonify
 
@@ -146,3 +146,16 @@ def get_log_detective_runs(
     if build.log_detective_runs:
         return [run.id for run in build.log_detective_runs]
     return []
+
+
+def convert_log_detective_response(ld_response: Optional[dict] = None) -> Optional[dict]:
+    """Convert legacy Log Detective responses to a flat structure used
+    by Log Detective 5.0.0 API."""
+    if ld_response is None:
+        return ld_response
+    if isinstance(ld_response["explanation"], dict):
+        ld_response["explanation"] = ld_response["explanation"]["text"]
+    if "solution" in ld_response and isinstance(ld_response["solution"], dict):
+        ld_response["solution"] = ld_response["solution"]["text"]
+
+    return ld_response
