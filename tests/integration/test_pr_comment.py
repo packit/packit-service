@@ -428,7 +428,7 @@ def test_pr_comment_build_test_handler(
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(set())
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description="Test job requires build job definition in the configuration.",
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.failure,
         url="",
         markdown_content="Make sure you have a `copr_build` job defined "
         "with trigger `pull_request`.\n\n"
@@ -1800,7 +1800,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests (and builds) internally",
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.failure,
         markdown_content="*As a project maintainer, "
         "you can trigger the build and test jobs manually via `/packit build`"
         " comment or only test job via `/packit test` comment.*",
@@ -1862,14 +1862,14 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description="phracek can't run tests (and builds) internally",
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.failure,
         markdown_content="*As a project maintainer, "
         "you can trigger the build and test jobs manually via `/packit build` comment "
         "or only test job via `/packit test` comment.*",
     ).once()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests (and builds) internally",
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.failure,
         markdown_content="*As a project maintainer, "
         "you can trigger the build and test jobs manually via `/packit build` comment "
         "or only test job via `/packit test` comment.*",
