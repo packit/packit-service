@@ -159,12 +159,16 @@ class CoprBuild(Result):
         result["topic"] = result["topic"].value
         return result
 
+    # [FIXME](PACKIT-5361) Might need to be adjusted for consuming Copr events
+    # from Kafka
     def get_copr_build_url(self) -> str:
         return (
             "https://copr.fedorainfracloud.org/coprs/"
             f"{self.owner}/{self.project_name}/build/{self.build_id}/"
         )
 
+    # [FIXME](PACKIT-5361) Might need to be adjusted for consuming Copr events
+    # from Kafka
     def get_copr_build_logs_url(self) -> str:
         pkg = "" if self.chroot == COPR_SRPM_CHROOT else f"-{self.pkg}"
         # https://github.com/packit/packit-service/issues/1387
