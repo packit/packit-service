@@ -521,45 +521,21 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             url=url_for_tests,
         )
 
-    def run_copr_build_from_source_script(self) -> TaskResults:
+    def run_copr_build(self) -> TaskResults:
         """
-        Run copr build using custom source method.
+        Run copr build using either the custom source method (default)
+        or the dist-git method if configured.
         """
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             project_event_model=self.db_project_event,
             package_name=self.get_package_name(),
         )
         group = self._get_or_create_build_group()
+        script = None
         try:
-            pr_id = self.metadata.pr_id
+            if not self.job_config.use_copr_dist_git_build:
+                script = self._prepare_source_script()
 
-            # use correct git ref to identify most recent tag
-            if self.job_config.trigger == JobConfigTriggerType.pull_request:
-                merged_ref = self.pull_request_object.target_branch
-            elif self.job_config.trigger == JobConfigTriggerType.commit:
-                merged_ref = self.metadata.commit_sha
-            elif self.job_config.trigger == JobConfigTriggerType.release:
-                merged_ref = self.metadata.tag_name
-            else:
-                logger.warning(
-                    f"Unable to determine merged ref for {self.job_config.trigger}",
-                )
-                merged_ref = None
-
-            script = create_source_script(
-                url=self.metadata.project_url,
-                ref=self.metadata.git_ref,
-                pr_id=str(pr_id) if pr_id else None,
-                merge_pr=self.package_config.merge_pr_in_ci,
-                target_branch=(
-                    self.pull_request_object.target_branch if self.pull_request_object else None
-                ),
-                job_config_index=self.get_job_config_index(),
-                update_release=self.job_config.trigger != JobConfigTriggerType.release,
-                release_suffix=self.job_config.release_suffix,
-                package=self.job_config.package,
-                merged_ref=merged_ref,
-            )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
             return self.handle_build_submit_error(group, ex)
@@ -571,6 +547,37 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         self.handle_rpm_build_start(group, build_id, web_url)
 
         return TaskResults(success=True, details={})
+
+    def _prepare_source_script(self) -> str:
+        pr_id = self.metadata.pr_id
+
+        # use correct git ref to identify most recent tag
+        if self.job_config.trigger == JobConfigTriggerType.pull_request:
+            merged_ref = self.pull_request_object.target_branch
+        elif self.job_config.trigger == JobConfigTriggerType.commit:
+            merged_ref = self.metadata.commit_sha
+        elif self.job_config.trigger == JobConfigTriggerType.release:
+            merged_ref = self.metadata.tag_name
+        else:
+            logger.warning(
+                f"Unable to determine merged ref for {self.job_config.trigger}",
+            )
+            merged_ref = None
+
+        return create_source_script(
+            url=self.metadata.project_url,
+            ref=self.metadata.git_ref,
+            pr_id=str(pr_id) if pr_id else None,
+            merge_pr=self.package_config.merge_pr_in_ci,
+            target_branch=(
+                self.pull_request_object.target_branch if self.pull_request_object else None
+            ),
+            job_config_index=self.get_job_config_index(),
+            update_release=self.job_config.trigger != JobConfigTriggerType.release,
+            release_suffix=self.job_config.release_suffix,
+            package=self.job_config.package,
+            merged_ref=merged_ref,
+        )
 
     def _get_or_create_build_group(self) -> CoprBuildGroupModel:
         if self._copr_build_group_id is not None:
@@ -638,7 +645,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def submit_copr_build(self, script: Optional[str] = None) -> tuple[int, str]:
         """
         Create the project in Copr if not exists and submit a new build using
-        source script method
+        either the custom source method (default) or the dist-git method if configured.
         Return:
             tuple of build ID and web url
         """
@@ -658,7 +665,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 },
             )
 
-            if script:
+            if self.job_config.use_copr_dist_git_build:
+                build = self.api.copr_helper.copr_client.build_proxy.create_from_distgit(
+                    ownername=owner,
+                    projectname=self.job_project,
+                    packagename=self.job_config.package,
+                    committish=self.metadata.git_ref,
+                    # TODO: parametrize this hardcoded value
+                    distgit="rhai",
+                    buildopts=buildopts,
+                )
+
+            elif script:
                 build = self.api.copr_helper.copr_client.build_proxy.create_from_custom(
                     ownername=owner,
                     projectname=self.job_project,

@@ -309,7 +309,7 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
         "fedora-35-x86_64",
     )
 
-    flexmock(helper).should_call("run_copr_build_from_source_script").once()
+    flexmock(helper).should_call("run_copr_build").once()
 
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
@@ -477,7 +477,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         flexmock(build).should_receive("set_status").with_args(BuildStatus.error)
         srpm_model.should_receive("set_status").with_args(BuildStatus.error)
 
-    assert helper.run_copr_build_from_source_script()["success"] is retry
+    assert helper.run_copr_build()["success"] is retry
 
 
 @pytest.mark.parametrize(
