@@ -124,7 +124,7 @@ class CoprBuildHandler(
         if os.getenv("CANCEL_RUNNING_JOBS"):
             self.copr_build_helper.cancel_running_builds()
 
-        return self.copr_build_helper.run_copr_build_from_source_script()
+        return self.copr_build_helper.run_copr_build()
 
 
 class AbstractCoprBuildReportHandler(
