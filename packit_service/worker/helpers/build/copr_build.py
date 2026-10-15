@@ -462,6 +462,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 reason=reason,
             ).observe(time)
 
+    # [TODO] Needs to be adjusted if regular, custom method, Copr builds are to
+    # be provided for internal deployment.
     def get_packit_copr(self) -> str:
         """
         Get a Copr repo with dependencies for custom SRPM method in Copr.
