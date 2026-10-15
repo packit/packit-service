@@ -673,7 +673,7 @@ def pagure_pr_comment_added():
 
 @pytest.fixture()
 def forgejo_pr_comment_added():
-    with open(DATA_DIR / "fedmsg" / "forgejo_pr_comment.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_pr_comment.json") as outfile:
         return json.load(outfile)
 
 
