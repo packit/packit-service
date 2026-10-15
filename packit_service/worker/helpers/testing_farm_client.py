@@ -268,6 +268,10 @@ class TestingFarmClient:
                 compose = "RHEL-7-LatestReleased"
             elif compose == "RHEL-8":
                 compose = "RHEL-8.5.0-Nightly"
+            elif compose == "RHEL-9":
+                compose = "RHEL-9-Nightly"
+            elif compose == "RHEL-10":
+                compose = "RHEL-10-Nightly"
             elif compose == "Oracle-Linux-7":
                 compose = "Oracle-Linux-7.9"
             elif compose == "Oracle-Linux-8":
