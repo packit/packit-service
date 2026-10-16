@@ -134,7 +134,7 @@ class CanActorRunTestsJob(
                     description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
                         actor=self.actor,
                     ),
-                    state=BaseCommitStatus.neutral,
+                    state=BaseCommitStatus.failure,
                     markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
                         packit_comment_command_prefix=self.service_config.comment_command_prefix,
                     ),

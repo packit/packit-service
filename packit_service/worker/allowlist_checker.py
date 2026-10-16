@@ -203,7 +203,7 @@ class AllowlistChecker(Allowlist):
                 )
             job_helper.report_status_to_configured_job(
                 description=short_msg,
-                state=BaseCommitStatus.neutral,
+                state=BaseCommitStatus.failure,
                 url=url,
                 markdown_content=markdown_content,
             )
