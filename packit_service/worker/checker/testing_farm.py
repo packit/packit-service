@@ -13,8 +13,9 @@ from packit_service.constants import (
     INTERNAL_TF_TESTS_NOT_ALLOWED,
     KojiTaskState,
 )
-from packit_service.events import gitlab, testing_farm
+from packit_service.events import gitlab, pagure, testing_farm
 from packit_service.models import TFTTestRunTargetModel
+from packit_service.utils import get_comment_parser_fedora_ci, get_packit_commands_from_comment
 from packit_service.worker.checker.abstract import (
     ActorChecker,
     Checker,
@@ -366,3 +367,35 @@ class IsProjectOutsideOfTestsNamespace(_TestingFarmTestTypeChecker):
 
     def pre_check(self) -> bool:
         return self.project.namespace != "tests"
+
+
+# TODO: This will not be needed once we run all Fedora-CI tests from the same request
+class IsPreviewTest(_TestingFarmTestTypeChecker):
+    """
+    The test is an opt-in preview, only run if manually requested.
+    """
+
+    def pre_check(self) -> bool:
+        # See DownstreamTestingFarmJobHelper.get_fedora_ci_tests
+        # TODO: Consolidate this better
+        if self.data.event_type != pagure.pr.Comment.event_type():
+            return False
+        comment_command_prefix = (
+            "/packit-ci-stg"
+            if self.service_config.comment_command_prefix.endswith("-stg")
+            else "/packit-ci"
+        )
+        commands = get_packit_commands_from_comment(
+            self.data.event_dict.get("comment"), comment_command_prefix
+        )
+        if not commands:
+            return False
+
+        parser = get_comment_parser_fedora_ci(prog=comment_command_prefix)
+        try:
+            args = parser.parse_args(commands)
+        except SystemExit:
+            return False
+        # We only care if the user requested a specific test, the filter will
+        # for the current test will happen elsewhere
+        return bool(getattr(args, "test_identifier", None))

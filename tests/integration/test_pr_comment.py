@@ -4046,6 +4046,13 @@ def test_downstream_testing_farm_retrigger_via_dist_git_pr_comment(
             "Packit-stg - rpminspect - rawhide [beaf90b]",
             id="rpminspect - rawhide target branch",
         ),
+        pytest.param(
+            "/packit-ci test fedora-review",
+            "rawhide",
+            "b1dfb863808dd40ec3aad8ccbe593629",
+            "Packit-stg - fedora-review - rawhide [beaf90b]",
+            id="fedora-review (preview) - rawhide target branch",
+        ),
     ],
 )
 def test_downstream_testing_farm_retrigger_specific_plan_via_dist_git_pr_comment(
