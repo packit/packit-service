@@ -671,7 +671,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 build = self.api.copr_helper.copr_client.build_proxy.create_from_distgit(
                     ownername=owner,
                     projectname=self.job_project,
-                    packagename=self.job_config.package,
+                    packagename=self.job_config.downstream_package_name,
                     committish=self.metadata.git_ref,
                     # TODO: parametrize this hardcoded value
                     distgit="rhai",
