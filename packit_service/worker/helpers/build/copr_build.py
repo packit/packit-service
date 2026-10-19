@@ -668,6 +668,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
             if self.job_config.use_copr_dist_git_build:
+                kwargs = {}
+                if self.base_project.is_fork:
+                    kwargs = {
+                        "namespace": f"forks/{self.base_project.namespace}",
+                        "forked_from": self.base_project.parent.get_git_urls()["git"],
+                    }
+
                 build = self.api.copr_helper.copr_client.build_proxy.create_from_distgit(
                     ownername=owner,
                     projectname=self.job_project,
@@ -676,6 +683,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     # TODO: parametrize this hardcoded value
                     distgit="rhai",
                     buildopts=buildopts,
+                    **kwargs,
                 )
 
             elif script:
