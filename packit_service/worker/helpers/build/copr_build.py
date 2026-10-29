@@ -668,6 +668,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
             if self.job_config.use_copr_dist_git_build:
+                kwargs = {}
+                # TODO: There might be an issue with the `packagename` in case
+                # the name of the fork differs from the the original project's name.
+                # Copr might not be able to locate the fork and therefore not access
+                # the correct commit (located in the fork) defined in committish.
+                if self.base_project.is_fork:
+                    kwargs = {
+                        "namespace": self.base_project.namespace,
+                        "forked_from": self.base_project.parent.get_git_urls()["git"],
+                    }
+
                 build = self.api.copr_helper.copr_client.build_proxy.create_from_distgit(
                     ownername=owner,
                     projectname=self.job_project,
@@ -676,6 +687,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     # TODO: parametrize this hardcoded value
                     distgit="rhai",
                     buildopts=buildopts,
+                    **kwargs,
                 )
 
             elif script:
