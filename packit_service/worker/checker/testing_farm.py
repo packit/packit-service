@@ -142,7 +142,7 @@ class CanActorRunJob(ActorChecker, GetTestingFarmJobHelperMixin):
             )
             self.testing_farm_job_helper.report_status_to_tests(
                 description=message[0].format(actor=self.actor),
-                state=BaseCommitStatus.neutral,
+                state=BaseCommitStatus.failure,
                 markdown_content=message[1].format(
                     packit_comment_command_prefix=self.service_config.comment_command_prefix,
                 ),
@@ -168,7 +168,7 @@ class IsCoprBuildDefined(Checker, GetTestingFarmJobHelperMixin):
             )
             self.testing_farm_job_helper.report_status_to_tests(
                 description="Test job requires build job definition in the configuration.",
-                state=BaseCommitStatus.neutral,
+                state=BaseCommitStatus.failure,
                 url="",
                 markdown_content="Make sure you have a `copr_build` job defined "
                 f"with trigger `{self.testing_farm_job_helper.job_config.trigger.value}`.\n\n"

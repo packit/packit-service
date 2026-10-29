@@ -510,7 +510,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         if results:
             # merge conflict occurred
             self.report_status_to_all(
-                state=BaseCommitStatus.neutral,
+                state=BaseCommitStatus.failure,
                 description="Merge conflicts present",
                 url=get_srpm_build_info_url(self.srpm_model.id),
             )
