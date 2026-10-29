@@ -20,12 +20,14 @@ class KojiEvent(Result):
     def __init__(
         self,
         task_id: int,
+        parent: Optional[int] = None,
         rpm_build_task_ids: Optional[dict[str, int]] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
         super().__init__()
         self.task_id = task_id
+        self.parent = parent
         # dictionary with archs and IDs, e.g. {"x86_64": 123}
         self.rpm_build_task_ids = rpm_build_task_ids
         self.start_time: Optional[Union[int, float, str]] = start_time
