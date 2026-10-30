@@ -15,6 +15,7 @@ from packit_service.constants import LOGDETECTIVE_PACKIT_SERVER_URL
 from packit_service.events import koji
 from packit_service.models import (
     KojiBuildTargetModel,
+    LogDetectiveBuildSystem,
     LogDetectiveRunGroupModel,
     LogDetectiveRunModel,
 )
@@ -58,7 +59,7 @@ def test_logdetective_koji_build_scratch_downstream(
     project.should_receive("get_web_url").and_return("https://src.fedoraproject.org/rpms/packit")
 
     service_config = flexmock(
-        logdetective_enabled=True,
+        log_detective_koji_enabled=True,
         fedora_ci=FedoraCISettings(),
         logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
         koji_logs_url="https://kojipkgs.fedoraproject.org",
@@ -104,7 +105,7 @@ def test_logdetective_koji_build_scratch_downstream(
         int(failed_builds > 0)
     ).and_return(mock_group_run)
     flexmock(LogDetectiveRunModel).should_receive("create").times(failed_builds).and_return(
-        flexmock(id=1)
+        flexmock(id=1, build_system=LogDetectiveBuildSystem.koji)
     )
 
     pushgateway = flexmock(
@@ -124,13 +125,16 @@ def test_logdetective_koji_build_scratch_downstream(
     assert first_dict_value(results["job"])["success"]
 
 
-def test_logdetective_skipped_when_project_disabled(
+@pytest.mark.parametrize(
+    ("service_enabled", "project_disabled"),
+    [(False, False), (True, True)],
+)
+def test_logdetective_skipped_when_service_or_project_disabled(
+    service_enabled,
+    project_disabled,
     koji_build_pr_downstream: Mock,
 ):
-    """
-    Log Detective is NOT triggered when the project is in disabled_projects_for_logdetective,
-    even though the build failed and logdetective is globally enabled.
-    """
+    """A disabled Koji service or project prevents analysis for a failed build."""
     failed_build_event = {
         "task_id": 12345,
         "state": "FAILED",
@@ -146,9 +150,11 @@ def test_logdetective_skipped_when_project_disabled(
     project.should_receive("get_web_url").and_return("https://src.fedoraproject.org/rpms/packit")
 
     service_config = flexmock(
-        logdetective_enabled=True,
+        log_detective_koji_enabled=service_enabled,
         fedora_ci=FedoraCISettings(
-            disabled_projects_for_logdetective={"https://src.fedoraproject.org/rpms/packit"},
+            disabled_projects_for_logdetective=(
+                {"https://src.fedoraproject.org/rpms/packit"} if project_disabled else set()
+            ),
         ),
         logdetective_url=LOGDETECTIVE_PACKIT_SERVER_URL,
         koji_logs_url="https://kojipkgs.fedoraproject.org",

@@ -1,6 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import contextlib
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 import pytest
@@ -1273,6 +1275,75 @@ def test_log_detective_run_build_relationship(
     saved_run = saved_group.log_detective_run_targets[0]
     assert saved_run.analysis_id == f"build-relationship-{build_system.value}"
     assert getattr(saved_run, relationship).id == build_id
+
+
+def test_copr_log_detective_run_is_atomic_for_duplicate_deliveries(
+    clean_before_and_after, a_copr_build_for_pr
+):
+    """Independent PostgreSQL sessions serialize deliveries for one chroot."""
+    build_id = a_copr_build_for_pr.id
+    values = {
+        "target_build": a_copr_build_for_pr.build_id,
+        "target": a_copr_build_for_pr.target,
+        "selected_logs": [{"name": "builder-live.log", "url": "https://example.test/log"}],
+        "analysis_commentary": "Copr build failed.",
+    }
+    barrier = threading.Barrier(2, timeout=30)
+
+    def deliver(_):
+        barrier.wait()
+        return LogDetectiveRunModel.create_for_copr_build(
+            CoprBuildTargetModel(id=build_id), **values
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(deliver, range(2)))
+    assert sorted(created for _, created in results) == [False, True]
+    assert results[0][0] == results[1][0]
+    assert results[0][0] in LogDetectiveRunModel.get_pending_api_run_ids()
+    with sa_session_transaction() as session:
+        runs = session.query(LogDetectiveRunModel).filter_by(copr_build_target_id=build_id).all()
+        assert len(runs) == 1
+        assert runs[0].selected_logs == values["selected_logs"]
+        assert runs[0].group_of_targets is not None
+        group_id = runs[0].log_detective_run_group_id
+
+    other = CoprBuildTargetModel.create(
+        build_id=a_copr_build_for_pr.build_id,
+        project_name=a_copr_build_for_pr.project_name,
+        owner=a_copr_build_for_pr.owner,
+        web_url=a_copr_build_for_pr.web_url,
+        target="fedora-42-aarch64",
+        status=BuildStatus.failure,
+        copr_build_group=a_copr_build_for_pr.group_of_targets,
+    )
+    other_id, created = LogDetectiveRunModel.create_for_copr_build(
+        other, **{**values, "target": other.target}
+    )
+    assert created and other_id != results[0][0]
+    with sa_session_transaction() as session:
+        runs = (
+            session.query(LogDetectiveRunModel).filter_by(target_build=values["target_build"]).all()
+        )
+        assert len(runs) == 2
+        assert {run.log_detective_run_group_id for run in runs} == {group_id}
+
+
+def test_srpm_log_detective_duplicate_delivery_reuses_saved_run(
+    clean_before_and_after, srpm_build_model_with_new_run_for_pr
+):
+    srpm, _ = srpm_build_model_with_new_run_for_pr
+    values = {
+        "target_build": "42",
+        "target": "srpm-builds",
+        "selected_logs": [{"name": "builder-live.log", "url": "https://example.test/srpm-log"}],
+        "analysis_commentary": "SRPM build failed.",
+    }
+    first = LogDetectiveRunModel.create_for_copr_build(srpm, **values)
+    second = LogDetectiveRunModel.create_for_copr_build(srpm, **values)
+    assert first[1] and not second[1]
+    assert first[0] == second[0]
+    assert first[0] in LogDetectiveRunModel.get_pending_api_run_ids()
 
 
 def test_bodhi_model_get_last_successful_by_sidetag(
