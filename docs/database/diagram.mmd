@@ -159,6 +159,7 @@ erDiagram
         json log_detective_response
         integer log_detective_run_group_id FK
         json selected_logs
+        integer srpm_build_id FK
         logdetectiveresult status
         timestamp_without_time_zone submitted_time
         character_varying target
@@ -364,6 +365,7 @@ erDiagram
     koji_tag_request_targets }o--|| koji_tag_request_groups : "koji_tag_request_group_id"
     pipelines }o--|| koji_tag_request_groups : "koji_tag_request_group_id"
     log_detective_run }o--|| log_detective_run_groups : "log_detective_run_group_id"
+    log_detective_run }o--|| srpm_builds : "srpm_build_id"
     pipelines }o--|| log_detective_run_groups : "log_detective_run_group_id"
     pipelines }o--|| project_events : "project_event_id"
     pipelines }o--|| srpm_builds : "srpm_build_id"

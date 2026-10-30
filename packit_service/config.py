@@ -121,7 +121,8 @@ class ServiceConfig(Config):
         fedora_ci: Optional[FedoraCISettings] = None,
         fedora_ci_run_by_default: bool = False,
         rate_limit_threshold: Optional[int] = None,
-        logdetective_enabled: bool = False,
+        log_detective_koji_enabled: bool = False,
+        log_detective_copr_enabled: bool = False,
         logdetective_url: str = LOGDETECTIVE_PACKIT_SERVER_URL,
         logdetective_token: str = "",
         logdetective_request_timeout: int = 30,
@@ -214,7 +215,9 @@ class ServiceConfig(Config):
 
         # Once the interface server instance is up, we will enable it in stg for tests/debug,
         # and when we are satisfied with it, then prod.
-        self.logdetective_enabled = logdetective_enabled
+        self.log_detective_koji_enabled = log_detective_koji_enabled
+        # Copr analyses are opt-in at the service level, even for enabled jobs.
+        self.log_detective_copr_enabled = log_detective_copr_enabled
         # Default URL of the Log Detective interface server
         self.logdetective_url = logdetective_url
         # Token to be used with Log Detective interface server
@@ -251,7 +254,8 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
             f"package_config_path_override='{self.package_config_path_override}', "
-            f"logdetective_enabled='{self.logdetective_enabled}', "
+            f"log_detective_koji_enabled='{self.log_detective_koji_enabled}', "
+            f"log_detective_copr_enabled='{self.log_detective_copr_enabled}', "
             f"logdetective_url='{self.logdetective_url}', "
             f"fedora_ci_run_by_default='{self.fedora_ci_run_by_default}', "
             f"fedora_ci={self.fedora_ci})"

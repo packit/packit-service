@@ -139,7 +139,7 @@ def get_project_info(project: Union[AnityaProjectModel, GitProjectModel]):
 
 
 def get_log_detective_runs(
-    build: Union[CoprBuildTargetModel, KojiBuildTargetModel],
+    build: Union[CoprBuildTargetModel, KojiBuildTargetModel, SRPMBuildModel],
 ) -> list[str]:
     """Get a list of Log Detective run UUIDs."""
 
