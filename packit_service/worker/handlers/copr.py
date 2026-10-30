@@ -5,6 +5,7 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 
 from celery import Task, signature
 from ogr.services.github import GithubProject
@@ -18,6 +19,7 @@ from packit.config.package_config import PackageConfig
 
 from packit_service import sentry_integration
 from packit_service.constants import (
+    COPR_API_FAIL_STATE,
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
 )
@@ -27,10 +29,16 @@ from packit_service.events import (
     github,
     gitlab,
 )
+from packit_service.fedora_ci_config import FedoraCIConfig
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
+    LogDetectiveBuildSystem,
+    LogDetectiveResult,
+    LogDetectiveRunGroupModel,
+    LogDetectiveRunModel,
     ProjectEventModelType,
+    SRPMBuildModel,
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
 from packit_service.utils import (
@@ -62,6 +70,7 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
 )
+from packit_service.worker.helpers.logdetective import LogDetectiveRunHelper, select_verified_logs
 from packit_service.worker.helpers.open_scan_hub import CoprOpenScanHubHelper
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
@@ -240,6 +249,73 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     task_name = TaskName.copr_build_end
 
+    def trigger_log_detective_analysis(self) -> bool:
+        """Save and submit an analysis for the failed Copr chroot or SRPM build."""
+        build = self.build
+        if not isinstance(build, (CoprBuildTargetModel, SRPMBuildModel)):
+            return False
+        log_url = (
+            build.build_logs_url if isinstance(build, CoprBuildTargetModel) else build.logs_url
+        )
+        log_url = log_url or self.copr_event.get_copr_build_logs_url()
+        selected_logs = select_verified_logs([("builder-live.log", log_url)])
+        if not selected_logs:
+            logger.warning(
+                "No Copr log URL passed verification for build %s", self.copr_event.build_id
+            )
+            return False
+
+        group = (
+            LogDetectiveRunGroupModel.get_or_create_for_copr_build(build)
+            if isinstance(build, CoprBuildTargetModel)
+            else LogDetectiveRunGroupModel.create(build.runs)
+        )
+        target = build.target if isinstance(build, CoprBuildTargetModel) else "srpm-builds"
+        commentary = (
+            f"Build failed in Copr for {self.copr_event.owner}/{self.copr_event.project_name}, "
+            f"package {self.copr_event.pkg}, build {self.copr_event.build_id}, target {target}. "
+            "The builder-live.log contains build output and is the primary source of the failure."
+        )
+        run = LogDetectiveRunModel.create(
+            status=LogDetectiveResult.running,
+            target_build=str(self.copr_event.build_id),
+            target=target,
+            build_system=LogDetectiveBuildSystem.copr,
+            log_detective_analysis_id=str(uuid4()),
+            log_detective_run_group=group,
+            identifier=self.copr_event.identifier,
+            selected_logs=selected_logs,
+            analysis_commentary=commentary,
+            copr_build_target=build if isinstance(build, CoprBuildTargetModel) else None,
+            srpm_build=build if isinstance(build, SRPMBuildModel) else None,
+        )
+        LogDetectiveRunHelper(run.id).start_saved_analysis(
+            run,
+            self.service_config.logdetective_url,
+            self.service_config.logdetective_token,
+            self.pushgateway,
+        )
+        return True
+
+    def trigger_log_detective_if_configured(self) -> None:
+        """Analyze explicit Copr failures without making build reporting depend on LD."""
+        if self.copr_event.status != COPR_API_FAIL_STATE or not self.project:
+            return
+        # Avoid resolving a project URL (which may contact the forge) when
+        # Copr analysis is disabled globally.
+        if not self.service_config.logdetective_copr_enabled:
+            return
+        if not FedoraCIConfig.get_config().is_logdetective_enabled(
+            self.project.get_web_url(), LogDetectiveBuildSystem.copr
+        ):
+            return
+        try:
+            self.trigger_log_detective_analysis()
+        except Exception:
+            logger.exception(
+                "Could not trigger Log Detective for Copr build %s", self.copr_event.build_id
+            )
+
     def set_srpm_url(self) -> None:
         # TODO how to do better
         srpm_build = (
@@ -367,6 +443,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                         logs_url=self.build.build_logs_url,
                     )
             self.build.set_status(BuildStatus.failure)
+            self.trigger_log_detective_if_configured()
             report_long_runtime("Copr build failed end", 120, run_start_time)
             return TaskResults(success=False, details={"msg": failed_msg})
 
@@ -451,6 +528,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 logs_url=self.build.logs_url,
             )
             self.build.set_status(BuildStatus.failure)
+            self.trigger_log_detective_if_configured()
             self.copr_build_helper.monitor_not_submitted_copr_builds(
                 len(self.copr_build_helper.build_targets),
                 "srpm_failure",

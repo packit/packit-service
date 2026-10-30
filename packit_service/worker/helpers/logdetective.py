@@ -4,6 +4,7 @@
 """Submit, babysit, and report durable Log Detective analyses."""
 
 import logging
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
@@ -34,6 +35,11 @@ logger = logging.getLogger(__name__)
 ACTIVE = {"scheduled", "in_progress", "cancelling"}
 TERMINAL = {"done", "error", "cancelled"}
 INITIAL_POLL_DELAY = 120
+
+
+def select_verified_logs(candidates: Iterable[tuple[str, str]]) -> list[dict[str, str]]:
+    """Return downloadable plain-text logs in candidate order for a saved analysis."""
+    return [{"name": name, "url": url} for name, url in candidates if verify_artifact(url)]
 
 
 class LogDetectiveRunHelper:
@@ -70,6 +76,27 @@ class LogDetectiveRunHelper:
         )
         self._envelope(response, run, 202)
         LogDetectiveRunModel.mark_api_accepted(self.run_id)
+
+    def start_saved_analysis(
+        self, run: LogDetectiveRunModel, url: str, token: str, pushgateway: Pushgateway
+    ) -> None:
+        """Count, submit, and schedule a durable run without losing retryability."""
+        pushgateway.log_detective_runs_started.inc()
+        try:
+            self.submit_analysis(run, url, token)
+        except Exception:
+            logger.warning(
+                "Log Detective submission will be retried for run %s", self.run_id, exc_info=True
+            )
+        try:
+            celery_app.send_task(
+                "task.process_log_detective_run", args=(self.run_id,), countdown=INITIAL_POLL_DELAY
+            )
+        except Exception:
+            logger.exception(
+                "Could not schedule Log Detective polling for run %s; Beat will recover it",
+                self.run_id,
+            )
 
     def _finish(
         self, status: LogDetectiveResult, result: Optional[dict], error: Optional[str]
@@ -126,6 +153,8 @@ class LogDetectiveRunHelper:
             branch = project.get_pr(context.pr_id).target_branch
         prefix = get_check_name_prefix(self.service_config)
         check_name = f"{prefix} - Log Detective analysis" if prefix else "Log Detective analysis"
+        if context.build_system == LogDetectiveBuildSystem.copr:
+            check_name = f"{check_name} - {context.target}"
         helper = FedoraCIHelper(project, data, context.target or branch)
         helper.report(
             state=(
@@ -307,7 +336,6 @@ class LogDetectiveKojiTriggerHelper:
         Return false if no log URL verifies; a saved run returns true even when
         submission fails, because the saved request can be retried.
         """
-        artifacts = {}
         build_arch_task_id = self.koji_event.rpm_build_task_ids[arch]
 
         # These logs are most likely to explain the failure; extra logs add latency.
@@ -318,21 +346,23 @@ class LogDetectiveKojiTriggerHelper:
         ]
 
         # Verify once and persist the exact selected URLs for every POST retry.
-        for artifact in possible_koji_artifacts:
-            url = koji.result.KojiEvent.get_koji_build_logs_url(
-                rpm_build_task_id=build_arch_task_id,
-                koji_logs_url=self.koji_logs_url,
-                log_file=artifact,
+        selected_logs = select_verified_logs(
+            (
+                artifact,
+                koji.result.KojiEvent.get_koji_build_logs_url(
+                    rpm_build_task_id=build_arch_task_id,
+                    koji_logs_url=self.koji_logs_url,
+                    log_file=artifact,
+                ),
             )
-            if verify_artifact(url):
-                artifacts[artifact] = url
+            for artifact in possible_koji_artifacts
+        )
 
-        if len(artifacts) == 0:
+        if not selected_logs:
             logger.warning("No artifact URLs passed verification")
             return False
 
         analysis_id = str(uuid4())
-        selected_logs = [{"name": name, "url": url} for name, url in artifacts.items()]
         commentary = self._build_commentary(arch)
 
         build_target = self.koji_event.build_model
@@ -368,26 +398,7 @@ class LogDetectiveKojiTriggerHelper:
             analysis_commentary=commentary,
             koji_build_target=build_target,
         )
-        self.pushgateway.log_detective_runs_started.inc()
-        # The saved run remains recoverable if submission or task delivery fails.
-        helper = LogDetectiveRunHelper(run.id)
-        try:
-            helper.submit_analysis(run, self.url, self.token)
-        except (requests.RequestException, ValueError) as exc:
-            helper._api_failure(exc)
-        except Exception:
-            logger.warning(
-                "Log Detective submission will be retried for run %s", run.id, exc_info=True
-            )
-        try:
-            celery_app.send_task(
-                "task.process_log_detective_run",
-                args=(run.id,),
-                countdown=INITIAL_POLL_DELAY,
-            )
-        except Exception:
-            logger.exception(
-                "Could not schedule Log Detective babysitting for run %s; Beat will recover it",
-                run.id,
-            )
+        LogDetectiveRunHelper(run.id).start_saved_analysis(
+            run, self.url, self.token, self.pushgateway
+        )
         return True

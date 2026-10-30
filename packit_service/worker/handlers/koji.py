@@ -34,6 +34,7 @@ from packit_service.fedora_ci_config import FedoraCIConfig
 from packit_service.models import (
     AbstractProjectObjectDbType,
     KojiBuildTargetModel,
+    LogDetectiveBuildSystem,
     ProjectEventModel,
 )
 from packit_service.package_config_getter import PackageConfigGetter
@@ -396,7 +397,7 @@ class KojiTaskReportDownstreamHandler(AbstractKojiTaskReportHandler, FedoraCIJob
         when the LD trigger failed, and not return a failed TaskResult.
         """
         if not self.project or not FedoraCIConfig.get_config().is_logdetective_enabled(
-            self.project.get_web_url()
+            self.project.get_web_url(), LogDetectiveBuildSystem.koji
         ):
             return
 

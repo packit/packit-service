@@ -67,6 +67,10 @@ def run(**overrides):
         "accepted_time": datetime.utcnow(),
         "submitted_time": datetime.utcnow(),
         "status": LogDetectiveResult.running,
+        "build_system": models.LogDetectiveBuildSystem.koji,
+        "koji_build_target": None,
+        "copr_build_target": None,
+        "srpm_build": None,
     }
     values.update(overrides)
     return SavedRun(**values)
@@ -328,6 +332,41 @@ def test_report_context_skips_deleted_or_superseded_build(monkeypatch):
     assert models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete) is None
 
 
+@pytest.mark.parametrize("target_field", ["copr_build_target", "srpm_build"])
+def test_report_context_checks_newer_copr_build(monkeypatch, target_field):
+    """Copr RPM and SRPM analyses use their respective build freshness checks."""
+    build = object()
+    saved = run(
+        build_system=models.LogDetectiveBuildSystem.copr,
+        get_project=lambda: models.AnityaProjectModel(),
+        get_project_event_model=lambda: SimpleNamespace(commit_sha="abc123"),
+        **{target_field: build},
+    )
+    query = MagicMock()
+    query.filter_by.return_value.one_or_none.return_value = saved
+    session = MagicMock()
+    session.query.return_value = query
+
+    @contextmanager
+    def transaction(**_):
+        yield session
+
+    checked = []
+    monkeypatch.setattr(models, "sa_session_transaction", transaction)
+    monkeypatch.setattr(
+        models.CoprBuildTargetModel,
+        "has_newer_run",
+        lambda target: checked.append(target) or True,
+    )
+    monkeypatch.setattr(
+        models.SRPMBuildModel,
+        "has_newer_run",
+        lambda target: checked.append(target) or True,
+    )
+    assert models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete) is None
+    assert checked == [build]
+
+
 def test_report_context_rejects_anitya_project(monkeypatch):
     """Fedora CI reporting requires a Git project URL and commit SHA."""
     saved = run(
@@ -553,7 +592,7 @@ def test_check_name_without_deployment_prefix(monkeypatch):
 @pytest.mark.parametrize("post_fails", [False, True])
 @pytest.mark.parametrize("enqueue_fails", [False, True])
 def test_koji_submission_saves_request_and_build_before_post(
-    monkeypatch, post_fails, enqueue_fails
+    monkeypatch, caplog, post_fails, enqueue_fails
 ):
     """Saved inputs survive both initial POST and Celery delivery failures."""
     build = MagicMock(nvr="pkg-1-1", scratch=True, sidetag=None, build_submission_stdout=None)
@@ -584,12 +623,19 @@ def test_koji_submission_saves_request_and_build_before_post(
         lambda *a, **kw: created.append((a, kw)) or run(),
     )
 
-    def submit(*args, **kwargs):
+    def post(*args, **kwargs):
         created.append(("post", args, kwargs))
         if post_fails:
             raise requests.Timeout("initial POST failed")
+        return response(code=202)
 
-    monkeypatch.setattr(polling.LogDetectiveRunHelper, "submit_analysis", submit)
+    monkeypatch.setattr(polling.requests, "post", post)
+    accepted = []
+    monkeypatch.setattr(
+        polling.LogDetectiveRunModel,
+        "mark_api_accepted",
+        lambda run_id: accepted.append(run_id),
+    )
     queued = []
 
     def send_task(self, *args, **kwargs):
@@ -600,12 +646,6 @@ def test_koji_submission_saves_request_and_build_before_post(
     # Restore the class method after this test; patching the shared app leaves an
     # instance attribute that shadows class-level mocks in later tests.
     monkeypatch.setattr(Celery, "send_task", send_task)
-    failures = []
-    monkeypatch.setattr(
-        polling.LogDetectiveRunHelper,
-        "_api_failure",
-        lambda self, exc: failures.append(str(exc)),
-    )
     helper = polling.LogDetectiveKojiTriggerHelper(
         event,
         SimpleNamespace(commit_sha="abc", project_url="https://example.org", pr_id=None),
@@ -622,6 +662,8 @@ def test_koji_submission_saves_request_and_build_before_post(
     assert created_groups == [build.group_of_targets.runs]
     assert created[0][1]["log_detective_run_group"] is group
     assert created[0][1]["koji_build_target"] is build
-    assert created[1][0] == "post" and created[1][2] == {}
-    assert failures == (["initial POST failed"] if post_fails else [])
+    assert created[1][0] == "post"
+    assert created[1][2]["json"]["id"] == TASK_ID
+    assert accepted == ([] if post_fails else [5])
+    assert ("initial POST failed" in caplog.text) is post_fails
     assert queued == [(("task.process_log_detective_run",), {"args": (5,), "countdown": 120})]

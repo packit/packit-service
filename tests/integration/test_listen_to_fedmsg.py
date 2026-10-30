@@ -2632,7 +2632,7 @@ def test_koji_build_end_downstream(
             fedora_ci=FedoraCISettings(
                 enabled_projects={"https://src.fedoraproject.org/rpms/packit"},
             ),
-            logdetective_enabled=False,
+            logdetective_copr_enabled=False,
             koji_logs_url="",
             koji_web_url="",
             deployment=Deployment.stg,
