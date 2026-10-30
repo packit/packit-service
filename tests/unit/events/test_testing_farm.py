@@ -166,14 +166,8 @@ def test_json_testing_farm_notification(
 def test_get_submitted_time_from_model():
     date = datetime.utcnow()
 
-    fake_tf = flexmock(submitted_time=date)
-    flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
-    tf = TFTTestRunTargetModel()
-    tf.__class__ = TFTTestRunTargetModel
+    tf = TFTTestRunTargetModel(submitted_time=date)
     assert date == tf.submitted_time
 
-    fake_copr = flexmock(submitted_time=date)
-    flexmock(CoprBuildTargetModel).new_instances(fake_copr)
-    copr = CoprBuildTargetModel()
-    copr.__class__ = CoprBuildTargetModel  # to pass in isinstance(model, CoprBuildTargetModel)
+    copr = CoprBuildTargetModel(submitted_time=date)
     assert date == copr.submitted_time

@@ -4,6 +4,7 @@
 import logging
 
 from packit_service.config import ServiceConfig
+from packit_service.models import LogDetectiveBuildSystem
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +66,21 @@ class FedoraCIConfig:
             return False
         return True
 
-    def is_logdetective_enabled(self, project_url: str) -> bool:
-        """Should Log Detective analysis run for this project?"""
-        if not self._service_config.logdetective_enabled:
-            logger.info(f"Log Detective globally disabled, skipping for {project_url}.")
+    def is_logdetective_enabled(
+        self,
+        project_url: str,
+        build_system: LogDetectiveBuildSystem = LogDetectiveBuildSystem.koji,
+    ) -> bool:
+        """Check the selected build system's switch and this project's exclusion."""
+        if build_system not in (LogDetectiveBuildSystem.koji, LogDetectiveBuildSystem.copr):
+            raise ValueError(f"Unsupported Log Detective build system: {build_system}")
+        enabled = (
+            self._service_config.logdetective_koji_enabled
+            if build_system == LogDetectiveBuildSystem.koji
+            else self._service_config.logdetective_copr_enabled
+        )
+        if not enabled:
+            logger.info(f"Log Detective for {build_system.value} disabled, skipping {project_url}.")
             return False
         if project_url in self._settings.disabled_projects_for_logdetective:
             logger.info(f"Log Detective disabled for project {project_url}.")

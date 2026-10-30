@@ -7,7 +7,6 @@ from flexmock import flexmock
 from ogr import GithubService, GitlabService, PagureService
 
 from packit_service.config import ServiceConfig
-from packit_service.models import TFTTestRunTargetModel
 
 
 @pytest.fixture()
@@ -19,7 +18,7 @@ def mock_config():
         PagureService(instance_url="https://src.fedoraproject.org", token="1234"),
     }
     service_config.github_requests_log_path = "/path"
-    service_config.logdetective_enabled = True
+    service_config.logdetective_koji_enabled = True
     ServiceConfig.service_config = service_config
 
 
@@ -27,14 +26,10 @@ def mock_config():
 def tf_models():
     time = datetime(2000, 4, 28, 14, 9, 33, 860293)
     latest_time = datetime.utcnow()
-    tf = flexmock(TFTTestRunTargetModel).new_instances().mock()
-    tf.pipeline_id = "1"
-    tf.submitted_time = time
-    tf.target = "target"
-
-    another_tf = flexmock(TFTTestRunTargetModel).new_instances().mock()
-    another_tf.pipeline_id = "2"
-    another_tf.submitted_time = latest_time
-    another_tf.target = "target"
+    # This test only reads attributes; standalone mocks avoid patching the model class.
+    tf = flexmock(pipeline_id="1", submitted_time=time, target="target", identifier=None)
+    another_tf = flexmock(
+        pipeline_id="2", submitted_time=latest_time, target="target", identifier=None
+    )
 
     yield [tf, another_tf]

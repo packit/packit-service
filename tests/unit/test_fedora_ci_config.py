@@ -222,11 +222,19 @@ def test_is_eln_enabled(disabled, project_url, expected):
 def test_is_logdetective_enabled(global_enabled, disabled, project_url, expected):
     config = ServiceConfig(
         deployment=Deployment.stg,
-        logdetective_enabled=global_enabled,
+        logdetective_koji_enabled=global_enabled,
         fedora_ci=FedoraCISettings(disabled_projects_for_logdetective=disabled),
     )
     ci_config = FedoraCIConfig(config)
     assert ci_config.is_logdetective_enabled(project_url) == expected
+
+
+@pytest.mark.parametrize("build_system", ["koji", "copr", "other", None])
+def test_logdetective_build_system_requires_enum(build_system):
+    config = ServiceConfig(deployment=Deployment.stg)
+    ci_config = FedoraCIConfig(config)
+    with pytest.raises(ValueError, match="Unsupported Log Detective build system"):
+        ci_config.is_logdetective_enabled("https://example.test/project", build_system)
 
 
 def test_fedora_ci_settings_default_when_missing_from_yaml():
