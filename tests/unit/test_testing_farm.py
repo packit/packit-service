@@ -11,6 +11,7 @@ from packit.config import (
     CommonPackageConfig,
     JobConfig,
     JobConfigTriggerType,
+    JobConfigView,
     JobType,
     PackageConfig,
 )
@@ -844,6 +845,7 @@ def test_payload(testcase: PayloadTestcase):
     )
     db_project_object = flexmock()
 
+    package_name_key = "package"
     job_helper = TFJobHelper(
         service_config=service_config,
         package_config=package_config,
@@ -853,17 +855,20 @@ def test_payload(testcase: PayloadTestcase):
         .should_receive("get_project_event_object")
         .and_return(db_project_object)
         .mock(),
-        job_config=JobConfig(
-            type=JobType.tests,
-            trigger=JobConfigTriggerType.pull_request,
-            packages={
-                "package": CommonPackageConfig(
-                    use_internal_tf=testcase.use_internal_tf,
-                    tmt_plan=testcase.tmt_plan,
-                    tf_post_install_script=testcase.tf_post_install_script,
-                    tf_extra_params=testcase.tf_extra_params,
-                ),
-            },
+        job_config=JobConfigView(
+            JobConfig(
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    package_name_key: CommonPackageConfig(
+                        use_internal_tf=testcase.use_internal_tf,
+                        tmt_plan=testcase.tmt_plan,
+                        tf_post_install_script=testcase.tf_post_install_script,
+                        tf_extra_params=testcase.tf_extra_params,
+                    ),
+                },
+            ),
+            package_name_key,
         ),
     )
     # Add custom env var to job_config
@@ -898,6 +903,7 @@ def test_payload(testcase: PayloadTestcase):
         build_logs_url=log_url,
         owner="builder",
         project_name="some_package",
+        target=testcase.chroot,
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
@@ -935,6 +941,7 @@ def test_payload(testcase: PayloadTestcase):
             },
             "variables": {
                 "PACKIT_BUILD_LOG_URL": log_url,
+                "PACKIT_PACKAGE_KEY": package_name_key,
                 "PACKIT_COMMIT_SHA": testcase.commit_sha,
                 "PACKIT_TAG_NAME": testcase.tag_name,
                 "PACKIT_FULL_REPO_NAME": f"{testcase.namespace}/{testcase.repo}",
@@ -949,6 +956,7 @@ def test_payload(testcase: PayloadTestcase):
                 "PACKIT_PR_ID": 123,
                 "PACKIT_COPR_PROJECT": "builder/some_package",
                 "PACKIT_COPR_BUILD_ID": int(copr_build_id),
+                "PACKIT_COPR_CHROOT": testcase.chroot,
                 "MY_ENV_VARIABLE": "my-value",
             },
         },
@@ -1098,6 +1106,7 @@ def test_merge_extra_params():
                 {"tmt": {"context": {"distro": "rhel-7.9"}}, "settings": tf_settings},
             ],
         },
+        package=None,
     )
     helper = TFJobHelper(
         service_config,
@@ -1358,6 +1367,7 @@ def test_test_repo(
         build_logs_url=log_url,
         owner="mf",
         project_name="tree",
+        target=chroot,
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
