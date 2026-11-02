@@ -7,7 +7,13 @@ from marshmallow import Schema, ValidationError, fields, post_load
 from packit.config.common_package_config import Deployment
 from packit.schema import UserConfigSchema
 
-from packit_service.config import FedoraCISettings, MRTarget, ProjectToSync, ServiceConfig
+from packit_service.config import (
+    CoprScriptDependenciesRepo,
+    FedoraCISettings,
+    MRTarget,
+    ProjectToSync,
+    ServiceConfig,
+)
 
 
 class DeploymentField(fields.Field):
@@ -25,6 +31,23 @@ class DeploymentField(fields.Field):
             raise ValidationError("Invalid data provided. str required")
 
         return Deployment(value)
+
+
+class CoprScriptDependenciesRepoField(fields.Field):
+    def _serialize(self, value: typing.Any, attr: str, obj: typing.Any, **kwargs):
+        raise NotImplementedError
+
+    def _deserialize(
+        self,
+        value: typing.Any,
+        attr: typing.Optional[str],
+        data: typing.Optional[typing.Mapping[str, typing.Any]],
+        **kwargs,
+    ) -> CoprScriptDependenciesRepo:
+        if not isinstance(value, str):
+            raise ValidationError("Invalid data provided. str required")
+
+        return CoprScriptDependenciesRepo(value)
 
 
 class ProjectToSyncSchema(Schema):
@@ -91,6 +114,7 @@ class ServiceConfigSchema(UserConfigSchema):
     dashboard_url = fields.String()
     koji_logs_url = fields.String()
     koji_web_url = fields.String()
+    copr_script_dependencies_repo = CoprScriptDependenciesRepoField()
     enabled_projects_for_srpm_in_copr = fields.List(fields.String())
     comment_command_prefix = fields.String()
     package_config_path_override = fields.String()
