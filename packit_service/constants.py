@@ -140,6 +140,12 @@ COPR_FAIL_STATE = "failed"
 COPR_API_SUCC_STATE = 1
 COPR_API_FAIL_STATE = 2
 
+COPR_SCRIPT_REPOS = {
+    "internal": "copr://packit-bot/packit-internal",
+    "stable": "copr://packit/packit-stable",
+    "dev": "copr://packit/packit-dev",
+}
+
 # Retry 2 times
 DEFAULT_RETRY_LIMIT = 2
 # Retry more times for outages
