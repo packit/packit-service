@@ -27,7 +27,7 @@ jobs:
       - name: Install QEMU dependency
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-user-static
+          sudo apt-get install -y qemu-user-binfmt
 
       - name: Extract branch name and set tag
         shell: bash
