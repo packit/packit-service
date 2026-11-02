@@ -21,11 +21,14 @@ grep -q pkgs.fedoraproject.org known_hosts 2>/dev/null || curl -fsSL https://adm
 grep -q gitlab.com known_hosts || ssh-keyscan gitlab.com >> known_hosts
 popd
 
+# Fedora's celery executable uses python3 -sP, which hides pip packages in /usr/local.
+# Run the module without -s so packit_service and other pip dependencies are visible.
+
 # Whether to run Celery worker or beat (task scheduler)
 if [[ "${CELERY_COMMAND:=worker}" == "beat" ]]; then
     # when using the database backend, celery beat must be running for the results to be expired.
     # https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#starting-the-scheduler
-    exec celery --app="${APP}" beat --loglevel="${LOGLEVEL:-DEBUG}" --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule
+    exec /usr/bin/python3 -P -m celery --app="${APP}" beat --loglevel="${LOGLEVEL:-DEBUG}" --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule
 
 elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # define queues to serve
@@ -53,5 +56,5 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     fi
 
     # https://docs.celeryq.dev/en/stable/userguide/optimizing.html#optimizing-prefetch-limit
-    exec celery --app="${APP}" worker --loglevel="${LOGLEVEL:-DEBUG}" --concurrency="${CONCURRENCY}" --pool="${POOL}" --prefetch-multiplier=1 --queues="${QUEUES}"
+    exec /usr/bin/python3 -P -m celery --app="${APP}" worker --loglevel="${LOGLEVEL:-DEBUG}" --concurrency="${CONCURRENCY}" --pool="${POOL}" --prefetch-multiplier=1 --queues="${QUEUES}"
 fi
