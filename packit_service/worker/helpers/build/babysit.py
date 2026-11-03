@@ -291,17 +291,16 @@ def update_copr_builds(
 
     logger.info(f"The status of {build_id} is {build_copr.state!r}.")
 
-    if (
-        srpm_build := SRPMBuildModel.get_by_copr_build_id(build_id)
-    ) and srpm_build.status == BuildStatus.pending:
+    if srpm_build := SRPMBuildModel.get_by_copr_build_id(build_id):
         try:
             build_copr_srpm = copr_client.build_proxy.get_source_chroot(build_id)
         except copr.v3.CoprNoResultException:
-            logger.info(
-                f"SRPM build of Copr build {build_id} no longer available. "
-                "Setting it to error status and not checking it anymore.",
-            )
-            srpm_build.set_status(BuildStatus.error)
+            if srpm_build.status == BuildStatus.pending:
+                logger.info(
+                    f"SRPM build of Copr build {build_id} no longer available. "
+                    "Setting it to error status and not checking it anymore.",
+                )
+                srpm_build.set_status(BuildStatus.error)
         else:
             try:
                 update_srpm_build_state(srpm_build, build_copr, build_copr_srpm)
