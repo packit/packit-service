@@ -531,8 +531,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 nvr = None
             packit_copr_projects.append(f"{build.owner}/{build.project_name}")
             build_id = int(build.build_id)
+            build_chroot = build.target
         else:
-            build_log_url = nvr = srpm_url = build_id = None
+            build_log_url = nvr = srpm_url = build_id = build_chroot = None
 
         packit_copr_projects.extend(
             f"{additional_build.owner}/{additional_build.project_name}"
@@ -560,6 +561,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if self.job_config.downstream_package_name
                 else None
             ),
+            "PACKIT_PACKAGE_KEY": self.job_config.package,
             "PACKIT_PACKAGE_NAME": self.job_config.downstream_package_name,
             "PACKIT_PACKAGE_NVR": nvr,
             "PACKIT_BUILD_LOG_URL": build_log_url,
@@ -578,6 +580,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             ),
             "PACKIT_COPR_BUILD_ID": build_id,
             "PACKIT_COPR_RPMS": (" ".join(packit_copr_rpms) if packit_copr_rpms else None),
+            "PACKIT_COPR_CHROOT": build_chroot,
         }
         predefined_environment = {k: v for k, v in predefined_environment.items() if v is not None}
         # User-defined variables have priority
