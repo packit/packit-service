@@ -252,6 +252,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         return self.job_build.additional_repos if self.job_build else None
 
     @property
+    def runtime_dependencies(self) -> Optional[list[str]]:
+        """
+        Additional repos that will be installed together with the copr repo.
+        """
+        return self.job_build.runtime_dependencies if self.job_build else None
+
+    @property
     def bootstrap(self) -> Optional[MockBootstrapSetup]:
         """
         mock bootstrap feature setup.
@@ -948,6 +955,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 list_on_homepage=self.list_on_homepage if overwrite_booleans else None,
                 preserve_project=self.preserve_project if overwrite_booleans else None,
                 additional_repos=self.additional_repos,
+                runtime_dependencies=self.runtime_dependencies,
                 bootstrap=self.bootstrap,
                 request_admin_if_needed=True,
                 targets_dict=self.job_config.targets_dict,
