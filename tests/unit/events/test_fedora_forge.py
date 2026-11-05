@@ -15,41 +15,41 @@ from tests.spellbook import DATA_DIR
 
 @pytest.fixture()
 def forgejo_push():
-    with open(DATA_DIR / "fedmsg" / "forgejo_push.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_push.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def forgejo_pr():
-    with open(DATA_DIR / "fedmsg" / "forgejo_pr.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_pr.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def forgejo_pr_comment():
-    with open(DATA_DIR / "fedmsg" / "forgejo_pr_comment.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_pr_comment.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def forgejo_issue_comment():
-    with open(DATA_DIR / "fedmsg" / "forgejo_issue_comment.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_issue_comment.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def forgejo_action_run_pr():
-    with open(DATA_DIR / "fedmsg" / "forgejo_action_run_pr.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_action_run_pr.json") as outfile:
         return json.load(outfile)
 
 
 @pytest.fixture()
 def forgejo_action_run_push():
-    with open(DATA_DIR / "fedmsg" / "forgejo_action_run_push.json") as outfile:
+    with open(DATA_DIR / "fedmsg" / "forgejo_upstream_action_run_push.json") as outfile:
         return json.load(outfile)
 
 
-def test_parse_forgejo_push(forgejo_push):
+def test_parse_upstream_forgejo_push(forgejo_push):
     event_object = Parser.parse_event(forgejo_push)
 
     assert isinstance(event_object, forgejo.push.Commit)
@@ -63,7 +63,7 @@ def test_parse_forgejo_push(forgejo_push):
     assert event_object.project_url == "https://forge.fedoraproject.org/infra/docs"
 
 
-def test_parse_forgejo_pr(forgejo_pr):
+def test_parse_upstream_forgejo_pr(forgejo_pr):
     event_object = Parser.parse_event(forgejo_pr)
 
     assert isinstance(event_object, forgejo.pr.Action)
@@ -102,7 +102,7 @@ def test_parse_forgejo_pr(forgejo_pr):
     assert event_object.packages_config
 
 
-def test_parse_forgejo_pr_comment(forgejo_pr_comment):
+def test_parse_upstream_forgejo_pr_comment(forgejo_pr_comment):
     event_object = Parser.parse_event(forgejo_pr_comment)
 
     assert isinstance(event_object, forgejo.pr.Comment)
@@ -138,7 +138,7 @@ def test_parse_forgejo_pr_comment(forgejo_pr_comment):
     assert event_object.packages_config
 
 
-def test_parse_forgejo_issue_comment(forgejo_issue_comment):
+def test_parse_upstream_forgejo_issue_comment(forgejo_issue_comment):
     event_object = Parser.parse_event(forgejo_issue_comment)
 
     assert isinstance(event_object, forgejo.issue.Comment)
@@ -155,7 +155,7 @@ def test_parse_forgejo_issue_comment(forgejo_issue_comment):
     assert event_object.comment_id == 1062170
 
 
-def test_parse_forgejo_action_run_pr(forgejo_action_run_pr):
+def test_parse_upstream_forgejo_action_run_pr(forgejo_action_run_pr):
     event_object = Parser.parse_event(forgejo_action_run_pr)
 
     assert isinstance(event_object, forgejo.action_run.PullRequest)
@@ -175,7 +175,7 @@ def test_parse_forgejo_action_run_pr(forgejo_action_run_pr):
     assert event_object.project_namespace == "infra"
 
 
-def test_parse_forgejo_action_run_push(forgejo_action_run_push):
+def test_parse_upstream_forgejo_action_run_push(forgejo_action_run_push):
     event_object = Parser.parse_event(forgejo_action_run_push)
 
     assert isinstance(event_object, forgejo.action_run.Push)
