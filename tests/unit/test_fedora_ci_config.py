@@ -222,7 +222,7 @@ def test_is_eln_enabled(disabled, project_url, expected):
 def test_is_logdetective_enabled(global_enabled, disabled, project_url, expected):
     config = ServiceConfig(
         deployment=Deployment.stg,
-        logdetective_enabled=global_enabled,
+        log_detective_koji_enabled=global_enabled,
         fedora_ci=FedoraCISettings(disabled_projects_for_logdetective=disabled),
     )
     ci_config = FedoraCIConfig(config)

@@ -4,18 +4,22 @@
 """Submit, babysit, and report durable Log Detective analyses."""
 
 import logging
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Optional
+from math import isfinite
+from typing import Optional, Union
 from uuid import uuid4
 
 import requests
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
-from packit_service.constants import DEFAULT_JOB_TIMEOUT
-from packit_service.events import koji
+from packit_service.constants import COPR_SRPM_CHROOT, DEFAULT_JOB_TIMEOUT
+from packit_service.events import copr, koji
 from packit_service.events.event_data import EventData
 from packit_service.models import (
+    BuildStatus,
+    CoprBuildTargetModel,
     GitBranchModel,
     LogDetectiveBuildSystem,
     LogDetectiveResult,
@@ -23,6 +27,7 @@ from packit_service.models import (
     LogDetectiveRunModel,
     ProjectReleaseModel,
     PullRequestModel,
+    SRPMBuildModel,
 )
 from packit_service.service.urls import get_logdetective_info_url
 from packit_service.utils import elapsed_seconds, get_check_name_prefix, verify_artifact
@@ -34,6 +39,11 @@ logger = logging.getLogger(__name__)
 ACTIVE = {"scheduled", "in_progress", "cancelling"}
 TERMINAL = {"done", "error", "cancelled"}
 INITIAL_POLL_DELAY = 120
+
+
+def select_verified_logs(candidates: Iterable[tuple[str, str]]) -> list[dict[str, str]]:
+    """Return downloadable plain-text logs in candidate order for a saved analysis."""
+    return [{"name": name, "url": url} for name, url in candidates if verify_artifact(url)]
 
 
 class LogDetectiveRunHelper:
@@ -60,6 +70,24 @@ class LogDetectiveRunHelper:
             raise ValueError("Invalid Log Detective task envelope")
         return body
 
+    def _finish_if_superseded(self, run: LogDetectiveRunModel) -> bool:
+        """Retire an obsolete Copr run before any API work or report."""
+        if run.build_system != LogDetectiveBuildSystem.copr:
+            return False
+        build = run.copr_build_target or run.srpm_build
+        if build is None:
+            return False
+        model = CoprBuildTargetModel if run.copr_build_target is not None else SRPMBuildModel
+        if not model.has_newer_run(build):
+            return False
+        logger.info("Skipping obsolete Log Detective analysis for run %s", self.run_id)
+        submitted_time = LogDetectiveRunModel.finish_api_run(
+            self.run_id, LogDetectiveResult.error, None, "Superseded by a newer Copr build"
+        )
+        if submitted_time is not None:
+            self._record_completion_metrics(submitted_time)
+        return True
+
     def submit_analysis(self, run: LogDetectiveRunModel, url: str, token: str) -> None:
         """Replay the saved request and UUID after an uncertain submission."""
         response = requests.post(
@@ -70,6 +98,29 @@ class LogDetectiveRunHelper:
         )
         self._envelope(response, run, 202)
         LogDetectiveRunModel.mark_api_accepted(self.run_id)
+
+    def start_saved_analysis(
+        self, run: LogDetectiveRunModel, url: str, token: str, pushgateway: Pushgateway
+    ) -> None:
+        """Count, submit, and schedule a durable run without losing retryability."""
+        if self._finish_if_superseded(run):
+            return
+        pushgateway.log_detective_runs_started.inc()
+        try:
+            self.submit_analysis(run, url, token)
+        except Exception:
+            logger.warning(
+                "Log Detective submission will be retried for run %s", self.run_id, exc_info=True
+            )
+        try:
+            celery_app.send_task(
+                "task.process_log_detective_run", args=(self.run_id,), countdown=INITIAL_POLL_DELAY
+            )
+        except Exception:
+            logger.exception(
+                "Could not schedule Log Detective polling for run %s; Beat will recover it",
+                self.run_id,
+            )
 
     def _finish(
         self, status: LogDetectiveResult, result: Optional[dict], error: Optional[str]
@@ -126,6 +177,8 @@ class LogDetectiveRunHelper:
             branch = project.get_pr(context.pr_id).target_branch
         prefix = get_check_name_prefix(self.service_config)
         check_name = f"{prefix} - Log Detective analysis" if prefix else "Log Detective analysis"
+        if context.build_system == LogDetectiveBuildSystem.copr:
+            check_name = f"{check_name} - {context.target} - {context.build_id}"
         helper = FedoraCIHelper(project, data, context.target or branch)
         helper.report(
             state=(
@@ -142,6 +195,8 @@ class LogDetectiveRunHelper:
         """Perform one submission or poll, then report a terminal result."""
         run = LogDetectiveRunModel.get_by_id(self.run_id)
         if not run or run.selected_logs is None or run.status != LogDetectiveResult.running:
+            return
+        if self._finish_if_superseded(run):
             return
         now = datetime.utcnow()
         expired = elapsed_seconds(begin=run.submitted_time, end=now) >= DEFAULT_JOB_TIMEOUT
@@ -204,7 +259,56 @@ def check_log_detective_run(run_id: int) -> bool:
         return False
 
 
-class LogDetectiveKojiTriggerHelper:
+class LogDetectiveTriggerHelper:
+    """Compose persisted build commentary shared by Copr and Koji triggers."""
+
+    @staticmethod
+    def _format_duration(start_time, end_time) -> str:
+        """Describe a nonnegative duration from datetimes or epoch seconds."""
+        try:
+            if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+                seconds = (end_time - start_time).total_seconds()
+            else:
+                seconds = float(end_time) - float(start_time)
+        except (TypeError, ValueError, OverflowError):
+            return ""
+        if not isfinite(seconds) or seconds < 0:
+            return ""
+        return f"Build ran for {seconds:.0f} seconds before failing."
+
+    def _build_commentary(
+        self,
+        opening_parts: list[str],
+        project_object,
+        start_time,
+        end_time,
+        extra_parts: Iterable[str],
+        log_parts: Iterable[str],
+        submission_output: Optional[str] = None,
+    ) -> str:
+        """Join system details, project origin, duration, and log guidance once.
+
+        The result is saved with the selected logs and reused for API retries.
+        Callers supply only details that exist for their build system.
+        """
+        parts = list(opening_parts)
+        if isinstance(project_object, PullRequestModel):
+            parts.append(f"PR build (PR #{project_object.pr_id}).")
+        elif isinstance(project_object, GitBranchModel):
+            parts.append(f"Branch build ({project_object.name}).")
+        elif isinstance(project_object, ProjectReleaseModel):
+            parts.append(f"Release build (tag: {project_object.tag_name}).")
+        duration = self._format_duration(start_time, end_time)
+        if duration:
+            parts.append(duration)
+        parts.extend(extra_parts)
+        parts.extend(log_parts)
+        if submission_output:
+            parts.append(f"Build submission output: {submission_output}")
+        return " ".join(parts)
+
+
+class LogDetectiveKojiTriggerHelper(LogDetectiveTriggerHelper):
     """Create one durable analysis per failed buildArch task.
 
     The Koji event identifies each failed child task. For each one, save the
@@ -232,54 +336,39 @@ class LogDetectiveKojiTriggerHelper:
         # Create a group only after an architecture has verified logs.
         self.run_group: Optional[LogDetectiveRunGroupModel] = None
 
-    def _format_duration(self) -> str:
-        """Return a human-readable build duration, or empty string if unavailable."""
-        try:
-            start = float(self.koji_event.start_time)
-            end = float(self.koji_event.completion_time)
-        except (TypeError, ValueError):
-            return ""
-        seconds = end - start
-        if seconds < 0:
-            return ""
-        return f"Build ran for {seconds:.0f} seconds before failing."
-
-    def _build_commentary(self, arch: str) -> str:
-        """Capture the build and architecture context once for later API retries."""
+    def _commentary_for_arch(self, arch: str) -> str:
+        """Supply Koji's architecture and Mock details to shared commentary."""
         build = self.koji_event.build_model
-        parts = [
+        opening_parts = [
             "Build was executed in downstream Koji"
             " using containerized environment provided by Mock.",
             f"Package NVR: {build.nvr or 'unknown'},"
             f" target: {self.koji_event.target or 'unknown'}, arch: {arch}.",
             "Scratch build." if build.scratch else "Official (non-scratch) build.",
         ]
-        db_project_object = self.koji_event.db_project_object
-        if isinstance(db_project_object, PullRequestModel):
-            parts.append(f"PR build (PR #{db_project_object.pr_id}).")
-        elif isinstance(db_project_object, GitBranchModel):
-            parts.append(f"Branch build ({db_project_object.name}).")
-        elif isinstance(db_project_object, ProjectReleaseModel):
-            parts.append(f"Release build (tag: {db_project_object.tag_name}).")
-        duration = self._format_duration()
-        if duration:
-            parts.append(duration)
+        extra_parts = []
         if build.sidetag:
-            parts.append(
+            extra_parts.append(
                 f"Built in sidetag: {build.sidetag}."
                 " Sidetag builds use an isolated buildroot inheriting from the base tag;"
                 " dependency resolution failures may reflect non-default package versions"
                 " present in the sidetag."
             )
-        parts += [
+        log_parts = [
             "The build.log contains output of the package build"
             " and is the most likely source of the root cause.",
             "The mock_output.log is a general log from Mock.",
             "The root.log is a log from creation of the chroot environment.",
         ]
-        if build.build_submission_stdout:
-            parts.append(f"Build submission output: {build.build_submission_stdout}")
-        return " ".join(parts)
+        return self._build_commentary(
+            opening_parts=opening_parts,
+            project_object=self.koji_event.db_project_object,
+            start_time=self.koji_event.start_time,
+            end_time=self.koji_event.completion_time,
+            extra_parts=extra_parts,
+            log_parts=log_parts,
+            submission_output=build.build_submission_stdout,
+        )
 
     def trigger_log_detective_analysis(self) -> list[bool]:
         """Save and submit an analysis for every failed buildArch task.
@@ -307,7 +396,6 @@ class LogDetectiveKojiTriggerHelper:
         Return false if no log URL verifies; a saved run returns true even when
         submission fails, because the saved request can be retried.
         """
-        artifacts = {}
         build_arch_task_id = self.koji_event.rpm_build_task_ids[arch]
 
         # These logs are most likely to explain the failure; extra logs add latency.
@@ -318,22 +406,24 @@ class LogDetectiveKojiTriggerHelper:
         ]
 
         # Verify once and persist the exact selected URLs for every POST retry.
-        for artifact in possible_koji_artifacts:
-            url = koji.result.KojiEvent.get_koji_build_logs_url(
-                rpm_build_task_id=build_arch_task_id,
-                koji_logs_url=self.koji_logs_url,
-                log_file=artifact,
+        selected_logs = select_verified_logs(
+            (
+                artifact,
+                koji.result.KojiEvent.get_koji_build_logs_url(
+                    rpm_build_task_id=build_arch_task_id,
+                    koji_logs_url=self.koji_logs_url,
+                    log_file=artifact,
+                ),
             )
-            if verify_artifact(url):
-                artifacts[artifact] = url
+            for artifact in possible_koji_artifacts
+        )
 
-        if len(artifacts) == 0:
+        if not selected_logs:
             logger.warning("No artifact URLs passed verification")
             return False
 
         analysis_id = str(uuid4())
-        selected_logs = [{"name": name, "url": url} for name, url in artifacts.items()]
-        commentary = self._build_commentary(arch)
+        commentary = self._commentary_for_arch(arch)
 
         build_target = self.koji_event.build_model
 
@@ -368,26 +458,95 @@ class LogDetectiveKojiTriggerHelper:
             analysis_commentary=commentary,
             koji_build_target=build_target,
         )
-        self.pushgateway.log_detective_runs_started.inc()
-        # The saved run remains recoverable if submission or task delivery fails.
-        helper = LogDetectiveRunHelper(run.id)
-        try:
-            helper.submit_analysis(run, self.url, self.token)
-        except (requests.RequestException, ValueError) as exc:
-            helper._api_failure(exc)
-        except Exception:
+        LogDetectiveRunHelper(run.id).start_saved_analysis(
+            run, self.url, self.token, self.pushgateway
+        )
+        return True
+
+
+class LogDetectiveCoprTriggerHelper(LogDetectiveTriggerHelper):
+    """Save and submit one analysis for a failed Copr RPM chroot or SRPM build."""
+
+    def __init__(
+        self,
+        copr_event: copr.End,
+        build: Union[CoprBuildTargetModel, SRPMBuildModel],
+        pushgateway: Pushgateway,
+        url: str,
+        token: str,
+    ):
+        self.copr_event = copr_event
+        self.build = build
+        self.pushgateway = pushgateway
+        self.url = url
+        self.token = token
+
+    def trigger_log_detective_analysis(self) -> bool:
+        """Persist verified inputs before submission so retries use the same request."""
+        build = self.build
+        if isinstance(build, CoprBuildTargetModel):
+            if build.copr_build_group_id is None or build.group_of_targets is None:
+                raise ValueError(
+                    f"Copr build target {build.id} has no build group "
+                    f"(ID {build.copr_build_group_id})"
+                )
+            srpm = build.get_srpm_build()
+            if srpm is not None and srpm.status == BuildStatus.failure:
+                logger.info(
+                    "Skipping Copr chroot analysis after SRPM failure for build %s", build.id
+                )
+                return False
+            has_newer_run = CoprBuildTargetModel.has_newer_run(build)
+        else:
+            has_newer_run = SRPMBuildModel.has_newer_run(build)
+        if has_newer_run:
+            logger.info("Skipping obsolete Copr analysis for build %s", build.id)
+            return False
+        log_url = (
+            build.build_logs_url if isinstance(build, CoprBuildTargetModel) else build.logs_url
+        )
+        log_urls = self.copr_event.get_copr_build_logs_url()
+        if log_url:
+            log_base_url = log_url.rsplit("/", 1)[0]
+            log_urls = {name: f"{log_base_url}/{name}" for name in log_urls}
+        selected_logs = select_verified_logs(log_urls.items())
+        if not selected_logs:
             logger.warning(
-                "Log Detective submission will be retried for run %s", run.id, exc_info=True
+                "No Copr log URL passed verification for build %s", self.copr_event.build_id
             )
-        try:
-            celery_app.send_task(
-                "task.process_log_detective_run",
-                args=(run.id,),
-                countdown=INITIAL_POLL_DELAY,
-            )
-        except Exception:
-            logger.exception(
-                "Could not schedule Log Detective babysitting for run %s; Beat will recover it",
-                run.id,
-            )
+            return False
+
+        target = build.target if isinstance(build, CoprBuildTargetModel) else COPR_SRPM_CHROOT
+        commentary = self._build_commentary(
+            opening_parts=[
+                f"Build failed in Copr for {self.copr_event.owner}/{self.copr_event.project_name}, "
+                f"package {self.copr_event.pkg}, build {self.copr_event.build_id},"
+                f" target {target}.",
+                "RPM chroot build." if isinstance(build, CoprBuildTargetModel) else "SRPM build.",
+            ],
+            project_object=build.get_project_event_object(),
+            start_time=build.build_start_time,
+            end_time=build.build_finished_time,
+            extra_parts=[],
+            log_parts=[
+                "The builder-live.log contains builder output and backend.log"
+                " contains Copr backend details."
+            ],
+        )
+        run_id, created = LogDetectiveRunModel.create_for_copr_build(
+            build,
+            target_build=str(self.copr_event.build_id),
+            target=target,
+            # RPM targets store the job configuration identifier; SRPM builds do not.
+            identifier=build.identifier if isinstance(build, CoprBuildTargetModel) else None,
+            selected_logs=selected_logs,
+            analysis_commentary=commentary,
+        )
+        if not created:
+            logger.info("Copr Log Detective run %s already exists for build %s", run_id, build.id)
+            return False
+        run = LogDetectiveRunModel.get_by_id(run_id)
+        LogDetectiveRunHelper(run_id).start_saved_analysis(
+            run, self.url, self.token, self.pushgateway
+        )
         return True

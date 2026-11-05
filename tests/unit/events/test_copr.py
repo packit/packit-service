@@ -32,15 +32,9 @@ def copr_build_results_end():
 def copr_models():
     time = datetime(2000, 4, 28, 14, 9, 33, 860293)
     latest_time = datetime.utcnow()
-    copr = flexmock(CoprBuildTargetModel).new_instances().mock()
-    copr.build_id = "1"
-    copr.submitted_time = time
-    copr.target = "target"
-
-    another_copr = flexmock(CoprBuildTargetModel).new_instances().mock()
-    another_copr.build_id = "2"
-    another_copr.submitted_time = latest_time
-    another_copr.target = "target"
+    # Real detached models avoid changing the constructor for later tests.
+    copr = CoprBuildTargetModel(build_id="1", submitted_time=time, target="target")
+    another_copr = CoprBuildTargetModel(build_id="2", submitted_time=latest_time, target="target")
 
     yield [copr, another_copr]
 
@@ -76,10 +70,14 @@ def test_parse_copr_build_event_start(
         not event_object.base_project  # With Github app, we cannot work with fork repo
     )
 
-    assert event_object.get_copr_build_logs_url() == (
+    log_base_url = (
         "https://download.copr.fedorainfracloud.org/results/packit/"
-        "packit-service-hello-world-24/fedora-rawhide-x86_64/01044215-hello/builder-live.log"
+        "packit-service-hello-world-24/fedora-rawhide-x86_64/01044215-hello"
     )
+    assert event_object.get_copr_build_logs_url() == {
+        "builder-live.log": f"{log_base_url}/builder-live.log",
+        "backend.log": f"{log_base_url}/backend.log",
+    }
 
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo",

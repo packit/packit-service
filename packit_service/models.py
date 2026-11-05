@@ -22,6 +22,7 @@ from typing import (
     overload,
 )
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from cachetools import TTLCache, cached
 from cachetools.func import ttl_cache
@@ -37,6 +38,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    and_,
     asc,
     case,
     create_engine,
@@ -2381,12 +2383,12 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         on the same project event (e.g. same commit within a PR).
 
         Used to avoid overwriting a newer build's check status when
-        processing results for an older (e.g. canceled) build.
+        processing results for an older (e.g. canceled) build. Compare build
+        groups because analysis may add pipelines after the build started.
         """
         project_event = run.get_project_event_model()
-        runs = run.group_of_targets.runs if run.group_of_targets else []
-        pipeline_datetime = max((r.datetime for r in runs if r.datetime), default=None)
-        if not project_event or not pipeline_datetime:
+        build_group = run.group_of_targets
+        if not project_event or not build_group or not build_group.submitted_time:
             return False
         with sa_session_transaction() as session:
             return session.query(
@@ -2400,7 +2402,13 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
                     ProjectEventModel.commit_sha == project_event.commit_sha,
                     CoprBuildTargetModel.identifier == run.identifier,
                     CoprBuildTargetModel.target == run.target,
-                    PipelineModel.datetime > pipeline_datetime,
+                    or_(
+                        CoprBuildGroupModel.submitted_time > build_group.submitted_time,
+                        and_(
+                            CoprBuildGroupModel.submitted_time == build_group.submitted_time,
+                            CoprBuildGroupModel.id > build_group.id,
+                        ),
+                    ),
                     CoprBuildTargetModel.id != run.id,
                 )
                 .exists()
@@ -3362,6 +3370,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
     copr_web_url = Column(Text)
 
     runs = relationship("PipelineModel", back_populates="srpm_build")
+    log_detective_runs = relationship("LogDetectiveRunModel", back_populates="srpm_build")
 
     @classmethod
     def create_with_new_run(
@@ -3435,6 +3444,45 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
             copr_build_id = str(copr_build_id)
         with sa_session_transaction() as session:
             return session.query(SRPMBuildModel).filter_by(copr_build_id=copr_build_id).first()
+
+    @classmethod
+    def has_newer_run(cls, run: "SRPMBuildModel") -> bool:
+        """Check for a later SRPM build of the same commit and package.
+
+        Use the build submission time rather than a pipeline timestamp: Log
+        Detective may clone pipelines after the build was submitted.
+        """
+        project_event = run.get_project_event_model()
+        if not project_event or not run.submitted_time:
+            return False
+        package_names = {pipeline.package_name for pipeline in run.runs}
+        if not package_names:
+            return False
+        non_null_names = package_names - {None}
+        package_filter = PipelineModel.package_name.in_(non_null_names)
+        if None in package_names:
+            package_filter = or_(package_filter, PipelineModel.package_name.is_(None))
+        with sa_session_transaction() as session:
+            return session.query(
+                session.query(SRPMBuildModel)
+                .join(PipelineModel)
+                .join(ProjectEventModel)
+                .filter(
+                    ProjectEventModel.type == project_event.type,
+                    ProjectEventModel.event_id == project_event.event_id,
+                    ProjectEventModel.commit_sha == project_event.commit_sha,
+                    package_filter,
+                    or_(
+                        SRPMBuildModel.submitted_time > run.submitted_time,
+                        and_(
+                            SRPMBuildModel.submitted_time == run.submitted_time,
+                            SRPMBuildModel.id > run.id,
+                        ),
+                    ),
+                    SRPMBuildModel.id != run.id,
+                )
+                .exists()
+            ).scalar()
 
     @classmethod
     def get_older_than(cls, delta: timedelta) -> Iterable["SRPMBuildModel"]:
@@ -4848,7 +4896,7 @@ class LogDetectiveResult(str, enum.Enum):
 
 
 class LogDetectiveReportContext(NamedTuple):
-    """Persisted details needed to report a claimed Log Detective result."""
+    """Persisted reporting details, including the build ID used by Copr checks."""
 
     project_url: str
     commit_sha: str
@@ -4856,6 +4904,8 @@ class LogDetectiveReportContext(NamedTuple):
     branch: Optional[str]
     target: Optional[str]
     status: LogDetectiveResult
+    build_id: str
+    build_system: Optional[LogDetectiveBuildSystem] = None
 
 
 class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
@@ -4899,12 +4949,13 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
     analysis_id = Column(String, unique=True, nullable=False)
     build_system = Column(Enum(LogDetectiveBuildSystem))
 
-    # In both cases, we don't need to keep Log Detective analysis
+    # In all cases, we don't need to keep Log Detective analysis
     # for a build that doesn't exist anymore.
     copr_build_target_id = Column(
         Integer,
         ForeignKey("copr_build_targets.id", ondelete="CASCADE"),
     )
+    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id", ondelete="CASCADE"))
     koji_build_target_id = Column(
         Integer,
         ForeignKey("koji_build_targets.id", ondelete="CASCADE"),
@@ -4926,6 +4977,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         back_populates="log_detective_runs",
         uselist=False,
     )
+    srpm_build = relationship("SRPMBuildModel", back_populates="log_detective_runs", uselist=False)
 
     koji_build_target = relationship(
         "KojiBuildTargetModel", back_populates="log_detective_runs", uselist=False
@@ -4945,6 +4997,8 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         selected_logs: Optional[list[dict[str, str]]] = None,
         analysis_commentary: Optional[str] = None,
         koji_build_target: Optional["KojiBuildTargetModel"] = None,
+        copr_build_target: Optional["CoprBuildTargetModel"] = None,
+        srpm_build: Optional["SRPMBuildModel"] = None,
     ) -> "LogDetectiveRunModel":
         """Create new instance of LogDetectiveRunModel and commit the change to the database.
 
@@ -4959,7 +5013,9 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             identifier: identifier from configuration
             selected_logs: ordered, verified log names and URLs; null on historical rows
             analysis_commentary: commentary generated when logs were selected
-            koji_build_target: associated parent build, saved with the request
+            koji_build_target: associated Koji build, saved with the request
+            copr_build_target: associated Copr RPM build
+            srpm_build: associated Copr SRPM build
         Returns:
             'LogDetectiveRunModel' object
         """
@@ -4980,11 +5036,79 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                 log_detective_run.selected_logs = selected_logs
                 log_detective_run.analysis_commentary = analysis_commentary
             log_detective_run.koji_build_target = koji_build_target
+            log_detective_run.copr_build_target = copr_build_target
+            log_detective_run.srpm_build = srpm_build
             if log_detective_response:
                 log_detective_run.log_detective_response = log_detective_response
             log_detective_run_group.log_detective_run_targets.append(log_detective_run)
 
         return log_detective_run
+
+    @classmethod
+    def create_for_copr_build(
+        cls,
+        build: Union["CoprBuildTargetModel", "SRPMBuildModel"],
+        target_build: str,
+        target: str,
+        selected_logs: list[dict[str, str]],
+        analysis_commentary: str,
+        identifier: Optional[str] = None,
+    ) -> tuple[int, bool]:
+        """Save one Copr API run per build, serialized by its build row.
+
+        Use an independent session because workers may otherwise share a scoped
+        or singleton session whose identity map predates the competing delivery.
+        The committed run can be recovered by Beat if submission never starts.
+        """
+        # The usual transaction helper can reuse a worker's singleton session.
+        # This producer needs its own transaction to see a competing delivery's commit.
+        factory = Session.session_factory if isinstance(Session, scoped_session) else Session
+        with factory.begin() as session:
+            model = (
+                CoprBuildTargetModel if isinstance(build, CoprBuildTargetModel) else SRPMBuildModel
+            )
+            locked = session.query(model).filter_by(id=build.id).with_for_update().one()
+            existing = (
+                session.query(cls)
+                .filter_by(
+                    **{
+                        "copr_build_target_id"
+                        if model is CoprBuildTargetModel
+                        else "srpm_build_id": locked.id,
+                        "build_system": LogDetectiveBuildSystem.copr,
+                    }
+                )
+                .filter(cls.selected_logs.isnot(None))
+                .order_by(cls.id)
+                .first()
+            )
+            if existing is not None:
+                return existing.id, False
+            if model is CoprBuildTargetModel:
+                group = LogDetectiveRunGroupModel._get_or_create_for_copr_build_in_session(
+                    session, locked
+                )
+            else:
+                group = LogDetectiveRunGroupModel._create_with_runs(session, locked.runs)
+            # Assign fields as in create(): SQLAlchemy supplies the constructor
+            # dynamically, so its mapped keyword arguments are not typed.
+            run = cls()
+            session.add(run)
+            run.target_build = target_build
+            run.target = target
+            run.identifier = identifier
+            run.selected_logs = selected_logs
+            run.analysis_commentary = analysis_commentary
+            run.build_system = LogDetectiveBuildSystem.copr
+            run.status = LogDetectiveResult.running
+            run.analysis_id = str(uuid4())
+            run.group_of_targets = group
+            if model is CoprBuildTargetModel:
+                run.copr_build_target = locked
+            else:
+                run.srpm_build = locked
+            session.flush()
+            return run.id, True
 
     def analysis_request(self) -> dict:
         """Rebuild the generic API request from immutable saved inputs and ID."""
@@ -5026,7 +5150,8 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
         """Read Fedora CI context for a proposed terminal result.
 
         Deleted, historical, already completed, or superseded runs need no
-        report. A live run without a Git URL or commit must retry later.
+        report. Resolve the saved build relationship and build system directly.
+        A live run without a Git URL or commit must retry later.
         """
         with sa_session_transaction() as session:
             run: Optional[LogDetectiveRunModel] = (
@@ -5034,11 +5159,28 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             )
             if run is None or run.selected_logs is None or run.status != LogDetectiveResult.running:
                 return None
-            build = run.koji_build_target
+            build = run.koji_build_target or run.copr_build_target or run.srpm_build
             if build is None:
                 logger.warning("Build for Log Detective run %s was deleted", run_id)
                 return None
-            if KojiBuildTargetModel.has_newer_run(build):
+            if (
+                run.build_system == LogDetectiveBuildSystem.koji
+                and KojiBuildTargetModel.has_newer_run(build)
+            ):
+                logger.info("Skipping obsolete Log Detective report for run %s", run_id)
+                return None
+            if (
+                run.build_system == LogDetectiveBuildSystem.copr
+                and run.copr_build_target is not None
+                and CoprBuildTargetModel.has_newer_run(run.copr_build_target)
+            ):
+                logger.info("Skipping obsolete Log Detective report for run %s", run_id)
+                return None
+            if (
+                run.build_system == LogDetectiveBuildSystem.copr
+                and run.srpm_build is not None
+                and SRPMBuildModel.has_newer_run(run.srpm_build)
+            ):
                 logger.info("Skipping obsolete Log Detective report for run %s", run_id)
                 return None
             project = run.get_project()
@@ -5048,6 +5190,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                 or not project.project_url
                 or not event
                 or not event.commit_sha
+                or not run.target_build
             ):
                 raise ValueError(f"Missing reporting context for Log Detective run {run_id}")
             return LogDetectiveReportContext(
@@ -5057,6 +5200,8 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
                 branch=build.get_branch_name(),
                 target=run.target,
                 status=status,
+                build_system=run.build_system,
+                build_id=run.target_build,
             )
 
     @classmethod
@@ -5137,31 +5282,75 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
         return f"LogDetectiveRunGroupModel(id={self.id}, submitted_time={self.submitted_time})"
 
     @classmethod
+    def get_or_create_for_copr_build(
+        cls, build: "CoprBuildTargetModel"
+    ) -> "LogDetectiveRunGroupModel":
+        """Share one analysis group across chroots of a Copr build.
+
+        Lock the build group so simultaneous chroot events cannot both create
+        an analysis group. Pipelines can already belong to a Koji analysis, so
+        reuse only an empty group or one containing Copr analyses.
+        """
+        with sa_session_transaction(commit=True) as session:
+            return cls._get_or_create_for_copr_build_in_session(session, build)
+
+    @classmethod
+    def _get_or_create_for_copr_build_in_session(
+        cls, session: SQLASession, build: "CoprBuildTargetModel"
+    ) -> "LogDetectiveRunGroupModel":
+        """Select the Copr group while its build group row is locked."""
+        group_id = build.copr_build_group_id
+        if group_id is None:
+            raise ValueError(f"Copr build target {build.id} has no build group (ID {group_id})")
+        build_group = (
+            session.query(CoprBuildGroupModel)
+            .filter_by(id=group_id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if build_group is None:
+            raise ValueError(f"Copr build target {build.id} has no build group (ID {group_id})")
+        pipelines = session.query(PipelineModel).filter_by(copr_build_group_id=group_id).all()
+        for pipeline in pipelines:
+            group = pipeline.log_detective_run_group
+            if group and (
+                not group.log_detective_run_targets
+                or any(
+                    run.build_system == LogDetectiveBuildSystem.copr
+                    for run in group.log_detective_run_targets
+                )
+            ):
+                return group
+        return cls._create_with_runs(session, pipelines)
+
+    @classmethod
+    def _create_with_runs(
+        cls, session: SQLASession, run_models: list["PipelineModel"]
+    ) -> "LogDetectiveRunGroupModel":
+        group = cls()
+        session.add(group)
+        for run_model in run_models:
+            if run_model.log_detective_run_group:
+                new_run_model = PipelineModel()
+                new_run_model.project_event = run_model.project_event
+                new_run_model.package_name = run_model.package_name
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.copr_build_group = run_model.copr_build_group
+                new_run_model.koji_build_group = run_model.koji_build_group
+                new_run_model.log_detective_run_group = group
+                session.add(new_run_model)
+            else:
+                run_model.log_detective_run_group = group
+                session.add(run_model)
+        return group
+
+    @classmethod
     def create(cls, run_models: list["PipelineModel"]) -> "LogDetectiveRunGroupModel":
         """Creates a new LogDetectiveRunGroupModel record.
         In order to keep track of retries, `PipelineModel` in `run_models` is either cloned
         or the `log_detective_run_group` is set for it."""
         with sa_session_transaction(commit=True) as session:
-            log_detective_run_group = cls()
-            session.add(log_detective_run_group)
-
-            for run_model in run_models:
-                if run_model.log_detective_run_group:
-                    # Clone run model
-                    new_run_model = PipelineModel.create(
-                        project_event=run_model.project_event,
-                        package_name=run_model.package_name,
-                    )
-                    new_run_model.srpm_build = run_model.srpm_build
-                    new_run_model.copr_build_group = run_model.copr_build_group
-                    new_run_model.koji_build_group = run_model.koji_build_group
-                    new_run_model.log_detective_run_group = log_detective_run_group
-                    session.add(new_run_model)
-                else:
-                    run_model.log_detective_run_group = log_detective_run_group
-                    session.add(run_model)
-
-            return log_detective_run_group
+            return cls._create_with_runs(session, run_models)
 
     @property
     def grouped_targets(self) -> list[LogDetectiveRunModel]:
