@@ -4,6 +4,7 @@
 import logging
 import os
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
 
@@ -30,6 +31,12 @@ from packit_service.constants import (
 from packit_service.utils import get_user_agent
 
 logger = logging.getLogger(__name__)
+
+
+class CoprScriptDependenciesRepo(Enum):
+    dev = "dev"
+    stable = "stable"
+    internal = "internal"
 
 
 @dataclass
@@ -112,6 +119,7 @@ class ServiceConfig(Config):
         dashboard_url: str = "",
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
         koji_web_url: str = "https://koji.fedoraproject.org",
+        copr_script_repo: CoprScriptDependenciesRepo = CoprScriptDependenciesRepo.dev,
         enabled_projects_for_srpm_in_copr: Optional[Union[set[str], list[str]]] = None,
         comment_command_prefix: str = "/packit",
         redhat_api_refresh_token: Optional[str] = None,
@@ -189,6 +197,9 @@ class ServiceConfig(Config):
         self.koji_logs_url = koji_logs_url
         self.koji_web_url = koji_web_url
 
+        # The repository hosted on Copr, which contains a build of packit, ogr and specfile
+        self.copr_script_dependencies_repo = copr_script_repo
+
         self.enabled_projects_for_srpm_in_copr: set[str] = set(
             enabled_projects_for_srpm_in_copr or [],
         )
@@ -247,6 +258,7 @@ class ServiceConfig(Config):
             f"dashboard_url='{self.dashboard_url}', "
             f"koji_logs_url='{self.koji_logs_url}', "
             f"koji_web_url='{self.koji_web_url}', "
+            f"copr_script_dependencies_repo={self.copr_script_dependencies_repo}, "
             f"enabled_projects_for_srpm_in_copr= '{self.enabled_projects_for_srpm_in_copr}', "
             f"comment_command_prefix='{self.comment_command_prefix}', "
             f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "

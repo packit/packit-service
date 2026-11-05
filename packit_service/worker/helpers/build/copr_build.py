@@ -17,7 +17,7 @@ from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.aliases import get_aliases
-from packit.config.common_package_config import Deployment, MockBootstrapSetup
+from packit.config.common_package_config import MockBootstrapSetup
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
     PackitCoprException,
@@ -33,6 +33,7 @@ from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS,
     COPR_CHROOT_CHANGE_MSG,
+    COPR_SCRIPT_REPOS,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS,
     DASHBOARD_JOBS_TESTING_FARM_PATH,
@@ -462,8 +463,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 reason=reason,
             ).observe(time)
 
-    # [TODO] Needs to be adjusted if regular, custom method, Copr builds are to
-    # be provided for internal deployment.
     def get_packit_copr(self) -> str:
         """
         Get a Copr repo with dependencies for custom SRPM method in Copr.
@@ -471,13 +470,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Returns:
             Repo that contains appropriate version of Packit.
         """
-        return "copr://packit/{project}".format(
-            project=(
-                "packit-stable"
-                if self.service_config.deployment == Deployment.prod
-                else "packit-dev"
-            ),
-        )
+        return COPR_SCRIPT_REPOS[self.service_config.copr_script_dependencies_repo.value]
 
     def get_job_config_index(self) -> int:
         """
