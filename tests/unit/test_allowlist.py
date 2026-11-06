@@ -710,7 +710,7 @@ def test_check_and_report(
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
                 description=str,
-                state=BaseCommitStatus.neutral,
+                state=BaseCommitStatus.failure,
                 url="https://issue.url",
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
                 markdown_content=(
@@ -866,7 +866,7 @@ def test_check_and_report_actor_pull_request(
     flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
     flexmock(StatusReporter).should_receive("report").with_args(
         description="User namespace denied!",
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.failure,
         url=None,
         check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
         markdown_content=DENIED_MSG,

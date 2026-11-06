@@ -415,7 +415,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             description=CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS.format(
                 copr_project=self.configured_copr_project,
             ),
-            state=BaseCommitStatus.neutral,
+            state=BaseCommitStatus.failure,
             markdown_content=CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
                 copr_project=self.configured_copr_project,
                 forge_project=self.forge_project,

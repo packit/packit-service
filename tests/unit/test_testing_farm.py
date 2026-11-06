@@ -1584,7 +1584,7 @@ def test_trigger_build_manual_tests_dont_report(monkeypatch):
         flexmock(TFJobHelper).should_receive(
             "report_status_to_tests_for_test_target",
         ).with_args(
-            state=BaseCommitStatus.neutral,
+            state=BaseCommitStatus.failure,
             description="The latest build has not finished yet. "
             "Please retrigger the tests once it has finished.",
             target=target,
