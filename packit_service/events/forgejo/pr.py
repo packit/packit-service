@@ -133,10 +133,14 @@ class Comment(AbstractPRCommentEvent, ForgejoEvent):
         result.pop("_build_targets_override", None)
         result.pop("_tests_targets_override", None)
         result.pop("_repo_url", None)
+        result.pop("_pull_request", None)
+        result.pop("_event", None)
 
         result["action"] = self.action.value
         result["pr_id"] = self.pr_id
         result["commit_sha"] = self._commit_sha
+        result["repo_name"] = self.repo_name
+        result["repo_namespace"] = self.repo_namespace
         return result
 
     def get_base_project(self) -> GitProject:

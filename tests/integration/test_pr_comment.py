@@ -27,6 +27,7 @@ from packit.local_project import LocalProject, LocalProjectBuilder
 from packit.upstream import GitUpstream
 from packit.utils import commands
 from packit.utils.koji_helper import KojiHelper
+from yaml import safe_dump
 
 import packit_service.models
 import packit_service.service.urls as urls
@@ -42,7 +43,7 @@ from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     TASK_ACCEPTED,
 )
-from packit_service.events import abstract, pagure
+from packit_service.events import abstract, forgejo, pagure
 from packit_service.models import (
     BuildStatus,
     CoprBuildTargetModel,
@@ -4482,3 +4483,317 @@ def test_downstream_build_retrigger_rawhide_pr_eln_package_fedora_ci(
         )
 
         assert first_dict_value(results["job"])["success"]
+
+
+def test_pull_from_upstream_retrigger_via_forgejo_dist_git_pr_comment(
+    forgejo_distgit_pr_comment_added,
+):
+    """
+    Tests the "/packit pull-from-upstream" re-triggering command and the
+    corresponding workflow in Forgejo dist-git.
+
+    The steps of the workflow in this test are as follows:
+
+    1.  SteveJobs receives a JSON corresponding to the PR comment event
+        and parses it to create a forgejo.pr.Comment.
+
+    2.  SteveJobs.process_jobs() parses the comment itself:
+
+        "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+
+        It retrieves the command stored in this comment (pull-from-upstream).
+        Since --with-pr-config is set, it retrieves the packit configuration file
+        (.packit.yaml or an alternative) from the Forgejo dist-git repository
+        (“the PR’s source fork). A ProjectEventModel for the comment event is
+        resolved (created or retrieved).
+
+        The appropriate handler is selected: PullFromUpstreamHandler.
+
+        AllowlistChecker is consulted (based on event and configuration).
+
+        SteveJobs.create_tasks() consults relevant pre-checkers, and
+        schedules a Celery task for the given event and job config.
+
+    3.  The PullFromUpstreamHandler class's _run() method is invoked via
+        run_pull_from_upstream_handler (no Celery task is actually executed).
+
+    4.  PullFromUpstreamHandler does the following:
+
+        Collects the tags, which need to be synced (based on package configuration).
+
+        Resolves the ProjectEventModel for the comment event again from the
+        serialized event data, then creates:
+        - SyncReleaseModel for the sync release job
+        - SyncReleaseTargetModel for each applicable dist-git branch
+
+        For each SyncReleaseTargetModel, AbstractSyncReleaseHandler.run_for_target()
+        invokes PackitAPI.sync_release(), which creates a dist-git PR against
+        the applicable branch.
+    """
+
+    # Forgejo dist-git event setup
+    forgejo_distgit_pr_comment_added["body"]["comment"]["body"] = (
+        "/packit pull-from-upstream --with-pr-config --resolve-bug rhbz#123,rhbz#124"
+    )
+
+    # relevant info parsed from the Forgejo  dist-git comment event
+    pr_event_payload = forgejo_distgit_pr_comment_added["body"]["pull_request"]
+    fork_repo_payload = pr_event_payload["head"]["repo"]
+    target_repo_payload = pr_event_payload["base"]["repo"]
+
+    pr_id = forgejo_distgit_pr_comment_added["body"]["issue"]["number"]
+
+    fork_repo_name = fork_repo_payload["name"]
+    fork_namespace = fork_repo_payload["owner"]["login"]
+    fork_full_repo_name = f"{fork_namespace}/{fork_repo_name}"
+
+    target_repo_name = target_repo_payload["name"]
+    target_namespace = target_repo_payload["owner"]["login"]
+    target_repo_url = target_repo_payload["html_url"]
+
+    # package config (.packit.yaml)
+    packit_config = {
+        "specfile_path": "packit.spec",
+        "upstream_project_url": "https://github.com/packit/packit",
+        "jobs": [
+            {
+                "trigger": "release",
+                "job": "pull_from_upstream",
+                "metadata": {"targets": []},
+            }
+        ],
+    }
+    packit_yaml = safe_dump(packit_config)
+
+    # upstream (GitHub) repo setup
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    flexmock(GithubService).should_receive("set_auth_method").with_args(
+        AuthMethod.token,
+    ).once()
+    flexmock(GitUpstream).should_receive("get_last_tag").and_return("7.0.3")
+    flexmock(AllowlistChecker, check_and_report=True)
+
+    upstream_project = flexmock(
+        full_repo_name="packit/packit",
+        repo="packit",
+        namespace="packit",
+        get_files=lambda ref, filter_regex: [],
+        get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: "https://github.com/packit/packit",
+        is_private=lambda: False,
+        default_branch="main",
+    )
+
+    # downstream (Forgejo dist-git) repo setup
+    triggering_distgit_pr = (
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            "The task was accepted. You can check the recent runs of pull from upstream jobs in "
+            "[Packit dashboard](/jobs/pull-from-upstreams)"
+            f"{DistgitAnnouncement.get_comment_footer_with_announcement_if_present()}",
+        )
+        .mock()
+    )
+    comment = flexmock()
+    triggering_distgit_pr.should_receive("get_comment").and_return(comment)
+
+    # mock the original (target) repo where Packit needs to open a PR
+    target_distgit_project = (
+        flexmock(
+            namespace=target_namespace,
+            repo=target_repo_name,
+            is_private=lambda: False,
+            get_pr=lambda pr_id: triggering_distgit_pr,
+            default_branch="rawhide",
+        )
+        .should_receive("get_web_url")
+        .and_return(target_repo_url)
+        .mock()
+    )
+
+    # Forgejo supports reactions (unlike Pagure)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+
+    # mock the dist-git fork
+    fork_distgit_project = flexmock(
+        get_files=lambda ref, recursive: [".packit.yaml"],
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        full_repo_name=fork_full_repo_name,
+        repo=fork_repo_name,
+        namespace=fork_namespace,
+        is_private=lambda: False,
+        default_branch="rawhide",
+        service=flexmock(get_project=lambda **_: None),
+    )
+
+    # service config
+    def _get_project(url, *_, **__):
+        if url == target_repo_url:
+            return target_distgit_project
+        return upstream_project
+
+    service_config = ServiceConfig().get_service_config()
+    flexmock(service_config).should_receive("get_project").replace_with(_get_project)
+
+    # base_project refers to the fork (confusing, I know)
+    flexmock(forgejo.pr.Comment).should_receive(
+        "get_base_project",
+    ).once().and_return(fork_distgit_project)
+
+    # mock packit classes (LocalProject, DistGit)
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
+    lp.working_dir = ""
+    lp.git_project = upstream_project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
+        ),
+    )
+
+    # mock the model representing the Forgejo dist-git re-triggering comment event
+    db_project_object = flexmock(
+        id=12,
+        project_event_model_type=ProjectEventModelType.pull_request,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        project=flexmock(project_url=target_repo_url),
+    )
+    db_project_event = (
+        flexmock(type=ProjectEventModelType.pull_request, event_id=12)
+        .should_receive("get_project_event_object")
+        .and_return(db_project_object)
+        .mock()
+    )
+    flexmock(ProjectEventModel).should_receive("get_or_create").with_args(
+        type=ProjectEventModelType.pull_request,
+        event_id=12,
+        commit_sha="7ba5d80f7678c32f9baba883c12a9d3eebb3b208",
+    ).and_return(db_project_event)
+
+    # mock the model representing the dist-git PR containing the triggering comment
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=pr_id,
+        namespace=target_namespace,
+        repo_name=target_repo_name,
+        project_url=target_repo_url,
+    ).and_return(db_project_object)
+
+    # mock the model representing the sync release job
+    run_model = flexmock(PipelineModel)
+    sync_release_model = flexmock(id=123, sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
+        project_event_model=db_project_event,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+        package_name="packit",
+    ).and_return(sync_release_model, run_model).once()
+    flexmock(sync_release_model).should_receive("set_status").with_args(
+        status=SyncReleaseStatus.finished,
+    ).once()
+
+    # mock the model representing the sync release job for a given dist-git branch (target)
+    model = flexmock(status="queued", id=1234, branch="rawhide")
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued,
+        branch="rawhide",
+    ).and_return(model)
+
+    # mock the model representing the dist-git PR opened by Packit as a result of the
+    # /packit pull-from-upstream command
+    sync_release_pr_model = flexmock(sync_release_targets=[flexmock(), flexmock()])
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace=target_namespace,
+        repo_name=target_repo_name,
+        project_url=target_repo_url,
+        target_branch=str,
+        url=str,
+    ).and_return(sync_release_pr_model)
+
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.running,
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr_url").with_args(
+        downstream_pr_url="some_url",
+    ).once()
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
+    ).once()
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.submitted,
+    ).once()
+    flexmock(model).should_receive("set_start_time").once()
+    flexmock(model).should_receive("set_finished_time").once()
+    flexmock(model).should_receive("set_logs").once()
+
+    # mock the dist-git PR created by packit as a result of the sync release
+    downstream_update_pr = (
+        flexmock(id=21, url="some_url", target_project=target_distgit_project, description="")
+        .should_receive("comment")
+        .mock()
+    )
+
+    # mock PackitAPI, which fetches the version to-be-synced from
+    # the upstream and creates a PR on dist-git for each applicable branch
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="rawhide",
+        tag="7.0.3",
+        create_pr=True,
+        local_pr_branch_suffix="update-pull_from_upstream",
+        use_downstream_specfile=True,
+        add_pr_instructions=True,
+        resolved_bugs=["rhbz#123", "rhbz#124"],
+        release_monitoring_project_id=None,
+        sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
+        fast_forward_merge_branches=set(),
+    ).and_return((downstream_update_pr, {})).once()
+    flexmock(PackitAPI).should_receive("clean")
+
+    # mock PullFromUpstreamHandler's pre-checkers
+    flexmock(PackitAPIWithDownstreamMixin).should_receive("is_packager").and_return(
+        True,
+    )
+    flexmock(IsRunConditionSatisfied).should_receive("pre_check").and_return(True)
+
+    # mock the creation of a Celery task
+    flexmock(celery_group).should_receive("apply_async").once()
+
+    # mock pushing of monitoring data
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    # mock removal of the local clone of the dist-git repo (cleanup)
+    flexmock(shutil).should_receive("rmtree").with_args("")
+
+    # process the incoming /packit pull-from-upstream command
+    processing_results = SteveJobs().process_message(forgejo_distgit_pr_comment_added)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+
+    # make sure the output of processing is serializable
+    assert json.dumps(event_dict)
+
+    # run the handler, which would otherwise be called by the Celery worker
+    results = run_pull_from_upstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]

@@ -678,6 +678,12 @@ def forgejo_pr_comment_added():
 
 
 @pytest.fixture()
+def forgejo_distgit_pr_comment_added():
+    with open(DATA_DIR / "fedmsg" / "forgejo_dg_pr_comment.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
 def new_hotness_update():
     with open(DATA_DIR / "fedmsg" / "new_hotness_update.json") as outfile:
         return json.load(outfile)
