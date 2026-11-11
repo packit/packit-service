@@ -1696,7 +1696,17 @@ class DownstreamTestingFarmJobHelper:
         checkers=[IsFMFConfigPresent],
     )
     def _payload_custom(self, distro: str, compose: str) -> dict:
-        payload = self._get_tf_base_payload(distro, compose)
+        multihost = self.pr.target_branch not in (
+            # TODO: clean this list as other branches become compatible
+            "f43",
+            "f44",
+            "f45",
+            "epel8",
+            "epel9",
+            "epel9-next",
+            "epel10.3",
+        )
+        payload = self._get_tf_base_payload(distro, compose, multihost=multihost)
         payload["test"] = {
             "tmt": {
                 "url": self.pr.source_project.get_git_urls().get("git"),
