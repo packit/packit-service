@@ -1649,7 +1649,7 @@ class DownstreamTestingFarmJobHelper:
         }
         return payload
 
-    def _get_fedora_ci_payload(self, distro: str, plan: str) -> dict:
+    def _get_fedora_ci_payload(self, distro: str, plan: str, compose: Optional[str] = None) -> dict:
         # TODO: Gradually move the other tests to use the shared-tests repo
         # TODO: Installability migration is blocked because it needs specific compose
         #  Maybe we can define a specific context that can expand to the appropriate container image
@@ -1660,7 +1660,7 @@ class DownstreamTestingFarmJobHelper:
         git_repo = "https://forge.fedoraproject.org/ci/shared-tests"
         git_ref = "main" if self.service_config.deployment == Deployment.prod else "stg"
         # All tests in ci/shared-tests define their own provision hence `compose=None`
-        payload = self._get_tf_base_payload(distro, None, with_artifacts=False)
+        payload = self._get_tf_base_payload(distro, compose, with_artifacts=False)
         payload["test"] = {
             "tmt": {
                 "url": git_repo,
@@ -1713,10 +1713,8 @@ class DownstreamTestingFarmJobHelper:
 
         Does not contain the ``test`` field
         """
-        # Normally testing-farm should decide if it imposes artemis provision or not
-        # based on the presence/absence of `provision` fields in the tmt plans. For now
-        # this has to be specified at the api request level.
-        # TODO: Revisit when 0.2 testing-farm API is decided
+        # TODO: Revisit this when switching to multihost pipeline
+        #  should be able to enable this by default
         os_params = {"os": {"compose": compose}} if compose else {}
         dist_git_branch = self.pr.target_branch
         variables = {}
