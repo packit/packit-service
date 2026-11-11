@@ -1675,7 +1675,7 @@ class DownstreamTestingFarmJobHelper:
         checkers=[IsProjectOutsideOfTestsNamespace, IsPreviewTest],
     )
     def _payload_fedora_review(self, distro: str, compose: str) -> dict:
-        return self._get_fedora_ci_payload(distro, "/fedora-review")
+        return self._get_fedora_ci_payload(distro, "/fedora-review", "Fedora-latest")
 
     @implements_fedora_ci_test(
         "rmdepcheck",
