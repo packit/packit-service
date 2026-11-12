@@ -810,6 +810,7 @@ def test_copr_build_race_condition_concurrent_packages(
                     "centos-stream-9-x86_64": None,
                 },
                 additional_repos=[],
+                runtime_dependencies=[],
                 module_hotfixes=False,
                 bootstrap=None,
                 unlisted_on_hp=True,
