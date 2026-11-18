@@ -9,6 +9,8 @@ from flexmock import flexmock
 
 from packit_service.config import ServiceConfig
 from packit_service.events.event import Event
+from packit_service.events.forgejo.action_run import PullRequest as ActionRunPullRequest
+from packit_service.events.forgejo.action_run import Push as ActionRunPush
 from packit_service.events.forgejo.issue import Comment as IssueComment
 from packit_service.events.forgejo.pr import Action as PullRequest
 from packit_service.events.forgejo.pr import Comment as PullRequestComment
@@ -64,6 +66,8 @@ def forgejo_event(request):
 @pytest.mark.parametrize(
     "forgejo_event, type",
     [
+        ["forgejo_distgit_action_run_pr", ActionRunPullRequest],
+        ["forgejo_distgit_action_run_push", ActionRunPush],
         ["forgejo_distgit_issue_comment", IssueComment],
         ["forgejo_distgit_pr_comment", PullRequestComment],
         ["forgejo_distgit_pr", PullRequest],
@@ -81,15 +85,12 @@ def test_forgejo_event_get_dict_is_json_serializable_after_db_cache(forgejo_even
     popped from the dictionary of Forgejo pull request events, json.dumps(event_dict)
     would then fail on TypeError: Object of type <event type> is not JSON serializable.
     This test was created to make sure no event type fails on this error.
-
-    TODO: ActionRun events currently do not support self.get_db_project_object() and raise
-    a NotImplementedError.
     """
 
     object_model = project_event_model = flexmock()
     mocked_method = None
 
-    if type in (PullRequest, PullRequestComment):
+    if type in (PullRequest, PullRequestComment, ActionRunPullRequest):
         mocked_method = "add_pull_request_event"
 
         project = flexmock(
@@ -103,7 +104,7 @@ def test_forgejo_event_get_dict_is_json_serializable_after_db_cache(forgejo_even
     if type == PullRequestComment:
         flexmock(PullRequestComment, repo_name="", repo_namespace="")
 
-    elif type == Commit:
+    elif type in (Commit, ActionRunPush):
         mocked_method = "add_branch_push_event"
 
     elif type == IssueComment:

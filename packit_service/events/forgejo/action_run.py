@@ -3,6 +3,8 @@
 
 from typing import Optional
 
+from packit_service.service.db_project_events import AddBranchPushEventToDb, AddPullRequestEventToDb
+
 from .abstract import ForgejoEvent
 
 
@@ -33,7 +35,7 @@ class ActionRun(ForgejoEvent):
         self.project_namespace = project_namespace
 
 
-class PullRequest(ActionRun):
+class PullRequest(AddPullRequestEventToDb, ActionRun):
     def __init__(
         self,
         actor: str,
@@ -73,7 +75,7 @@ class PullRequest(ActionRun):
         return "forgejo.action_run.PullRequest"
 
 
-class Push(ActionRun):
+class Push(AddBranchPushEventToDb, ActionRun):
     def __init__(
         self,
         actor: str,
@@ -101,6 +103,10 @@ class Push(ActionRun):
             project_name=project_name,
             project_namespace=project_namespace,
         )
+
+        # AddBranchPushEventToDb expects different naming
+        self.repo_namespace = project_namespace
+        self.repo_name = project_name
 
         self.identifier = git_ref
         self.git_ref = git_ref
