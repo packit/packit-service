@@ -33,7 +33,6 @@ from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS,
     COPR_CHROOT_CHANGE_MSG,
-    COPR_SCRIPT_REPOS,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS,
     DASHBOARD_JOBS_TESTING_FARM_PATH,
@@ -463,15 +462,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 reason=reason,
             ).observe(time)
 
-    def get_packit_copr(self) -> str:
-        """
-        Get a Copr repo with dependencies for custom SRPM method in Copr.
-
-        Returns:
-            Repo that contains appropriate version of Packit.
-        """
-        return COPR_SCRIPT_REPOS[self.service_config.copr_script_dependencies_repo.value]
-
     def get_job_config_index(self) -> int:
         """
         Get index of the job config in the package config.
@@ -689,7 +679,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     projectname=self.job_project,
                     script=script,
                     # use the latest stable chroot
-                    script_repos=self.get_packit_copr(),
+                    script_repos=self.service_config.copr_script_dependencies_repo,
                     script_chroot=self.get_latest_fedora_stable_chroot(),
                     script_builddeps=["packit"] + (self.job_config.srpm_build_deps or []),
                     buildopts=buildopts,

@@ -4,7 +4,6 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
 
@@ -31,12 +30,6 @@ from packit_service.constants import (
 from packit_service.utils import get_user_agent
 
 logger = logging.getLogger(__name__)
-
-
-class CoprScriptDependenciesRepo(Enum):
-    dev = "dev"
-    stable = "stable"
-    internal = "internal"
 
 
 @dataclass
@@ -119,7 +112,7 @@ class ServiceConfig(Config):
         dashboard_url: str = "",
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
         koji_web_url: str = "https://koji.fedoraproject.org",
-        copr_script_dependencies_repo: CoprScriptDependenciesRepo = CoprScriptDependenciesRepo.dev,
+        copr_script_dependencies_repo: str = "copr://packit/packit-dev",
         enabled_projects_for_srpm_in_copr: Optional[Union[set[str], list[str]]] = None,
         comment_command_prefix: str = "/packit",
         redhat_api_refresh_token: Optional[str] = None,
