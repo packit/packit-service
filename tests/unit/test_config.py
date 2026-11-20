@@ -113,6 +113,16 @@ def test_logdetective_request_timeout_configuration(service_config_valid):
     assert ServiceConfig().logdetective_request_timeout == 30
 
 
+@pytest.mark.parametrize("copr_enabled", [False, True])
+def test_log_detective_copr_service_switch(service_config_valid, copr_enabled):
+    """The service switch defaults off and accepts an explicit boolean."""
+    assert not ServiceConfig.get_from_dict(service_config_valid).log_detective_copr_enabled
+    config = ServiceConfig.get_from_dict(
+        {**service_config_valid, "log_detective_copr_enabled": copr_enabled}
+    )
+    assert config.log_detective_copr_enabled is copr_enabled
+
+
 @pytest.fixture(scope="module")
 def service_config_invalid():
     return {

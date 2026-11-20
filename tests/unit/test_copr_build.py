@@ -1166,6 +1166,7 @@ def test_copr_build_end_skips_reporting_for_superseded_build():
     )
     handler.should_receive("set_end_time").once()
     handler.should_receive("set_srpm_url").once()
+    handler.should_receive("trigger_log_detective_if_configured").once()
 
     flexmock(CoprBuildTargetModel).should_receive("has_newer_run").with_args(build).and_return(
         True,

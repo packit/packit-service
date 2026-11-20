@@ -5,10 +5,15 @@ from http import HTTPStatus
 from logging import getLogger
 
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import selectinload
 
-from packit_service.models import SRPMBuildModel, optional_timestamp
+from packit_service.models import LogDetectiveRunModel, SRPMBuildModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import get_project_info_from_build, response_maker
+from packit_service.service.api.utils import (
+    get_log_detective_runs,
+    get_project_info_from_build,
+    response_maker,
+)
 from packit_service.service.urls import get_srpm_build_info_url
 
 logger = getLogger("packit_service")
@@ -26,12 +31,16 @@ class SRPMBuildsList(Resource):
         result = []
 
         first, last = indices()
-        for build in SRPMBuildModel.get_range(first, last):
+        builds = SRPMBuildModel.get_range(first, last).options(
+            selectinload(SRPMBuildModel.log_detective_runs).load_only(LogDetectiveRunModel.id)
+        )
+        for build in builds:
             build_dict = {
                 "srpm_build_id": build.id,
                 "status": build.status,
                 "log_url": get_srpm_build_info_url(build.id),
                 "build_submitted_time": optional_timestamp(build.submitted_time),
+                "log_detective_runs": get_log_detective_runs(build),
             }
 
             # It's possible that jobtrigger isn't stored in db
@@ -77,6 +86,7 @@ class SRPMBuildItem(Resource):
             "copr_build_id": build.copr_build_id,
             "copr_web_url": build.copr_web_url,
             "run_ids": sorted(run.id for run in build.runs),
+            "log_detective_runs": get_log_detective_runs(build),
         }
 
         build_dict.update(get_project_info_from_build(build))

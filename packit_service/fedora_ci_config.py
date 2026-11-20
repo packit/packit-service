@@ -66,9 +66,11 @@ class FedoraCIConfig:
         return True
 
     def is_logdetective_enabled(self, project_url: str) -> bool:
-        """Should Log Detective analysis run for this project?"""
-        if not self._service_config.logdetective_enabled:
-            logger.info(f"Log Detective globally disabled, skipping for {project_url}.")
+        """Should Koji Log Detective analysis run for this project?"""
+        if not self._service_config.log_detective_koji_enabled:
+            logger.info(
+                f"Log Detective analysis for Koji globally disabled, skipping for {project_url}."
+            )
             return False
         if project_url in self._settings.disabled_projects_for_logdetective:
             logger.info(f"Log Detective disabled for project {project_url}.")

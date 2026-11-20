@@ -5,12 +5,20 @@ import datetime
 import pytest
 from flask import url_for
 from packit.utils import nested_get
+from sqlalchemy import event
 
 from packit_service.models import (
+    LogDetectiveBuildSystem,
+    LogDetectiveResult,
+    LogDetectiveRunModel,
     PipelineModel,
+    Session,
+    SRPMBuildModel,
     SyncReleaseStatus,
     SyncReleaseTargetStatus,
     TestingFarmResult,
+    engine,
+    sa_session_transaction,
 )
 from packit_service.service.api.runs import process_runs
 from tests_openshift.conftest import SampleValues
@@ -246,6 +254,37 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["pr_id"] == SampleValues.pr_id
     assert response_dict[0]["branch_name"] is None  # trigger was PR, not branch push
     assert response_dict[0]["build_submitted_time"] is not None
+
+
+def test_srpm_list_batches_log_detective_ids(client, clean_before_and_after):
+    with sa_session_transaction(commit=True) as session:
+        empty, analyzed = SRPMBuildModel(), SRPMBuildModel()
+        run = LogDetectiveRunModel(
+            analysis_id="srpm-page",
+            build_system=LogDetectiveBuildSystem.copr,
+            status=LogDetectiveResult.complete,
+            srpm_build=analyzed,
+        )
+        session.add_all([empty, analyzed, run])
+        session.flush()
+        expected = [(analyzed.id, [run.id]), (empty.id, [])]
+
+    Session.remove()
+    analysis_queries = []
+
+    def record_query(conn, cursor, statement, parameters, context, executemany):
+        if "FROM log_detective_run " in statement:
+            analysis_queries.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record_query)
+    try:
+        response = client.get(url_for("api.srpm-builds_srpm_builds_list"))
+    finally:
+        event.remove(engine, "before_cursor_execute", record_query)
+    assert response.status_code == 206
+    assert [(row["srpm_build_id"], row["log_detective_runs"]) for row in response.json] == expected
+    assert len(analysis_queries) == 1
+    assert "log_detective_response" not in analysis_queries[0]
 
 
 def test_srpm_build_info(
