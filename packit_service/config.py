@@ -119,7 +119,7 @@ class ServiceConfig(Config):
         dashboard_url: str = "",
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
         koji_web_url: str = "https://koji.fedoraproject.org",
-        copr_script_repo: CoprScriptDependenciesRepo = CoprScriptDependenciesRepo.dev,
+        copr_script_dependencies_repo: CoprScriptDependenciesRepo = CoprScriptDependenciesRepo.dev,
         enabled_projects_for_srpm_in_copr: Optional[Union[set[str], list[str]]] = None,
         comment_command_prefix: str = "/packit",
         redhat_api_refresh_token: Optional[str] = None,
@@ -198,7 +198,7 @@ class ServiceConfig(Config):
         self.koji_web_url = koji_web_url
 
         # The repository hosted on Copr, which contains a build of packit, ogr and specfile
-        self.copr_script_dependencies_repo = copr_script_repo
+        self.copr_script_dependencies_repo = copr_script_dependencies_repo
 
         self.enabled_projects_for_srpm_in_copr: set[str] = set(
             enabled_projects_for_srpm_in_copr or [],
