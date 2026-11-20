@@ -5,8 +5,9 @@ from http import HTTPStatus
 from logging import getLogger
 
 from flask_restx import Namespace, Resource
+from sqlalchemy.orm import selectinload
 
-from packit_service.models import SRPMBuildModel, optional_timestamp
+from packit_service.models import LogDetectiveRunModel, SRPMBuildModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
     get_log_detective_runs,
@@ -30,7 +31,10 @@ class SRPMBuildsList(Resource):
         result = []
 
         first, last = indices()
-        for build in SRPMBuildModel.get_range(first, last):
+        builds = SRPMBuildModel.get_range(first, last).options(
+            selectinload(SRPMBuildModel.log_detective_runs).load_only(LogDetectiveRunModel.id)
+        )
+        for build in builds:
             build_dict = {
                 "srpm_build_id": build.id,
                 "status": build.status,

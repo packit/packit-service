@@ -50,12 +50,13 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
-    Session as SQLASession,
-)
-from sqlalchemy.orm import (
+    Query,
     relationship,
     scoped_session,
     sessionmaker,
+)
+from sqlalchemy.orm import (
+    Session as SQLASession,
 )
 from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
@@ -3429,7 +3430,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
             return session.query(SRPMBuildModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
+    def get_range(cls, first: int, last: int) -> "Query[SRPMBuildModel]":
         with sa_session_transaction() as session:
             return (
                 session.query(SRPMBuildModel).order_by(desc(SRPMBuildModel.id)).slice(first, last)

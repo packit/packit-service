@@ -41,7 +41,9 @@ For Copr, the build end handler delegates to a Copr trigger helper. It checks
 `builder-live.log` and `backend.log` for both RPM chroot and SRPM builds.
 Available logs are saved when their URLs return HTTP 200 with a `text/plain`
 content type; at least one must verify to start an analysis. The
-analysis is linked to the failed RPM chroot or SRPM build. Copr and
+analysis is linked to the failed RPM chroot or SRPM build. The SRPM list API
+loads the linked run IDs in one query per nonempty page, without loading the
+analysis results. Copr and
 Koji trigger helpers share commentary generation: both record available PR,
 branch, or release context and build duration, with build-system-specific
 metadata and log guidance. Koji also includes NVR, architecture, scratch and
