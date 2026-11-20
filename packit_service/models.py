@@ -3471,6 +3471,7 @@ class SRPMBuildModel(ProjectAndEventsConnector, Base):
                     ProjectEventModel.type == project_event.type,
                     ProjectEventModel.event_id == project_event.event_id,
                     ProjectEventModel.commit_sha == project_event.commit_sha,
+                    SRPMBuildModel.copr_build_id.isnot(None),
                     package_filter,
                     or_(
                         SRPMBuildModel.submitted_time > run.submitted_time,

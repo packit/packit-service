@@ -95,9 +95,10 @@ Report context uses the run's saved build relationship and build system. Copr
 RPM and SRPM runs are checked for a newer build of the same commit before
 submission, retry, and reporting. A saved run superseded before submission or
 retry is finished without an LD request or Git forge check. RPM freshness uses
-the Copr build group's submission time, and SRPM
-freshness uses the SRPM build's submission time. Analysis pipeline clones do
-not change which build is considered newer.
+the Copr build group's submission time. SRPM freshness considers only Copr
+SRPM builds and uses their submission time, so a later SRPM from another build
+system cannot supersede a Copr analysis. Analysis pipeline clones do not change
+which build is considered newer.
 
 For `done`, `error`, `cancelled`, or a timeout, Packit reports a Git forge check before
 storing the terminal result or error. A failed report leaves the run `running`;

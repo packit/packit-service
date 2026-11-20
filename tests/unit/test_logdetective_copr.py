@@ -268,9 +268,9 @@ def test_copr_chroots_share_one_analysis_group(monkeypatch, existing_koji_group)
     assert len(added) == 2  # group and one pipeline, once each
 
 
-def test_srpm_freshness_uses_build_time_and_matches_unnamed_package(monkeypatch):
-    """A later build must supersede an SRPM with a null package name."""
-    build = SRPMBuildModel(id=1, submitted_time=datetime(2026, 10, 1))
+def test_srpm_freshness_only_matches_copr_builds(monkeypatch):
+    """A non-Copr SRPM with the same source cannot supersede a Copr build."""
+    build = SRPMBuildModel(id=1, copr_build_id="42", submitted_time=datetime(2026, 10, 1))
     build.runs = [PipelineModel(package_name=None)]
     monkeypatch.setattr(
         build,
@@ -300,6 +300,7 @@ def test_srpm_freshness_uses_build_time_and_matches_unnamed_package(monkeypatch)
     monkeypatch.setattr(models, "sa_session_transaction", transaction)
     assert SRPMBuildModel.has_newer_run(build)
     assert any("package_name IS NULL" in str(condition) for condition in conditions)
+    assert any("copr_build_id IS NOT NULL" in str(condition) for condition in conditions)
     assert any("submitted_time >" in str(condition) for condition in conditions)
 
 
