@@ -225,7 +225,7 @@ def test_shared_commentary_omits_invalid_duration(start, end):
 
 
 @pytest.mark.parametrize("existing_koji_group", [False, True])
-def test_copr_chroots_share_one_analysis_group(monkeypatch, existing_koji_group):
+def test_copr_chroots_share_one_analysis_group(existing_koji_group):
     """A second failed chroot must not clone the same build's pipelines."""
     build = CoprBuildTargetModel(copr_build_group_id=9)
     pipeline = PipelineModel(copr_build_group=CoprBuildGroupModel(id=9))
@@ -255,13 +255,8 @@ def test_copr_chroots_share_one_analysis_group(monkeypatch, existing_koji_group)
         lambda model: group_query if model is CoprBuildGroupModel else pipeline_query
     )
 
-    @contextmanager
-    def transaction(**_):
-        yield session
-
-    monkeypatch.setattr(models, "sa_session_transaction", transaction)
-    first = LogDetectiveRunGroupModel.get_or_create_for_copr_build(build)
-    second = LogDetectiveRunGroupModel.get_or_create_for_copr_build(build)
+    first = LogDetectiveRunGroupModel.get_or_create_for_copr_build(session, build)
+    second = LogDetectiveRunGroupModel.get_or_create_for_copr_build(session, build)
     assert first is second
     assert len(pipelines) == (2 if existing_koji_group else 1)
     assert pipelines[-1].log_detective_run_group is first
@@ -490,7 +485,7 @@ def test_failed_srpm_suppresses_chroot_analysis(monkeypatch):
 
 
 @pytest.mark.parametrize("group_id", [None, 99])
-def test_missing_copr_group_is_named(monkeypatch, group_id):
+def test_missing_copr_group_is_named(group_id):
     build = CoprBuildTargetModel(id=7, copr_build_group_id=group_id)
     query = flexmock()
     query.should_receive("filter_by").and_return(query)
@@ -499,7 +494,7 @@ def test_missing_copr_group_is_named(monkeypatch, group_id):
         query.should_receive("one_or_none").and_return(None)
     session = flexmock(query=lambda _: query)
     with pytest.raises(ValueError, match=f"target 7.*ID {group_id}"):
-        LogDetectiveRunGroupModel._get_or_create_for_copr_build_in_session(session, build)
+        LogDetectiveRunGroupModel.get_or_create_for_copr_build(session, build)
 
 
 @pytest.mark.parametrize("group_id", [None, 99])

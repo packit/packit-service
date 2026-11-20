@@ -61,7 +61,7 @@ and target exists. If the SRPM has already failed, its analysis is retained
 and later failed chroot events do not start additional analyses.
 Concurrent deliveries for the same Copr build serialize on the build row and
 reuse its existing API run. The run and its analysis group are committed in
-one transaction before the first submission; a duplicate delivery does not
+one transaction owned by the run creator before the first submission; a duplicate delivery does not
 submit or schedule another polling task. A missing Copr build group, including
 a null group ID, is logged and skips LD analysis while Copr event handling
 continues. The service does not create a replacement group in that case.

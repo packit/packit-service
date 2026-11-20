@@ -5086,9 +5086,7 @@ class LogDetectiveRunModel(GroupAndTargetModelConnector, Base):
             if existing is not None:
                 return existing.id, False
             if model is CoprBuildTargetModel:
-                group = LogDetectiveRunGroupModel._get_or_create_for_copr_build_in_session(
-                    session, locked
-                )
+                group = LogDetectiveRunGroupModel.get_or_create_for_copr_build(session, locked)
             else:
                 group = LogDetectiveRunGroupModel._create_with_runs(session, locked.runs)
             # Assign fields as in create(): SQLAlchemy supplies the constructor
@@ -5284,22 +5282,14 @@ class LogDetectiveRunGroupModel(ProjectAndEventsConnector, GroupModel, Base):
 
     @classmethod
     def get_or_create_for_copr_build(
-        cls, build: "CoprBuildTargetModel"
+        cls, session: SQLASession, build: "CoprBuildTargetModel"
     ) -> "LogDetectiveRunGroupModel":
-        """Share one analysis group across chroots of a Copr build.
+        """Share one analysis group across chroots in the run creator's transaction.
 
         Lock the build group so simultaneous chroot events cannot both create
         an analysis group. Pipelines can already belong to a Koji analysis, so
         reuse only an empty group or one containing Copr analyses.
         """
-        with sa_session_transaction(commit=True) as session:
-            return cls._get_or_create_for_copr_build_in_session(session, build)
-
-    @classmethod
-    def _get_or_create_for_copr_build_in_session(
-        cls, session: SQLASession, build: "CoprBuildTargetModel"
-    ) -> "LogDetectiveRunGroupModel":
-        """Select the Copr group while its build group row is locked."""
         group_id = build.copr_build_group_id
         if group_id is None:
             raise ValueError(f"Copr build target {build.id} has no build group (ID {group_id})")
