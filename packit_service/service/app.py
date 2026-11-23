@@ -3,7 +3,6 @@
 
 import logging
 from os import getenv
-from socket import gaierror
 
 from flask import Flask
 
@@ -17,13 +16,13 @@ from flask_talisman import Talisman
 from lazy_object_proxy import Proxy
 from packit.utils import set_logging
 from prometheus_client import make_wsgi_app as prometheus_app
-from syslog_rfc5424_formatter import RFC5424Formatter
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 from packit_service import __version__ as ps_version
 from packit_service.config import ServiceConfig
 from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
+from packit_service.syslog import create_syslog_handler
 from packit_service.utils import log_package_versions
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
@@ -52,14 +51,10 @@ def get_flask_application():
     syslog_host = getenv("SYSLOG_HOST", "fluentd")
     syslog_port = int(getenv("SYSLOG_PORT", 5140))
     logger.info(f"Setup logging to syslog -> {syslog_host}:{syslog_port}")
-    try:
-        handler = logging.handlers.SysLogHandler(address=(syslog_host, syslog_port))
-    except (ConnectionRefusedError, gaierror):
+    handler = create_syslog_handler(syslog_host, syslog_port, getenv("PROJECT", "packit"))
+    if handler is None:
         logger.info(f"{syslog_host}:{syslog_port} not available")
     else:
-        handler.setLevel(logging.DEBUG)
-        project = getenv("PROJECT", "packit")
-        handler.setFormatter(RFC5424Formatter(msgid=project))
         logger.addHandler(handler)
 
     logger.info(

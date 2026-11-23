@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import socket
 from datetime import datetime, timedelta, timezone
 from os import getenv
 from typing import ClassVar, Optional
@@ -20,7 +19,6 @@ from packit import __version__ as packit_version
 from packit.exceptions import PackitException
 from sandcastle.api import Sandcastle
 from sqlalchemy import __version__ as sqlal_version
-from syslog_rfc5424_formatter import RFC5424Formatter
 
 from packit_service import __version__ as ps_version
 from packit_service.celerizer import celery_app, get_redis_config
@@ -45,6 +43,7 @@ from packit_service.models import (
     VMImageBuildTargetModel,
     get_usage_data,
 )
+from packit_service.syslog import create_syslog_handler
 from packit_service.utils import (
     load_job_config,
     load_package_config,
@@ -162,14 +161,10 @@ def setup_loggers(logger, *args, **kwargs):
     syslog_host = getenv("SYSLOG_HOST", "fluentd")
     syslog_port = int(getenv("SYSLOG_PORT", 5140))
     logger.info(f"Setup logging to syslog -> {syslog_host}:{syslog_port}")
-    try:
-        handler = logging.handlers.SysLogHandler(address=(syslog_host, syslog_port))
-    except (ConnectionRefusedError, socket.gaierror):
+    handler = create_syslog_handler(syslog_host, syslog_port, getenv("PROJECT", "packit"))
+    if handler is None:
         logger.info(f"{syslog_host}:{syslog_port} not available")
     else:
-        handler.setLevel(logging.DEBUG)
-        project = getenv("PROJECT", "packit")
-        handler.setFormatter(RFC5424Formatter(msgid=project))
         logger.addHandler(handler)
         # Also add to root logger to ensure all loggers (including child loggers) inherit it
         root_logger = logging.getLogger()
