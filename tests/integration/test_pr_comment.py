@@ -2324,6 +2324,7 @@ def test_pr_test_command_handler_multiple_builds(
         project_name="tree",
         status=BuildStatus.success,
         group_of_targets=flexmock(runs=[run_model]),
+        target="fedora-rawhide-x86_64",
     )
     build.should_receive("get_srpm_build").and_return(flexmock(url=None))
 
@@ -2380,6 +2381,7 @@ def test_pr_test_command_handler_multiple_builds(
                     "PACKIT_COPR_PROJECT": "mf/tree another-owner/another-repo",
                     "PACKIT_COPR_BUILD_ID": 123456,
                     "PACKIT_COPR_RPMS": "repo-0:0.1-1.noarch another-repo-0:0.1-1.noarch",
+                    "PACKIT_COPR_CHROOT": "fedora-rawhide-x86_64",
                 },
                 "artifacts": [
                     {
