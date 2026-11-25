@@ -678,7 +678,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     ownername=owner,
                     projectname=self.job_project,
                     packagename=self.job_config.downstream_package_name,
-                    committish=self.metadata.git_ref,
+                    committish=self.metadata.commit_sha,
                     # TODO: parametrize this hardcoded value
                     distgit="rhai",
                     buildopts=buildopts,
