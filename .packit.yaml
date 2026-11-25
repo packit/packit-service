@@ -1,0 +1,35 @@
+---
+packit_instances: ["prod", "stg"]
+
+packages:
+  packit-service:
+    downstream_package_name: packit-service
+    upstream_package_name: packit-service
+    upstream_project_url: https://github.com/packit/packit-service
+    paths:
+      - ./
+    specfile_path: none.spec
+
+issue_repository: https://github.com/packit/packit-service
+
+actions:
+  pre-sync:
+    # FMF has to be installed on system where you are calling this tool.
+    - python3 plans/git_reference.py
+
+srpm_build_deps: []
+
+jobs:
+  - job: tests
+    trigger: pull_request
+    targets:
+      # Is not taken into consideration because of the ‹tf_extra_params› below
+      # Could be utilized after fixing TFT-2521
+      - fedora-latest
+    skip_build: true
+    tf_extra_params:
+      environments:
+        # to run the container specified in the tests
+        - os: null
+    packages:
+      - packit-service
