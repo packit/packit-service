@@ -1333,6 +1333,9 @@ class AbstractDownstreamKojiBuildHandler(
                     nowait=True,
                     from_upstream=False,
                     koji_target=koji_build_model.sidetag,
+                    # make sure a new sidetag build is actually available
+                    # for subsequent builds in the same sidetag
+                    wait_repo=bool(koji_build_model.sidetag),
                 )
                 if stdout:
                     task_id, web_url = get_koji_task_id_and_url_from_stdout(stdout)

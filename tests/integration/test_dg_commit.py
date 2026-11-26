@@ -350,6 +350,7 @@ def test_downstream_koji_build(sidetag_group):
         nowait=True,
         from_upstream=False,
         koji_target=sidetag if sidetag_group else None,
+        wait_repo=bool(sidetag_group),
     ).and_return("")
     processing_results = SteveJobs().process_message(distgit_commit_event())
     event_dict, _, job_config, package_config = get_parameters_from_results(
@@ -455,6 +456,7 @@ def test_downstream_koji_build_failure_no_issue():
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_raise(PackitException, "Some error")
 
     pagure_project_mock.should_receive("get_issue_list").times(0)
@@ -564,6 +566,7 @@ def test_downstream_koji_build_failure_issue_created():
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_raise(PackitException, "Some error")
 
     issue_project_mock = flexmock(GithubProject, has_issues=True)
@@ -682,6 +685,7 @@ def test_downstream_koji_build_failure_issue_comment():
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_raise(PackitException, "Some error")
 
     issue_project_mock = flexmock(GithubProject, has_issues=True)
@@ -880,6 +884,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).times(0)
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="main",
@@ -887,6 +892,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).once().and_return("")
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
