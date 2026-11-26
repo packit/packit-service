@@ -622,6 +622,7 @@ def test_issue_comment_retrigger_koji_build_handler(
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_return("")
     packit_api.should_receive("build").with_args(
         dist_git_branch="f38",
@@ -629,6 +630,7 @@ def test_issue_comment_retrigger_koji_build_handler(
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_return("")
     flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
         "packit_api",
@@ -670,6 +672,7 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_return("")
     packit_api.should_receive("build").with_args(
         dist_git_branch="f37",
@@ -677,6 +680,7 @@ def test_issue_comment_retrigger_koji_build_error_msg(
         nowait=True,
         from_upstream=False,
         koji_target=None,
+        wait_repo=False,
     ).and_raise(PackitException, error_msg)
     # flexmock(JobConfig).should_receive("issue_repository").and_return(
     #  "a repo"
