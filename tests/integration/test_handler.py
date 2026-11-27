@@ -335,7 +335,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
     ).and_return(db_project_event)
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.failure,
         description="Non-scratch builds not possible from upstream.",
         check_name="koji-build:bright-future",
         url=KOJI_PRODUCTION_BUILDS_ISSUE,

@@ -684,7 +684,7 @@ class TestingFarmResultsHandler(
             summary = self.summary or "Tests failed ..."
             failure = True
         elif self.result == TestingFarmResult.canceled:
-            status = BaseCommitStatus.neutral
+            status = BaseCommitStatus.canceled
             summary = self.summary or "Tests canceled ..."
         else:
             status = BaseCommitStatus.error
@@ -802,7 +802,7 @@ class DownstreamTestingFarmResultsHandler(
             status = BaseCommitStatus.failure
             summary = self.summary or "Tests failed ..."
         elif self.result == TestingFarmResult.canceled:
-            status = BaseCommitStatus.neutral
+            status = BaseCommitStatus.canceled
             summary = self.summary or "Tests canceled ..."
         else:
             status = BaseCommitStatus.error

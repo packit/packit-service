@@ -37,7 +37,7 @@ class GetVMImageBuildReporterFromJobHelperMixin(
 
     def report_pre_check_failure(self, markdown_content):
         self.report(
-            state=BaseCommitStatus.neutral,
+            state=BaseCommitStatus.failure,
             description="VM Image Build job failed internal checks",
             url=DOCS_VM_IMAGE_BUILD,
             check_names=[self.get_build_check_name()],
