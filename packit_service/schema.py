@@ -7,7 +7,12 @@ from marshmallow import Schema, ValidationError, fields, post_load
 from packit.config.common_package_config import Deployment
 from packit.schema import UserConfigSchema
 
-from packit_service.config import FedoraCISettings, MRTarget, ProjectToSync, ServiceConfig
+from packit_service.config import (
+    FedoraCISettings,
+    MRTarget,
+    ProjectToSync,
+    ServiceConfig,
+)
 
 
 class DeploymentField(fields.Field):
@@ -91,6 +96,7 @@ class ServiceConfigSchema(UserConfigSchema):
     dashboard_url = fields.String()
     koji_logs_url = fields.String()
     koji_web_url = fields.String()
+    copr_script_dependencies_repo = fields.String()
     enabled_projects_for_srpm_in_copr = fields.List(fields.String())
     comment_command_prefix = fields.String()
     package_config_path_override = fields.String()

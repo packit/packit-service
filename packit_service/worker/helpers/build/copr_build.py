@@ -17,7 +17,7 @@ from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.aliases import get_aliases
-from packit.config.common_package_config import Deployment, MockBootstrapSetup
+from packit.config.common_package_config import MockBootstrapSetup
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
     PackitCoprException,
@@ -462,23 +462,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 reason=reason,
             ).observe(time)
 
-    # [TODO] Needs to be adjusted if regular, custom method, Copr builds are to
-    # be provided for internal deployment.
-    def get_packit_copr(self) -> str:
-        """
-        Get a Copr repo with dependencies for custom SRPM method in Copr.
-
-        Returns:
-            Repo that contains appropriate version of Packit.
-        """
-        return "copr://packit/{project}".format(
-            project=(
-                "packit-stable"
-                if self.service_config.deployment == Deployment.prod
-                else "packit-dev"
-            ),
-        )
-
     def get_job_config_index(self) -> int:
         """
         Get index of the job config in the package config.
@@ -691,7 +674,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     projectname=self.job_project,
                     script=script,
                     # use the latest stable chroot
-                    script_repos=self.get_packit_copr(),
+                    script_repos=self.service_config.copr_script_dependencies_repo,
                     script_chroot=self.get_latest_fedora_stable_chroot(),
                     script_builddeps=["packit"] + (self.job_config.srpm_build_deps or []),
                     buildopts=buildopts,
