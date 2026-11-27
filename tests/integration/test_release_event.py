@@ -9,7 +9,7 @@ from celery.canvas import group
 from flexmock import flexmock
 from github.MainClass import Github
 from packit.api import PackitAPI
-from packit.config import JobConfigTriggerType
+from packit.config import JobConfigTriggerType, aliases
 from packit.config.aliases import get_branches
 from packit.distgit import DistGit
 from packit.exceptions import PackitDownloadFailedException
@@ -1250,3 +1250,242 @@ def test_dist_git_push_release_failed_issue_creation_disabled(
         job_config=job_config,
     )
     assert not first_dict_value(results["job"])["success"]
+
+
+def test_forgejo_dist_git_push_release_handle(
+    github_release_webhook,
+    propose_downstream_model,
+    sync_release_pr_model,
+):
+    """
+    Tests the execution of the propose downstream job in Forgejo dist-git. The
+    triggering event is a new GitHub release, which arrives via a GitHub webhook.
+
+    The steps of the workflow in this test are as follows:
+
+    1.  Based on the incoming webhook event, SteveJobs constructs a
+        github.release.Release event object and finds the matching handler configured
+        for this type of event: ProposeDownstreamHandler. A ProjectEventModel for the
+        release event is resolved (created or retrieved).
+
+        SteveJobs.create_tasks() consults relevant pre-checkers, and
+        schedules a Celery task for the given event and job config.
+
+    2. The ProposeDownstreamHandler class's run_job() method is invoked via
+        run_propose_downstream_handler (no Celery task is actually executed).
+
+    3.  ProposeDownstreamHandler does the following:
+
+        Collects the tags, which need to be synced (based on package configuration).
+
+        Resolves the ProjectEventModel for the release event again from the
+        serialized event data, then creates:
+        - SyncReleaseModel for the sync release job
+        - SyncReleaseTargetModel for each applicable dist-git branch
+
+        For each SyncReleaseTargetModel, AbstractSyncReleaseHandler.run_for_target()
+        invokes PackitAPI.sync_release(), which creates a dist-git PR against
+        the applicable branch.
+    """
+
+    # relevant constants
+    upstream_base_url = "https://github.com"
+    upstream_namespace = "packit-service"
+    upstream_repo = "hello-world"
+    upstream_full_repo_name = f"{upstream_namespace}/{upstream_repo}"
+    upstream_web_url = f"{upstream_base_url}/{upstream_namespace}/{upstream_repo}"
+
+    dist_git_base_url = "https://forgejo-src.stg.fedoraproject.org"
+    distgit_namespace = "rpms"
+    distgit_repo = "hello-world"
+    distgit_web_url = f"{dist_git_base_url}/{distgit_namespace}/{distgit_repo}"
+    distgit_project_url = f"{distgit_web_url}.git"
+
+    # package config (.packit.yaml)
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec', "
+        "dist_git_base_url: https://forgejo-src.stg.fedoraproject.org/, "
+        "dist_git_namespace: rpms"
+        ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
+    )
+
+    # mock the upstream project, which emitted the release webhook event
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    project = flexmock(
+        get_file_content=lambda path, ref, headers: packit_yaml,
+        full_repo_name=upstream_full_repo_name,
+        repo=upstream_repo,
+        namespace=upstream_namespace,
+        get_files=lambda ref, recursive: ["packit.yaml"],
+        get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: upstream_web_url,
+        is_private=lambda: False,
+        default_branch="main",
+    )
+
+    # mock the target dist-git project, which Packit will open a sync release PR in
+    # note: ogr's SERVICE_MAPPING is never consulted in this test because of this mock
+    target_distgit_project = flexmock(
+        namespace=distgit_namespace,
+        repo=distgit_repo,
+        default_branch="rawhide",
+        get_web_url=lambda: distgit_web_url,
+    )
+
+    # mock the pull request created by the sync release job
+    pr = (
+        flexmock(id=21, url="some_url", target_project=target_distgit_project, description="")
+        .should_receive("comment")
+        .mock()
+    )
+
+    # mock the model representing the sync release job for each applicable branch
+    model = flexmock(status="queued", id=1234, branch="rawhide")
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued,
+        branch="rawhide",
+    ).and_return(model)
+
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.running,
+    ).once()
+    flexmock(model).should_receive("set_downstream_pr_url").with_args(
+        downstream_pr_url="some_url",
+    ).once()
+    flexmock(model).should_receive("set_downstream_prs").with_args(
+        downstream_prs=[sync_release_pr_model],
+    ).once()
+    flexmock(model).should_receive("set_status").with_args(
+        status=SyncReleaseTargetStatus.submitted,
+    ).once()
+    flexmock(model).should_receive("set_start_time").once()
+    flexmock(model).should_receive("set_finished_time").once()
+    flexmock(model).should_receive("set_logs").once()
+    flexmock(propose_downstream_model).should_receive("set_status").with_args(
+        status=SyncReleaseStatus.finished,
+    ).once()
+
+    # mock the model representing the dist-git PR created as a result of the sync
+    # release job
+    flexmock(SyncReleasePullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=21,
+        namespace=distgit_namespace,
+        repo_name=distgit_repo,
+        project_url=distgit_web_url,
+        target_branch=str,
+        url=str,
+    ).and_return(sync_release_pr_model)
+
+    # mock classes used by PackitAPI when working with a local dist-git clone
+    lp = flexmock()
+    flexmock(LocalProjectBuilder, _refresh_the_state=lambda *args: lp)
+    lp.working_dir = ""
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+            submodules=[
+                flexmock()
+                .should_receive("update")
+                .with_args(init=True, recursive=True, force=True)
+                .once()
+                .mock()
+            ],
+        ),
+    )
+
+    # mock AllowlistChecker to report that the upstream repo is allow-listed
+    flexmock(AllowlistChecker, check_and_report=True)
+
+    # mock service config
+    service_config = ServiceConfig().get_service_config()
+
+    # make sure to avoid API calls retrieving the upstream and dist-git projects
+    # replace the Service.get_project() with a function, which returns the mocked
+    # projects instead
+    def get_project(url, required=True, get_project_kwargs=None):
+        if url == upstream_web_url:
+            return project
+        if url == distgit_project_url:
+            return target_distgit_project
+
+        raise AssertionError(f"Unexpected project lookup: {url}")
+
+    flexmock(service_config).should_receive("get_project").replace_with(get_project)
+
+    # mock PackitAPI, which fetches the version to-be-synced from
+    # the upstream and creates a PR on dist-git for each applicable branch
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="rawhide",
+        tag="0.3.0",
+        create_pr=True,
+        local_pr_branch_suffix="update-propose_downstream",
+        use_downstream_specfile=False,
+        add_pr_instructions=True,
+        resolved_bugs=[],
+        release_monitoring_project_id=None,
+        sync_acls=True,
+        pr_description_footer=DistgitAnnouncement.get_announcement(),
+        add_new_sources=True,
+        fast_forward_merge_branches=set(),
+    ).and_return((pr, {})).once()
+    flexmock(PackitAPI).should_receive("clean")
+
+    # mock the creation of a Celery task
+    flexmock(group).should_receive("apply_async").once()
+
+    # mock pushing of monitoring data
+    flexmock(Pushgateway).should_receive("push").times(2).and_return()
+
+    # mock removal of the local clone of the dist-git repo (cleanup)
+    flexmock(shutil).should_receive("rmtree").with_args("")
+
+    # mock ProposeDownstreamJobHelper
+    url = get_propose_downstream_info_url(model.id)
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_for_branch",
+    ).with_args(
+        branch="rawhide",
+        description="Starting propose downstream...",
+        state=BaseCommitStatus.running,
+        url=url,
+    ).once()
+
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_for_branch",
+    ).with_args(
+        branch="rawhide",
+        description="Propose downstream finished successfully.",
+        state=BaseCommitStatus.success,
+        url=url,
+    ).once()
+
+    # mock aliases
+    flexmock(aliases).should_receive("get_branches").with_args(
+        default_dg_branch="rawhide",
+        default="rawhide",
+    ).and_return({"rawhide"})
+
+    # process the incoming release webhook event
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results,
+    )
+
+    # make sure the output of processing is serializable
+    assert json.dumps(event_dict)
+
+    # run the ProposeDownstreamHandler, which would otherwise be called by the Celery worker
+    results = run_propose_downstream_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]

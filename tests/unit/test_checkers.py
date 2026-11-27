@@ -28,6 +28,7 @@ from packit_service.config import FedoraCISettings, ServiceConfig
 from packit_service.events import (
     anitya,
     copr,
+    forgejo,
     github,
     gitlab,
     pagure,
@@ -1259,6 +1260,8 @@ def test_run_condition(
         event = Parser.parse_forgejo_comment_event(forgejo_pr_comment_added)
         git_ref = "d0bb319af8dfa9944649231d09573ca02650ff9d"
         expected_project_cls = ForgejoProject
+
+        flexmock(forgejo.pr.Comment, repo_name="", repo_namespace="")
     #    elif event_type in (
     #        "koji_build_retrigger_issue_comment",
     #        "bodhi_update_retrigger_issue_comment",
