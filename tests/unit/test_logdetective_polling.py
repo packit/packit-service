@@ -5,13 +5,13 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
 import requests
 from celery import Celery
 from celery.exceptions import Retry
+from flexmock import flexmock
 
 from packit_service import models
 from packit_service.models import LogDetectiveReportContext, LogDetectiveResult
@@ -45,8 +45,7 @@ class SavedRun(SimpleNamespace):
 
 def response(status="scheduled", code=200, result=None, error=None):
     """Build a generic Log Detective task response."""
-    item = MagicMock(status_code=code)
-    item.json.return_value = {
+    body = {
         "id": TASK_ID,
         "taskType": "generic",
         "createdAt": "2026-09-18T10:00:00Z",
@@ -54,7 +53,7 @@ def response(status="scheduled", code=200, result=None, error=None):
         "result": result,
         "error": error,
     }
-    return item
+    return flexmock(status_code=code, json=lambda: body)
 
 
 def run(**overrides):
@@ -67,6 +66,10 @@ def run(**overrides):
         "accepted_time": datetime.utcnow(),
         "submitted_time": datetime.utcnow(),
         "status": LogDetectiveResult.running,
+        "build_system": models.LogDetectiveBuildSystem.koji,
+        "koji_build_target": None,
+        "copr_build_target": None,
+        "srpm_build": None,
     }
     values.update(overrides)
     return SavedRun(**values)
@@ -79,7 +82,7 @@ def run(**overrides):
 def test_invalid_task_envelopes_are_rejected(field, value):
     """Submission rejects responses that do not identify a valid generic task."""
     reply = response(code=202)
-    reply.json.return_value[field] = value
+    reply.json()[field] = value
     with pytest.raises(ValueError, match="Invalid Log Detective task envelope"):
         polling.LogDetectiveRunHelper._envelope(reply, run(), 202)
 
@@ -102,6 +105,132 @@ def test_submit_replays_exact_body_and_marks_accepted(monkeypatch):
     assert posted[0][1]["headers"] == {"Authorization": "Bearer secret"}
     assert posted[0][1]["timeout"] == 30
     assert accepted == [5]
+
+
+@pytest.mark.parametrize("target_field", ["copr_build_target", "srpm_build"])
+@pytest.mark.parametrize("accepted", [False, True])
+def test_superseded_saved_copr_run_is_not_submitted_or_reported(
+    monkeypatch, target_field, accepted
+):
+    saved = run(
+        accepted_time=datetime.utcnow() if accepted else None,
+        build_system=models.LogDetectiveBuildSystem.copr,
+        **{target_field: object()},
+    )
+    monkeypatch.setattr(polling.LogDetectiveRunModel, "get_by_id", lambda *_: saved)
+    model = (
+        models.CoprBuildTargetModel
+        if target_field == "copr_build_target"
+        else models.SRPMBuildModel
+    )
+    monkeypatch.setattr(model, "has_newer_run", lambda *_: True)
+    monkeypatch.setattr(
+        polling.requests, "post", lambda *a, **kw: pytest.fail("obsolete run was posted")
+    )
+    monkeypatch.setattr(
+        polling.requests, "get", lambda *a, **kw: pytest.fail("obsolete run was polled")
+    )
+    monkeypatch.setattr(
+        polling.LogDetectiveRunHelper,
+        "_report",
+        lambda *a: pytest.fail("obsolete run was reported"),
+    )
+    finished = []
+    monkeypatch.setattr(
+        polling.LogDetectiveRunModel,
+        "finish_api_run",
+        lambda *args: finished.append(args) or setattr(saved, "status", LogDetectiveResult.error),
+    )
+    polling.LogDetectiveRunHelper(5).advance()
+    assert len(finished) == 1
+    assert finished[0][:2] == (5, LogDetectiveResult.error)
+
+
+def test_newly_saved_copr_run_superseded_before_first_post(monkeypatch):
+    saved = run(
+        accepted_time=None,
+        build_system=models.LogDetectiveBuildSystem.copr,
+        copr_build_target=object(),
+    )
+    monkeypatch.setattr(models.CoprBuildTargetModel, "has_newer_run", lambda *_: True)
+    monkeypatch.setattr(
+        polling.LogDetectiveRunModel, "finish_api_run", lambda *a: setattr(saved, "status", a[1])
+    )
+    monkeypatch.setattr(
+        polling.requests, "post", lambda *a, **kw: pytest.fail("obsolete run was posted")
+    )
+    monkeypatch.setattr(
+        Celery,
+        "send_task",
+        lambda *a, **kw: pytest.fail("obsolete run scheduled polling"),
+    )
+    helper = polling.LogDetectiveRunHelper(5)
+    helper.start_saved_analysis(
+        saved,
+        "https://logdetective.example",
+        "secret",
+        SimpleNamespace(log_detective_runs_started=SimpleNamespace(inc=lambda: None)),
+    )
+    assert saved.status == LogDetectiveResult.error
+
+
+def test_copr_freshness_checked_once_per_submission_attempt(monkeypatch):
+    """Initial and retried POSTs each check freshness once before sending."""
+    saved = run(
+        accepted_time=None,
+        build_system=models.LogDetectiveBuildSystem.copr,
+        copr_build_target=object(),
+    )
+    checks = []
+    posts = []
+    monkeypatch.setattr(
+        models.CoprBuildTargetModel,
+        "has_newer_run",
+        lambda build: checks.append(build) or False,
+    )
+    monkeypatch.setattr(polling.LogDetectiveRunModel, "get_by_id", lambda *_: saved)
+    monkeypatch.setattr(polling.LogDetectiveRunModel, "mark_api_accepted", lambda *_: None)
+    monkeypatch.setattr(
+        polling.requests,
+        "post",
+        lambda *a, **kw: posts.append((a, kw)) or response(code=202),
+    )
+    monkeypatch.setattr(Celery, "send_task", lambda *a, **kw: None)
+    helper = polling.LogDetectiveRunHelper(5)
+    helper.start_saved_analysis(
+        saved,
+        "https://logdetective.example",
+        "secret",
+        SimpleNamespace(log_detective_runs_started=SimpleNamespace(inc=lambda: None)),
+    )
+    helper.advance()
+    assert len(posts) == len(checks) == 2
+
+
+def test_superseded_run_counts_only_first_terminal_transition(monkeypatch):
+    saved = run(
+        build_system=models.LogDetectiveBuildSystem.copr,
+        copr_build_target=object(),
+    )
+    monkeypatch.setattr(models.CoprBuildTargetModel, "has_newer_run", lambda *_: True)
+    transitions = []
+    metrics = []
+    submitted_time = datetime.utcnow()
+
+    def finish(*args):
+        transitions.append(args)
+        return submitted_time if len(transitions) == 1 else None
+
+    monkeypatch.setattr(polling.LogDetectiveRunModel, "finish_api_run", finish)
+    monkeypatch.setattr(
+        polling.LogDetectiveRunHelper,
+        "_record_completion_metrics",
+        lambda _, submitted: metrics.append(submitted),
+    )
+    helper = polling.LogDetectiveRunHelper(5)
+    assert helper._finish_if_superseded(saved)
+    assert helper._finish_if_superseded(saved)
+    assert metrics == [submitted_time]
 
 
 @pytest.mark.parametrize(
@@ -312,10 +441,10 @@ def test_duplicate_reports_count_one_database_transition(monkeypatch):
 def test_report_context_skips_deleted_or_superseded_build(monkeypatch):
     """A missing or obsolete build needs no external Fedora CI report."""
     saved = run(koji_build_target=None)
-    query = MagicMock()
-    query.filter_by.return_value.one_or_none.return_value = saved
-    session = MagicMock()
-    session.query.return_value = query
+    query = flexmock()
+    query.should_receive("filter_by").and_return(query)
+    query.should_receive("one_or_none").and_return(saved)
+    session = flexmock(query=lambda _: query)
 
     @contextmanager
     def transaction(**_):
@@ -328,6 +457,41 @@ def test_report_context_skips_deleted_or_superseded_build(monkeypatch):
     assert models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete) is None
 
 
+@pytest.mark.parametrize("target_field", ["copr_build_target", "srpm_build"])
+def test_report_context_checks_newer_copr_build(monkeypatch, target_field):
+    """Copr RPM and SRPM analyses use their respective build freshness checks."""
+    build = object()
+    saved = run(
+        build_system=models.LogDetectiveBuildSystem.copr,
+        get_project=lambda: models.AnityaProjectModel(),
+        get_project_event_model=lambda: SimpleNamespace(commit_sha="abc123"),
+        **{target_field: build},
+    )
+    query = flexmock()
+    query.should_receive("filter_by").and_return(query)
+    query.should_receive("one_or_none").and_return(saved)
+    session = flexmock(query=lambda _: query)
+
+    @contextmanager
+    def transaction(**_):
+        yield session
+
+    checked = []
+    monkeypatch.setattr(models, "sa_session_transaction", transaction)
+    monkeypatch.setattr(
+        models.CoprBuildTargetModel,
+        "has_newer_run",
+        lambda target: checked.append(target) or True,
+    )
+    monkeypatch.setattr(
+        models.SRPMBuildModel,
+        "has_newer_run",
+        lambda target: checked.append(target) or True,
+    )
+    assert models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete) is None
+    assert checked == [build]
+
+
 def test_report_context_rejects_anitya_project(monkeypatch):
     """Fedora CI reporting requires a Git project URL and commit SHA."""
     saved = run(
@@ -335,10 +499,10 @@ def test_report_context_rejects_anitya_project(monkeypatch):
         get_project=lambda: models.AnityaProjectModel(),
         get_project_event_model=lambda: SimpleNamespace(commit_sha="abc123"),
     )
-    query = MagicMock()
-    query.filter_by.return_value.one_or_none.return_value = saved
-    session = MagicMock()
-    session.query.return_value = query
+    query = flexmock()
+    query.should_receive("filter_by").and_return(query)
+    query.should_receive("one_or_none").and_return(saved)
+    session = flexmock(query=lambda _: query)
 
     @contextmanager
     def transaction(**_):
@@ -350,13 +514,45 @@ def test_report_context_rejects_anitya_project(monkeypatch):
         models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete)
 
 
+def test_report_context_uses_saved_copr_build_id(monkeypatch):
+    """Recovered reports use the build ID persisted with the analysis."""
+    build = SimpleNamespace(get_branch_name=lambda: "main")
+    saved = run(
+        build_system=models.LogDetectiveBuildSystem.copr,
+        copr_build_target=build,
+        target_build="42",
+        target="fedora-rawhide-x86_64",
+        get_project=lambda: models.GitProjectModel(project_url="https://example.org/repo"),
+        get_project_event_model=lambda: SimpleNamespace(commit_sha="abc123"),
+        get_pr_id=lambda: None,
+    )
+    query = flexmock()
+    query.should_receive("filter_by").and_return(query)
+    query.should_receive("one_or_none").and_return(saved)
+    session = flexmock(query=lambda _: query)
+
+    @contextmanager
+    def transaction(**_):
+        yield session
+
+    monkeypatch.setattr(models, "sa_session_transaction", transaction)
+    monkeypatch.setattr(models.CoprBuildTargetModel, "has_newer_run", lambda *_: False)
+    context = models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete)
+    assert context.build_id == "42"
+    assert context.commit_sha == "abc123"
+    saved.target_build = None
+    with pytest.raises(ValueError, match="Missing reporting context"):
+        models.LogDetectiveRunModel.get_report_context(5, LogDetectiveResult.complete)
+
+
 def test_late_acceptance_does_not_change_terminal_run(monkeypatch):
     """An overlapping POST cannot change an already finalized run."""
     saved = run(status=LogDetectiveResult.complete, accepted_time=None)
-    query = MagicMock()
-    query.filter_by.return_value.with_for_update.return_value.one_or_none.return_value = saved
-    session = MagicMock()
-    session.query.return_value = query
+    query = flexmock()
+    query.should_receive("filter_by").and_return(query)
+    query.should_receive("with_for_update").and_return(query)
+    query.should_receive("one_or_none").and_return(saved)
+    session = flexmock(query=lambda _: query)
 
     @contextmanager
     def transaction(**_):
@@ -389,10 +585,13 @@ def test_repeated_api_failures_leave_run_pending(monkeypatch):
 def test_babysit_reads_all_running_api_runs(monkeypatch):
     """The recovery scan reads every running API row without reserving it."""
     rows = [SimpleNamespace(id=3), SimpleNamespace(id=8)]
-    query = MagicMock()
-    query.filter.return_value.all.return_value = rows
-    session = MagicMock()
-    session.query.return_value = query
+    query = flexmock()
+    query.should_receive("filter").and_return(query)
+    query.should_receive("all").and_return(rows)
+    session = flexmock()
+    session.should_receive("query").with_args(models.LogDetectiveRunModel.id).and_return(
+        query
+    ).once()
 
     @contextmanager
     def transaction(**_):
@@ -400,9 +599,6 @@ def test_babysit_reads_all_running_api_runs(monkeypatch):
 
     monkeypatch.setattr(models, "sa_session_transaction", transaction)
     assert models.LogDetectiveRunModel.get_pending_api_run_ids() == [3, 8]
-    session.query.assert_called_once_with(models.LogDetectiveRunModel.id)
-    query.filter.return_value.limit.assert_not_called()
-    query.filter.return_value.with_for_update.assert_not_called()
 
 
 def test_beat_recovers_each_running_run(monkeypatch, caplog):
@@ -484,7 +680,9 @@ def test_http_failure_is_terminal_only_for_permanent_client_error(monkeypatch, c
     """Permanent client errors finish a run; transient errors stay pending."""
     monkeypatch.setattr(polling.LogDetectiveRunModel, "get_by_id", lambda *_: run())
     reply = response(code=code)
-    reply.raise_for_status.side_effect = requests.HTTPError("failed", response=reply)
+    flexmock(reply).should_receive("raise_for_status").and_raise(
+        requests.HTTPError("failed", response=reply)
+    )
     monkeypatch.setattr(polling.requests, "get", lambda *a, **kw: reply)
     finished = []
     monkeypatch.setattr(polling.LogDetectiveRunHelper, "_finish", lambda *a: finished.append(a))
@@ -503,6 +701,7 @@ def test_report_recovers_fedora_ci_context_from_build(monkeypatch):
         branch=None,
         target="rawhide-noarch",
         status=LogDetectiveResult.complete,
+        build_id="koji-task-5",
     )
     monkeypatch.setattr(
         polling.LogDetectiveRunModel,
@@ -534,6 +733,7 @@ def test_check_name_without_deployment_prefix(monkeypatch):
         branch="main",
         target="rawhide-x86_64",
         status=LogDetectiveResult.complete,
+        build_id="koji-task-6",
     )
     monkeypatch.setattr(polling, "get_check_name_prefix", lambda *_: "")
     monkeypatch.setattr(polling.LogDetectiveRunModel, "get_report_context", lambda *_: context)
@@ -553,12 +753,17 @@ def test_check_name_without_deployment_prefix(monkeypatch):
 @pytest.mark.parametrize("post_fails", [False, True])
 @pytest.mark.parametrize("enqueue_fails", [False, True])
 def test_koji_submission_saves_request_and_build_before_post(
-    monkeypatch, post_fails, enqueue_fails
+    monkeypatch, caplog, post_fails, enqueue_fails
 ):
     """Saved inputs survive both initial POST and Celery delivery failures."""
-    build = MagicMock(nvr="pkg-1-1", scratch=True, sidetag=None, build_submission_stdout=None)
-    build.group_of_targets.runs = []
-    event = MagicMock(
+    build = flexmock(
+        nvr="pkg-1-1",
+        scratch=True,
+        sidetag=None,
+        build_submission_stdout=None,
+        group_of_targets=flexmock(runs=[]),
+    )
+    event = flexmock(
         build_model=build,
         target="rawhide",
         db_project_object=None,
@@ -584,12 +789,19 @@ def test_koji_submission_saves_request_and_build_before_post(
         lambda *a, **kw: created.append((a, kw)) or run(),
     )
 
-    def submit(*args, **kwargs):
+    def post(*args, **kwargs):
         created.append(("post", args, kwargs))
         if post_fails:
             raise requests.Timeout("initial POST failed")
+        return response(code=202)
 
-    monkeypatch.setattr(polling.LogDetectiveRunHelper, "submit_analysis", submit)
+    monkeypatch.setattr(polling.requests, "post", post)
+    accepted = []
+    monkeypatch.setattr(
+        polling.LogDetectiveRunModel,
+        "mark_api_accepted",
+        lambda run_id: accepted.append(run_id),
+    )
     queued = []
 
     def send_task(self, *args, **kwargs):
@@ -600,12 +812,6 @@ def test_koji_submission_saves_request_and_build_before_post(
     # Restore the class method after this test; patching the shared app leaves an
     # instance attribute that shadows class-level mocks in later tests.
     monkeypatch.setattr(Celery, "send_task", send_task)
-    failures = []
-    monkeypatch.setattr(
-        polling.LogDetectiveRunHelper,
-        "_api_failure",
-        lambda self, exc: failures.append(str(exc)),
-    )
     helper = polling.LogDetectiveKojiTriggerHelper(
         event,
         SimpleNamespace(commit_sha="abc", project_url="https://example.org", pr_id=None),
@@ -617,11 +823,39 @@ def test_koji_submission_saves_request_and_build_before_post(
     assert helper.trigger_log_detective_analysis() == [True]
     selected_logs = created[0][1]["selected_logs"]
     assert [file["name"] for file in selected_logs] == ["root.log", "mock_output.log", "build.log"]
-    assert "arch: x86_64" in created[0][1]["analysis_commentary"]
+    commentary = created[0][1]["analysis_commentary"]
+    assert "arch: x86_64" in commentary
+    assert "Package NVR: pkg-1-1" in commentary
+    assert "Scratch build." in commentary
+    assert "Build ran for 10 seconds before failing." in commentary
+    assert "The build.log contains output of the package build" in commentary
     assert created[0][1]["log_detective_analysis_id"] == TASK_ID
     assert created_groups == [build.group_of_targets.runs]
     assert created[0][1]["log_detective_run_group"] is group
     assert created[0][1]["koji_build_target"] is build
-    assert created[1][0] == "post" and created[1][2] == {}
-    assert failures == (["initial POST failed"] if post_fails else [])
+    assert created[1][0] == "post"
+    assert created[1][2]["json"]["id"] == TASK_ID
+    assert accepted == ([] if post_fails else [5])
+    assert ("initial POST failed" in caplog.text) is post_fails
     assert queued == [(("task.process_log_detective_run",), {"args": (5,), "countdown": 120})]
+
+
+def test_koji_commentary_keeps_sidetag_and_submission_output():
+    build = SimpleNamespace(
+        nvr="pkg-1-1",
+        scratch=False,
+        sidetag="f44-build-side-1",
+        build_submission_stdout="task accepted",
+    )
+    event = SimpleNamespace(
+        build_model=build,
+        target="f44",
+        db_project_object=None,
+        start_time=None,
+        completion_time=None,
+    )
+    helper = polling.LogDetectiveKojiTriggerHelper(event, None, None, "", "", "")
+    commentary = helper._commentary_for_arch("aarch64")
+    assert "Official (non-scratch) build." in commentary
+    assert "Built in sidetag: f44-build-side-1." in commentary
+    assert "Build submission output: task accepted" in commentary
